@@ -14,12 +14,56 @@
       --holo-blur:   28px;
       --holo-speed:  8s;
     }
+    /* HOMEPAGE EXTRAS */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .hero-content {
+      position: relative;
+      text-align: center;
+      z-index: 1;
+    }
+    .hero-title {
+      color: #fff;
+      filter: hue-rotate(var(--hue,0deg));
+    }
+    .cta-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3,1rem);
+      margin-top: var(--space-4,1.5rem);
+    }
+    .red-holo.ghost {
+      background: transparent;
+    }
   </style>
 </head>
 <body class="dex-body">
 
   <!-- 1 · Hero -->
-  <section id="hero"      class="dex-section"><!-- Codex fills --></section>
+  <section id="hero" class="dex-section hero">
+    <video src="https://video.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/playlist.m3u8" muted autoplay playsinline loop aria-hidden="true"></video>
+    <div class="hero-content dex-card">
+      <h1 id="hero-title" class="hero-title dex-glow" aria-label="DEX DIGITAL LIBRARY"></h1>
+      <div class="cta-row">
+        <button id="explore-btn" class="red-holo" role="link" aria-label="Explore catalog"></button>
+        <button id="watch-btn" class="red-holo ghost" role="link" aria-label="Watch dexfest 2024"></button>
+      </div>
+    </div>
+  </section>
 
   <!-- 2 · Mission Triptych -->
   <section id="mission"   class="dex-section"></section>
@@ -43,5 +87,27 @@
   <footer  id="footer"    class="dex-section"></footer>
 
   <script src="assets/js/dex.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const title = document.getElementById('hero-title');
+      if (title) title.innerHTML = randomizeTitle('DEX DIGITAL LIBRARY');
+      const explore = document.getElementById('explore-btn');
+      const watch = document.getElementById('watch-btn');
+      if (explore) explore.innerHTML = randomizeTitle('EXPLORE CATALOG');
+      if (watch) watch.innerHTML = randomizeTitle('WATCH DEXFEST 2024');
+
+      const maxHue = 30;
+      let frame;
+      const updateHue = () => {
+        const ratio = window.scrollY / window.innerHeight;
+        const hue = Math.max(-maxHue, Math.min(maxHue, (ratio - 0.5) * 2 * maxHue));
+        title.style.setProperty('--hue', hue + 'deg');
+        frame = null;
+      };
+      window.addEventListener('scroll', () => {
+        if (!frame) frame = requestAnimationFrame(updateHue);
+      }, { passive: true });
+    });
+  </script>
 </body>
 </html>
