@@ -1,0 +1,36 @@
+<section id="dex-hero" class="dex-section" style="position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;">
+  <video class="dex-bg" autoplay muted loop playsinline poster="https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/hero.jpg" style="position:absolute;inset:0;object-fit:cover;z-index:-2;">
+    <source src="https://video.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/playlist.m3u8" type="application/x-mpegURL">
+  </video>
+  <div class="cta-row" style="display:flex;justify-content:center;gap:var(--space-3,1rem);margin-top:var(--space-4,1.5rem);">
+    <a href="/catalog" class="red-holo" style="transition:transform var(--holo-speed,0.6s);">EXPLORE CATALOG</a>
+    <a href="/in-dex/dexfest-2024" class="red-holo" style="transition:transform var(--holo-speed,0.6s);">WATCH dexFEST 2024</a>
+  </div>
+  <script>
+    const hero = document.getElementById('dex-hero');
+    injectTypeStyles();
+    hero.prepend(
+      el('h1','dex-hero-title',{ 'aria-label':'DEX DIGITAL LIBRARY' },randomizeTitle('DEX DIGITAL LIBRARY')),
+      el('p','dex-hero-tag',{},'a free archive of people, not sounds')
+    );
+    const video = hero.querySelector('.dex-bg');
+    const still = video.poster;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduced){ video.removeAttribute('autoplay'); video.pause(); }
+    function usePoster(){
+      video.outerHTML = `<img src="${still}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;">`;
+    }
+    const iosOld = /iP(hone|ad)/.test(navigator.userAgent) && ((navigator.userAgent.match(/OS (\d+)/)||[])[1]||15) < 15;
+    if(!video.canPlayType('application/vnd.apple.mpegurl') || iosOld) usePoster();
+    const title = hero.querySelector('.dex-hero-title');
+    if(!reduced && title){
+      const maxHue=30; let frame;
+      const update=()=>{const ratio=window.scrollY/window.innerHeight;const hue=Math.max(-maxHue,Math.min(maxHue,(ratio-0.5)*2*maxHue));title.style.setProperty('--hue',hue+'deg');frame=null;};
+      addEventListener('scroll',()=>{if(!frame) frame=requestAnimationFrame(update);},{passive:true});
+    }
+    hero.querySelectorAll('.red-holo').forEach(btn=>{
+      btn.addEventListener('mouseover',()=>btn.style.transform='scale(1.05)');
+      btn.addEventListener('mouseout',()=>btn.style.transform='scale(1)');
+    });
+  </script>
+</section>
