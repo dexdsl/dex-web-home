@@ -1,0 +1,12 @@
+{
+  "name": "dex-web-home",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "rewrite:anchors": "node scripts/rewrite-internal-anchors.mjs",
+    "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check"
+  },
+  "devDependencies": {
+    "parse5": "^7.3.0"
+  }
+}
