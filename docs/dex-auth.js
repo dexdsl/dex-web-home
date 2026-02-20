@@ -136,8 +136,21 @@
   }
 
   function ensureAuthUi() {
-    if (document.getElementById(AUTH_UI_ID)) {
-      return document.getElementById(AUTH_UI_ID);
+    var existing = document.getElementById(AUTH_UI_ID);
+    if (existing) {
+      if (!existing.querySelector("#auth-ui-signin")) {
+        existing.innerHTML = ""
+          + '<button id="auth-ui-signin" type="button">SIGN IN</button>'
+          + '<div id="auth-ui-profile" hidden>'
+          + '  <button id="auth-ui-profile-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Profile">'
+          + '    <img id="auth-ui-avatar" alt="Profile avatar" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'
+          + "  </button>"
+          + '  <div id="auth-ui-dropdown" role="menu">'
+          + '    <button id="auth-ui-logout" type="button">Log out</button>'
+          + "  </div>"
+          + "</div>";
+      }
+      return existing;
     }
 
     hideLegacyAccountUi();
@@ -179,6 +192,33 @@
     return ui;
   }
 
+  function applyPrimaryButtonStyle(btn) {
+    if (!btn) return;
+
+    var candidates = [
+      "button.primary",
+      "a.primary",
+      ".btn--primary",
+      ".button--primary",
+      ".sqs-block-button-element--primary",
+      ".sqs-block-button-element",
+      ".button"
+    ];
+
+    for (var i = 0; i < candidates.length; i += 1) {
+      var el = document.querySelector(candidates[i]);
+      if (el && el !== btn && el.classList && el.classList.length) {
+        btn.className = el.className;
+        return;
+      }
+    }
+
+    btn.style.border = "none";
+    btn.style.padding = "8px 12px";
+    btn.style.borderRadius = "8px";
+    btn.style.cursor = "pointer";
+  }
+
   function setUiState(auth, user) {
     var ui = ensureAuthUi();
     if (!ui) {
@@ -193,6 +233,8 @@
       return;
     }
 
+    applyPrimaryButtonStyle(signInBtn);
+
     if (auth) {
       signInBtn.hidden = true;
       profileWrap.hidden = false;
@@ -205,6 +247,7 @@
     } else {
       signInBtn.hidden = false;
       profileWrap.hidden = true;
+      closeDropdown();
     }
   }
 
@@ -391,11 +434,17 @@
         authorizationParams.audience = cfg.audience;
       }
 
-        authClient = await createAuth0Client({
-          domain: cfg.domain,
-          clientId: cfg.clientId,
-          authorizationParams: authorizationParams
-        });
+      // optional feature flags (safe defaults)
+      var useRefreshTokens = !!(cfg && cfg.useRefreshTokens);
+      var cacheLocation = (cfg && cfg.cacheLocation) || "localstorage";
+
+      authClient = await createAuth0Client({
+        domain: cfg.domain,
+        clientId: cfg.clientId,
+        authorizationParams: authorizationParams,
+        cacheLocation: cacheLocation,
+        useRefreshTokens: useRefreshTokens
+      });
 
       if (isCallbackPath(window.location.pathname)) {
         var callbackResult = await authClient.handleRedirectCallback();
@@ -403,6 +452,12 @@
         var returnTo = (callbackResult && callbackResult.appState && callbackResult.appState.returnTo) || "/";
         window.location.replace(returnTo);
         return;
+      }
+
+      try {
+        await authClient.checkSession();
+      } catch (e) {
+        // Silent auth can fail (ITP / cookie restrictions). Ignore and fall through.
       }
 
       isAuthenticated = await authClient.isAuthenticated();
