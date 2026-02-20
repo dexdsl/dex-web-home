@@ -16,6 +16,7 @@ import {
   formatZodError,
 } from './lib/entry-schema.mjs';
 import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './lib/entry-html.mjs';
+import { runDashboard } from './ui/dashboard.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 const ROOT = process.cwd();
@@ -300,36 +301,47 @@ async function initCommand(slugArg, opts) {
   }
 }
 
-async function validateCommand(target = 'all', opts = {}) {
-  const base = path.resolve(opts.out || './entries');
-  if (!(await ensure(base))) throw new Error(`Entries folder not found: ${base}`);
-  const slugs = target === 'all' ? (await fs.readdir(base, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : [target];
-  let fail = false;
-  for (const slug of slugs) {
-    try {
-      const dir = path.join(base, slug);
-      const entry = JSON.parse(await fs.readFile(path.join(dir, 'entry.json'), 'utf8'));
-      const manifest = JSON.parse(await fs.readFile(path.join(dir, 'manifest.json'), 'utf8'));
-      entrySchema.parse(entry);
-      manifestSchemaForFormats([], []).parse(manifest);
-      console.log(`[${slug}] ok`);
-    } catch (e) {
-      fail = true;
-      console.log(`[${slug}] fail: ${e.message}`);
-    }
+
+function parseTopLevelMode(argv) {
+  const args = argv.slice(2);
+  const firstNonFlag = args.find((arg) => !arg.startsWith('-'));
+  const hasTopHelp = args.includes('--help') || args.includes('-h');
+
+  if (!firstNonFlag && args.length === 0) return { mode: 'dashboard', paletteOpen: false };
+  if (!firstNonFlag && hasTopHelp) return { mode: 'dashboard', paletteOpen: true };
+  return { mode: 'commander', paletteOpen: false };
+}
+
+const topLevel = parseTopLevelMode(process.argv);
+if (topLevel.mode === 'dashboard') {
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    console.log('dex: interactive dashboard requires a TTY. Try: dex init');
+    process.exit(0);
   }
-  if (fail) process.exit(1);
+
+  const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
+  const { action } = await runDashboard({
+    paletteOpen: topLevel.paletteOpen,
+    version: packageJson.version || 'dev',
+  });
+
+  if (action === 'init') {
+    await initCommand(undefined, {
+      out: './entries',
+      quick: false,
+      advanced: false,
+      template: undefined,
+      open: false,
+      dryRun: false,
+      flat: false,
+      from: undefined,
+    });
+  }
+  process.exit(0);
 }
 
 const program = new Command();
 program.name('dex');
 program.command('init').argument('[slug]').option('--quick').option('--advanced').option('--out <dir>', 'output root', './entries').option('--template <path>').option('--open').option('--dry-run').option('--flat').option('--from <entryJson>').action(initCommand);
-program.command('validate').argument('<slug|all>').option('--out <dir>', 'entries root', './entries').action(validateCommand);
-program.command('build').description('legacy placeholder; use existing build workflows').action(() => {
-  console.log('dex build is unchanged in this migration.');
-});
-program.command('watch').description('legacy placeholder; use existing watch workflows').action(() => {
-  console.log('dex watch is unchanged in this migration.');
-});
 
 await program.parseAsync(process.argv);
