@@ -96,7 +96,7 @@
       + '    <span class="dex-profile-chevron" aria-hidden="true"></span>'
       + "  </button>"
       + '  <div id="auth-ui-dropdown" role="menu" aria-label="Account menu">'
-      + '    <a class="dex-menu-item" href="/test2" role="menuitem">Catalog</a>'
+      + '    <a class="dex-menu-item" href="/catalog" role="menuitem">Catalog</a>'
       + '    <a class="dex-menu-item" href="/favorites" role="menuitem">Favorites</a>'
       + '    <a class="dex-menu-item" href="/polls" role="menuitem">Polls</a>'
       + '    <div class="dex-menu-sep" role="separator"></div>'

@@ -156,11 +156,7 @@ async function main() {
 
   // Your known unlinked public pages:
   const known = [
-    `${ORIGIN}${ENTRY_PATH}/messages`,
-    `${ORIGIN}${ENTRY_PATH}/achievements`,
-    `${ORIGIN}${ENTRY_PATH}/submit`,
-    `${ORIGIN}${ENTRY_PATH}/pressroom`,
-    `${ORIGIN}/polls`,
+    `${ORIGIN}/favorites`,
   ];
   for (const k of known) {
     const n = normalize(k);
