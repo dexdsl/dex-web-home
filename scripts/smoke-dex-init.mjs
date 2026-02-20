@@ -30,14 +30,24 @@ const real = run(['init', '--quick', '--template', './index.html', '--out', './e
 if (real.status !== 0) throw new Error(`write run failed: ${real.stderr}\n${real.stdout}`);
 
 const outHtml = await fs.readFile(path.join(temp, 'entries', 'smoke-title', 'index.html'), 'utf8');
-for (const needle of ['data-url="https://player.vimeo.com/video/1"', '<p>desc</p>', 'LOOKUP-1', '"wav": "a1"', '/assets/series/dex.png', '/assets/dex-auth0-config.js', '/assets/dex-auth.js']) {
+for (const needle of ['data-url="https://player.vimeo.com/video/1"', '<p>desc</p>', 'LOOKUP-1', '/assets/series/dex.png', '/assets/dex-auth0-config.js', '/assets/dex-auth.js']) {
   if (!outHtml.includes(needle)) throw new Error(`missing in output html: ${needle}`);
+}
+
+const manifestNodeMatch = outHtml.match(/<script id="dex-manifest" type="application\/json">([\s\S]*?)<\/script>/);
+if (!manifestNodeMatch) throw new Error('missing #dex-manifest script node in output html');
+const htmlManifest = JSON.parse(manifestNodeMatch[1]);
+for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
+  if (htmlManifest.audio?.[bucket]?.wav !== '') throw new Error(`expected empty audio manifest value for ${bucket}.wav`);
+  if (htmlManifest.video?.[bucket]?.['1080p'] !== '') throw new Error(`expected empty video manifest value for ${bucket}.1080p`);
 }
 
 const outManifest = JSON.parse(await fs.readFile(path.join(temp, 'entries', 'smoke-title', 'manifest.json'), 'utf8'));
 for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
   if (!(bucket in outManifest.audio)) throw new Error(`missing audio bucket: ${bucket}`);
   if (!(bucket in outManifest.video)) throw new Error(`missing video bucket: ${bucket}`);
+  if (outManifest.audio[bucket]?.wav !== '') throw new Error(`expected empty manifest audio value for ${bucket}.wav`);
+  if (outManifest.video[bucket]?.['1080p'] !== '') throw new Error(`expected empty manifest video value for ${bucket}.1080p`);
 }
 
 const sidebarRuntime = await fs.readFile(path.join(root, 'docs/assets/dex-sidebar.js'), 'utf8');
