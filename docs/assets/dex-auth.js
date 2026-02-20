@@ -55,12 +55,15 @@
       return null;
     }
     
-    function ensureAuthClient(cfg) {
-        if (authClient) return Promise.resolve(authClient);
-        cfg = cfg || getCfg();
-        if (!cfg) {
-          return Promise.reject(new Error("Missing Auth0 config (no DEX_AUTH0_CONFIG.current for host " + window.location.hostname + ")"));
-        }
+    function ensureAuthClient() {
+      if (authClient) return Promise.resolve(authClient);
+
+      var cfg = getCfg();
+      if (!cfg) {
+        return Promise.reject(
+          new Error("Missing Auth0 config (host " + window.location.hostname + ")")
+        );
+      }
       if (typeof window.createAuth0Client !== "function") {
         return Promise.reject(new Error("Auth0 SPA SDK missing (createAuth0Client)"));
       }
@@ -225,14 +228,15 @@
 
           var returnTo = window.location.pathname + window.location.search + window.location.hash;
 
-          ensureAuthClient()
-            .then(function (client) {
+            ensureAuthClient()
+              .then(function (client) {
                 var cfgNow = getCfg();
+                if (!cfgNow) throw new Error("Missing Auth0 config at click-time");
                 return client.loginWithRedirect({
                   appState: { returnTo: returnTo },
-                  authorizationParams: cfgNow ? { redirect_uri: cfgNow.redirectUri } : undefined
+                  authorizationParams: { redirect_uri: cfgNow.redirectUri }
                 });
-            })
+              })
             .catch(function (err) {
               logError("SIGN IN failed:", err);
             });
@@ -291,17 +295,19 @@
     return null;
   }
 
-  function handleGuardedNavIntent(returnTo) {
-    if (!authClient) {
-      logError("Auth client unavailable for route guard redirect.");
-      return;
+    function handleGuardedNavIntent(returnTo) {
+      ensureAuthClient()
+        .then(function (client) {
+          var cfgNow = getCfg();
+          return client.loginWithRedirect({
+            appState: { returnTo: returnTo },
+            authorizationParams: cfgNow ? { redirect_uri: cfgNow.redirectUri } : undefined
+          });
+        })
+        .catch(function (err) {
+          logError("loginWithRedirect failed:", err);
+        });
     }
-    authClient.loginWithRedirect({
-      appState: { returnTo: returnTo }
-    }).catch(function (err) {
-      logError("loginWithRedirect failed:", err);
-    });
-  }
 
   function bindClickGuard() {
     if (document.documentElement.dataset.dexAuthClickGuardBound) {
@@ -359,13 +365,13 @@
       ensureAuthUi();
       if (!cfg) {
         logError("Missing host Auth0 configuration; auth features disabled.");
-        bindUiEvents();
+        bindUiEvents(cfg);
         bindClickGuard();
         return;
       }
       if (typeof window.createAuth0Client !== "function") {
         logError("Auth0 SPA SDK missing; expected createAuth0Client global.");
-        bindUiEvents();
+        bindUiEvents(cfg);
         bindClickGuard();
         return;
       }
@@ -405,7 +411,7 @@
         user = await authClient.getUser();
       }
       setUiState(isAuthenticated, user);
-      bindUiEvents();
+      bindUiEvents(cfg);
       bindClickGuard();
     } catch (err) {
       logError("Initialization error:", err);
