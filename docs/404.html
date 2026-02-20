@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Redirecting…</title>
+<script>
+  (function () {
+    var p = location.pathname;
+    // if no extension and no trailing slash, try adding slash
+    if (!p.endsWith("/") && p.split("/").pop().indexOf(".") === -1) {
+      location.replace(p + "/" + location.search + location.hash);
+    }
+  })();
+</script>
