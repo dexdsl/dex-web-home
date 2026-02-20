@@ -250,7 +250,7 @@ async function collectInitData(opts, slugArg) {
 }
 
 async function initCommand(slugArg, opts) {
-    const { templatePath, templateHtml } = await detectTemplate(opts.template);
+  const { templatePath, templateHtml } = await detectTemplate(opts.template);
   const missing = detectTemplateProblems(templateHtml);
   if (missing.length) throw new Error(`Template validation failed; missing: ${missing.join(', ')}`);
 
@@ -294,6 +294,17 @@ async function initCommand(slugArg, opts) {
   await fs.writeFile(files.desc, `${data.descriptionHtml.trim()}\n`, 'utf8');
   await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');
 
+  if (process.env.DEX_INIT_REPORT_PATH) {
+    const report = {
+      slug: data.slug,
+      folder,
+      html: files.html,
+      template: templatePath,
+      timestamp: new Date().toISOString(),
+    };
+    await fs.writeFile(process.env.DEX_INIT_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8').catch(() => {});
+  }
+
   if (opts.open) {
     const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
     const args = process.platform === 'win32' ? ['/c', 'start', '', files.html] : [files.html];
@@ -312,6 +323,44 @@ function parseTopLevelMode(argv) {
   return { mode: 'commander', paletteOpen: false };
 }
 
+function nowStamp() {
+  return new Date().toISOString().slice(11, 19);
+}
+
+function pushLog(logs, message) {
+  logs.push(`[${nowStamp()}] ${message}`);
+}
+
+async function runInitChild() {
+  const reportPath = path.join(os.tmpdir(), `dex-init-report-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+  const child = spawn(process.execPath, [path.join(SCRIPT_DIR, 'dex.mjs'), 'init'], {
+    stdio: 'inherit',
+    env: { ...process.env, DEX_INIT_REPORT_PATH: reportPath },
+  });
+
+  const exitCode = await new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('exit', (code, signal) => {
+      if (signal) {
+        resolve(1);
+        return;
+      }
+      resolve(code ?? 0);
+    });
+  });
+
+  let report = null;
+  try {
+    const raw = await fs.readFile(reportPath, 'utf8');
+    report = JSON.parse(raw);
+  } catch {
+    // Best-effort read; report may be absent.
+  }
+  await fs.unlink(reportPath).catch(() => {});
+
+  return { exitCode, report };
+}
+
 const topLevel = parseTopLevelMode(process.argv);
 if (topLevel.mode === 'dashboard') {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
@@ -320,32 +369,38 @@ if (topLevel.mode === 'dashboard') {
   }
 
   const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
-  const { action } = await runDashboard({
-    paletteOpen: topLevel.paletteOpen,
-    version: packageJson.version || 'dev',
-  });
+  const logs = [];
+  let paletteOpen = topLevel.paletteOpen;
 
-  if (action === 'init') {
+  try {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { action } = await runDashboard({
+        paletteOpen,
+        version: packageJson.version || 'dev',
+        logs,
+      });
+      paletteOpen = false;
+
+      if (!action || action === 'quit') break;
+      if (action !== 'init') continue;
+
+      pushLog(logs, 'Running init wizard…');
+      process.stdout.write('\x1b[?25h');
+      process.stdout.write('\x1b[0m');
+      process.stdout.write('\x1b[2J\x1b[H');
+
+      const { exitCode, report } = await runInitChild();
+      pushLog(logs, `Init finished (exit ${exitCode})`);
+      if (report?.html) pushLog(logs, `Output: ${report.html}`);
+      if (report?.slug) pushLog(logs, `Slug: ${report.slug}`);
+    }
+  } finally {
     process.stdout.write('\x1b[?25h');
     process.stdout.write('\x1b[0m');
-    process.stdout.write('\x1b[2J\x1b[H');
-
-    const child = spawn(process.execPath, [path.join(SCRIPT_DIR, 'dex.mjs'), 'init'], {
-      stdio: 'inherit',
-    });
-
-    const exitCode = await new Promise((resolve, reject) => {
-      child.once('error', reject);
-      child.once('exit', (code, signal) => {
-        if (signal) {
-          resolve(1);
-          return;
-        }
-        resolve(code ?? 0);
-      });
-    });
-
-    process.exit(exitCode);
+    if (process.stdin.isTTY && typeof process.stdin.setRawMode === 'function') {
+      process.stdin.setRawMode(false);
+    }
   }
 
   process.exit(0);
