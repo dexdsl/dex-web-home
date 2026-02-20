@@ -136,11 +136,12 @@
   }
 
   function ensureAuthUi() {
-    if (document.getElementById(AUTH_UI_ID)) {
-      return document.getElementById(AUTH_UI_ID);
-    }
-
     hideLegacyAccountUi();
+
+    var mount = document.querySelector(".header-actions--right") ||
+      document.querySelector(".header-actions") ||
+      document.querySelector("header") ||
+      document.body;
 
     var styleId = "dex-auth-style";
     if (!document.getElementById(styleId)) {
@@ -149,7 +150,7 @@
       style.textContent = ""
         + "#auth-ui{position:relative;display:inline-flex;align-items:center;gap:10px;font-family:inherit;}"
         + "#auth-ui [hidden]{display:none!important;}"
-        + "#auth-ui-signin{padding:8px 12px;border:1px solid #111;background:#fff;color:#111;cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;}"
+        + "#auth-ui-signin.dex-auth-fallback-btn{padding:8px 12px;border:1px solid #111;background:#fff;color:#111;cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;}"
         + "#auth-ui-profile-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4d4d4;background:#fff;width:36px;height:36px;border-radius:9999px;cursor:pointer;padding:0;}"
         + "#auth-ui-avatar{width:100%;height:100%;border-radius:9999px;object-fit:cover;display:block;}"
         + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 8px);min-width:160px;border:1px solid #ddd;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;z-index:9999;display:none;}"
@@ -158,10 +159,38 @@
       document.head.appendChild(style);
     }
 
+    var existing = document.getElementById(AUTH_UI_ID);
+    if (existing) {
+      if (!existing.querySelector("#auth-ui-signin")) {
+        existing.innerHTML = ""
+          + '<button id="auth-ui-signin" class="dex-auth-fallback-btn" type="button">SIGN IN</button>'
+          + '<div id="auth-ui-profile" hidden>'
+          + '  <button id="auth-ui-profile-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Profile">'
+          + '    <img id="auth-ui-avatar" alt="Profile avatar" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'
+          + "  </button>"
+          + '  <div id="auth-ui-dropdown" role="menu">'
+          + '    <button id="auth-ui-logout" type="button">Log out</button>'
+          + "  </div>"
+          + "</div>";
+      }
+
+      var existingDisplay = window.getComputedStyle(existing).display;
+      var isInMount = !!(mount && mount.contains(existing));
+      var unusable = existing.offsetParent === null || existingDisplay === "none" || !isInMount;
+      if (unusable) {
+        if (mount && existing.parentNode !== mount) {
+          mount.appendChild(existing);
+        }
+        existing.style.display = "";
+        existing.hidden = false;
+      }
+      return existing;
+    }
+
     var ui = document.createElement("div");
     ui.id = AUTH_UI_ID;
     ui.innerHTML = ""
-      + '<button id="auth-ui-signin" type="button">SIGN IN</button>'
+      + '<button id="auth-ui-signin" class="dex-auth-fallback-btn" type="button">SIGN IN</button>'
       + '<div id="auth-ui-profile" hidden>'
       + '  <button id="auth-ui-profile-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Profile">'
       + '    <img id="auth-ui-avatar" alt="Profile avatar" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'
@@ -171,12 +200,55 @@
       + "  </div>"
       + "</div>";
 
-    var mount = document.querySelector(".header-actions--right") ||
-      document.querySelector(".header-actions") ||
-      document.querySelector("header") ||
-      document.body;
     mount.appendChild(ui);
     return ui;
+  }
+
+  function applyPrimaryButtonStyle(btn) {
+    if (!btn) return;
+
+    btn.classList.add("dex-auth-signin");
+
+    if (document.querySelector(".sqs-block-button-element--primary")) {
+      btn.classList.add("sqs-block-button-element", "sqs-block-button-element--primary");
+      btn.classList.remove("dex-auth-fallback-btn");
+      btn.style.border = "";
+      btn.style.background = "";
+      btn.style.color = "";
+      btn.style.padding = "";
+      return;
+    }
+
+    var matched = false;
+
+    if (document.querySelector(".btn--primary")) {
+      btn.classList.add("btn--primary");
+      if (document.querySelector(".btn")) {
+        btn.classList.add("btn");
+      }
+      matched = true;
+    }
+
+    if (document.querySelector(".button--primary")) {
+      btn.classList.add("button--primary");
+      matched = true;
+    }
+
+    if (document.querySelector("button.primary")) {
+      btn.classList.add("primary");
+      matched = true;
+    }
+
+    if (matched) {
+      btn.classList.remove("dex-auth-fallback-btn");
+      btn.style.border = "";
+      btn.style.background = "";
+      btn.style.color = "";
+      btn.style.padding = "";
+      return;
+    }
+
+    btn.classList.add("dex-auth-fallback-btn");
   }
 
   function setUiState(auth, user) {
@@ -193,9 +265,12 @@
       return;
     }
 
+    applyPrimaryButtonStyle(signInBtn);
+
     if (auth) {
       signInBtn.hidden = true;
       profileWrap.hidden = false;
+      profileWrap.removeAttribute("hidden");
       if (user && user.picture) {
         avatar.src = user.picture;
       }
@@ -204,7 +279,11 @@
       }
     } else {
       signInBtn.hidden = false;
+      signInBtn.removeAttribute("hidden");
+      signInBtn.style.display = "";
+      signInBtn.style.visibility = "";
       profileWrap.hidden = true;
+      closeDropdown();
     }
   }
 
@@ -391,11 +470,17 @@
         authorizationParams.audience = cfg.audience;
       }
 
-        authClient = await createAuth0Client({
-          domain: cfg.domain,
-          clientId: cfg.clientId,
-          authorizationParams: authorizationParams
-        });
+      // optional feature flags (safe defaults)
+      var useRefreshTokens = !!(cfg && cfg.useRefreshTokens);
+      var cacheLocation = (cfg && cfg.cacheLocation) || "localstorage";
+
+      authClient = await createAuth0Client({
+        domain: cfg.domain,
+        clientId: cfg.clientId,
+        authorizationParams: authorizationParams,
+        cacheLocation: cacheLocation,
+        useRefreshTokens: useRefreshTokens
+      });
 
       if (isCallbackPath(window.location.pathname)) {
         var callbackResult = await authClient.handleRedirectCallback();
@@ -403,6 +488,12 @@
         var returnTo = (callbackResult && callbackResult.appState && callbackResult.appState.returnTo) || "/";
         window.location.replace(returnTo);
         return;
+      }
+
+      try {
+        await authClient.checkSession();
+      } catch (e) {
+        // Silent auth can fail (ITP / cookie restrictions). Ignore and fall through.
       }
 
       isAuthenticated = await authClient.isAuthenticated();
