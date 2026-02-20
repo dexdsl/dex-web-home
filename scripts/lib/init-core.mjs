@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
+import { descriptionTextToHtml, detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
 import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -84,7 +84,12 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     throw new Error(formatZodError(error, 'Entry data'));
   }
 
+  const resolvedDescriptionHtml = typeof data.descriptionText === 'string'
+    ? descriptionTextToHtml(data.descriptionText)
+    : String(data.descriptionHtml || '<p></p>');
+
   const injected = injectEntryHtml(templateHtml, {
+    descriptionText: data.descriptionText,
     descriptionHtml: data.descriptionHtml,
     manifest: data.manifest,
     sidebarConfig: data.sidebar,
@@ -123,7 +128,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     await fs.mkdir(folder, { recursive: true });
     await fs.writeFile(files.html, injected.html, 'utf8');
     await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
-    await fs.writeFile(files.desc, `${data.descriptionHtml.trim()}\n`, 'utf8');
+    await fs.writeFile(files.desc, `${resolvedDescriptionHtml.trim()}\n`, 'utf8');
     await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');
 
     if (opts.open) {

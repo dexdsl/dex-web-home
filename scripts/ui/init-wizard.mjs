@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
 import { prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
+import { shouldAppendWizardChar } from '../lib/input-guard.mjs';
 
 function iframeFor(url) {
   return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
@@ -35,7 +36,7 @@ const STEPS = [
   { id: 'slug', label: 'Slug', kind: 'text' },
   { id: 'lookupNumber', label: 'Lookup number', kind: 'text' },
   { id: 'videoUrl', label: 'Video URL', kind: 'text' },
-  { id: 'descriptionHtml', label: 'Description', kind: 'textarea' },
+  { id: 'descriptionText', label: 'Description', kind: 'text' },
   { id: 'buckets', label: 'Buckets', kind: 'multi' },
   { id: 'attributionSentence', label: 'Attribution sentence', kind: 'text' },
   { id: 'artistName', label: 'Artist name', kind: 'text' },
@@ -90,7 +91,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     slugTouched: false,
     lookupNumber: '',
     videoUrl: '',
-    descriptionHtml: '<p></p>',
+    descriptionText: '',
     buckets: ['A'],
     attributionSentence: '',
     artistName: '',
@@ -106,7 +107,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     slug: 0,
     lookupNumber: 0,
     videoUrl: 0,
-    descriptionHtml: 0,
+    descriptionText: 0,
     attributionSentence: 0,
     artistName: 0,
     year: `${new Date().getUTCFullYear()}`.length,
@@ -222,7 +223,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
             slug: form.slug,
             title: form.title,
             video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: iframeFor(form.videoUrl) },
-            descriptionHtml: form.descriptionHtml || '<p></p>',
+            descriptionText: form.descriptionText || '',
             sidebar,
             manifest,
             authEnabled: form.authEnabled,
@@ -315,7 +316,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       return;
     }
 
-    if (!key.ctrl && !key.meta && input && input >= ' ' && input <= '~') {
+    if (shouldAppendWizardChar(input, key)) {
       insertChar(input);
     }
   });

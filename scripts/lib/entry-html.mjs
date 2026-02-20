@@ -11,6 +11,34 @@ const AUTH_CDN = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.product
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function stripHtmlTags(html) {
+  return String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function descriptionTextFromSeed(seed = {}) {
+  if (typeof seed.descriptionText === 'string') return seed.descriptionText;
+  if (typeof seed.descriptionHtml === 'string') return stripHtmlTags(seed.descriptionHtml);
+  return '';
+}
+
+export function descriptionTextToHtml(descriptionText) {
+  const value = String(descriptionText || '').trim();
+  if (!value) return '<p></p>';
+  return `<p>${escapeHtml(value)}</p>`;
+}
+
 function markerTokens(html, key) {
   const [startCore, endCore] = MARKERS[key];
   const starts = [`<!-- ${startCore} -->`, `<!-- @-- ${startCore} --@ -->`];
@@ -57,7 +85,7 @@ export function extractFormatKeys(html) {
   }
 }
 
-export function injectEntryHtml(templateHtml, { descriptionHtml, manifest, sidebarConfig, video, title, authEnabled = true }) {
+export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, video, title, authEnabled = true }) {
   let html = templateHtml;
   let videoStrategy = 'selectors';
   let descStrategy = 'selectors';
@@ -99,9 +127,10 @@ export function injectEntryHtml(templateHtml, { descriptionHtml, manifest, sideb
     html = $.html();
   }
 
+  const resolvedDescriptionHtml = descriptionTextToHtml(typeof descriptionText === 'string' ? descriptionText : stripHtmlTags(descriptionHtml));
   const dm = markerTokens(html, 'desc');
   if (dm.start && dm.end) {
-    html = replaceBetween(html, dm.start, dm.end, descriptionHtml.trim());
+    html = replaceBetween(html, dm.start, dm.end, resolvedDescriptionHtml.trim());
     descStrategy = 'anchors';
   } else {
     throw new Error('Description anchors missing and selector fallback is ambiguous; add DEX:DESC anchors to template');
