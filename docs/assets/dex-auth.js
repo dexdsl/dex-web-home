@@ -34,6 +34,11 @@
 
   var authClient = null;
   var isAuthenticated = false;
+    function getCreateAuth0ClientFn() {
+      if (typeof window.createAuth0Client === "function") return window.createAuth0Client;
+      if (window.auth0 && typeof window.auth0.createAuth0Client === "function") return window.auth0.createAuth0Client;
+      return null;
+    }
     
     var FALLBACK_AUTH0 = {
       domain: "dexdsl.us.auth0.com",
@@ -64,9 +69,10 @@
           new Error("Missing Auth0 config (host " + window.location.hostname + ")")
         );
       }
-      if (typeof window.createAuth0Client !== "function") {
-        return Promise.reject(new Error("Auth0 SPA SDK missing (createAuth0Client)"));
-      }
+        var createAuth0Client = getCreateAuth0ClientFn();
+        if (!createAuth0Client) {
+          return Promise.reject(new Error("Auth0 SPA SDK missing (createAuth0Client)"));
+        }
 
       var authorizationParams = {
         redirect_uri: cfg.redirectUri,
@@ -74,14 +80,14 @@
       };
       if (cfg.audience) authorizationParams.audience = cfg.audience;
 
-      return window.createAuth0Client({
-        domain: cfg.domain,
-        clientId: cfg.clientId,
-        authorizationParams: authorizationParams
-      }).then(function (client) {
-        authClient = client;
-        return client;
-      });
+        return createAuth0Client({
+          domain: cfg.domain,
+          clientId: cfg.clientId,
+          authorizationParams: authorizationParams
+        }).then(function (client) {
+          authClient = client;
+          return client;
+        });
     }
 
   function logError() {
@@ -369,12 +375,13 @@
         bindClickGuard();
         return;
       }
-      if (typeof window.createAuth0Client !== "function") {
-        logError("Auth0 SPA SDK missing; expected createAuth0Client global.");
-        bindUiEvents(cfg);
-        bindClickGuard();
-        return;
-      }
+        var createAuth0Client = getCreateAuth0ClientFn();
+        if (!createAuth0Client) {
+          logError("Auth0 SPA SDK missing; expected createAuth0Client global.");
+          bindUiEvents(cfg);
+          bindClickGuard();
+          return;
+        }
 
       var authorizationParams = {
         redirect_uri: cfg.redirectUri,
@@ -384,13 +391,11 @@
         authorizationParams.audience = cfg.audience;
       }
 
-      authClient = await window.createAuth0Client({
-        domain: cfg.domain,
-        clientId: cfg.clientId,
-        authorizationParams: authorizationParams
-        // cacheLocation: "localstorage",
-        // useRefreshTokens: true
-      });
+        authClient = await createAuth0Client({
+          domain: cfg.domain,
+          clientId: cfg.clientId,
+          authorizationParams: authorizationParams
+        });
 
       if (isCallbackPath(window.location.pathname)) {
         var callbackResult = await authClient.handleRedirectCallback();
