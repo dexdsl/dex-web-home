@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 import {
   ALL_BUCKETS,
   BUCKETS,
-  creditsSchema,
   manifestSchemaForFormats,
   normalizeManifest,
   slugify,
@@ -72,6 +71,19 @@ function iframeFor(url) {
   return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
 }
 
+function buildEmptyManifestSkeleton(formatKeys) {
+  const audioKeys = Array.isArray(formatKeys?.audio) ? formatKeys.audio : [];
+  const videoKeys = Array.isArray(formatKeys?.video) ? formatKeys.video : [];
+  const manifest = { audio: {}, video: {} };
+
+  for (const bucket of ALL_BUCKETS) {
+    manifest.audio[bucket] = Object.fromEntries(audioKeys.map((key) => [key, '']));
+    manifest.video[bucket] = Object.fromEntries(videoKeys.map((key) => [key, '']));
+  }
+
+  return manifest;
+}
+
 async function collectInitData(opts, slugArg) {
   const base = opts.from ? await parseJsonMaybe(path.resolve(opts.from)) : {};
   const quick = !!opts.quick;
@@ -91,7 +103,7 @@ async function collectInitData(opts, slugArg) {
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
-    const manifest = normalizeManifest(base.manifest || {}, opts.formatKeys, ALL_BUCKETS);
+    const manifest = normalizeManifest(buildEmptyManifestSkeleton(opts.formatKeys), opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
     return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: iframeFor(videoUrl) }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
   }
@@ -152,21 +164,13 @@ async function collectInitData(opts, slugArg) {
   const bucketAns = await prompts({ type: 'multiselect', name: 'buckets', message: 'Buckets (available):', choices: BUCKETS.map((b) => ({ title: b, value: b })), initial: (base.sidebarPageConfig?.buckets || ['A']).map((b) => BUCKETS.indexOf(b)).filter((i) => i >= 0), min: 1 });
   const attributionAns = await prompts({ type: 'text', name: 'attributionSentence', message: 'Attribution sentence:', initial: base.sidebarPageConfig?.attributionSentence || '', validate: (v) => (!!v || 'Required') });
 
-  const creditsMode = await prompts({ type: 'select', name: 'mode', message: 'Credits:', choices: [{ title: 'Use minimal defaults', value: 'defaults' }, { title: 'Paste credits JSON (advanced)', value: 'json' }], initial: 0 });
   let credits = defaultCredits(base.sidebarPageConfig?.credits);
-  if (creditsMode.mode === 'json') {
-    const raw = (await prompts({ type: 'text', name: 'raw', message: 'Paste credits JSON:' })).raw || '{}';
-    credits = creditsSchema.parse(JSON.parse(raw));
-  } else {
-    const c = await prompts([
-      { type: 'number', name: 'year', message: 'Year:', initial: credits.year },
-      { type: 'text', name: 'season', message: 'Season:', initial: credits.season, validate: (v) => (!!v || 'Required') },
-      { type: 'text', name: 'location', message: 'Location:', initial: credits.location || '' },
-    ]);
-    credits.year = Number(c.year) || credits.year;
-    credits.season = c.season;
-    credits.location = c.location || '';
-  }
+  await prompts({
+    type: 'text',
+    name: 'continue',
+    message: 'Credits flow not implemented yet. Using minimal defaults for now. Press Enter to continue.',
+    initial: '',
+  });
   credits.artist = { name: nameAns.name, links: artistLinks };
   credits.instruments = instruments;
 
@@ -180,13 +184,15 @@ async function collectInitData(opts, slugArg) {
     metadata: { sampleLength: '', tags: [] },
   };
 
-  const manifestMode = await prompts({ type: 'select', name: 'mode', message: 'Download:', choices: [{ title: 'Paste manifest JSON', value: 'json' }, { title: 'Generate empty manifest (fill later)', value: 'empty' }] });
-  const manifest = manifestMode.mode === 'json'
-    ? JSON.parse((await prompts({ type: 'text', name: 'raw', message: 'Paste manifest JSON:' })).raw || '{}')
-    : {};
+  await prompts({
+    type: 'text',
+    name: 'continue',
+    message: 'Download manifest flow not implemented yet. Generating an empty manifest skeleton. Press Enter to continue.',
+    initial: '',
+  });
+  const manifest = buildEmptyManifestSkeleton(opts.formatKeys);
   normalizeManifest(manifest, opts.formatKeys, ALL_BUCKETS);
   manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-  const auth = await prompts({ type: 'toggle', name: 'enabled', message: 'Ensure canonical auth snippet + strip legacy Auth0 blocks?', initial: true, active: 'yes', inactive: 'no' });
 
   return {
     slug: computedSlug,
@@ -195,7 +201,7 @@ async function collectInitData(opts, slugArg) {
     descriptionText,
     sidebar,
     manifest: normalizeManifest(manifest, opts.formatKeys, ALL_BUCKETS),
-    authEnabled: auth.enabled,
+    authEnabled: true,
     outDir,
   };
 }
