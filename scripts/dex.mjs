@@ -2,20 +2,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 import prompts from 'prompts';
 import { Command } from 'commander';
 import { fileURLToPath } from 'node:url';
 import {
   BUCKETS,
-  entrySchema,
-  manifestSchemaForFormats,
-  sidebarConfigSchema,
   slugify,
-  formatZodError,
 } from './lib/entry-schema.mjs';
-import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './lib/entry-html.mjs';
+import { detectTemplateProblems, extractFormatKeys } from './lib/entry-html.mjs';
+import { writeEntryFromData } from './lib/entry-run.mjs';
 import { runDashboard } from './ui/dashboard.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -251,64 +248,12 @@ async function collectInitData(opts, slugArg) {
 
 async function initCommand(slugArg, opts) {
   const { templatePath, templateHtml } = await detectTemplate(opts.template);
-  const missing = detectTemplateProblems(templateHtml);
-  if (missing.length) throw new Error(`Template validation failed; missing: ${missing.join(', ')}`);
-
   const formatKeys = extractFormatKeys(templateHtml);
   const data = await collectInitData({ ...opts, formatKeys }, slugArg);
-
-  try { sidebarConfigSchema.parse(data.sidebar); } catch (e) { throw new Error(formatZodError(e, 'Sidebar config (wizard step)')); }
-  try { manifestSchemaForFormats(formatKeys.audio, formatKeys.video).parse(data.manifest); } catch (e) { throw new Error(formatZodError(e, 'Manifest (wizard step)')); }
-  try { entrySchema.parse({ slug: data.slug, title: data.title, video: data.video, sidebarPageConfig: data.sidebar }); } catch (e) { throw new Error(formatZodError(e, 'Entry data')); }
-
-  const injected = injectEntryHtml(templateHtml, {
-    descriptionHtml: data.descriptionHtml,
-    manifest: data.manifest,
-    sidebarConfig: data.sidebar,
-    video: data.video,
-    title: data.title,
-    authEnabled: data.authEnabled,
-  });
-
-  const folder = opts.flat ? path.join(path.resolve('.'), data.slug) : path.join(data.outDir, data.slug);
-  const files = {
-    html: path.join(folder, 'index.html'),
-    entry: path.join(folder, 'entry.json'),
-    desc: path.join(folder, 'description.html'),
-    manifest: path.join(folder, 'manifest.json'),
-  };
-
-  console.log(`slug: ${data.slug}`);
-  console.log(`output folder: ${folder}`);
-  console.log(`template: ${templatePath}`);
-  console.log(`injection strategy: video=${injected.strategy.video}, description=${injected.strategy.description}, sidebar=${injected.strategy.sidebar}`);
-
-  if (opts.dryRun) {
-    console.log('[dry-run] would write:', files);
-    return;
-  }
-
-  await fs.mkdir(folder, { recursive: true });
-  await fs.writeFile(files.html, injected.html, 'utf8');
-  await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
-  await fs.writeFile(files.desc, `${data.descriptionHtml.trim()}\n`, 'utf8');
-  await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');
+  const report = await writeEntryFromData({ templatePath, templateHtml, data, opts, log: console.log });
 
   if (process.env.DEX_INIT_REPORT_PATH) {
-    const report = {
-      slug: data.slug,
-      folder,
-      html: files.html,
-      template: templatePath,
-      timestamp: new Date().toISOString(),
-    };
     await fs.writeFile(process.env.DEX_INIT_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8').catch(() => {});
-  }
-
-  if (opts.open) {
-    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
-    const args = process.platform === 'win32' ? ['/c', 'start', '', files.html] : [files.html];
-    spawn(cmd, args, { stdio: 'ignore', detached: true }).unref();
   }
 }
 
@@ -323,44 +268,6 @@ function parseTopLevelMode(argv) {
   return { mode: 'commander', paletteOpen: false };
 }
 
-function nowStamp() {
-  return new Date().toISOString().slice(11, 19);
-}
-
-function pushLog(logs, message) {
-  logs.push(`[${nowStamp()}] ${message}`);
-}
-
-async function runInitChild() {
-  const reportPath = path.join(os.tmpdir(), `dex-init-report-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
-  const child = spawn(process.execPath, [path.join(SCRIPT_DIR, 'dex.mjs'), 'init'], {
-    stdio: 'inherit',
-    env: { ...process.env, DEX_INIT_REPORT_PATH: reportPath },
-  });
-
-  const exitCode = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code, signal) => {
-      if (signal) {
-        resolve(1);
-        return;
-      }
-      resolve(code ?? 0);
-    });
-  });
-
-  let report = null;
-  try {
-    const raw = await fs.readFile(reportPath, 'utf8');
-    report = JSON.parse(raw);
-  } catch {
-    // Best-effort read; report may be absent.
-  }
-  await fs.unlink(reportPath).catch(() => {});
-
-  return { exitCode, report };
-}
-
 const topLevel = parseTopLevelMode(process.argv);
 if (topLevel.mode === 'dashboard') {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
@@ -369,40 +276,20 @@ if (topLevel.mode === 'dashboard') {
   }
 
   const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
-  const logs = [];
-  let paletteOpen = topLevel.paletteOpen;
-
-  try {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { action } = await runDashboard({
-        paletteOpen,
-        version: packageJson.version || 'dev',
-        logs,
+  await runDashboard({
+    paletteOpen: topLevel.paletteOpen,
+    version: packageJson.version || 'dev',
+    onRunInit: async (data, log) => {
+      const { templatePath, templateHtml } = await detectTemplate();
+      return writeEntryFromData({
+        templatePath,
+        templateHtml,
+        data: { ...data, outDir: ENTRIES_DIR },
+        opts: {},
+        log,
       });
-      paletteOpen = false;
-
-      if (!action || action === 'quit') break;
-      if (action !== 'init') continue;
-
-      pushLog(logs, 'Running init wizard…');
-      process.stdout.write('\x1b[?25h');
-      process.stdout.write('\x1b[0m');
-      process.stdout.write('\x1b[2J\x1b[H');
-
-      const { exitCode, report } = await runInitChild();
-      pushLog(logs, `Init finished (exit ${exitCode})`);
-      if (report?.html) pushLog(logs, `Output: ${report.html}`);
-      if (report?.slug) pushLog(logs, `Slug: ${report.slug}`);
-    }
-  } finally {
-    process.stdout.write('\x1b[?25h');
-    process.stdout.write('\x1b[0m');
-    if (process.stdin.isTTY && typeof process.stdin.setRawMode === 'function') {
-      process.stdin.setRawMode(false);
-    }
-  }
-
+    },
+  });
   process.exit(0);
 }
 
