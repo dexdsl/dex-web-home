@@ -14,6 +14,7 @@ import {
   slugify,
 } from './lib/entry-schema.mjs';
 import { prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
+import { descriptionTextFromSeed } from './lib/entry-html.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 
@@ -40,29 +41,6 @@ async function promptLinks(message) {
     links.push(ans);
   }
   return links;
-}
-
-function isProbablyHtml(str) {
-  return String(str || '').includes('<') && String(str || '').includes('>');
-}
-
-function escapeHtml(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function toSafeHtmlParagraphs(str) {
-  const value = String(str || '').replace(/\r\n?/g, '\n').trim();
-  if (!value) return '<p></p>';
-  if (isProbablyHtml(value)) return value;
-  return value
-    .split(/\n\n+/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>` )
-    .join('');
 }
 
 function defaultCredits(base) {
@@ -115,7 +93,7 @@ async function collectInitData(opts, slugArg) {
     };
     const manifest = normalizeManifest(base.manifest || {}, opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: iframeFor(videoUrl) }, descriptionHtml: base.descriptionHtml || '<p></p>', sidebar, manifest, authEnabled: true, outDir };
+    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: iframeFor(videoUrl) }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
   }
 
   const id = await prompts([
@@ -161,8 +139,7 @@ async function collectInitData(opts, slugArg) {
 
   const artistLinks = quick ? [] : await promptLinks('Add artist link?');
 
-  const descriptionRaw = (await prompts({ type: 'text', name: 'description', message: 'Description (plain text or HTML):', initial: base.descriptionHtml || '' })).description || '';
-  const descriptionHtml = toSafeHtmlParagraphs(descriptionRaw);
+  const descriptionText = (await prompts({ type: 'text', name: 'description', message: 'Description (plain text):', initial: descriptionTextFromSeed(base) })).description || '';
 
   const seriesAns = await prompts({
     type: 'select',
@@ -215,7 +192,7 @@ async function collectInitData(opts, slugArg) {
     slug: computedSlug,
     title: id.title,
     video,
-    descriptionHtml,
+    descriptionText,
     sidebar,
     manifest: normalizeManifest(manifest, opts.formatKeys, ALL_BUCKETS),
     authEnabled: auth.enabled,
