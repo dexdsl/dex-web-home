@@ -4,7 +4,7 @@ import { Box, Text, render, useApp, useInput, useStdout } from 'ink';
 import chalk from 'chalk';
 import cliCursor from 'cli-cursor';
 
-const MENU_ITEMS = ['Init'];
+const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }];
 const PALETTE_ITEMS = ['init'];
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
@@ -54,7 +54,11 @@ function renderLogoLine(line, y, tick) {
   return out;
 }
 
-function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
+function badge(text, fg = '#d0d5df', bg = '#313745') {
+  return chalk.hex(bg).bold(` ${chalk.hex(fg)(text)} `);
+}
+
+function DashboardApp({ initialPaletteOpen, version, logs, onResolve, noAnim }) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({
@@ -71,6 +75,7 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
     stdout?.on('resize', onResize);
     return () => stdout?.off('resize', onResize);
   }, [stdout]);
+
   const [tick, setTick] = useState(0);
   const [selected, setSelected] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(initialPaletteOpen);
@@ -109,7 +114,7 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
 
   useInput((input, key) => {
     if (input === 'q') {
-      finish(null);
+      finish('quit');
       return;
     }
 
@@ -145,28 +150,36 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
       return;
     }
 
-    if (key.upArrow || key.downArrow) {
-      setSelected(0);
+    if (key.upArrow) {
+      setSelected((idx) => (idx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length);
       return;
     }
 
-    if (key.return) {
-      if (MENU_ITEMS[selected] === 'Init') finish('init');
+    if (key.downArrow) {
+      setSelected((idx) => (idx + 1) % MENU_ITEMS.length);
+      return;
     }
+
+    if (key.return && MENU_ITEMS[selected]?.id === 'init') finish('init');
   });
 
-  const divider = chalk.hex('#2f3543')('─'.repeat(Math.max(12, Math.min(cols - 4, 96))));
   const paletteWidth = Math.min(72, Math.max(24, cols - 4));
   const paletteHeight = Math.min(14, Math.max(8, rows - 4));
   const paletteLeft = Math.max(0, Math.floor((cols - paletteWidth) / 2));
   const paletteTop = Math.max(0, Math.floor((rows - paletteHeight) / 2));
+
+  const headerHeight = 12;
+  const commandsHeight = 6;
+  const outputHeight = Math.max(5, rows - headerHeight - commandsHeight - 1);
+  const outputLines = Math.max(1, outputHeight - 2);
+  const visibleLogs = logs.slice(-outputLines);
 
   return React.createElement(
     Box,
     { flexDirection: 'column', width: cols, height: rows },
     React.createElement(
       Box,
-      { flexDirection: 'column', paddingX: 2, paddingTop: 1, width: '100%' },
+      { height: headerHeight, flexDirection: 'column', justifyContent: 'center', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
       React.createElement(
         Box,
         { width: '100%', justifyContent: 'center' },
@@ -174,31 +187,33 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
           Box,
           { flexDirection: 'column', alignItems: 'center' },
           ...logoLines.map((line, i) => React.createElement(Text, { key: `logo-${i}` }, line)),
-          React.createElement(Text, { color: '#6e7688' }, `v${version}`),
+          React.createElement(Text, {}, `${badge(version || 'dev')} ${chalk.hex('#8f98a8')('entry creation tool')}`),
+          React.createElement(Text, {}, `${badge('INTERNAL USE ONLY', '#0d1117', '#ffcc00')} ${chalk.hex('#8f98a8')('Last updated: 2026-02-20')}`),
         ),
       ),
-      React.createElement(
-        Box,
-        { width: '100%', justifyContent: 'center' },
-        React.createElement(Text, {}, divider),
-      ),
     ),
-    React.createElement(Box, { flexGrow: 1 }),
     React.createElement(
       Box,
-      { flexDirection: 'column', alignItems: 'center' },
-      React.createElement(Text, { color: '#6e7688', dimColor: true }, 'Commands'),
+      { height: commandsHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
+      React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
       ...MENU_ITEMS.map((item, idx) => React.createElement(
         Box,
-        { key: item, height: 1 },
-        React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, item),
+        { key: item.id, height: 1 },
+        React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, `${item.label} — ${item.description}`),
       )),
+      React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? help/palette   q quit'),
     ),
-    React.createElement(Box, { flexGrow: 1 }),
     React.createElement(
       Box,
-      { paddingX: 2, paddingBottom: 1 },
-      React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? help/palette   q quit'),
+      { height: outputHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
+      React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Output'),
+      ...(visibleLogs.length
+        ? visibleLogs.map((line, idx) => {
+          const tsMatch = line.match(/^\[(.*?)\]\s(.*)$/);
+          if (!tsMatch) return React.createElement(Text, { key: `log-${idx}`, color: '#d0d5df' }, line);
+          return React.createElement(Text, { key: `log-${idx}` }, `${chalk.hex('#6e7688')(`[${tsMatch[1]}]`)} ${chalk.hex('#d0d5df')(tsMatch[2])}`);
+        })
+        : [React.createElement(Text, { key: 'empty', color: '#6e7688' }, 'No output yet.')]),
     ),
     paletteOpen && React.createElement(
       Box,
@@ -226,8 +241,8 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
   );
 }
 
-export async function runDashboard({ paletteOpen = false, version = '0.0.0' } = {}) {
-  if (!process.stdout.isTTY || !process.stdin.isTTY) return { action: null };
+export async function runDashboard({ paletteOpen = false, version = 'dev', logs = [] } = {}) {
+  if (!process.stdout.isTTY || !process.stdin.isTTY) return { action: null, logs };
 
   let resolvedAction = null;
   cliCursor.hide();
@@ -235,6 +250,7 @@ export async function runDashboard({ paletteOpen = false, version = '0.0.0' } = 
     const instance = render(React.createElement(DashboardApp, {
       initialPaletteOpen: paletteOpen,
       version,
+      logs,
       onResolve: (action) => {
         resolvedAction = action;
       },
@@ -243,7 +259,7 @@ export async function runDashboard({ paletteOpen = false, version = '0.0.0' } = 
       exitOnCtrlC: true,
     });
     await instance.waitUntilExit();
-    return { action: resolvedAction };
+    return { action: resolvedAction, logs };
   } finally {
     cliCursor.show();
   }
