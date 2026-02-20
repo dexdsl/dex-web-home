@@ -281,13 +281,13 @@
         + "#auth-ui-signin.dex-auth-fallback-btn:hover{transform:translateY(-1px);filter:brightness(1.03);box-shadow:0 10px 24px rgba(40,76,165,.28);}"
         + "#auth-ui-signin.dex-auth-fallback-btn:focus-visible,#auth-ui-profile-toggle:focus-visible,#auth-ui-dropdown .dex-menu-item:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(125,170,255,.45),0 0 0 4px rgba(22,26,38,.45);}"
         + "#auth-ui-profile{position:relative;display:inline-flex;align-items:center;overflow:visible;}"
-        + "#auth-ui-profile-toggle{position:relative;gap:0;border:1px solid var(--dex-border);background:var(--dex-row-bg);width:var(--dex-nav-h,38px);min-width:var(--dex-nav-h,38px);border-radius:var(--dex-radius);cursor:pointer;padding:2px 16px 2px 2px;backdrop-filter:blur(8px) saturate(132%);-webkit-backdrop-filter:blur(8px) saturate(132%);transition:border-color .22s ease,filter .22s ease,background .22s ease;overflow:hidden;}"
+        + "#auth-ui-profile-toggle{position:relative;gap:0;border:1px solid var(--dex-border);background:var(--dex-row-bg);width:auto;min-width:calc(var(--dex-nav-h,38px) + 22px);border-radius:var(--dex-radius);cursor:pointer;justify-content:flex-start;padding:2px 28px 2px 2px;backdrop-filter:blur(8px) saturate(132%);-webkit-backdrop-filter:blur(8px) saturate(132%);transition:border-color .22s ease,filter .22s ease,background .22s ease;overflow:hidden;}"
         + "#auth-ui-profile-toggle::before{content:'';position:absolute;inset:-30%;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.35),rgba(255,255,255,0) 55%);opacity:0;transition:opacity .22s ease;z-index:0;}"
         + "#auth-ui-profile-toggle:hover{border-color:var(--dex-border-strong);filter:brightness(1.02);background:var(--dex-row-hover-bg);}"
         + "#auth-ui-profile-toggle:hover::before{opacity:1;}"
-        + ".dex-avatar-wrap{position:relative;z-index:1;flex:0 0 auto;width:calc(var(--dex-nav-h,38px) - 6px);height:calc(var(--dex-nav-h,38px) - 6px);border-radius:999px;overflow:hidden;}"
+        + ".dex-avatar-wrap{position:relative;z-index:1;flex:0 0 auto;flex-shrink:0;width:calc(var(--dex-nav-h,38px) - 6px);height:calc(var(--dex-nav-h,38px) - 6px);min-width:calc(var(--dex-nav-h,38px) - 6px);border-radius:999px;overflow:hidden;}"
         + "#auth-ui-avatar{width:100%;height:100%;display:block;object-fit:cover;}"
-        + "#auth-ui .dex-profile-chevron{position:absolute;right:7px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--dex-text-muted);border-bottom:1.5px solid var(--dex-text-muted);transform:translateY(-60%) rotate(45deg);opacity:.95;transition:transform .2s ease,border-color .2s ease;pointer-events:none;z-index:2;}"
+        + "#auth-ui .dex-profile-chevron{position:absolute;right:10px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--dex-text-muted);border-bottom:1.5px solid var(--dex-text-muted);transform:translateY(-50%) rotate(45deg);opacity:.95;transition:transform .2s ease,border-color .2s ease;pointer-events:none;z-index:2;}"
         + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:min(280px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(70vh,420px);overflow:auto;border:1px solid var(--dex-border);border-top-color:var(--dex-border-strong);border-radius:calc(var(--dex-radius) + 2px);background:var(--dex-panel-bg);box-shadow:var(--dex-shadow);padding:var(--dex-space-2);z-index:1200;opacity:0;transform:translateY(-6px) scale(.985);pointer-events:none;backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);transition:opacity .2s ease,transform .2s ease;}"
         + "#auth-ui-dropdown::after{content:'';position:absolute;inset:0;border-radius:inherit;background-image:radial-gradient(rgba(255,255,255,.05) 0.7px,transparent .7px);background-size:3px 3px;opacity:var(--dex-grain-opacity);pointer-events:none;}"
         + "#auth-ui-dropdown." + DROPDOWN_OPEN_CLASS + "{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}"
@@ -326,6 +326,9 @@
         existing.style.display = "inline-flex";
       }
       syncAuthUiMetrics(existing, mount);
+      requestAnimationFrame(function () {
+        syncAuthUiMetrics(existing, mount);
+      });
       return existing;
     }
 
@@ -335,6 +338,9 @@
 
     mount.appendChild(ui);
     syncAuthUiMetrics(ui, mount);
+    requestAnimationFrame(function () {
+      syncAuthUiMetrics(ui, mount);
+    });
     return ui;
   }
 
@@ -355,12 +361,28 @@
       return;
     }
     var scope = mount && mount.querySelectorAll ? mount : document;
-    var references = scope.querySelectorAll("a,button");
     var ref = null;
-    for (var i = 0; i < references.length; i += 1) {
-      if (isVisibleNavReference(references[i], ui)) {
-        ref = references[i];
-        break;
+    var header = (mount && mount.closest) ? mount.closest("header") : document.querySelector("header");
+    if (header && header.querySelectorAll) {
+      var headerReferences = header.querySelectorAll("a,button");
+      for (var i = 0; i < headerReferences.length; i += 1) {
+        if (!isVisibleNavReference(headerReferences[i], ui)) {
+          continue;
+        }
+        var headerRect = headerReferences[i].getBoundingClientRect();
+        if (headerRect.height >= 26 && headerRect.height <= 64) {
+          ref = headerReferences[i];
+          break;
+        }
+      }
+    }
+    if (!ref) {
+      var references = scope.querySelectorAll("a,button");
+      for (var j = 0; j < references.length; j += 1) {
+        if (isVisibleNavReference(references[j], ui)) {
+          ref = references[j];
+          break;
+        }
       }
     }
     if (ref) {
@@ -378,8 +400,9 @@
       var refRect = ref.getBoundingClientRect();
       var uiRect = ui.getBoundingClientRect();
       var dy = (refRect.top + (refRect.height / 2)) - (uiRect.top + (uiRect.height / 2));
-      dy = Math.max(-12, Math.min(12, dy));
-      ui.style.setProperty("--dex-nav-offset-y", Math.round(dy) + "px");
+      dy = Math.max(-18, Math.min(18, dy));
+      dy = Math.round(dy * 2) / 2;
+      ui.style.setProperty("--dex-nav-offset-y", dy + "px");
     } else {
       ui.style.setProperty("--dex-nav-offset-y", "0px");
     }
