@@ -1,0 +1,82 @@
+{
+  "slug": "test-entry",
+  "title": "",
+  "video": {
+    "dataUrl": "https://player.vimeo.com/video/123456789",
+    "dataHtml": "<iframe src=\"https://player.vimeo.com/video/123456789\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen></iframe>"
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "ABCD-1234",
+    "buckets": [
+      "A",
+      "B",
+      "C"
+    ],
+    "specialEventImage": null,
+    "attributionSentence": "YOUR ATTRIBUTION SENTENCE HERE",
+    "credits": {
+      "artist": {
+        "name": "ARTIST NAME",
+        "links": []
+      },
+      "artistAlt": null,
+      "instruments": [
+        {
+          "name": "INSTRUMENT1",
+          "links": []
+        }
+      ],
+      "video": {
+        "director": {
+          "name": "VIDEO DIRECTOR",
+          "links": []
+        },
+        "cinematography": {
+          "name": "CINEMATOGRAPHY",
+          "links": []
+        },
+        "editing": {
+          "name": "EDITING",
+          "links": []
+        }
+      },
+      "audio": {
+        "recording": {
+          "name": "RECORDING ENGINEER",
+          "links": []
+        },
+        "mix": {
+          "name": "MIX ENGINEER",
+          "links": []
+        },
+        "master": {
+          "name": "MASTER ENGINEER",
+          "links": []
+        }
+      },
+      "year": 2025,
+      "season": "S1",
+      "location": "LOCATION"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "...",
+        "B": "...",
+        "C": "...",
+        "D": "...",
+        "E": "...",
+        "X": "..."
+      }
+    },
+    "metadata": {
+      "sampleLength": "00:00:00",
+      "tags": [
+        "TAG1",
+        "TAG2"
+      ]
+    }
+  }
+}
