@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "rewrite:anchors": "node scripts/rewrite-internal-anchors.mjs",
-    "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check"
+    "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check",
+    "dex": "node scripts/dex.mjs",
+    "smoke:dex-init": "node scripts/smoke-dex-init.mjs"
   },
   "bin": {
-      "dex": "scripts/dex.mjs"
+    "dex": "scripts/dex.mjs"
   },
   "devDependencies": {
     "parse5": "^7.3.0",
@@ -16,6 +18,7 @@
   "dependencies": {
     "commander": "^12.1.0",
     "cheerio": "^1.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "prompts": "^2.4.2"
   }
 }
