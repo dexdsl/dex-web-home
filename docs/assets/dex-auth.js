@@ -212,7 +212,7 @@
           });
         });
       }
-      
+
     if (!document.documentElement.dataset.dexAuthOutsideBound) {
       document.documentElement.dataset.dexAuthOutsideBound = "1";
       document.addEventListener("click", function (evt) {
