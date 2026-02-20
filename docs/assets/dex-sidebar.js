@@ -2,6 +2,8 @@
   if (window.__dexSidebarRuntimeBound) return;
   window.__dexSidebarRuntimeBound = true;
 
+  const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+
   const parseJsonScript = (id) => {
     const el = document.getElementById(id);
     if (!el) return null;
@@ -41,13 +43,17 @@
     btn.dataset.dexBound = '1';
     btn.addEventListener('click', () => {
       const formats = cfg.downloads.formats[type] || [];
-      const buckets = Object.keys(type === 'audio' ? (cfg.downloads.audioFileIds || {}) : (cfg.downloads.videoFileIds || {}));
+      const allBuckets = ALL_BUCKETS;
       const links = [];
-      buckets.forEach((bucket) => {
+      allBuckets.forEach((bucket) => {
+        const fileIds = (type === 'audio' ? cfg.downloads.audioFileIds?.[bucket] : cfg.downloads.videoFileIds?.[bucket]) || {};
+        const bucketAvailable = Object.values(fileIds).some(Boolean);
         formats.forEach((fmt) => {
           const href = buildUrl(cfg, type, bucket, fmt.key);
           if (href !== '#') {
             links.push(`<a href="${href}" target="_blank" rel="noopener">${bucket} · ${fmt.label}</a>`);
+          } else if (!bucketAvailable) {
+            links.push(`<span aria-disabled="true" style="opacity:.5;cursor:not-allowed;">${bucket} · ${fmt.label} (unavailable)</span>`);
           }
         });
       });

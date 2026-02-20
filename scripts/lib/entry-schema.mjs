@@ -1,25 +1,28 @@
 import { z } from 'zod';
 
 export const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+export const ALL_BUCKETS = BUCKETS;
 
 const linkSchema = z.object({ label: z.string().min(1), href: z.string().min(1) });
 const personSchema = z.object({ name: z.string().default(''), links: z.array(linkSchema).default([]) });
+
+export const creditsSchema = z.object({
+  artist: personSchema,
+  artistAlt: z.string().nullable().optional(),
+  instruments: z.array(personSchema).default([]),
+  video: z.object({ director: personSchema, cinematography: personSchema, editing: personSchema }),
+  audio: z.object({ recording: personSchema, mix: personSchema, master: personSchema }),
+  year: z.number().int(),
+  season: z.string().min(1),
+  location: z.string().min(1),
+});
 
 export const sidebarConfigSchema = z.object({
   lookupNumber: z.string().min(1),
   buckets: z.array(z.enum(BUCKETS)).min(1),
   specialEventImage: z.string().nullable().optional(),
   attributionSentence: z.string().min(1),
-  credits: z.object({
-    artist: personSchema,
-    artistAlt: z.string().nullable().optional(),
-    instruments: z.array(personSchema).default([]),
-    video: z.object({ director: personSchema, cinematography: personSchema, editing: personSchema }),
-    audio: z.object({ recording: personSchema, mix: personSchema, master: personSchema }),
-    year: z.number().int(),
-    season: z.string().min(1),
-    location: z.string().min(1),
-  }),
+  credits: creditsSchema,
   fileSpecs: z.object({
     bitDepth: z.number().int().default(24),
     sampleRate: z.number().int().default(48000),
@@ -41,6 +44,27 @@ export function manifestSchemaForFormats(audioKeys = [], videoKeys = []) {
     ? z.object(Object.fromEntries(keys.map((k) => [k, z.string().default('')]))).passthrough()
     : z.record(z.string(), z.string().default('')));
   return z.object({ audio: z.record(recordFor(audioKeys)).default({}), video: z.record(recordFor(videoKeys)).default({}) });
+}
+
+export function normalizeManifest(manifest, formatKeys = {}, allBuckets = ALL_BUCKETS) {
+  const next = manifest && typeof manifest === 'object' ? manifest : {};
+  if (!next.audio || typeof next.audio !== 'object') next.audio = {};
+  if (!next.video || typeof next.video !== 'object') next.video = {};
+  const audioKeys = Array.isArray(formatKeys.audio) ? formatKeys.audio : [];
+  const videoKeys = Array.isArray(formatKeys.video) ? formatKeys.video : [];
+
+  allBuckets.forEach((bucket) => {
+    if (!next.audio[bucket] || typeof next.audio[bucket] !== 'object') next.audio[bucket] = {};
+    if (!next.video[bucket] || typeof next.video[bucket] !== 'object') next.video[bucket] = {};
+    audioKeys.forEach((key) => {
+      if (typeof next.audio[bucket][key] !== 'string') next.audio[bucket][key] = '';
+    });
+    videoKeys.forEach((key) => {
+      if (typeof next.video[bucket][key] !== 'string') next.video[bucket][key] = '';
+    });
+  });
+
+  return next;
 }
 
 export function slugify(input) {

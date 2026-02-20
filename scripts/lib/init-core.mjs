@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
-import { entrySchema, formatZodError, manifestSchemaForFormats, sidebarConfigSchema } from './entry-schema.mjs';
+import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -66,6 +66,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     throw new Error(formatZodError(error, 'Sidebar config (wizard step)'));
   }
 
+  normalizeManifest(data.manifest, formatKeys, ALL_BUCKETS);
   try {
     manifestSchemaForFormats(formatKeys.audio, formatKeys.video).parse(data.manifest);
   } catch (error) {
