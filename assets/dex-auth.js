@@ -240,18 +240,7 @@
       });
     }
 
-    if (logoutBtn && !logoutBtn.dataset.bound) {
-      logoutBtn.dataset.bound = "1";
-      logoutBtn.addEventListener("click", function () {
-        if (!authClient) {
-          logError("Auth client unavailable for logout.");
-          return;
-        }
-        authClient.logout({
-          returnTo: window.location.origin
-        });
-      });
-    }
+    
 
     if (!document.documentElement.dataset.dexAuthOutsideBound) {
       document.documentElement.dataset.dexAuthOutsideBound = "1";

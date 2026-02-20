@@ -41,7 +41,7 @@ STUB = """<!doctype html>
   <meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <title>Dex — Protected (Dev Stub)</title>
-  <script defer src=\"https://cdn.auth0.com/js/auth0-spa-js/1.19/auth0-spa-js.production.js\"></script>
+  <script defer src=\"https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js\"></script>
   <script defer src=\"/assets/dex-auth0-config.js\"></script>
   <script defer src=\"/assets/dex-auth.js\"></script>
 </head>

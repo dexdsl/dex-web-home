@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-AUTH0_SCRIPT = '<script defer src="https://cdn.auth0.com/js/auth0-spa-js/1.19/auth0-spa-js.production.js"></script>'
+AUTH0_SCRIPT = '<script defer src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>'
 CFG_SCRIPT = '<script defer src="/assets/dex-auth0-config.js"></script>'
 AUTH_SCRIPT = '<script defer src="/assets/dex-auth.js"></script>'
 BLOCK = f"  {AUTH0_SCRIPT}\n  {CFG_SCRIPT}\n  {AUTH_SCRIPT}\n"
