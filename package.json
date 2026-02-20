@@ -4,10 +4,17 @@
   "type": "module",
   "scripts": {
     "rewrite:anchors": "node scripts/rewrite-internal-anchors.mjs",
-    "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check"
+    "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check",
+    "dex-entry": "node scripts/dex-entry.mjs"
   },
   "devDependencies": {
     "parse5": "^7.3.0",
     "playwright": "^1.58.2"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "commander": "^12.1.0",
+    "zod": "^3.24.1",
+    "prettier": "^3.4.2"
   }
 }
