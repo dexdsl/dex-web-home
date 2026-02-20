@@ -70,8 +70,10 @@
 })();
 </script>
 
-<!-- 1️⃣ Auth0 SPA SDK (load once, site-wide) -->
-<script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
+<!-- 1️⃣ Auth0 config + SDK + app auth bootstrap (load once, site-wide) -->
+<script defer src="/assets/dex-auth0-config.js"></script>
+<script defer src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
+<script defer src="/assets/dex-auth.js"></script>
 <!-- 2️⃣ Your glassmorphic/login button styles -->
 
 
@@ -474,9 +476,6 @@ html, body {
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-J5DDMNH264"></script><script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('set', 'developer_id.dZjQwMz', true);gtag('consent', 'default', { 'analytics_storage': 'denied', 'wait_for_update': 500 });window.googleAnalyticsRequiresConsentUpdates = true;(function(){let squarespaceCookies = {};if (window.getSquarespaceCookies) {  squarespaceCookies = window.getSquarespaceCookies();}const consentValue = squarespaceCookies.performance === 'accepted' ? 'granted' :  'denied';gtag('consent', 'update', { 'analytics_storage': consentValue })})();gtag('config', 'G-J5DDMNH264');</script><!-- End of Squarespace Headers -->
     <link rel="stylesheet" type="text/css" href="https://static1.squarespace.com/static/vta/5c5a519771c10ba3470d8101/versioned-assets/1771441478242-2KJ6E4XSE8IDDFKSAHZS/static.css">
   
-<script defer src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
-<script defer src="/assets/dex-auth0-config.js"></script>
-<script defer src="/assets/dex-auth.js"></script>
 </head>
 
   <body
@@ -3056,6 +3055,9 @@ renderBadges();
 <!-- Paste this into Home → Settings → Advanced → Code Injection → Footer -->
 <!-- Auth0 Footer Injection (with profile pic support) -->
 <script>
+if (window.DEX_AUTH && window.DEX_AUTH.ready) {
+  // Using canonical /assets/dex-auth.js
+} else {
 (async () => {
   // 1️⃣ Initialize Auth0 client (incl. profile scope)
   const auth0 = await createAuth0Client({
@@ -3085,8 +3087,12 @@ window.auth0 = auth0;
     const isAuthenticated = await auth0.isAuthenticated();
 
     // Show SIGN IN or Profile avatar
-    btnLogin.style.display      = isAuthenticated ? 'none'        : 'inline-flex';
-    profContainer.style.display = isAuthenticated ? 'inline-block' : 'none';
+    if (btnLogin) {
+      btnLogin.style.display = isAuthenticated ? 'none' : 'inline-flex';
+    }
+    if (profContainer) {
+      profContainer.style.display = isAuthenticated ? 'inline-block' : 'none';
+    }
 
     // Protected pages/content
     document.querySelectorAll('.protected')
@@ -3095,7 +3101,7 @@ window.auth0 = auth0;
     // Load avatar
     if (isAuthenticated) {
       const user = await auth0.getUser() || {};
-      if (user.picture) {
+      if (avatarEl && user.picture) {
         avatarEl.src           = user.picture;
         avatarEl.style.display = 'block';
       }
@@ -3109,6 +3115,7 @@ window.auth0 = auth0;
     await auth0.loginWithRedirect({ redirect_uri: window.location.href });
   }
 })();
+}
 </script>
 
 
