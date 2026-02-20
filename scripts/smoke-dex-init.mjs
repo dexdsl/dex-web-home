@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { isBackspaceKey, shouldAppendWizardChar } from './lib/input-guard.mjs';
+import { applyKeyToInputState } from './ui/init-wizard.mjs';
 
 const root = process.cwd();
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-'));
@@ -78,5 +79,31 @@ if (shouldAppendWizardChar('\x1b[27;5;13~', { ctrl: false, meta: false }) !== fa
 if (isBackspaceKey('', { backspace: true }) !== true) throw new Error('backspace helper should accept key.backspace');
 if (isBackspaceKey('\x7f', {}) !== true) throw new Error('backspace helper should accept DEL input');
 if (isBackspaceKey('a', {}) !== false) throw new Error('backspace helper should reject non-backspace input');
+if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper should accept BS input');
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 3 }, '', { backspace: true });
+  if (next.value !== 'ab' || next.cursor !== 2) throw new Error('backspace should delete char before cursor');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 0 }, '', { backspace: true });
+  if (next.value !== 'abc' || next.cursor !== 0) throw new Error('backspace at 0 should do nothing');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '', { delete: true });
+  if (next.value !== 'ac' || next.cursor !== 1) throw new Error('delete should remove char at cursor');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'ac', cursor: 1 }, 'b', { ctrl: false, meta: false });
+  if (next.value !== 'abc' || next.cursor !== 2) throw new Error('insert should work at cursor');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '\x1b[27;5;13~', {});
+  if (next.value !== 'abc' || next.cursor !== 1) throw new Error('escape sequence should be ignored');
+}
 
 console.log('smoke-dex-init ok');

@@ -56,6 +56,41 @@ function withCaret(value, cursor, caretOn) {
   return `${safe.slice(0, cursor)}▌${safe.slice(cursor)}`;
 }
 
+function looksLikeEscapeSequence(input) {
+  return typeof input === 'string' && input.startsWith('\x1b');
+}
+
+export function applyKeyToInputState(state, input, key = {}) {
+  const value = state?.value ?? '';
+  const cursor = Math.max(0, Math.min(value.length, state?.cursor ?? 0));
+
+  if (key.leftArrow) return { value, cursor: Math.max(0, cursor - 1) };
+  if (key.rightArrow) return { value, cursor: Math.min(value.length, cursor + 1) };
+  if (key.home) return { value, cursor: 0 };
+  if (key.end) return { value, cursor: value.length };
+
+  if (isBackspaceKey(input, key)) {
+    if (cursor === 0) return { value, cursor };
+    return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 };
+  }
+
+  if (key.delete) {
+    if (cursor >= value.length) return { value, cursor };
+    return { value: `${value.slice(0, cursor)}${value.slice(cursor + 1)}`, cursor };
+  }
+
+  if (looksLikeEscapeSequence(input)) return { value, cursor };
+
+  if (shouldAppendWizardChar(input, key)) {
+    return {
+      value: `${value.slice(0, cursor)}${input}${value.slice(cursor)}`,
+      cursor: cursor + input.length,
+    };
+  }
+
+  return { value, cursor };
+}
+
 function validateStep(stepId, form) {
   if (stepId === 'title' && !form.title.trim()) return 'Title is required.';
   if (stepId === 'slug' && !form.slug.trim()) return 'Slug is required.';
@@ -144,25 +179,14 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     setStepIdx((prev) => Math.max(0, Math.min(totalSteps - 1, prev + delta)));
   };
 
-  const insertChar = (char) => {
+  const applyTextEdit = (input, key = {}) => {
     const value = form[step.id] ?? '';
     const pos = cursorByStep[step.id] ?? 0;
-    const next = `${value.slice(0, pos)}${char}${value.slice(pos)}`;
-    setForm((prev) => ({ ...prev, [step.id]: next, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
-    setCursorByStep((prev) => ({ ...prev, [step.id]: pos + char.length }));
+    const next = applyKeyToInputState({ value, cursor: pos }, input, key);
+    if (next.value === value && next.cursor === pos) return;
+    setForm((prev) => ({ ...prev, [step.id]: next.value, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
+    setCursorByStep((prev) => ({ ...prev, [step.id]: next.cursor }));
     setError('');
-  };
-
-  const mutateAtCursor = (mode) => {
-    const value = form[step.id] ?? '';
-    const pos = cursorByStep[step.id] ?? 0;
-    if (mode === 'backspace' && pos > 0) {
-      setForm((prev) => ({ ...prev, [step.id]: `${value.slice(0, pos - 1)}${value.slice(pos)}`, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
-      setCursorByStep((prev) => ({ ...prev, [step.id]: pos - 1 }));
-    }
-    if (mode === 'delete' && pos < value.length) {
-      setForm((prev) => ({ ...prev, [step.id]: `${value.slice(0, pos)}${value.slice(pos + 1)}`, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
-    }
   };
 
   const maybeAdvance = async () => {
@@ -283,21 +307,16 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       return;
     }
 
-    if (key.leftArrow) { setCursorByStep((prev) => ({ ...prev, [step.id]: Math.max(0, (prev[step.id] ?? 0) - 1) })); return; }
-    if (key.rightArrow) { setCursorByStep((prev) => ({ ...prev, [step.id]: Math.min((form[step.id] ?? '').length, (prev[step.id] ?? 0) + 1) })); return; }
-    if (key.home) { setCursorByStep((prev) => ({ ...prev, [step.id]: 0 })); return; }
-    if (key.end) { setCursorByStep((prev) => ({ ...prev, [step.id]: (form[step.id] ?? '').length })); return; }
-    if (isBackspaceKey(input, key)) { mutateAtCursor('backspace'); return; }
-    if (key.delete) { mutateAtCursor('delete'); return; }
+    if (key.leftArrow || key.rightArrow || key.home || key.end || isBackspaceKey(input, key) || key.delete || looksLikeEscapeSequence(input) || shouldAppendWizardChar(input, key)) {
+      applyTextEdit(input, key);
+      return;
+    }
 
     if (key.return) {
       void maybeAdvance();
       return;
     }
 
-    if (shouldAppendWizardChar(input, key)) {
-      insertChar(input);
-    }
   });
 
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
