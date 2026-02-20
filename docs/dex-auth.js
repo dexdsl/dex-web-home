@@ -34,6 +34,10 @@
 
   var authClient = null;
   var isAuthenticated = false;
+  var lastUiAuth = false;
+  var lastUiUser = null;
+  var uiObserverStarted = false;
+  var uiRepairQueued = false;
     function getCreateAuth0ClientFn() {
       if (typeof window.createAuth0Client === "function") return window.createAuth0Client;
       if (window.auth0 && typeof window.auth0.createAuth0Client === "function") return window.auth0.createAuth0Client;
@@ -135,13 +139,35 @@
     }
   }
 
+  function pickMount() {
+    var selectors = [
+      ".header-actions--right",
+      ".header-actions",
+      "header"
+    ];
+    var i;
+    for (i = 0; i < selectors.length; i += 1) {
+      var el = document.querySelector(selectors[i]);
+      if (!el) {
+        continue;
+      }
+      var cs = window.getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") {
+        continue;
+      }
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) {
+        continue;
+      }
+      return el;
+    }
+    return document.body;
+  }
+
   function ensureAuthUi() {
     hideLegacyAccountUi();
 
-    var mount = document.querySelector(".header-actions--right") ||
-      document.querySelector(".header-actions") ||
-      document.querySelector("header") ||
-      document.body;
+    var mount = pickMount();
 
     var styleId = "dex-auth-style";
     if (!document.getElementById(styleId)) {
@@ -174,15 +200,16 @@
           + "</div>";
       }
 
-      var existingDisplay = window.getComputedStyle(existing).display;
-      var isInMount = !!(mount && mount.contains(existing));
-      var unusable = existing.offsetParent === null || existingDisplay === "none" || !isInMount;
-      if (unusable) {
-        if (mount && existing.parentNode !== mount) {
-          mount.appendChild(existing);
-        }
-        existing.style.display = "";
+      if (mount && !mount.contains(existing)) {
+        mount.appendChild(existing);
+      }
+
+      var existingCs = window.getComputedStyle(existing);
+      if (existing.hidden) {
         existing.hidden = false;
+      }
+      if (existingCs.display === "none") {
+        existing.style.display = "inline-flex";
       }
       return existing;
     }
@@ -202,6 +229,51 @@
 
     mount.appendChild(ui);
     return ui;
+  }
+
+  function repairAuthUiIfMissing() {
+    if (uiRepairQueued) {
+      return;
+    }
+    uiRepairQueued = true;
+    window.setTimeout(function () {
+      uiRepairQueued = false;
+      var ui = ensureAuthUi();
+      if (!ui || !document.getElementById("auth-ui-signin")) {
+        ensureAuthUi();
+      }
+      setUiState(lastUiAuth, lastUiUser);
+      bindUiEvents(getCfg());
+    }, 0);
+  }
+
+  function startAuthUiObserver() {
+    if (uiObserverStarted || !document.body || typeof MutationObserver === "undefined") {
+      return;
+    }
+    uiObserverStarted = true;
+    var observer = new MutationObserver(function () {
+      var ui = document.getElementById(AUTH_UI_ID);
+      if (!ui) {
+        repairAuthUiIfMissing();
+        return;
+      }
+      if (!document.getElementById("auth-ui-signin")) {
+        repairAuthUiIfMissing();
+        return;
+      }
+      var parent = ui.parentNode && ui.parentNode.nodeType === 1 ? ui.parentNode : null;
+      if (!parent) {
+        repairAuthUiIfMissing();
+        return;
+      }
+      var mountCs = window.getComputedStyle(parent);
+      var mountRect = parent.getBoundingClientRect();
+      if (mountCs.display === "none" || mountCs.visibility === "hidden" || mountRect.width === 0 || mountRect.height === 0) {
+        repairAuthUiIfMissing();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   function applyPrimaryButtonStyle(btn) {
@@ -252,6 +324,9 @@
   }
 
   function setUiState(auth, user) {
+    lastUiAuth = !!auth;
+    lastUiUser = user || null;
+
     var ui = ensureAuthUi();
     if (!ui) {
       return;
@@ -280,7 +355,9 @@
     } else {
       signInBtn.hidden = false;
       signInBtn.removeAttribute("hidden");
-      signInBtn.style.display = "";
+      if (window.getComputedStyle(signInBtn).display === "none") {
+        signInBtn.style.display = "";
+      }
       signInBtn.style.visibility = "";
       profileWrap.hidden = true;
       closeDropdown();
@@ -448,6 +525,7 @@
     try {
         var cfg = getCfg();
       ensureAuthUi();
+      startAuthUiObserver();
       if (!cfg) {
         logError("Missing host Auth0 configuration; auth features disabled.");
         bindUiEvents(cfg);
