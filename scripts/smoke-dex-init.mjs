@@ -34,20 +34,36 @@ for (const needle of ['data-url="https://player.vimeo.com/video/1"', '<p>desc</p
   if (!outHtml.includes(needle)) throw new Error(`missing in output html: ${needle}`);
 }
 
+const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
+if (!cfgMatch) throw new Error('missing #dex-sidebar-config script node in output html');
+const cfg = JSON.parse(cfgMatch[1]);
+const audioKeys = (cfg.downloads?.formats?.audio || []).map((item) => item.key);
+const videoKeys = (cfg.downloads?.formats?.video || []).map((item) => item.key);
+
 const manifestNodeMatch = outHtml.match(/<script id="dex-manifest" type="application\/json">([\s\S]*?)<\/script>/);
 if (!manifestNodeMatch) throw new Error('missing #dex-manifest script node in output html');
 const htmlManifest = JSON.parse(manifestNodeMatch[1]);
 for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
-  if (htmlManifest.audio?.[bucket]?.wav !== '') throw new Error(`expected empty audio manifest value for ${bucket}.wav`);
-  if (htmlManifest.video?.[bucket]?.['1080p'] !== '') throw new Error(`expected empty video manifest value for ${bucket}.1080p`);
+  if (!(bucket in htmlManifest.audio)) throw new Error(`missing html audio bucket: ${bucket}`);
+  if (!(bucket in htmlManifest.video)) throw new Error(`missing html video bucket: ${bucket}`);
+  for (const key of audioKeys) {
+    if (htmlManifest.audio?.[bucket]?.[key] !== '') throw new Error(`expected empty audio manifest value for ${bucket}.${key}`);
+  }
+  for (const key of videoKeys) {
+    if (htmlManifest.video?.[bucket]?.[key] !== '') throw new Error(`expected empty video manifest value for ${bucket}.${key}`);
+  }
 }
 
 const outManifest = JSON.parse(await fs.readFile(path.join(temp, 'entries', 'smoke-title', 'manifest.json'), 'utf8'));
 for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
   if (!(bucket in outManifest.audio)) throw new Error(`missing audio bucket: ${bucket}`);
   if (!(bucket in outManifest.video)) throw new Error(`missing video bucket: ${bucket}`);
-  if (outManifest.audio[bucket]?.wav !== '') throw new Error(`expected empty manifest audio value for ${bucket}.wav`);
-  if (outManifest.video[bucket]?.['1080p'] !== '') throw new Error(`expected empty manifest video value for ${bucket}.1080p`);
+  for (const key of audioKeys) {
+    if (outManifest.audio[bucket]?.[key] !== '') throw new Error(`expected empty manifest audio value for ${bucket}.${key}`);
+  }
+  for (const key of videoKeys) {
+    if (outManifest.video[bucket]?.[key] !== '') throw new Error(`expected empty manifest video value for ${bucket}.${key}`);
+  }
 }
 
 const sidebarRuntime = await fs.readFile(path.join(root, 'docs/assets/dex-sidebar.js'), 'utf8');

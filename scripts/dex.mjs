@@ -12,7 +12,7 @@ import {
   normalizeManifest,
   slugify,
 } from './lib/entry-schema.mjs';
-import { prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
+import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
 import { descriptionTextFromSeed } from './lib/entry-html.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -71,18 +71,7 @@ function iframeFor(url) {
   return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
 }
 
-function buildEmptyManifestSkeleton(formatKeys) {
-  const audioKeys = Array.isArray(formatKeys?.audio) ? formatKeys.audio : [];
-  const videoKeys = Array.isArray(formatKeys?.video) ? formatKeys.video : [];
-  const manifest = { audio: {}, video: {} };
 
-  for (const bucket of ALL_BUCKETS) {
-    manifest.audio[bucket] = Object.fromEntries(audioKeys.map((key) => [key, '']));
-    manifest.video[bucket] = Object.fromEntries(videoKeys.map((key) => [key, '']));
-  }
-
-  return manifest;
-}
 
 async function collectInitData(opts, slugArg) {
   const base = opts.from ? await parseJsonMaybe(path.resolve(opts.from)) : {};

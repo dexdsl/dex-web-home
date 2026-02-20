@@ -3,7 +3,7 @@ import path from 'node:path';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
-import { prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
+import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 
 function iframeFor(url) {
@@ -44,8 +44,9 @@ const STEPS = [
   { id: 'season', label: 'Season', kind: 'text' },
   { id: 'location', label: 'Location', kind: 'text' },
   { id: 'specialEventImage', label: 'Special event image URL (optional)', kind: 'text' },
-  { id: 'manifestRaw', label: 'Manifest JSON', kind: 'textarea' },
-  { id: 'authEnabled', label: 'Ensure auth snippet?', kind: 'toggle' },
+  { id: 'creditsStub', label: 'Credits', kind: 'stub', body: 'Credits flow not implemented yet. Using minimal defaults for now.' },
+  { id: 'downloadStub', label: 'Download', kind: 'stub', body: 'Download manifest flow not implemented yet. Generating an empty manifest skeleton.' },
+  { id: 'manifestStub', label: 'Manifest', kind: 'stub', body: 'Manifest flow not implemented yet. Using generated empty manifest skeleton.' },
   { id: 'summary', label: 'Summary', kind: 'summary' },
 ];
 
@@ -69,9 +70,6 @@ function validateStep(stepId, form) {
   }
   if (stepId === 'season' && !form.season.trim()) return 'Season is required.';
   if (stepId === 'location' && !form.location.trim()) return 'Location is required.';
-  if (stepId === 'manifestRaw') {
-    try { JSON.parse(form.manifestRaw || '{}'); } catch { return 'Manifest must be valid JSON.'; }
-  }
   return '';
 }
 
@@ -82,7 +80,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [busy, setBusy] = useState(false);
   const [statusLines, setStatusLines] = useState([]);
   const [doneReport, setDoneReport] = useState(null);
-  const [confirmQuit, setConfirmQuit] = useState(false);
   const [multiCursor, setMultiCursor] = useState(0);
   const templateRef = useRef(null);
   const [form, setForm] = useState({
@@ -99,8 +96,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     season: 'S1',
     location: '',
     specialEventImage: '',
-    manifestRaw: '{}',
-    authEnabled: true,
   });
   const [cursorByStep, setCursorByStep] = useState({
     title: 0,
@@ -114,7 +109,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     season: 2,
     location: 0,
     specialEventImage: 0,
-    manifestRaw: 2,
   });
 
   const step = STEPS[stepIdx];
@@ -134,18 +128,16 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     }
   }, [form.title, form.slugTouched]);
 
-  const inputValue = step?.kind === 'text' || step?.kind === 'textarea' ? form[step.id] ?? '' : '';
+  const inputValue = step?.kind === 'text' ? form[step.id] ?? '' : '';
   const cursor = cursorByStep[step?.id] ?? 0;
 
   const footer = useMemo(() => {
     if (doneReport) return 'Enter return to menu • Ctrl+C quit';
-    if (confirmQuit) return 'Quit wizard? (y/N)';
-    if (step.kind === 'multi') return 'Space toggle • ↑/↓ move • Enter next • Esc back • Ctrl+C quit';
-    if (step.kind === 'textarea') return 'Enter newline • Ctrl+Enter next • Esc back • Ctrl+C quit';
-    if (step.kind === 'summary') return 'Enter generate • Esc back • Ctrl+C quit';
-    if (step.kind === 'toggle') return 'Space toggle • Enter next • Esc back • Ctrl+C quit';
-    return 'Enter next • Esc back • Ctrl+C quit';
-  }, [confirmQuit, doneReport, step.kind]);
+    if (step.kind === 'multi') return 'Space toggle • ↑/↓ move • Enter → Next   Esc back • Ctrl+Q quit • Ctrl+C quit';
+    if (step.kind === 'stub') return 'Enter → Next   Ctrl+Q → Quit';
+    if (step.kind === 'summary') return 'Enter generate • Esc back • Ctrl+Q quit • Ctrl+C quit';
+    return 'Enter next • Esc back • Ctrl+Q quit • Ctrl+C quit';
+  }, [doneReport, step.kind]);
 
   const shiftStep = (delta) => {
     setError('');
@@ -205,7 +197,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       setError('');
       try {
         if (!templateRef.current) templateRef.current = await prepareTemplate({ templateArg });
-        const manifest = JSON.parse(form.manifestRaw || '{}');
+        const manifest = buildEmptyManifestSkeleton(templateRef.current.formatKeys);
         const sidebar = defaultSidebar();
         sidebar.lookupNumber = form.lookupNumber;
         sidebar.buckets = form.buckets;
@@ -226,7 +218,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
             descriptionText: form.descriptionText || '',
             sidebar,
             manifest,
-            authEnabled: form.authEnabled,
+            authEnabled: true,
             outDir: path.resolve(outDirDefault || './entries'),
           },
           opts: {},
@@ -251,12 +243,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   useInput((input, key) => {
     if (busy) return;
     if (key.ctrl && (input === 'q' || input === 'Q')) {
-      setConfirmQuit(true);
-      return;
-    }
-    if (confirmQuit) {
-      if (input === 'y' || input === 'Y') onCancel();
-      else if (key.return || input === 'n' || input === 'N' || key.escape) setConfirmQuit(false);
+      onCancel();
       return;
     }
     if (doneReport) {
@@ -286,11 +273,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       return;
     }
 
-    if (step.kind === 'toggle') {
-      if (input === ' ' || key.upArrow || key.downArrow) {
-        setForm((prev) => ({ ...prev, authEnabled: !prev.authEnabled }));
-        return;
-      }
+    if (step.kind === 'stub') {
       if (key.return) void maybeAdvance();
       return;
     }
@@ -308,10 +291,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     if (key.delete) { mutateAtCursor('delete'); return; }
 
     if (key.return) {
-      if (step.kind === 'textarea' && !key.ctrl) {
-        insertChar('\n');
-        return;
-      }
       void maybeAdvance();
       return;
     }
@@ -328,8 +307,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         ? React.createElement(Box, { flexDirection: 'column' },
           ...BUCKETS.map((bucket, idx) => React.createElement(Text, { key: bucket, color: idx === multiCursor ? '#ffffff' : '#d0d5df', inverse: idx === multiCursor }, `${idx === multiCursor ? '›' : ' '} [${form.buckets.includes(bucket) ? 'x' : ' '}] ${bucket}`)),
         )
-        : step.kind === 'toggle'
-          ? React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${form.authEnabled ? 'ON' : 'OFF'} ]`)
+        : step.kind === 'stub'
+          ? React.createElement(Box, { flexDirection: 'column' },
+            React.createElement(Text, { color: '#d0d5df' }, step.label),
+            React.createElement(Text, { color: '#d0d5df' }, step.body),
+            React.createElement(Text, { color: '#8f98a8' }, 'Enter → Next   Ctrl+Q → Quit'),
+          )
           : step.kind === 'summary'
             ? React.createElement(Box, { flexDirection: 'column' },
               React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`),
@@ -341,7 +324,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
             : React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(inputValue, cursor, caretOn || process.env.DEX_NO_ANIM === '1')} ]`),
     ),
     busy ? React.createElement(Text, { color: '#ffcc66' }, 'Generating...') : null,
-    confirmQuit ? React.createElement(Text, { color: '#ffcc66' }, 'Quit wizard? (y/N)') : null,
     error ? React.createElement(Text, { color: '#ff6b6b' }, error) : null,
     ...(doneReport ? statusLines.map((line, i) => React.createElement(Text, { key: `ok-${i}`, color: '#a6e3a1' }, line)) : []),
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { color: '#6e7688' }, footer)),
