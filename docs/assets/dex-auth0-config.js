@@ -2,19 +2,19 @@
   var host = window.location.hostname;
   var byHost = {
     "dexdsl.github.io": {
-      domain: "https://dexdsl.github.io",
+      domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
       audience: "",
       redirectUri: "https://dexdsl.github.io/auth/callback/"
     },
     "dexdsl.org": {
-      domain: "https://dexdsl.github.io",
+      domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
       audience: "",
       redirectUri: "https://dexdsl.org/auth/callback/"
     },
     "dexdsl.com": {
-      domain: "https://dexdsl.github.io",
+      domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
       audience: "",
       redirectUri: "https://dexdsl.com/auth/callback/"
