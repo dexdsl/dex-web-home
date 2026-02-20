@@ -48,11 +48,7 @@ function badge(text, fg = '#d0d5df', bg = '#313745') {
   return chalk.hex(bg).bold(` ${chalk.hex(fg)(text)} `);
 }
 
-function nowStamp() {
-  return new Date().toISOString().slice(11, 19);
-}
-
-function DashboardApp({ initialPaletteOpen, version, onRunInit, noAnim }) {
+function DashboardApp({ initialPaletteOpen, version, noAnim }) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({ cols: stdout?.columns || 80, rows: stdout?.rows || 24 });
@@ -62,12 +58,10 @@ function DashboardApp({ initialPaletteOpen, version, onRunInit, noAnim }) {
   const [query, setQuery] = useState('');
   const [paletteSelected, setPaletteSelected] = useState(0);
   const [mode, setMode] = useState(initialPaletteOpen ? 'palette' : 'menu');
-  const [logs, setLogs] = useState([]);
+  const [lastResult, setLastResult] = useState('');
 
   const cols = dimensions.cols;
   const rows = dimensions.rows;
-
-  const pushLog = (message) => setLogs((prev) => [...prev, message.startsWith('[') ? message : `[${nowStamp()}] ${message}`]);
 
   useEffect(() => {
     const onResize = () => setDimensions({ cols: stdout?.columns || 80, rows: stdout?.rows || 24 });
@@ -126,10 +120,8 @@ function DashboardApp({ initialPaletteOpen, version, onRunInit, noAnim }) {
   const paletteTop = Math.max(0, Math.floor((rows - paletteHeight) / 2));
 
   const headerHeight = 13;
-  const middleHeight = 9;
-  const outputHeight = Math.max(5, rows - headerHeight - middleHeight - 1);
-  const outputLines = Math.max(1, outputHeight - 2);
-  const visibleLogs = logs.slice(-outputLines);
+  const footerHeight = 3;
+  const workspaceHeight = Math.max(6, rows - headerHeight - footerHeight);
 
   const headerTop = `entry creation tool   ${badge(version || 'dev')}`;
 
@@ -143,31 +135,26 @@ function DashboardApp({ initialPaletteOpen, version, onRunInit, noAnim }) {
           React.createElement(Text, {}, chalk.hex('#8f98a8')('Last updated: 2026-02-20')),
         )),
     ),
-    React.createElement(Box, { height: middleHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
+    React.createElement(Box, { height: workspaceHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
       mode === 'init'
         ? React.createElement(InitWizard, {
+          outDirDefault: './entries',
           onCancel: () => setMode('menu'),
-          onComplete: () => setMode('menu'),
-          onLog: pushLog,
-          onRunInit,
+          onDone: (report) => {
+            setLastResult(`Last: ✓ Wrote entries/${report.slug}/index.html`);
+            setMode('menu');
+          },
         })
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
           ...MENU_ITEMS.map((item, idx) => React.createElement(Box, { key: item.id, height: 1 },
             React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, `${item.label} — ${item.description}`),
           )),
-          React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? help/palette   q quit'),
+          lastResult ? React.createElement(Text, { color: '#a6e3a1' }, lastResult) : null,
         ),
     ),
-    React.createElement(Box, { height: outputHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
-      React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Output'),
-      ...(visibleLogs.length
-        ? visibleLogs.map((line, idx) => {
-          const tsMatch = line.match(/^\[(.*?)\]\s(.*)$/);
-          if (!tsMatch) return React.createElement(Text, { key: `log-${idx}`, color: '#d0d5df' }, line);
-          return React.createElement(Text, { key: `log-${idx}` }, `${chalk.hex('#6e7688')(`[${tsMatch[1]}]`)} ${chalk.hex('#d0d5df')(tsMatch[2])}`);
-        })
-        : [React.createElement(Text, { key: 'empty', color: '#6e7688' }, 'No output yet.')]),
+    React.createElement(Box, { height: footerHeight, borderStyle: 'single', borderColor: '#343b4a', paddingX: 2, justifyContent: 'center' },
+      React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? palette   q quit'),
     ),
     paletteOpen && React.createElement(Box, {
       position: 'absolute', left: paletteLeft, top: paletteTop, width: paletteWidth, height: paletteHeight,
@@ -183,7 +170,7 @@ function DashboardApp({ initialPaletteOpen, version, onRunInit, noAnim }) {
   );
 }
 
-export async function runDashboard({ paletteOpen = false, version = 'dev', onRunInit } = {}) {
+export async function runDashboard({ paletteOpen = false, version = 'dev' } = {}) {
   if (!process.stdout.isTTY || !process.stdin.isTTY) return { action: null };
 
   cliCursor.hide();
@@ -191,7 +178,6 @@ export async function runDashboard({ paletteOpen = false, version = 'dev', onRun
     const instance = render(React.createElement(DashboardApp, {
       initialPaletteOpen: paletteOpen,
       version,
-      onRunInit,
       noAnim: process.env.DEX_NO_ANIM === '1',
     }), { exitOnCtrlC: true });
     await instance.waitUntilExit();
