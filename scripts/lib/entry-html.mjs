@@ -30,8 +30,14 @@ function replaceBetween(html, start, end, content) {
 export function detectTemplateProblems(html) {
   const missing = [];
   if (!/<script[^>]*id=["']dex-manifest["'][^>]*type=["']application\/json["']/i.test(html)) missing.push('script#dex-manifest[type="application/json"]');
-  if (!/window\.dexSidebarPageConfig\s*=/.test(html)) missing.push('a <script> containing window.dexSidebarPageConfig');
-  const hasVideo = /class=["'][^"']*sqs-video-wrapper/.test(html) || !!(markerTokens(html, 'video').start && markerTokens(html, 'video').end);
+    const hasWindowSidebar = /window\.dexSidebarPageConfig\s*=/.test(html);
+    const hasJsonSidebar = /<script[^>]*id=["']dex-sidebar-page-config["'][^>]*type=["']application\/json["']/i.test(html);
+    const hasSidebarAnchors = !!(markerTokens(html, 'sidebar').start && markerTokens(html, 'sidebar').end);
+
+    if (!(hasWindowSidebar || hasJsonSidebar || hasSidebarAnchors)) {
+      missing.push('sidebar config target (window.dexSidebarPageConfig OR script#dex-sidebar-page-config OR DEX sidebar anchors)');
+    }
+    const hasVideo = /class=["'][^"']*sqs-video-wrapper/.test(html) || !!(markerTokens(html, 'video').start && markerTokens(html, 'video').end);
   if (!hasVideo) missing.push('.sqs-video-wrapper or DEX video anchors');
   return missing;
 }
@@ -56,7 +62,6 @@ export function injectEntryHtml(templateHtml, { descriptionHtml, manifest, sideb
   let videoStrategy = 'selectors';
   let descStrategy = 'selectors';
   let sidebarStrategy = 'selectors';
-
   const vm = markerTokens(html, 'video');
   if (vm.start && vm.end) {
     const start = html.indexOf(vm.start) + vm.start.length;
@@ -102,20 +107,54 @@ export function injectEntryHtml(templateHtml, { descriptionHtml, manifest, sideb
     throw new Error('Description anchors missing and selector fallback is ambiguous; add DEX:DESC anchors to template');
   }
 
-  const sidebarJs = `window.dexSidebarPageConfig = ${JSON.stringify(sidebarConfig, null, 2)};`;
-  const sm = markerTokens(html, 'sidebar');
-  if (sm.start && sm.end) {
-    const start = html.indexOf(sm.start) + sm.start.length;
-    const end = html.indexOf(sm.end);
-    const region = html.slice(start, end);
-    const replaced = region.replace(/window\.dexSidebarPageConfig\s*=\s*[\s\S]*?;\s*/m, `${sidebarJs}\n`);
-    if (replaced === region) throw new Error('Sidebar anchor region found but window.dexSidebarPageConfig assignment missing');
-    html = replaceBetween(html, sm.start, sm.end, replaced.trim());
-    sidebarStrategy = 'anchors';
-  } else {
-    html = html.replace(/window\.dexSidebarPageConfig\s*=\s*[\s\S]*?;\s*/m, `${sidebarJs}\n`);
-    if (!html.includes(sidebarJs)) throw new Error('Sidebar config target missing; add DEX sidebar anchors');
-  }
+    const sidebarJson = JSON.stringify(sidebarConfig, null, 2);
+    const sidebarJs = `window.dexSidebarPageConfig = ${sidebarJson};`;
+
+    const sm = markerTokens(html, 'sidebar');
+    if (sm.start && sm.end) {
+      const start = html.indexOf(sm.start) + sm.start.length;
+      const end = html.indexOf(sm.end);
+      const region = html.slice(start, end);
+
+      let replaced = region;
+
+      // A) Anchor region contains window assignment
+      if (/window\.dexSidebarPageConfig\s*=/.test(region)) {
+        replaced = region.replace(
+          /window\.dexSidebarPageConfig\s*=\s*[\s\S]*?;\s*/m,
+          `${sidebarJs}\n`
+        );
+      }
+      // B) Anchor region contains JSON script blob
+      else if (/<script[^>]*id=["']dex-sidebar-page-config["'][^>]*type=["']application\/json["']/i.test(region)) {
+        replaced = region.replace(
+          /(<script[^>]*id=["']dex-sidebar-page-config["'][^>]*type=["']application\/json["'][^>]*>)([\s\S]*?)(<\/script>)/i,
+          `$1\n${sidebarJson}\n$3`
+        );
+      }
+
+      if (replaced === region) {
+        throw new Error(
+          'Sidebar anchor region found, but no supported target inside it. ' +
+          'Expected either window.dexSidebarPageConfig assignment OR script#dex-sidebar-page-config[type="application/json"] within the anchor bounds.'
+        );
+      }
+
+      html = replaceBetween(html, sm.start, sm.end, replaced.trim());
+      sidebarStrategy = 'anchors';
+    } else {
+        if (/window\.dexSidebarPageConfig\s*=/.test(html)) {
+          html = html.replace(/window\.dexSidebarPageConfig\s*=\s*[\s\S]*?;\s*/m, `${sidebarJs}\n`);
+          if (!html.includes(sidebarJs)) throw new Error('Sidebar config target missing; add DEX sidebar anchors');
+        } else if (/<script[^>]*id=["']dex-sidebar-page-config["'][^>]*type=["']application\/json["']/i.test(html)) {
+          html = html.replace(
+            /(<script[^>]*id=["']dex-sidebar-page-config["'][^>]*type=["']application\/json["'][^>]*>)([\s\S]*?)(<\/script>)/i,
+            `$1\n${sidebarJson}\n$3`
+          );
+        } else {
+          throw new Error('Sidebar config target missing; add DEX sidebar anchors or a sidebar config placeholder');
+        }
+      }
 
   html = html.replace(/(<script[^>]*id="dex-manifest"[^>]*type="application\/json"[^>]*>)([\s\S]*?)(<\/script>)/i, `$1\n${JSON.stringify(manifest, null, 2)}\n$3`);
   if (!/"audio"\s*:/.test(html)) throw new Error('Failed to update dex-manifest JSON');

@@ -6,6 +6,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import process from 'node:process';
 import prompts from 'prompts';
 import { Command } from 'commander';
+import { fileURLToPath } from 'node:url';
 import {
   BUCKETS,
   entrySchema,
@@ -15,7 +16,8 @@ import {
   formatZodError,
 } from './lib/entry-schema.mjs';
 import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './lib/entry-html.mjs';
-
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 const ROOT = process.cwd();
 const ENTRIES_DIR = path.join(ROOT, 'entries');
 
@@ -23,17 +25,39 @@ const ensure = async (p) => { try { await fs.access(p); return true; } catch { r
 const parseJsonMaybe = async (p) => JSON.parse(await fs.readFile(p, 'utf8'));
 
 async function detectTemplate(templateArg) {
-  const tried = [];
+  // If user explicitly passed a template, treat failures as hard errors.
   if (templateArg) {
     const p = path.resolve(templateArg);
-    tried.push(p);
     if (!(await ensure(p))) throw new Error(`Template not found: ${p}`);
-    return p;
+    const html = await fs.readFile(p, 'utf8');
+    const missing = detectTemplateProblems(html);
+    if (missing.length) throw new Error(`Template validation failed (${p}); missing: ${missing.join(', ')}`);
+    return { templatePath: p, templateHtml: html };
   }
-  const cwdTemplate = path.resolve(process.cwd(), 'index.html');
-  tried.push(cwdTemplate);
-  if (await ensure(cwdTemplate)) return cwdTemplate;
-  throw new Error(`Template not found. Looked for: ${tried.join(', ')}. Run from a folder containing index.html or pass --template.`);
+
+  // Otherwise: prefer CWD index.html ONLY if it validates; else fall back to repo template.
+  const candidates = [
+    path.resolve(process.cwd(), 'index.html'),
+    path.join(PROJECT_ROOT, 'entry-template', 'index.html'),
+  ];
+
+  const reports = [];
+  for (const p of candidates) {
+    if (!(await ensure(p))) {
+      reports.push(`- ${p}: not found`);
+      continue;
+    }
+    const html = await fs.readFile(p, 'utf8');
+    const missing = detectTemplateProblems(html);
+    if (!missing.length) return { templatePath: p, templateHtml: html };
+    reports.push(`- ${p}: invalid (missing: ${missing.join(', ')})`);
+  }
+
+  throw new Error(
+    `No valid template found.\n` +
+    `Tried:\n${reports.join('\n')}\n` +
+    `Tip: pass --template <path> to force a specific template.`
+  );
 }
 
 function dedupeSlug(base, existing) {
@@ -225,8 +249,7 @@ async function collectInitData(opts, slugArg) {
 }
 
 async function initCommand(slugArg, opts) {
-  const templatePath = await detectTemplate(opts.template);
-  const templateHtml = await fs.readFile(templatePath, 'utf8');
+    const { templatePath, templateHtml } = await detectTemplate(opts.template);
   const missing = detectTemplateProblems(templateHtml);
   if (missing.length) throw new Error(`Template validation failed; missing: ${missing.join(', ')}`);
 

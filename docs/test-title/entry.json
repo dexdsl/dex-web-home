@@ -1,0 +1,93 @@
+{
+  "slug": "test-title",
+  "title": "TEST TITLE",
+  "video": {
+    "mode": "url",
+    "dataUrl": "youtube.com/watch?v=NSMiudJhIW4",
+    "dataHtml": "<iframe src=\"youtube.com/watch?v=NSMiudJhIW4\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen></iframe>"
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "T.Est Ti TL1234 E.5",
+    "buckets": [
+      "A",
+      "B"
+    ],
+    "specialEventImage": null,
+    "attributionSentence": "attribution!",
+    "credits": {
+      "artist": {
+        "name": "artist name",
+        "links": [
+          {
+            "label": "link",
+            "href": "example.com"
+          }
+        ]
+      },
+      "artistAlt": "alt",
+      "instruments": [
+        {
+          "name": "instrument",
+          "links": [
+            {
+              "label": "example.com",
+              "href": "example.com"
+            }
+          ]
+        },
+        {
+          "name": "inst credit",
+          "links": []
+        }
+      ],
+      "video": {
+        "director": {
+          "name": "",
+          "links": []
+        },
+        "cinematography": {
+          "name": "",
+          "links": []
+        },
+        "editing": {
+          "name": "",
+          "links": []
+        }
+      },
+      "audio": {
+        "recording": {
+          "name": "",
+          "links": []
+        },
+        "mix": {
+          "name": "",
+          "links": []
+        },
+        "master": {
+          "name": "",
+          "links": []
+        }
+      },
+      "year": 2026,
+      "season": "S2",
+      "location": "Location, ST"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "",
+      "tags": []
+    }
+  }
+}
