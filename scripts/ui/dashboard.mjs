@@ -4,6 +4,7 @@ import { Box, Text, render, useApp, useInput, useStdout } from 'ink';
 import chalk from 'chalk';
 import cliCursor from 'cli-cursor';
 import { InitWizard } from './init-wizard.mjs';
+import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 
 const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }];
 const PALETTE_ITEMS = ['init'];
@@ -86,7 +87,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
   }, [filteredPalette, paletteSelected]);
 
   useInput((input, key) => {
-    if (input === 'q') { exit(); return; }
+    if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
     if (mode === 'init') return;
 
     if (input === '?') {
@@ -104,8 +105,8 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
       }
       if (key.upArrow) { setPaletteSelected((idx) => (filteredPalette.length ? (idx - 1 + filteredPalette.length) % filteredPalette.length : 0)); return; }
       if (key.downArrow) { setPaletteSelected((idx) => (filteredPalette.length ? (idx + 1) % filteredPalette.length : 0)); return; }
-      if (key.backspace || key.delete) { setQuery((q) => q.slice(0, -1)); return; }
-      if (!key.ctrl && !key.meta && input && input >= ' ' && input <= '~') setQuery((q) => q + input);
+      if (isBackspaceKey(input, key) || key.delete) { setQuery((q) => q.slice(0, -1)); return; }
+      if (shouldAppendWizardChar(input, key)) setQuery((q) => q + input);
       return;
     }
 
@@ -154,7 +155,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
         ),
     ),
     React.createElement(Box, { height: footerHeight, borderStyle: 'single', borderColor: '#343b4a', paddingX: 2, justifyContent: 'center' },
-      React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? palette   q quit'),
+      React.createElement(Text, { color: '#6e7688' }, 'Enter run   ↑/↓ move   ? palette   Ctrl+Q quit'),
     ),
     paletteOpen && React.createElement(Box, {
       position: 'absolute', left: paletteLeft, top: paletteTop, width: paletteWidth, height: paletteHeight,

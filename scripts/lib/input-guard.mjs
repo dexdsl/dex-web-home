@@ -4,3 +4,7 @@ export function shouldAppendWizardChar(input, key = {}) {
   if (input.includes('\x1b')) return false;
   return !/\p{C}/u.test(input);
 }
+
+export function isBackspaceKey(input, key = {}) {
+  return !!(key.backspace || input === '\x7f' || input === '\b');
+}

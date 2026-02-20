@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
 import { prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
-import { shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 
 function iframeFor(url) {
   return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
@@ -250,7 +250,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
   useInput((input, key) => {
     if (busy) return;
-    if (key.ctrl && input === 'q') {
+    if (key.ctrl && (input === 'q' || input === 'Q')) {
       setConfirmQuit(true);
       return;
     }
@@ -304,7 +304,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     if (key.rightArrow) { setCursorByStep((prev) => ({ ...prev, [step.id]: Math.min((form[step.id] ?? '').length, (prev[step.id] ?? 0) + 1) })); return; }
     if (key.home) { setCursorByStep((prev) => ({ ...prev, [step.id]: 0 })); return; }
     if (key.end) { setCursorByStep((prev) => ({ ...prev, [step.id]: (form[step.id] ?? '').length })); return; }
-    if (key.backspace) { mutateAtCursor('backspace'); return; }
+    if (isBackspaceKey(input, key)) { mutateAtCursor('backspace'); return; }
     if (key.delete) { mutateAtCursor('delete'); return; }
 
     if (key.return) {

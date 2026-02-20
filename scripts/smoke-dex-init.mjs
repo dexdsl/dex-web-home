@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { shouldAppendWizardChar } from './lib/input-guard.mjs';
+import { isBackspaceKey, shouldAppendWizardChar } from './lib/input-guard.mjs';
 
 const root = process.cwd();
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-'));
@@ -48,5 +48,9 @@ if (!sidebarRuntime.includes("const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X']
 if (shouldAppendWizardChar('a', { ctrl: false, meta: false }) !== true) throw new Error('input guard should accept printable char');
 if (shouldAppendWizardChar('\x1b', { ctrl: false, meta: false }) !== false) throw new Error('input guard should reject ESC char');
 if (shouldAppendWizardChar('\x1b[27;5;13~', { ctrl: false, meta: false }) !== false) throw new Error('input guard should reject escape sequences');
+
+if (isBackspaceKey('', { backspace: true }) !== true) throw new Error('backspace helper should accept key.backspace');
+if (isBackspaceKey('\x7f', {}) !== true) throw new Error('backspace helper should accept DEL input');
+if (isBackspaceKey('a', {}) !== false) throw new Error('backspace helper should reject non-backspace input');
 
 console.log('smoke-dex-init ok');
