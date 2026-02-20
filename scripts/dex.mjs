@@ -11,52 +11,12 @@ import {
   BUCKETS,
   slugify,
 } from './lib/entry-schema.mjs';
-import { detectTemplateProblems, extractFormatKeys } from './lib/entry-html.mjs';
-import { writeEntryFromData } from './lib/entry-run.mjs';
-import { runDashboard } from './ui/dashboard.mjs';
+import { prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
-const ROOT = process.cwd();
-const ENTRIES_DIR = path.join(ROOT, 'entries');
 
 const ensure = async (p) => { try { await fs.access(p); return true; } catch { return false; } };
 const parseJsonMaybe = async (p) => JSON.parse(await fs.readFile(p, 'utf8'));
-
-async function detectTemplate(templateArg) {
-  // If user explicitly passed a template, treat failures as hard errors.
-  if (templateArg) {
-    const p = path.resolve(templateArg);
-    if (!(await ensure(p))) throw new Error(`Template not found: ${p}`);
-    const html = await fs.readFile(p, 'utf8');
-    const missing = detectTemplateProblems(html);
-    if (missing.length) throw new Error(`Template validation failed (${p}); missing: ${missing.join(', ')}`);
-    return { templatePath: p, templateHtml: html };
-  }
-
-  // Otherwise: prefer CWD index.html ONLY if it validates; else fall back to repo template.
-  const candidates = [
-    path.resolve(process.cwd(), 'index.html'),
-    path.join(PROJECT_ROOT, 'entry-template', 'index.html'),
-  ];
-
-  const reports = [];
-  for (const p of candidates) {
-    if (!(await ensure(p))) {
-      reports.push(`- ${p}: not found`);
-      continue;
-    }
-    const html = await fs.readFile(p, 'utf8');
-    const missing = detectTemplateProblems(html);
-    if (!missing.length) return { templatePath: p, templateHtml: html };
-    reports.push(`- ${p}: invalid (missing: ${missing.join(', ')})`);
-  }
-
-  throw new Error(
-    `No valid template found.\n` +
-    `Tried:\n${reports.join('\n')}\n` +
-    `Tip: pass --template <path> to force a specific template.`
-  );
-}
 
 function dedupeSlug(base, existing) {
   if (!existing.has(base)) return base;
@@ -247,10 +207,10 @@ async function collectInitData(opts, slugArg) {
 }
 
 async function initCommand(slugArg, opts) {
-  const { templatePath, templateHtml } = await detectTemplate(opts.template);
-  const formatKeys = extractFormatKeys(templateHtml);
+  const { templatePath, templateHtml, formatKeys } = await prepareTemplate({ templateArg: opts.template });
   const data = await collectInitData({ ...opts, formatKeys }, slugArg);
-  const report = await writeEntryFromData({ templatePath, templateHtml, data, opts, log: console.log });
+  const { report, lines } = await writeEntryFromData({ templatePath, templateHtml, data, opts });
+  lines.forEach((line) => console.log(line));
 
   if (process.env.DEX_INIT_REPORT_PATH) {
     await fs.writeFile(process.env.DEX_INIT_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8').catch(() => {});
@@ -276,19 +236,10 @@ if (topLevel.mode === 'dashboard') {
   }
 
   const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
+  const { runDashboard } = await import('./ui/dashboard.mjs');
   await runDashboard({
     paletteOpen: topLevel.paletteOpen,
     version: packageJson.version || 'dev',
-    onRunInit: async (data, log) => {
-      const { templatePath, templateHtml } = await detectTemplate();
-      return writeEntryFromData({
-        templatePath,
-        templateHtml,
-        data: { ...data, outDir: ENTRIES_DIR },
-        opts: {},
-        log,
-      });
-    },
   });
   process.exit(0);
 }
