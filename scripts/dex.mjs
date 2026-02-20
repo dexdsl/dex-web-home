@@ -326,17 +326,28 @@ if (topLevel.mode === 'dashboard') {
   });
 
   if (action === 'init') {
-    await initCommand(undefined, {
-      out: './entries',
-      quick: false,
-      advanced: false,
-      template: undefined,
-      open: false,
-      dryRun: false,
-      flat: false,
-      from: undefined,
+    process.stdout.write('\x1b[?25h');
+    process.stdout.write('\x1b[0m');
+    process.stdout.write('\x1b[2J\x1b[H');
+
+    const child = spawn(process.execPath, [path.join(SCRIPT_DIR, 'dex.mjs'), 'init'], {
+      stdio: 'inherit',
     });
+
+    const exitCode = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code, signal) => {
+        if (signal) {
+          resolve(1);
+          return;
+        }
+        resolve(code ?? 0);
+      });
+    });
+
+    process.exit(exitCode);
   }
+
   process.exit(0);
 }
 

@@ -166,18 +166,31 @@ function DashboardApp({ initialPaletteOpen, version, onResolve, noAnim }) {
     { flexDirection: 'column', width: cols, height: rows },
     React.createElement(
       Box,
-      { flexDirection: 'column', paddingX: 2, paddingTop: 1 },
-      ...logoLines.map((line, i) => React.createElement(Text, { key: `logo-${i}` }, line)),
-      React.createElement(Text, { color: '#6e7688' }, `v${version}`),
-      React.createElement(Text, {}, divider),
+      { flexDirection: 'column', paddingX: 2, paddingTop: 1, width: '100%' },
+      React.createElement(
+        Box,
+        { width: '100%', justifyContent: 'center' },
+        React.createElement(
+          Box,
+          { flexDirection: 'column', alignItems: 'center' },
+          ...logoLines.map((line, i) => React.createElement(Text, { key: `logo-${i}` }, line)),
+          React.createElement(Text, { color: '#6e7688' }, `v${version}`),
+        ),
+      ),
+      React.createElement(
+        Box,
+        { width: '100%', justifyContent: 'center' },
+        React.createElement(Text, {}, divider),
+      ),
     ),
     React.createElement(Box, { flexGrow: 1 }),
     React.createElement(
       Box,
       { flexDirection: 'column', alignItems: 'center' },
-      MENU_ITEMS.map((item, idx) => React.createElement(
+      React.createElement(Text, { color: '#6e7688', dimColor: true }, 'Commands'),
+      ...MENU_ITEMS.map((item, idx) => React.createElement(
         Box,
-        { key: item, marginBottom: 1 },
+        { key: item, height: 1 },
         React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, item),
       )),
     ),
