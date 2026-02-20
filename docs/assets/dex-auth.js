@@ -35,9 +35,32 @@
   var authClient = null;
   var isAuthenticated = false;
     
+    var FALLBACK_AUTH0 = {
+      domain: "dexdsl.us.auth0.com",
+      clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
+      audience: "",
+      redirectUri: window.location.origin + "/auth/callback/"
+    };
+
+    function getCfg() {
+      var root = window.DEX_AUTH0_CONFIG;
+      var cfg = root && root.current;
+      if (cfg) return cfg;
+
+      // fallback for your known hosts (covers “config script missing / load order” cases)
+      var h = window.location.hostname;
+      if (h === "dexdsl.github.io" || h === "dexdsl.org" || h === "dexdsl.com") {
+        return FALLBACK_AUTH0;
+      }
+      return null;
+    }
+    
     function ensureAuthClient(cfg) {
-      if (authClient) return Promise.resolve(authClient);
-      if (!cfg) return Promise.reject(new Error("Missing Auth0 config"));
+        if (authClient) return Promise.resolve(authClient);
+        cfg = cfg || getCfg();
+        if (!cfg) {
+          return Promise.reject(new Error("Missing Auth0 config (no DEX_AUTH0_CONFIG.current for host " + window.location.hostname + ")"));
+        }
       if (typeof window.createAuth0Client !== "function") {
         return Promise.reject(new Error("Auth0 SPA SDK missing (createAuth0Client)"));
       }
@@ -202,13 +225,13 @@
 
           var returnTo = window.location.pathname + window.location.search + window.location.hash;
 
-          ensureAuthClient(cfg)
+          ensureAuthClient()
             .then(function (client) {
-              return client.loginWithRedirect({
-                appState: { returnTo: returnTo },
-                // belt + suspenders: ensures redirect_uri is present even if defaults got nuked
-                authorizationParams: { redirect_uri: cfg.redirectUri }
-              });
+                var cfgNow = getCfg();
+                return client.loginWithRedirect({
+                  appState: { returnTo: returnTo },
+                  authorizationParams: cfgNow ? { redirect_uri: cfgNow.redirectUri } : undefined
+                });
             })
             .catch(function (err) {
               logError("SIGN IN failed:", err);
@@ -332,8 +355,7 @@
 
   async function init() {
     try {
-      var cfgRoot = window.DEX_AUTH0_CONFIG;
-      var cfg = cfgRoot && cfgRoot.current;
+        var cfg = getCfg();
       ensureAuthUi();
       if (!cfg) {
         logError("Missing host Auth0 configuration; auth features disabled.");
