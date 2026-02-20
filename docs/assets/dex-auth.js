@@ -29,7 +29,8 @@
     "/entry/splinterings-jakob-heinemann": true,
     "/entry/this-is-a-tangible-space": true,
     "/entry/tim-feeney": true,
-    "/entry/voice-everyday-object-manipulation-levi-lu": true
+    "/entry/voice-everyday-object-manipulation-levi-lu": true,
+    "/favorites": true
   };
 
   var authClient = null;
@@ -38,6 +39,30 @@
   var lastUiUser = null;
   var uiObserverStarted = false;
   var uiRepairQueued = false;
+  var authReadyResolve;
+  var authReady = new Promise(function (resolve) { authReadyResolve = resolve; });
+  var authReadyState = { isAuthenticated: false, user: null };
+  var authReadyDone = false;
+
+  function publishAuthState(auth, user) {
+    authReadyState = { isAuthenticated: !!auth, user: user || null };
+    window.auth0Client = authClient || null;
+    window.dexAuth = window.DEX_AUTH || null;
+    window.auth0Sub = user && (user.sub || user.user_id || user.email) || null;
+    if (!authReadyDone) {
+      authReadyDone = true;
+      if (authReadyResolve) authReadyResolve(authReadyState);
+    }
+    try {
+      if (typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("dex-auth:ready", { detail: authReadyState }));
+      } else if (document && document.createEvent) {
+        var evt = document.createEvent("CustomEvent");
+        evt.initCustomEvent("dex-auth:ready", false, false, authReadyState);
+        window.dispatchEvent(evt);
+      }
+    } catch (e) {}
+  }
 
   function parseCssColorToRgb(value) {
     if (!value) return null;
@@ -187,6 +212,7 @@
           useRefreshTokens: !!(cfg && cfg.useRefreshTokens)
         }).then(function (client) {
           authClient = client;
+          window.auth0Client = authClient;
           return client;
         });
     }
@@ -757,6 +783,22 @@
     return window.location.pathname + window.location.search + window.location.hash;
   }
 
+  window.DEX_AUTH = {
+    ready: authReady.then(function () { return authReadyState; }),
+    isAuthenticated: function () {
+      return authReady.then(function () { return !!authReadyState.isAuthenticated; });
+    },
+    getUser: function () {
+      return authReady.then(function () { return authReadyState.user || null; });
+    },
+    getAccessToken: function () {
+      return ensureAuthClient()
+        .then(function (client) { return client.getTokenSilently(); })
+        .catch(function () { return null; });
+    }
+  };
+  window.dexAuth = window.DEX_AUTH;
+
   async function init() {
     try {
         var cfg = getCfg();
@@ -767,6 +809,7 @@
         logError("Missing host Auth0 configuration; auth features disabled.");
         bindUiEvents(cfg);
         bindClickGuard();
+        publishAuthState(false, null);
         return;
       }
         var createAuth0Client = getCreateAuth0ClientFn();
@@ -774,6 +817,7 @@
           logError("Auth0 SPA SDK missing; expected createAuth0Client global.");
           bindUiEvents(cfg);
           bindClickGuard();
+          publishAuthState(false, null);
           return;
         }
 
@@ -799,6 +843,7 @@
 
       if (isCallbackPath(window.location.pathname)) {
         var callbackResult = await authClient.handleRedirectCallback();
+        publishAuthState(false, null);
         clearAuthQueryParams();
         var returnTo = (callbackResult && callbackResult.appState && callbackResult.appState.returnTo) || "/";
         window.location.replace(returnTo);
@@ -813,6 +858,7 @@
 
       isAuthenticated = await authClient.isAuthenticated();
       if (isProtectedPath(window.location.pathname) && !isAuthenticated) {
+        publishAuthState(false, null);
         handleGuardedNavIntent(getCurrentReturnTo());
         return;
       }
@@ -824,8 +870,10 @@
       setUiState(isAuthenticated, user);
       bindUiEvents(cfg);
       bindClickGuard();
+      publishAuthState(isAuthenticated, user);
     } catch (err) {
       logError("Initialization error:", err);
+      publishAuthState(false, null);
     }
   }
 
