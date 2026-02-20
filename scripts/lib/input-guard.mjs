@@ -6,5 +6,5 @@ export function shouldAppendWizardChar(input, key = {}) {
 }
 
 export function isBackspaceKey(input, key = {}) {
-  return !!(key.backspace || input === '\x7f' || input === '\b');
+  return !!(key.backspace || input === '\x7f' || input === '\b' || input === '\x08');
 }
