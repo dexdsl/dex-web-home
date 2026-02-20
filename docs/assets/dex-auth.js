@@ -34,6 +34,29 @@
 
   var authClient = null;
   var isAuthenticated = false;
+    
+    function ensureAuthClient(cfg) {
+      if (authClient) return Promise.resolve(authClient);
+      if (!cfg) return Promise.reject(new Error("Missing Auth0 config"));
+      if (typeof window.createAuth0Client !== "function") {
+        return Promise.reject(new Error("Auth0 SPA SDK missing (createAuth0Client)"));
+      }
+
+      var authorizationParams = {
+        redirect_uri: cfg.redirectUri,
+        scope: "openid profile email"
+      };
+      if (cfg.audience) authorizationParams.audience = cfg.audience;
+
+      return window.createAuth0Client({
+        domain: cfg.domain,
+        clientId: cfg.clientId,
+        authorizationParams: authorizationParams
+      }).then(function (client) {
+        authClient = client;
+        return client;
+      });
+    }
 
   function logError() {
     var args = Array.prototype.slice.call(arguments);
@@ -164,27 +187,34 @@
     }
   }
 
-  function bindUiEvents() {
+  function bindUiEvents(cfg) {
     var signInBtn = document.getElementById("auth-ui-signin");
     var profileWrap = document.getElementById("auth-ui-profile");
     var profileToggle = document.getElementById("auth-ui-profile-toggle");
     var logoutBtn = document.getElementById("auth-ui-logout");
     var dropdown = document.getElementById("auth-ui-dropdown");
 
-    if (signInBtn && !signInBtn.dataset.bound) {
-      signInBtn.dataset.bound = "1";
-      signInBtn.addEventListener("click", function () {
-        if (!authClient) {
-          logError("Auth client unavailable for sign in.");
-          return;
-        }
-        authClient.loginWithRedirect({
-          appState: { returnTo: window.location.pathname + window.location.search + window.location.hash }
-        }).catch(function (err) {
-          logError("loginWithRedirect failed:", err);
+      if (signInBtn && !signInBtn.dataset.bound) {
+        signInBtn.dataset.bound = "1";
+        signInBtn.addEventListener("click", function (evt) {
+          evt.preventDefault();
+          evt.stopPropagation();
+
+          var returnTo = window.location.pathname + window.location.search + window.location.hash;
+
+          ensureAuthClient(cfg)
+            .then(function (client) {
+              return client.loginWithRedirect({
+                appState: { returnTo: returnTo },
+                // belt + suspenders: ensures redirect_uri is present even if defaults got nuked
+                authorizationParams: { redirect_uri: cfg.redirectUri }
+              });
+            })
+            .catch(function (err) {
+              logError("SIGN IN failed:", err);
+            });
         });
-      });
-    }
+      }
 
     if (profileToggle && !profileToggle.dataset.bound) {
       profileToggle.dataset.bound = "1";
