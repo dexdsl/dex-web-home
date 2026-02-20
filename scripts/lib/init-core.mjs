@@ -95,7 +95,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     sidebarConfig: data.sidebar,
     video: data.video,
     title: data.title,
-    authEnabled: data.authEnabled,
+    authEnabled: true,
   });
 
   const folder = opts.flat ? path.join(path.resolve('.'), data.slug) : path.join(data.outDir, data.slug);
@@ -139,4 +139,17 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
   }
 
   return { report, lines };
+}
+
+export function buildEmptyManifestSkeleton(formatKeys) {
+  const audioKeys = Array.isArray(formatKeys?.audio) ? formatKeys.audio : [];
+  const videoKeys = Array.isArray(formatKeys?.video) ? formatKeys.video : [];
+  const manifest = { audio: {}, video: {} };
+
+  for (const bucket of ALL_BUCKETS) {
+    manifest.audio[bucket] = Object.fromEntries(audioKeys.map((key) => [key, '']));
+    manifest.video[bucket] = Object.fromEntries(videoKeys.map((key) => [key, '']));
+  }
+
+  return manifest;
 }
