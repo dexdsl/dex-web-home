@@ -81,6 +81,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [busy, setBusy] = useState(false);
   const [statusLines, setStatusLines] = useState([]);
   const [doneReport, setDoneReport] = useState(null);
+  const [confirmQuit, setConfirmQuit] = useState(false);
   const [multiCursor, setMultiCursor] = useState(0);
   const templateRef = useRef(null);
   const [form, setForm] = useState({
@@ -137,12 +138,13 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
   const footer = useMemo(() => {
     if (doneReport) return 'Enter return to menu • Ctrl+C quit';
+    if (confirmQuit) return 'Quit wizard? (y/N)';
     if (step.kind === 'multi') return 'Space toggle • ↑/↓ move • Enter next • Esc back • Ctrl+C quit';
     if (step.kind === 'textarea') return 'Enter newline • Ctrl+Enter next • Esc back • Ctrl+C quit';
     if (step.kind === 'summary') return 'Enter generate • Esc back • Ctrl+C quit';
     if (step.kind === 'toggle') return 'Space toggle • Enter next • Esc back • Ctrl+C quit';
     return 'Enter next • Esc back • Ctrl+C quit';
-  }, [doneReport, step.kind]);
+  }, [confirmQuit, doneReport, step.kind]);
 
   const shiftStep = (delta) => {
     setError('');
@@ -247,6 +249,15 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
   useInput((input, key) => {
     if (busy) return;
+    if (key.ctrl && input === 'q') {
+      setConfirmQuit(true);
+      return;
+    }
+    if (confirmQuit) {
+      if (input === 'y' || input === 'Y') onCancel();
+      else if (key.return || input === 'n' || input === 'N' || key.escape) setConfirmQuit(false);
+      return;
+    }
     if (doneReport) {
       if (key.return) onDone(doneReport);
       return;
@@ -329,6 +340,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
             : React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(inputValue, cursor, caretOn || process.env.DEX_NO_ANIM === '1')} ]`),
     ),
     busy ? React.createElement(Text, { color: '#ffcc66' }, 'Generating...') : null,
+    confirmQuit ? React.createElement(Text, { color: '#ffcc66' }, 'Quit wizard? (y/N)') : null,
     error ? React.createElement(Text, { color: '#ff6b6b' }, error) : null,
     ...(doneReport ? statusLines.map((line, i) => React.createElement(Text, { key: `ok-${i}`, color: '#a6e3a1' }, line)) : []),
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { color: '#6e7688' }, footer)),

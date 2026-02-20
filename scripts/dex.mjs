@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
-import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 import prompts from 'prompts';
 import { Command } from 'commander';
 import { fileURLToPath } from 'node:url';
 import {
+  ALL_BUCKETS,
   BUCKETS,
+  creditsSchema,
+  manifestSchemaForFormats,
+  normalizeManifest,
   slugify,
 } from './lib/entry-schema.mjs';
 import { prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
@@ -40,15 +42,52 @@ async function promptLinks(message) {
   return links;
 }
 
-async function openEditor(initial = '') {
-  const file = path.join(os.tmpdir(), `dex-desc-${Date.now()}.html`);
-  await fs.writeFile(file, initial, 'utf8');
-  const editor = process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
-  const r = spawnSync(editor, [file], { stdio: 'inherit' });
-  if (r.status !== 0) throw new Error(`Editor exited with code ${r.status}`);
-  const out = await fs.readFile(file, 'utf8');
-  await fs.unlink(file).catch(() => {});
-  return out.trim();
+function isProbablyHtml(str) {
+  return String(str || '').includes('<') && String(str || '').includes('>');
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function toSafeHtmlParagraphs(str) {
+  const value = String(str || '').replace(/\r\n?/g, '\n').trim();
+  if (!value) return '<p></p>';
+  if (isProbablyHtml(value)) return value;
+  return value
+    .split(/\n\n+/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>` )
+    .join('');
+}
+
+function defaultCredits(base) {
+  const now = new Date().getUTCFullYear();
+  return {
+    artist: { name: base?.artist?.name || '', links: Array.isArray(base?.artist?.links) ? base.artist.links : [] },
+    artistAlt: base?.artistAlt || null,
+    instruments: Array.isArray(base?.instruments) ? base.instruments : [],
+    video: {
+      director: { name: base?.video?.director?.name || '', links: Array.isArray(base?.video?.director?.links) ? base.video.director.links : [] },
+      cinematography: { name: base?.video?.cinematography?.name || '', links: Array.isArray(base?.video?.cinematography?.links) ? base.video.cinematography.links : [] },
+      editing: { name: base?.video?.editing?.name || '', links: Array.isArray(base?.video?.editing?.links) ? base.video.editing.links : [] },
+    },
+    audio: { recording: { name: base?.audio?.recording?.name || '', links: Array.isArray(base?.audio?.recording?.links) ? base.audio.recording.links : [] }, mix: { name: base?.audio?.mix?.name || '', links: Array.isArray(base?.audio?.mix?.links) ? base.audio.mix.links : [] }, master: { name: base?.audio?.master?.name || '', links: Array.isArray(base?.audio?.master?.links) ? base.audio.master.links : [] } },
+    year: Number(base?.year) || now,
+    season: base?.season || 'S1',
+    location: typeof base?.location === 'string' ? base.location : '',
+  };
+}
+
+function mapSeriesToImage(series) {
+  if (series === 'dex') return '/assets/series/dex.png';
+  if (series === 'inDex') return '/assets/series/index.png';
+  if (series === 'dexFest') return '/assets/series/dexfest.png';
+  return null;
 }
 
 function iframeFor(url) {
@@ -58,7 +97,6 @@ function iframeFor(url) {
 async function collectInitData(opts, slugArg) {
   const base = opts.from ? await parseJsonMaybe(path.resolve(opts.from)) : {};
   const quick = !!opts.quick;
-  const advanced = !!opts.advanced;
 
   const nonInteractive = !process.stdin.isTTY;
   if (nonInteractive) {
@@ -69,27 +107,41 @@ async function collectInitData(opts, slugArg) {
     const computedSlug = dedupeSlug(slugify(slugArg || base.slug || title), existing);
     const videoUrl = base.video?.dataUrl || 'https://player.vimeo.com/video/123456789';
     const sidebar = {
-      lookupNumber: lookup, buckets: base.sidebarPageConfig?.buckets || ['A'], specialEventImage: null,
+      lookupNumber: lookup, buckets: base.sidebarPageConfig?.buckets || ['A'], specialEventImage: base.sidebarPageConfig?.specialEventImage || null,
       attributionSentence: base.sidebarPageConfig?.attributionSentence || 'Attribution',
-      credits: { artist: { name: base.sidebarPageConfig?.credits?.artist?.name || 'Artist', links: [] }, artistAlt: null, instruments: [],
-        video: { director: { name: '', links: [] }, cinematography: { name: '', links: [] }, editing: { name: '', links: [] } },
-        audio: { recording: { name: '', links: [] }, mix: { name: '', links: [] }, master: { name: '', links: [] } },
-        year: base.sidebarPageConfig?.credits?.year || new Date().getUTCFullYear(), season: base.sidebarPageConfig?.credits?.season || 'S1', location: base.sidebarPageConfig?.credits?.location || 'Unknown' },
+      credits: defaultCredits(base.sidebarPageConfig?.credits),
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
-    const manifest = base.manifest || { audio: { A: Object.fromEntries((opts.formatKeys?.audio || []).map((k)=>[k,''])) }, video: { A: Object.fromEntries((opts.formatKeys?.video || []).map((k)=>[k,''])) } };
+    const manifest = normalizeManifest(base.manifest || {}, opts.formatKeys, ALL_BUCKETS);
+    manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
     return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: iframeFor(videoUrl) }, descriptionHtml: base.descriptionHtml || '<p></p>', sidebar, manifest, authEnabled: true, outDir };
   }
 
   const id = await prompts([
     { type: 'text', name: 'title', message: 'Title:', initial: base.title || '', validate: (v) => (!!v || 'Required') },
     { type: 'text', name: 'slug', message: 'Slug:', initial: slugArg || base.slug || undefined },
-    { type: 'text', name: 'lookup', message: 'Lookup number:', initial: base.sidebarPageConfig?.lookupNumber || '', validate: (v) => (!!v || 'Required') },
   ]);
   const outDir = path.resolve(opts.out || './entries');
   const existing = new Set((await ensure(outDir)) ? (await fs.readdir(outDir, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : []);
   const computedSlug = dedupeSlug(slugify(id.slug || id.title), existing);
+
+  const nameAns = await prompts({ type: 'text', name: 'name', message: 'Name:', initial: base.sidebarPageConfig?.credits?.artist?.name || '', validate: (v) => (!!v || 'Required') });
+
+  const instruments = [{ name: (await prompts({ type: 'text', name: 'instrument', message: 'Instrument:', initial: base.sidebarPageConfig?.credits?.instruments?.[0]?.name || '', validate: (v) => (!!v || 'Required') })).instrument, links: quick ? [] : await promptLinks('Add instrument link?') }];
+  if (!quick) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { add } = await prompts({ type: 'toggle', name: 'add', message: 'Add another instrument?', initial: false, active: 'yes', inactive: 'no' });
+      if (!add) break;
+      const item = await prompts({ type: 'text', name: 'name', message: 'Instrument name:', validate: (v) => (!!v || 'Required') });
+      instruments.push({ name: item.name, links: await promptLinks('Add instrument link?') });
+    }
+  }
+
+
+
+  const lookupAns = await prompts({ type: 'text', name: 'lookup', message: 'Lookup number:', initial: base.sidebarPageConfig?.lookupNumber || '', validate: (v) => (!!v || 'Required') });
 
   const videoMode = await prompts({
     type: 'select',
@@ -100,98 +152,63 @@ async function collectInitData(opts, slugArg) {
   });
   const video = videoMode.mode === 'embed'
     ? { mode: 'embed', dataUrl: '', dataHtml: (await prompts({ type: 'text', name: 'dataHtml', message: 'Paste raw embed HTML:' })).dataHtml || '' }
-    : (() => {
-      const dataUrl = (base.video?.dataUrl) || 'https://player.vimeo.com/video/123456789';
-      return { mode: 'url', dataUrl: (prompts.inject ? undefined : dataUrl), dataHtml: '' };
-    })();
+    : { mode: 'url', dataUrl: '', dataHtml: '' };
   if (video.mode === 'url') {
     const ans = await prompts({ type: 'text', name: 'url', message: 'Video URL:', initial: base.video?.dataUrl || '', validate: (v) => (!!v || 'Required') });
     video.dataUrl = ans.url;
     video.dataHtml = iframeFor(ans.url);
   }
 
-  const descMode = await prompts({ type: 'select', name: 'mode', message: 'Description:', choices: [{ title: 'Paste now', value: 'paste' }, { title: 'Open $EDITOR', value: 'editor' }] });
-  let descriptionHtml = '';
-  if (descMode.mode === 'editor') descriptionHtml = await openEditor(base.descriptionHtml || '<p></p>');
-  else descriptionHtml = (await prompts({ type: 'text', name: 'description', message: 'Paste description HTML:' })).description || '<p></p>';
+  const artistLinks = quick ? [] : await promptLinks('Add artist link?');
 
-  const defaults = {
-    buckets: base.sidebarPageConfig?.buckets || ['A'],
-    specialEventImage: base.sidebarPageConfig?.specialEventImage || null,
-    attributionSentence: base.sidebarPageConfig?.attributionSentence || '',
-    artist: base.sidebarPageConfig?.credits?.artist?.name || '',
-    artistAlt: base.sidebarPageConfig?.credits?.artistAlt || '',
-    year: base.sidebarPageConfig?.credits?.year || new Date().getUTCFullYear(),
-    season: base.sidebarPageConfig?.credits?.season || 'S1',
-    location: base.sidebarPageConfig?.credits?.location || '',
-  };
+  const descriptionRaw = (await prompts({ type: 'text', name: 'description', message: 'Description (plain text or HTML):', initial: base.descriptionHtml || '' })).description || '';
+  const descriptionHtml = toSafeHtmlParagraphs(descriptionRaw);
 
-  const baseQs = [
-    { type: 'multiselect', name: 'buckets', message: 'Buckets:', choices: BUCKETS.map((b) => ({ title: b, value: b })), initial: defaults.buckets.map((b) => BUCKETS.indexOf(b)).filter((i) => i >= 0), min: 1 },
-    { type: 'text', name: 'attributionSentence', message: 'Attribution sentence:', initial: defaults.attributionSentence, validate: (v) => (!!v || 'Required') },
-    { type: 'text', name: 'artist', message: 'Artist name:', initial: defaults.artist, validate: (v) => (!!v || 'Required') },
-    { type: 'number', name: 'year', message: 'Year:', initial: defaults.year },
-    { type: 'text', name: 'season', message: 'Season:', initial: defaults.season, validate: (v) => (!!v || 'Required') },
-    { type: 'text', name: 'location', message: 'Location:', initial: defaults.location, validate: (v) => (!!v || 'Required') },
-  ];
+  const seriesAns = await prompts({
+    type: 'select',
+    name: 'series',
+    message: 'Series:',
+    choices: [{ title: 'dex', value: 'dex' }, { title: 'inDex', value: 'inDex' }, { title: 'dexFest', value: 'dexFest' }, { title: 'none', value: 'none' }],
+    initial: 3,
+  });
 
-  const quickAns = await prompts(quick ? baseQs : [...baseQs, { type: 'text', name: 'specialEventImage', message: 'Special event image URL (optional):', initial: defaults.specialEventImage || '' }]);
+  const bucketAns = await prompts({ type: 'multiselect', name: 'buckets', message: 'Buckets (available):', choices: BUCKETS.map((b) => ({ title: b, value: b })), initial: (base.sidebarPageConfig?.buckets || ['A']).map((b) => BUCKETS.indexOf(b)).filter((i) => i >= 0), min: 1 });
+  const attributionAns = await prompts({ type: 'text', name: 'attributionSentence', message: 'Attribution sentence:', initial: base.sidebarPageConfig?.attributionSentence || '', validate: (v) => (!!v || 'Required') });
+
+  const creditsMode = await prompts({ type: 'select', name: 'mode', message: 'Credits:', choices: [{ title: 'Use minimal defaults', value: 'defaults' }, { title: 'Paste credits JSON (advanced)', value: 'json' }], initial: 0 });
+  let credits = defaultCredits(base.sidebarPageConfig?.credits);
+  if (creditsMode.mode === 'json') {
+    const raw = (await prompts({ type: 'text', name: 'raw', message: 'Paste credits JSON:' })).raw || '{}';
+    credits = creditsSchema.parse(JSON.parse(raw));
+  } else {
+    const c = await prompts([
+      { type: 'number', name: 'year', message: 'Year:', initial: credits.year },
+      { type: 'text', name: 'season', message: 'Season:', initial: credits.season, validate: (v) => (!!v || 'Required') },
+      { type: 'text', name: 'location', message: 'Location:', initial: credits.location || '' },
+    ]);
+    credits.year = Number(c.year) || credits.year;
+    credits.season = c.season;
+    credits.location = c.location || '';
+  }
+  credits.artist = { name: nameAns.name, links: artistLinks };
+  credits.instruments = instruments;
+
   const sidebar = {
-    lookupNumber: id.lookup,
-    buckets: quickAns.buckets,
-    specialEventImage: quick ? null : (quickAns.specialEventImage || null),
-    attributionSentence: quickAns.attributionSentence,
-    credits: {
-      artist: { name: quickAns.artist, links: quick ? [] : await promptLinks('Add artist link?') },
-      artistAlt: quick ? null : ((await prompts({ type: 'text', name: 'artistAlt', message: 'ArtistAlt (optional):', initial: defaults.artistAlt })).artistAlt || null),
-      instruments: quick ? [] : [],
-      video: { director: { name: '', links: [] }, cinematography: { name: '', links: [] }, editing: { name: '', links: [] } },
-      audio: { recording: { name: '', links: [] }, mix: { name: '', links: [] }, master: { name: '', links: [] } },
-      year: Number(quickAns.year),
-      season: quickAns.season,
-      location: quickAns.location,
-    },
+    lookupNumber: lookupAns.lookup,
+    buckets: bucketAns.buckets,
+    specialEventImage: mapSeriesToImage(seriesAns.series),
+    attributionSentence: attributionAns.attributionSentence,
+    credits,
     fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
     metadata: { sampleLength: '', tags: [] },
   };
 
-  if (!quick) {
-    const inst = [];
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { add } = await prompts({ type: 'toggle', name: 'add', message: 'Add instrument credit?', initial: false, active: 'yes', inactive: 'no' });
-      if (!add) break;
-      const item = await prompts({ type: 'text', name: 'name', message: 'Instrument name:', validate: (v) => (!!v || 'Required') });
-      inst.push({ name: item.name, links: await promptLinks('Add instrument link?') });
-    }
-    sidebar.credits.instruments = inst;
-  }
-
-  const manifestMode = await prompts({ type: 'select', name: 'mode', message: 'Manifest input:', choices: [{ title: 'Paste JSON', value: 'json' }, { title: 'Guided', value: 'guided' }] });
-  const manifest = { audio: {}, video: {} };
-  if (manifestMode.mode === 'json') {
-    const raw = (await prompts({ type: 'text', name: 'raw', message: 'Paste manifest JSON:' })).raw || '{}';
-    Object.assign(manifest, JSON.parse(raw));
-  } else {
-    const fmt = opts.formatKeys || { audio: [], video: [] };
-    for (const bucket of sidebar.buckets) {
-      manifest.audio[bucket] = {};
-      manifest.video[bucket] = {};
-      for (const k of fmt.audio) {
-        manifest.audio[bucket][k] = (await prompts({ type: 'text', name: 'v', message: `Audio ${bucket}.${k} file id (blank ok):` })).v || '';
-      }
-      for (const k of fmt.video) {
-        manifest.video[bucket][k] = (await prompts({ type: 'text', name: 'v', message: `Video ${bucket}.${k} file id (blank ok):` })).v || '';
-      }
-    }
-  }
-
-  if (advanced) {
-    const raw = JSON.stringify(sidebar, null, 2);
-    const editRaw = await prompts({ type: 'toggle', name: 'edit', message: 'Edit sidebar JSON in editor?', initial: false, active: 'yes', inactive: 'no' });
-    if (editRaw.edit) Object.assign(sidebar, JSON.parse(await openEditor(raw)));
-  }
-
+  const manifestMode = await prompts({ type: 'select', name: 'mode', message: 'Download:', choices: [{ title: 'Paste manifest JSON', value: 'json' }, { title: 'Generate empty manifest (fill later)', value: 'empty' }] });
+  const manifest = manifestMode.mode === 'json'
+    ? JSON.parse((await prompts({ type: 'text', name: 'raw', message: 'Paste manifest JSON:' })).raw || '{}')
+    : {};
+  normalizeManifest(manifest, opts.formatKeys, ALL_BUCKETS);
+  manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
   const auth = await prompts({ type: 'toggle', name: 'enabled', message: 'Ensure canonical auth snippet + strip legacy Auth0 blocks?', initial: true, active: 'yes', inactive: 'no' });
 
   return {
@@ -200,7 +217,7 @@ async function collectInitData(opts, slugArg) {
     video,
     descriptionHtml,
     sidebar,
-    manifest,
+    manifest: normalizeManifest(manifest, opts.formatKeys, ALL_BUCKETS),
     authEnabled: auth.enabled,
     outDir,
   };

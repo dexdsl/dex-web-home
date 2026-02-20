@@ -19,7 +19,7 @@ await fs.writeFile(path.join(temp, 'seed.json'), JSON.stringify({
   descriptionHtml: '<p>desc</p>',
   video: { dataUrl: 'https://player.vimeo.com/video/1' },
   manifest: { audio: { A: { wav: 'a1' } }, video: { A: { '1080p': 'v1' } } },
-  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A'], credits: { artist: { name: 'Artist' }, year: 2026, season: 'S2', location: 'Somewhere' } },
+  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', credits: { artist: { name: 'Artist' }, instruments: [{name:'Synth', links: []}], year: 2026, season: 'S2', location: 'Somewhere', video: { director: {name:'',links:[]}, cinematography: {name:'',links:[]}, editing: {name:'',links:[]} }, audio: { recording: {name:'',links:[]}, mix: {name:'',links:[]}, master: {name:'',links:[]} } } },
 }), 'utf8');
 
 const run = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: temp, encoding: 'utf8' });
@@ -29,7 +29,17 @@ const real = run(['init', '--quick', '--template', './index.html', '--out', './e
 if (real.status !== 0) throw new Error(`write run failed: ${real.stderr}\n${real.stdout}`);
 
 const outHtml = await fs.readFile(path.join(temp, 'entries', 'smoke-title', 'index.html'), 'utf8');
-for (const needle of ['data-url="https://player.vimeo.com/video/1"', 'LOOKUP-1', '"wav": "a1"', '/assets/dex-auth0-config.js', '/assets/dex-auth.js']) {
+for (const needle of ['data-url="https://player.vimeo.com/video/1"', 'LOOKUP-1', '"wav": "a1"', '/assets/series/dex.png', '/assets/dex-auth0-config.js', '/assets/dex-auth.js']) {
   if (!outHtml.includes(needle)) throw new Error(`missing in output html: ${needle}`);
 }
+
+const outManifest = JSON.parse(await fs.readFile(path.join(temp, 'entries', 'smoke-title', 'manifest.json'), 'utf8'));
+for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
+  if (!(bucket in outManifest.audio)) throw new Error(`missing audio bucket: ${bucket}`);
+  if (!(bucket in outManifest.video)) throw new Error(`missing video bucket: ${bucket}`);
+}
+
+const sidebarRuntime = await fs.readFile(path.join(root, 'docs/assets/dex-sidebar.js'), 'utf8');
+if (!sidebarRuntime.includes("const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];")) throw new Error('sidebar runtime missing ALL_BUCKETS literal');
+
 console.log('smoke-dex-init ok');
