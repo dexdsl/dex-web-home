@@ -106,4 +106,41 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
   if (next.value !== 'abc' || next.cursor !== 1) throw new Error('escape sequence should be ignored');
 }
 
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 2 }, '', { leftArrow: true });
+  if (next.value !== 'abc' || next.cursor !== 1) throw new Error('left arrow should move cursor left');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '', { rightArrow: true });
+  if (next.value !== 'abc' || next.cursor !== 2) throw new Error('right arrow should move cursor right');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 2 }, '', { home: true });
+  if (next.value !== 'abc' || next.cursor !== 0) throw new Error('home should move cursor to start');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '', { end: true });
+  if (next.value !== 'abc' || next.cursor !== 3) throw new Error('end should move cursor to end');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 2 }, '[D', { leftArrow: false });
+  if (next.value !== 'abc' || next.cursor !== 1) throw new Error('left escape sequence should move cursor left');
+}
+
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 2 }, 'OD', { leftArrow: false });
+  if (next.value !== 'abc' || next.cursor !== 1) throw new Error('left SS3 sequence should move cursor left');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '[3~', {});
+  if (next.value !== 'ac' || next.cursor !== 1) throw new Error('delete escape sequence should remove char at cursor');
+}
+
 console.log('smoke-dex-init ok');

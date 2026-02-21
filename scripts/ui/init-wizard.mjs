@@ -57,24 +57,32 @@ function withCaret(value, cursor, caretOn) {
 }
 
 function looksLikeEscapeSequence(input) {
-  return typeof input === 'string' && input.startsWith('\x1b');
+  return typeof input === 'string' && input.includes('\x1b');
 }
 
 export function applyKeyToInputState(state, input, key = {}) {
   const value = state?.value ?? '';
   const cursor = Math.max(0, Math.min(value.length, state?.cursor ?? 0));
 
-  if (key.leftArrow) return { value, cursor: Math.max(0, cursor - 1) };
-  if (key.rightArrow) return { value, cursor: Math.min(value.length, cursor + 1) };
-  if (key.home) return { value, cursor: 0 };
-  if (key.end) return { value, cursor: value.length };
+  if (key.ctrl && (input === 'q' || input === 'Q')) return { value, cursor, quit: true };
+
+  const isLeft = !!(key.leftArrow || input === '\x1b[D' || input === '\x1bOD');
+  const isRight = !!(key.rightArrow || input === '\x1b[C' || input === '\x1bOC');
+  const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH');
+  const isEnd = !!(key.end || input === '\x1b[F' || input === '\x1bOF');
+  const isDelete = !!(key.delete || (typeof input === 'string' && /^\x1b\[3(?:;\d+)*~$/.test(input)));
+
+  if (isLeft) return { value, cursor: Math.max(0, cursor - 1) };
+  if (isRight) return { value, cursor: Math.min(value.length, cursor + 1) };
+  if (isHome) return { value, cursor: 0 };
+  if (isEnd) return { value, cursor: value.length };
 
   if (isBackspaceKey(input, key)) {
     if (cursor === 0) return { value, cursor };
     return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 };
   }
 
-  if (key.delete) {
+  if (isDelete) {
     if (cursor >= value.length) return { value, cursor };
     return { value: `${value.slice(0, cursor)}${value.slice(cursor + 1)}`, cursor };
   }
@@ -84,7 +92,7 @@ export function applyKeyToInputState(state, input, key = {}) {
   if (shouldAppendWizardChar(input, key)) {
     return {
       value: `${value.slice(0, cursor)}${input}${value.slice(cursor)}`,
-      cursor: cursor + input.length,
+      cursor: cursor + 1,
     };
   }
 
@@ -116,6 +124,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [statusLines, setStatusLines] = useState([]);
   const [doneReport, setDoneReport] = useState(null);
   const [multiCursor, setMultiCursor] = useState(0);
+  const [lastKeyEvent, setLastKeyEvent] = useState(null);
   const templateRef = useRef(null);
   const [form, setForm] = useState({
     title: '',
@@ -183,10 +192,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     const value = form[step.id] ?? '';
     const pos = cursorByStep[step.id] ?? 0;
     const next = applyKeyToInputState({ value, cursor: pos }, input, key);
+    if (next.quit) return next;
     if (next.value === value && next.cursor === pos) return;
     setForm((prev) => ({ ...prev, [step.id]: next.value, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
     setCursorByStep((prev) => ({ ...prev, [step.id]: next.cursor }));
     setError('');
+    return next;
   };
 
   const maybeAdvance = async () => {
@@ -265,11 +276,26 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   };
 
   useInput((input, key) => {
-    if (busy) return;
-    if (key.ctrl && (input === 'q' || input === 'Q')) {
-      onCancel();
-      return;
+    if (process.env.DEX_KEY_DEBUG === '1') {
+      setLastKeyEvent({
+        input,
+        flags: {
+          backspace: !!key.backspace,
+          delete: !!key.delete,
+          leftArrow: !!key.leftArrow,
+          rightArrow: !!key.rightArrow,
+          upArrow: !!key.upArrow,
+          downArrow: !!key.downArrow,
+          return: !!key.return,
+          escape: !!key.escape,
+          ctrl: !!key.ctrl,
+          meta: !!key.meta,
+          shift: !!key.shift,
+        },
+      });
     }
+
+    if (busy) return;
     if (doneReport) {
       if (key.return) onDone(doneReport);
       return;
@@ -282,6 +308,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     }
 
     if (step.kind === 'multi') {
+      if (key.ctrl && (input === 'q' || input === 'Q')) { onCancel(); return; }
       if (key.upArrow) { setMultiCursor((prev) => (prev - 1 + BUCKETS.length) % BUCKETS.length); return; }
       if (key.downArrow) { setMultiCursor((prev) => (prev + 1) % BUCKETS.length); return; }
       if (input === ' ') {
@@ -298,25 +325,28 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     }
 
     if (step.kind === 'stub') {
+      if (key.ctrl && (input === 'q' || input === 'Q')) { onCancel(); return; }
       if (key.return) void maybeAdvance();
       return;
     }
 
     if (step.kind === 'summary') {
+      if (key.ctrl && (input === 'q' || input === 'Q')) { onCancel(); return; }
       if (key.return) void maybeAdvance();
       return;
     }
 
-    if (key.leftArrow || key.rightArrow || key.home || key.end || isBackspaceKey(input, key) || key.delete || looksLikeEscapeSequence(input) || shouldAppendWizardChar(input, key)) {
-      applyTextEdit(input, key);
+    if (step.kind === 'text') {
+      const next = applyTextEdit(input, key);
+      if (next.quit) {
+        onCancel();
+        return;
+      }
+      if (key.return) void maybeAdvance();
       return;
     }
 
-    if (key.return) {
-      void maybeAdvance();
-      return;
-    }
-
+    if (key.return) void maybeAdvance();
   });
 
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
@@ -345,6 +375,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     busy ? React.createElement(Text, { color: '#ffcc66' }, 'Generating...') : null,
     error ? React.createElement(Text, { color: '#ff6b6b' }, error) : null,
     ...(doneReport ? statusLines.map((line, i) => React.createElement(Text, { key: `ok-${i}`, color: '#a6e3a1' }, line)) : []),
+    (process.env.DEX_KEY_DEBUG === '1')
+      ? React.createElement(Box, { marginTop: 1, borderStyle: 'single', borderColor: '#5f6a7d', paddingX: 1, flexDirection: 'column' },
+        React.createElement(Text, { color: '#8f98a8' }, 'Key debug'),
+        React.createElement(Text, { color: '#d0d5df' }, `input: ${JSON.stringify(lastKeyEvent?.input ?? null)}`),
+        React.createElement(Text, { color: '#d0d5df' }, `flags: ${JSON.stringify(lastKeyEvent?.flags ?? {})}`),
+      ) : null,
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { color: '#6e7688' }, footer)),
   );
 }
