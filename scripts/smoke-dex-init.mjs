@@ -143,4 +143,23 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
   if (next.value !== 'ac' || next.cursor !== 1) throw new Error('delete escape sequence should remove char at cursor');
 }
 
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '\x1b[1~', {});
+  if (!next || typeof next !== 'object') throw new Error('reducer should always return an object');
+  if (next.value !== 'abc' || next.cursor !== 0) throw new Error('home [1~ should move cursor to start');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 0 }, '\x1b[4~', {});
+  if (!next || typeof next !== 'object') throw new Error('reducer should always return an object');
+  if (next.value !== 'abc' || next.cursor !== 3) throw new Error('end [4~ should move cursor to end');
+}
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '\x1b[3~', {});
+  if (!next || typeof next !== 'object') throw new Error('reducer should always return an object');
+  if (next.value !== 'ac' || next.cursor !== 1) throw new Error('delete [3~ should remove char at cursor');
+}
+
 console.log('smoke-dex-init ok');
