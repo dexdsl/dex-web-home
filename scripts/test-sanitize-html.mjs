@@ -17,6 +17,7 @@ const fixtureHtml = `
     <script defer src="/assets/dex-auth0-config.js"></script>
     <script defer src="/assets/dex-auth.js"></script>
     <script src="/assets/dex-sidebar.js"></script>
+    <script defer src="/assets/js/dex-breadcrumb-motion.js"></script>
   </head>
   <body>
     <section class="page-section has-section-divider">
@@ -27,6 +28,15 @@ const fixtureHtml = `
               data-block-css='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.styles.css"]'
               data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.visitor.js"]'>
               <div class="sqs-block-content"><div class="sqs-code-container"><style>.legacy{display:block}</style></div></div>
+            </div>
+          </div>
+          <div class="fe-block fe-block-breadcrumb">
+            <div class="sqs-block html-block sqs-block-html">
+              <div class="sqs-block-content">
+                <div class="sqs-html-content" data-sqsp-text-block-content>
+                  <p><a href="/catalog">catalog</a> &gt; guitar and voice, aidan yeats</p>
+                </div>
+              </div>
             </div>
           </div>
           <div class="fe-block fe-block-right">
@@ -82,8 +92,10 @@ assert.ok(!/websiteComponents/i.test(sanitized), 'Sanitizer should remove websit
 
 const dexCssCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/css\/dex\.css/g) || []).length;
 const dexSidebarCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/dex-sidebar\.js/g) || []).length;
+const dexBreadcrumbMotionCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/js\/dex-breadcrumb-motion\.js/g) || []).length;
 assert.equal(dexCssCount, 1, 'Dex stylesheet should exist exactly once');
 assert.equal(dexSidebarCount, 1, 'Dex sidebar script should exist exactly once');
+assert.equal(dexBreadcrumbMotionCount, 1, 'Dex breadcrumb motion runtime should exist exactly once');
 assert.ok(sanitized.includes('id="dex-sidebar-config"'), 'Dex global config script should remain');
 assert.ok(sanitized.includes('id="dex-sidebar-page-config"'), 'Dex page config script should remain');
 assert.ok(sanitized.includes('id="dex-sidebar-page-config-bridge"'), 'Dex page config bridge script should exist');
@@ -100,9 +112,14 @@ assert.equal($('.dex-entry-host .dex-entry-layout').length, 1, 'Dex layout host 
 assert.equal($('.dex-entry-host').closest('.fluid-engine').length, 1, 'Dex layout host should remain scoped to Fluid Engine');
 assert.equal($('.fluid-engine .website-component-block').length, 1, 'Only Dex website component block should remain');
 assert.equal($('.fluid-engine .fe-block').length, 1, 'Legacy Fluid Engine sibling blocks should be removed');
+assert.equal($('.fluid-engine .fe-block-breadcrumb').length, 0, 'Legacy static breadcrumb block should be removed');
+assert.ok(!/catalog\s*&gt;\s*guitar and voice/i.test(sanitized), 'Sanitized output should not include hardcoded legacy breadcrumb copy');
 assert.match(String($('.fluid-engine .fe-block.dex-entry-host').attr('style') || ''), /grid-area:\s*auto\s*\/\s*1\s*\/\s*auto\s*\/\s*-1\s*!important/i, 'Dex host should enforce full-width grid span');
 assert.equal($('.dex-entry-section').length, 1, 'Dex entry section should be tagged');
 assert.ok(!$('.dex-entry-section').hasClass('has-section-divider'), 'Dex entry section should drop section-divider class');
+assert.equal($('.dex-entry-fluid-engine').length, 1, 'Dex entry fluid engine should be tagged');
+assert.equal($('style#dex-layout-patch[data-managed="1"]').length, 1, 'Dex layout patch style should be injected');
+assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-overlay'), 'Dex layout patch should include breadcrumb overlay rules');
 assert.equal($('.section-divider-display').length, 0, 'Divider before dex footer section should be removed');
 assert.equal($('.dex-footer-section').length, 1, 'Dex footer section should be tagged');
 assert.ok(!$('.dex-footer-section').hasClass('section-height--custom'), 'Dex footer section should drop custom-height class');

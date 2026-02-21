@@ -5,6 +5,7 @@
   "scripts": {
     "rewrite:anchors": "node scripts/rewrite-internal-anchors.mjs",
     "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check",
+    "build:breadcrumb-motion": "node scripts/build-breadcrumb-motion.mjs",
     "dex": "node scripts/dex.mjs",
     "smoke:dex-init": "node scripts/smoke-dex-init.mjs",
     "test:video": "node scripts/test-video-injection.mjs",
@@ -17,6 +18,7 @@
     "dex": "scripts/dex.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.25.10",
     "parse5": "^7.3.0",
     "playwright": "^1.58.2"
   },
@@ -25,6 +27,7 @@
     "cheerio": "^1.0.0",
     "cli-cursor": "^5.0.0",
     "commander": "^12.1.0",
+    "framer-motion": "12.23.24",
     "ink": "^6.8.0",
     "prompts": "^2.4.2",
     "react": "^19.2.4",

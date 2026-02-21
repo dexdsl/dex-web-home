@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
+import { deriveCanonicalEntry, detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
 import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
@@ -63,6 +63,11 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
   if (missing.length) throw new Error(`Template validation failed; missing: ${missing.join(', ')}`);
 
   const formatKeys = extractFormatKeys(templateHtml);
+  const canonical = deriveCanonicalEntry({
+    canonical: data.canonical,
+    sidebarConfig: data.sidebar,
+    creditsData: data.creditsData,
+  });
 
   try {
     sidebarConfigSchema.parse(data.sidebar);
@@ -81,6 +86,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     entrySchema.parse({
       slug: data.slug,
       title: data.title,
+      canonical,
       video: data.video,
       sidebarPageConfig: data.sidebar,
       series: data.series,
@@ -102,6 +108,8 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     descriptionHtml: data.descriptionHtml,
     manifest: data.manifest,
     sidebarConfig: data.sidebar,
+    creditsData: data.creditsData,
+    canonical,
     video: data.video,
     title: data.title,
     authEnabled: true,
@@ -145,6 +153,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     await fs.writeFile(files.entry, `${JSON.stringify({
       slug: data.slug,
       title: data.title,
+      canonical,
       video: {
         mode: data.video?.mode === 'embed' ? 'embed' : 'url',
         dataUrl: String(data.video?.dataUrl || ''),

@@ -9,6 +9,8 @@ const AUTH_CDN = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.product
 const REQUIRED_ANCHORS = ['video', 'desc', 'sidebar'];
 const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
+const BREADCRUMB_BACK_HREF = '/catalog';
+const BREADCRUMB_MOTION_RUNTIME_SRC = 'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js';
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -53,6 +55,53 @@ function normalizeNameList(value) {
     return value.name.split(',').map((item) => item.trim()).filter(Boolean);
   }
   return [];
+}
+
+function firstName(value) {
+  return normalizeNameList(value)[0] || '';
+}
+
+function normalizeCanonicalValue(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+export function deriveCanonicalEntry({ canonical, sidebarConfig, creditsData } = {}) {
+  const inputCanonical = canonical && typeof canonical === 'object' ? canonical : {};
+  const instrument = normalizeCanonicalValue(
+    inputCanonical.instrument
+    || firstName(creditsData?.instruments)
+    || firstName(sidebarConfig?.credits?.instruments),
+  );
+  const artistName = normalizeCanonicalValue(
+    inputCanonical.artistName
+    || firstName(creditsData?.artist)
+    || firstName(sidebarConfig?.credits?.artist),
+  );
+  return { instrument, artistName };
+}
+
+export function formatBreadcrumbCurrentLabel(canonical = {}) {
+  const instrument = normalizeCanonicalValue(canonical.instrument);
+  const artistName = normalizeCanonicalValue(canonical.artistName);
+  if (instrument && artistName) return `${instrument}, ${artistName}`.toLowerCase();
+  if (instrument) return instrument.toLowerCase();
+  if (artistName) return artistName.toLowerCase();
+  return 'entry';
+}
+
+export function resolveBreadcrumbBackStrategy({ referrer = '', locationOrigin = '', locationPath = '', historyLength = 0 } = {}) {
+  const fallbackHref = BREADCRUMB_BACK_HREF;
+  try {
+    if (!referrer || !locationOrigin || Number(historyLength || 0) < 2) return { useHistoryBack: false, fallbackHref };
+    const ref = new URL(String(referrer), String(locationOrigin));
+    if (ref.origin !== String(locationOrigin)) return { useHistoryBack: false, fallbackHref };
+    const currentPath = String(locationPath || '');
+    const previousPath = `${ref.pathname}${ref.search}`;
+    if (previousPath === currentPath) return { useHistoryBack: false, fallbackHref };
+    return { useHistoryBack: true, fallbackHref };
+  } catch {
+    return { useHistoryBack: false, fallbackHref };
+  }
 }
 
 function pinFor(name) {
@@ -235,6 +284,60 @@ export function buildVideoIframe(embedUrl) {
 ></iframe>`;
 }
 
+function buildBreadcrumbMarkup(canonical = {}) {
+  const current = escapeHtml(formatBreadcrumbCurrentLabel(canonical));
+  return `<div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay>
+  <div class="dex-breadcrumb" data-dex-breadcrumb>
+    <a class="dex-breadcrumb-back" href="${BREADCRUMB_BACK_HREF}" data-dex-breadcrumb-back>catalog</a>
+    <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter aria-hidden="true">⟡</span>
+    <span class="dex-breadcrumb-current">${current}</span>
+  </div>
+</div>
+<script id="dex-breadcrumb-motion-runtime" defer src="${BREADCRUMB_MOTION_RUNTIME_SRC}"></script>
+<script id="dex-breadcrumb-motion-bootstrap">
+(function(){
+  if (window.__dexBreadcrumbMotionBootstrapped) return;
+  window.__dexBreadcrumbMotionBootstrapped = true;
+  var mount = function(){
+    if (typeof window.dexBreadcrumbMotionMount === 'function') window.dexBreadcrumbMotionMount();
+  };
+  window.addEventListener('dex:breadcrumb-motion-ready', mount);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount, { once: true });
+  } else {
+    mount();
+  }
+})();
+</script>
+<script id="dex-breadcrumb-back-script">
+(function(){
+  if (window.__dexBreadcrumbBackBound) return;
+  window.__dexBreadcrumbBackBound = true;
+  document.addEventListener('click', function(event){
+    var trigger = event && event.target && event.target.closest ? event.target.closest('[data-dex-breadcrumb-back]') : null;
+    if (!trigger) return;
+    var strategy = (function(){
+      var fallbackHref = '${BREADCRUMB_BACK_HREF}';
+      try {
+        if (!document.referrer || !window.location || !window.location.origin || !window.location.pathname || window.history.length < 2) return { useHistoryBack: false, fallbackHref: fallbackHref };
+        var ref = new URL(document.referrer, window.location.origin);
+        if (ref.origin !== window.location.origin) return { useHistoryBack: false, fallbackHref: fallbackHref };
+        var currentPath = window.location.pathname + (window.location.search || '');
+        var previousPath = ref.pathname + (ref.search || '');
+        if (previousPath === currentPath) return { useHistoryBack: false, fallbackHref: fallbackHref };
+        return { useHistoryBack: true, fallbackHref: fallbackHref };
+      } catch (error) {
+        return { useHistoryBack: false, fallbackHref: fallbackHref };
+      }
+    })();
+    if (!strategy.useHistoryBack) return;
+    event.preventDefault();
+    window.history.back();
+  }, true);
+})();
+</script>`;
+}
+
 function writeTagAttr(tag, attrName, attrValue) {
   const rx = new RegExp(`\\s${attrName}\\s*=\\s*(["'])[\\s\\S]*?\\1`, 'i');
   if (rx.test(tag)) return tag.replace(rx, ` ${attrName}="${attrValue}"`);
@@ -272,7 +375,7 @@ function resolveVideoSourceUrl(video) {
   return url;
 }
 
-function injectVideoRegion(regionHtml, video) {
+function injectVideoRegion(regionHtml, video, canonical) {
   const originalUrl = resolveVideoSourceUrl(video);
   const parsed = parseVideoUrl(originalUrl);
   if (parsed.provider === 'unknown') {
@@ -289,9 +392,17 @@ function injectVideoRegion(regionHtml, video) {
   const aspectRx = /(<div[^>]*class=["'][^"']*\bdex-video-aspect\b[^"']*["'][^>]*>)([\s\S]*?)(<\/div>)/i;
   if (!aspectRx.test(regionHtml)) throw new Error('Template video anchor region missing .dex-video-aspect container.');
 
-  return regionHtml
-    .replace(videoTag, updatedVideoTag)
-    .replace(aspectRx, `$1\n${iframeHtml}\n$3`);
+  const breadcrumbMarkup = buildBreadcrumbMarkup(canonical);
+  const videoMarkup = `${updatedVideoTag}
+  <div class="dex-video-aspect">
+${iframeHtml}
+  </div>
+</div>`;
+
+  return `<div class="dex-video-shell">
+${breadcrumbMarkup}
+${videoMarkup}
+</div>`;
 }
 
 function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
@@ -390,6 +501,7 @@ function normalizeAllowedOutsideAnchorChanges(html) {
     .replace(scriptByIdRegex('dex-manifest'), '')
     .replace(scriptByIdRegex('dex-sidebar-page-config'), '')
     .replace(scriptByIdRegex(PAGE_CONFIG_BRIDGE_SCRIPT_ID), '')
+    .replace(/<style[^>]*id=['"]dex-layout-patch['"][^>]*>[\s\S]*?<\/style>\s*/gi, '')
     .replace(/<script[^>]*src=['"]\/assets\/dex-sidebar\.js['"][^>]*><\/script>\s*/g, '')
     .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '')
     .replace(/\s+/g, ' ')
@@ -418,7 +530,7 @@ export function assertAnchorOnlyChanges(templateHtml, outputHtml) {
   }
 }
 
-export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, video, title, authEnabled = true }) {
+export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, creditsData, canonical, video, title, authEnabled = true }) {
   let html = templateHtml;
   detectTemplateProblems(html).forEach((problem) => {
     if (problem.includes('DEX:VIDEO_START')) throw new Error('Template missing DEX:VIDEO anchors');
@@ -428,8 +540,10 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   const globalSidebarConfig = extractJsonScriptById(html, 'dex-sidebar-config');
   html = stripDexContractScripts(html);
 
+  const resolvedCanonical = deriveCanonicalEntry({ canonical, sidebarConfig, creditsData });
+
   const videoRegion = getAnchoredRegion(html, 'video');
-  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
+  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video, resolvedCanonical));
 
   const resolvedDescriptionHtml = descriptionTextToHtml(typeof descriptionText === 'string' ? descriptionText : stripHtmlTags(descriptionHtml));
   const descRegion = getAnchoredRegion(html, 'desc');

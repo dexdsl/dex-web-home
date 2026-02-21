@@ -70,9 +70,19 @@ if (!regionMatch[1].includes('<iframe')) throw new Error('DEX:VIDEO region missi
 if (!regionMatch[1].includes('https://www.youtube-nocookie.com/embed/CSFGiU1gg4g')) {
   throw new Error('DEX:VIDEO region missing normalized YouTube embed URL');
 }
+if (!regionMatch[1].includes('class="dex-breadcrumb"')) throw new Error('DEX:VIDEO region missing breadcrumb component');
+if (!regionMatch[1].includes('class="dex-video-shell"')) throw new Error('DEX:VIDEO region missing video shell wrapper');
+if (!regionMatch[1].includes('class="dex-breadcrumb-overlay"')) throw new Error('DEX:VIDEO region missing breadcrumb overlay wrapper');
+if (!regionMatch[1].includes('https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:VIDEO region missing breadcrumb motion runtime');
+if (!regionMatch[1].includes('synth, artist')) throw new Error('breadcrumb should render lowercase canonical instrument + artist');
+if (regionMatch[1].indexOf('class="dex-breadcrumb"') > regionMatch[1].indexOf('class="dex-video"')) {
+  throw new Error('breadcrumb should render above .dex-video container');
+}
 if (/source_ve_path/i.test(regionMatch[1])) {
   throw new Error('DEX:VIDEO region should not include source_ve_path');
 }
+const breadcrumbCount = (outHtml.match(/class="dex-breadcrumb"/g) || []).length;
+if (breadcrumbCount !== 1) throw new Error(`expected 1 breadcrumb component, found ${breadcrumbCount}`);
 
 const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
 if (!cfgMatch) throw new Error('missing #dex-sidebar-config script node in output html');

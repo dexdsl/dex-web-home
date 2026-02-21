@@ -10,6 +10,7 @@ const REQUIRED_CONTRACT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const PAGE_CONFIG_BRIDGE_SNIPPET = "window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');";
 const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
+const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
 
 const BLOCKED_SCRIPT_SRC_PATTERNS = [
   /squarespace\.com/i,
@@ -130,6 +131,16 @@ function stripInlineStyleProps(styleText, propNames = []) {
   return next;
 }
 
+function isLegacyCatalogBreadcrumbBlock(htmlContent) {
+  if (!htmlContent?.length) return false;
+  const html = String(htmlContent.html() || '');
+  const text = htmlContent.text().replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!text) return false;
+  const hasCatalogLink = /href\s*=\s*["']\/catalog["']/i.test(html);
+  const hasLegacyText = text.startsWith('catalog >') || text.includes('catalog > ');
+  return hasCatalogLink && hasLegacyText;
+}
+
 function markDexEntryHosts($) {
   $('.fluid-engine').each((_, fluidElement) => {
     const fluid = $(fluidElement);
@@ -160,6 +171,10 @@ function markDexEntryHosts($) {
       }
       const htmlContent = sibling.find('.sqs-html-content').first();
       if (!htmlContent.length) return;
+      if (isLegacyCatalogBreadcrumbBlock(htmlContent)) {
+        sibling.remove();
+        return;
+      }
       const text = htmlContent.text().replace(/\s+/g, ' ').trim();
       const hasMedia = htmlContent.find('img, video, iframe, svg, canvas').length > 0;
       if (!text && !hasMedia) sibling.remove();
@@ -183,6 +198,8 @@ function normalizeDexSectionSpacing($) {
       section.addClass('dex-entry-section');
       section.removeClass('has-section-divider');
       section.find('.section-divider-display').remove();
+      const entryFluid = section.find('.fluid-engine').first();
+      if (entryFluid.length) entryFluid.addClass('dex-entry-fluid-engine');
     }
 
     if (hasDexFooter) {
@@ -205,6 +222,98 @@ function normalizeDexSectionSpacing($) {
       else wrapper.removeAttr('style');
     });
   });
+}
+
+function ensureDexLayoutPatchStyle($, head) {
+  const css = `
+#${DEX_LAYOUT_PATCH_STYLE_ID}[data-managed="1"] { display: block; }
+.dex-entry-host .sqs-code-container {
+  padding-top: clamp(24px, 3vw, 40px) !important;
+  padding-bottom: 0 !important;
+  padding-left: var(--sqs-site-gutter, 4vw) !important;
+  padding-right: var(--sqs-site-gutter, 4vw) !important;
+}
+@media (max-width: 767px) {
+  .dex-entry-host .sqs-code-container {
+    padding-top: clamp(19px, 5vw, 30px) !important;
+    padding-left: var(--sqs-mobile-site-gutter, 6vw) !important;
+    padding-right: var(--sqs-mobile-site-gutter, 6vw) !important;
+  }
+}
+.dex-entry-section .section-divider-display { display: none !important; }
+.dex-entry-section { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+.dex-entry-section > .content-wrapper { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+.dex-entry-fluid-engine { grid-template-rows: auto !important; }
+#footer-sections.sections { margin-top: 0 !important; padding-top: 0 !important; }
+#footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+.dex-entry-main { overflow: visible !important; }
+.dex-video-shell { position: relative; overflow: visible; }
+.dex-breadcrumb-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateY(calc(-100% - 10px));
+  z-index: 2;
+  max-width: min(100%, 560px);
+}
+.dex-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  line-height: 1.1;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.dex-breadcrumb-back {
+  color: rgba(25, 25, 25, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(25, 25, 25, 0.24);
+  transition: color 0.24s ease, border-color 0.24s ease;
+  padding-bottom: 1px;
+}
+.dex-breadcrumb-back:hover,
+.dex-breadcrumb-back:focus-visible {
+  color: #ff1910;
+  border-bottom-color: #ff1910;
+}
+.dex-breadcrumb-delimiter {
+  color: #ff1910;
+  opacity: 0.92;
+  font-size: 0.78rem;
+  display: inline-block;
+  transform-origin: center;
+}
+.dex-breadcrumb-current {
+  color: rgba(40, 40, 40, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 767px) {
+  .dex-breadcrumb-overlay {
+    position: static;
+    transform: none;
+    margin-bottom: 12px;
+    max-width: 100%;
+  }
+  .dex-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+}
+`;
+  $(`style#${DEX_LAYOUT_PATCH_STYLE_ID}`).remove();
+  head.append(`\n<style id="${DEX_LAYOUT_PATCH_STYLE_ID}" data-managed="1">${css}</style>`);
 }
 
 function isBlockedScriptSrc(src) {
@@ -524,6 +633,7 @@ export function sanitizeGeneratedHtml(html) {
   });
 
   const head = ensureHead($);
+  ensureDexLayoutPatchStyle($, head);
   ensureDexCssAfterSiteCss($, head);
   ensureDexContractScripts($, head);
   ensureRequiredRuntimeScripts($, head);

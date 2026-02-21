@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { descriptionTextFromSeed, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
+import { deriveCanonicalEntry, descriptionTextFromSeed, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
 import { ALL_BUCKETS, entrySchema, manifestSchemaForFormats, normalizeManifest } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
@@ -43,10 +43,20 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
   const folder = path.join(path.resolve(entriesDir), slug);
   await fs.mkdir(folder, { recursive: true });
   const wroteFiles = [];
+  const entryToWrite = data.entry
+    ? {
+      ...data.entry,
+      canonical: deriveCanonicalEntry({
+        canonical: data.entry.canonical,
+        sidebarConfig: data.entry.sidebarPageConfig,
+        creditsData: data.entry.creditsData,
+      }),
+    }
+    : null;
 
-  if (data.entry) {
+  if (entryToWrite) {
     const file = path.join(folder, 'entry.json');
-    await fs.writeFile(file, `${JSON.stringify(data.entry, null, 2)}
+    await fs.writeFile(file, `${JSON.stringify(entryToWrite, null, 2)}
 `, 'utf8');
     wroteFiles.push(file);
   }
@@ -72,7 +82,7 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
     await fs.writeFile(file, sanitizedHtml, 'utf8');
     try {
       await pushRecent(file, {
-        displayName: data.entry?.title || slug,
+        displayName: entryToWrite?.title || slug,
         timestamp: Date.now(),
       });
     } catch (error) {
@@ -94,11 +104,18 @@ export function validateEntryFolderData({ entry, manifest, formatKeys }) {
 }
 
 export function generateIndexHtml({ templateHtml, entry, descriptionText, manifest }) {
+  const canonical = deriveCanonicalEntry({
+    canonical: entry?.canonical,
+    sidebarConfig: entry?.sidebarPageConfig,
+    creditsData: entry?.creditsData,
+  });
   const injected = injectEntryHtml(templateHtml, {
     descriptionText,
     descriptionHtml: entry.descriptionHtml,
     manifest,
     sidebarConfig: entry.sidebarPageConfig,
+    creditsData: entry.creditsData,
+    canonical,
     video: entry.video,
     title: entry.title,
     authEnabled: true,

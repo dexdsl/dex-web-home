@@ -13,7 +13,7 @@ import {
 } from './lib/entry-schema.mjs';
 import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
 import { scanEntries } from './lib/doctor.mjs';
-import { descriptionTextFromSeed } from './lib/entry-html.mjs';
+import { deriveCanonicalEntry, descriptionTextFromSeed } from './lib/entry-html.mjs';
 import { parseViewerArgs, startViewer } from './lib/viewer-server.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -93,9 +93,14 @@ async function collectInitData(opts, slugArg) {
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
+    const canonical = deriveCanonicalEntry({
+      canonical: base.canonical,
+      sidebarConfig: sidebar,
+      creditsData: base.creditsData,
+    });
     const manifest = normalizeManifest(buildEmptyManifestSkeleton(opts.formatKeys), opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataUrlOriginal: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
+    return { slug: computedSlug, title, canonical, video: { mode: 'url', dataUrl: videoUrl, dataUrlOriginal: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
   }
 
   const id = await prompts([
@@ -173,6 +178,11 @@ async function collectInitData(opts, slugArg) {
     fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
     metadata: { sampleLength: '', tags: [] },
   };
+  const canonical = deriveCanonicalEntry({
+    canonical: base.canonical,
+    sidebarConfig: sidebar,
+    creditsData: credits,
+  });
 
   await prompts({
     type: 'text',
@@ -187,6 +197,7 @@ async function collectInitData(opts, slugArg) {
   return {
     slug: computedSlug,
     title: id.title,
+    canonical,
     video,
     descriptionText,
     sidebar,

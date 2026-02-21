@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { injectEntryHtml } from './lib/entry-html.mjs';
+import { formatBreadcrumbCurrentLabel, injectEntryHtml, resolveBreadcrumbBackStrategy } from './lib/entry-html.mjs';
 
 const root = process.cwd();
 const templatePath = path.join(root, 'entry-template', 'index.html');
@@ -63,6 +63,15 @@ const videoRegionMatch = injected.match(/<!-- DEX:VIDEO_START -->([\s\S]*?)<!-- 
 assert.ok(videoRegionMatch, 'DEX:VIDEO region missing');
 const videoRegion = videoRegionMatch[1];
 
+assert.match(videoRegion, /class="dex-video-shell"/);
+assert.match(videoRegion, /class="dex-breadcrumb-overlay"/);
+assert.match(videoRegion, /class="dex-breadcrumb"/);
+assert.match(videoRegion, /class="dex-breadcrumb-current">instrument, artist<\/span>/);
+assert.match(videoRegion, /id="dex-breadcrumb-back-script"/);
+assert.match(videoRegion, /id="dex-breadcrumb-motion-bootstrap"/);
+assert.match(videoRegion, /src="https:\/\/dexdsl\.github\.io\/assets\/js\/dex-breadcrumb-motion\.js"/);
+assert.match(videoRegion, /window\.history\.back\(\)/);
+assert.match(videoRegion, /href="\/catalog"/);
 assert.match(videoRegion, /class="dex-video"/);
 assert.match(videoRegion, /data-video-url="https:\/\/www\.youtube\.com\/watch\?v=CSFGiU1gg4g"/);
 assert.match(videoRegion, /src="https:\/\/www\.youtube-nocookie\.com\/embed\/CSFGiU1gg4g"/);
@@ -110,5 +119,27 @@ const descStartIx = injected.indexOf('<!-- DEX:DESC_START -->');
 const asideCloseIx = injected.indexOf('</aside>');
 assert.ok(videoEndIx >= 0 && descStartIx >= 0 && videoEndIx < descStartIx, 'DEX:VIDEO must come before DEX:DESC');
 assert.ok(videoEndIx >= 0 && asideCloseIx >= 0 && videoEndIx < asideCloseIx, 'DEX:VIDEO must be inside main column before closing </aside>');
+assert.ok(videoRegion.indexOf('class="dex-breadcrumb"') < videoRegion.indexOf('class="dex-video"'), 'breadcrumb should appear before the video container');
+assert.ok(videoRegion.indexOf('class="dex-breadcrumb-overlay"') < videoRegion.indexOf('class="dex-video"'), 'overlay wrapper should precede video container');
+
+assert.equal(formatBreadcrumbCurrentLabel({ instrument: 'GUITAR AND VOICE', artistName: 'Aidan Yeats' }), 'guitar and voice, aidan yeats');
+assert.deepEqual(
+  resolveBreadcrumbBackStrategy({
+    referrer: 'http://localhost:4173/catalog',
+    locationOrigin: 'http://localhost:4173',
+    locationPath: '/view/123',
+    historyLength: 2,
+  }),
+  { useHistoryBack: true, fallbackHref: '/catalog' },
+);
+assert.deepEqual(
+  resolveBreadcrumbBackStrategy({
+    referrer: 'https://dexdsl.org/catalog',
+    locationOrigin: 'http://localhost:4173',
+    locationPath: '/view/123',
+    historyLength: 2,
+  }),
+  { useHistoryBack: false, fallbackHref: '/catalog' },
+);
 
 console.log('test-video-injection ok');

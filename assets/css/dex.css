@@ -302,7 +302,7 @@ max-width: none !important;
 }
 
 .dex-entry-host .sqs-code-container {
-padding-top: 0 !important;
+padding-top: clamp(24px, 3vw, 40px) !important;
 padding-bottom: 0 !important;
 padding-left: var(--sqs-site-gutter, 4vw) !important;
 padding-right: var(--sqs-site-gutter, 4vw) !important;
@@ -310,6 +310,7 @@ padding-right: var(--sqs-site-gutter, 4vw) !important;
 
 @media (max-width: 767px) {
 .dex-entry-host .sqs-code-container {
+padding-top: clamp(19px, 5vw, 30px) !important;
 padding-left: var(--sqs-mobile-site-gutter, 6vw) !important;
 padding-right: var(--sqs-mobile-site-gutter, 6vw) !important;
 }
@@ -335,6 +336,87 @@ min-width: 0;
 display: flex;
 flex-direction: column;
 gap: 24px;
+overflow: visible;
+}
+
+.dex-video-shell {
+position: relative;
+overflow: visible;
+}
+
+.dex-breadcrumb-overlay {
+position: absolute;
+top: 0;
+left: 0;
+transform: translateY(calc(-100% - 10px));
+z-index: 2;
+max-width: min(100%, 560px);
+}
+
+.dex-breadcrumb {
+display: inline-flex;
+align-items: center;
+gap: 10px;
+padding: 0;
+font-family: "Courier New", monospace;
+font-size: 0.78rem;
+letter-spacing: 0.08em;
+text-transform: lowercase;
+line-height: 1.1;
+max-width: 100%;
+box-sizing: border-box;
+background: transparent;
+border: 0;
+border-radius: 0;
+box-shadow: none;
+}
+
+.dex-breadcrumb-back {
+color: rgba(25, 25, 25, 0.9);
+text-decoration: none;
+border-bottom: 1px solid rgba(25, 25, 25, 0.24);
+transition: color 0.24s ease, border-color 0.24s ease;
+padding-bottom: 1px;
+}
+
+.dex-breadcrumb-back:hover {
+color: #ff1910;
+border-bottom-color: #ff1910;
+}
+
+.dex-breadcrumb-back:focus-visible {
+outline: none;
+color: #ff1910;
+border-bottom-color: #ff1910;
+}
+
+.dex-breadcrumb-delimiter {
+color: #ff1910;
+opacity: 0.92;
+font-size: 0.78rem;
+display: inline-block;
+transform-origin: center;
+}
+
+.dex-breadcrumb-current {
+color: rgba(40, 40, 40, 0.72);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+.dex-breadcrumb-overlay {
+position: static;
+transform: none;
+margin-bottom: 12px;
+max-width: 100%;
+}
+.dex-breadcrumb {
+display: flex;
+flex-wrap: wrap;
+row-gap: 6px;
+}
 }
 
 .dex-video-aspect {

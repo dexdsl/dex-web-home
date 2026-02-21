@@ -1,0 +1,91 @@
+{
+  "slug": "test-11",
+  "title": "Pane Check 2",
+  "video": {
+    "mode": "url",
+    "dataUrl": "www.youtube.com/watch?v=CSFGiU1gg4g",
+    "dataUrlOriginal": "www.youtube.com/watch?v=CSFGiU1gg4g",
+    "dataHtml": ""
+  },
+  "descriptionText": "",
+  "series": "dex",
+  "selectedBuckets": [
+    "A"
+  ],
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "",
+    "tags": []
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "LOOKUP-TEST",
+    "buckets": [
+      "A"
+    ],
+    "specialEventImage": "/assets/series/dex.png",
+    "attributionSentence": "Attribution",
+    "credits": {
+      "artist": [
+        "Artist"
+      ],
+      "artistAlt": null,
+      "instruments": [
+        "Guitar"
+      ],
+      "video": {
+        "director": [
+          "Director"
+        ],
+        "cinematography": [
+          "Cam"
+        ],
+        "editing": [
+          "Edit"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "Rec"
+        ],
+        "mix": [
+          "Mix"
+        ],
+        "master": [
+          "Master"
+        ]
+      },
+      "year": 2026,
+      "season": "S1",
+      "location": "Somewhere"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "",
+      "tags": []
+    }
+  }
+}

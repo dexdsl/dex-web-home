@@ -65,6 +65,10 @@ export const sidebarConfigSchema = z.object({
 export const entrySchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
+  canonical: z.object({
+    instrument: z.string().default(''),
+    artistName: z.string().default(''),
+  }).optional(),
   video: z.object({ mode: z.enum(['url', 'embed']), dataUrl: z.string().default(''), dataHtml: z.string().default('') }),
   sidebarPageConfig: sidebarConfigSchema,
   descriptionText: z.string().optional(),
