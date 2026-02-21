@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import cliCursor from 'cli-cursor';
 import { InitWizard } from './init-wizard.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { computeWindow } from './rolodex.mjs';
 
 const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }];
 const PALETTE_ITEMS = ['init'];
@@ -123,6 +124,9 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
   const headerHeight = 13;
   const footerHeight = 3;
   const workspaceHeight = Math.max(6, rows - headerHeight - footerHeight);
+  const paletteListHeight = Math.max(3, paletteHeight - 4);
+  const paletteWindow = computeWindow({ total: filteredPalette.length, cursor: paletteSelected, height: paletteListHeight });
+  const menuWindow = computeWindow({ total: MENU_ITEMS.length, cursor: selected, height: Math.max(3, workspaceHeight - 3) });
 
   const headerTop = `entry creation tool   ${badge(version || 'dev')}`;
 
@@ -148,9 +152,14 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
         })
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
-          ...MENU_ITEMS.map((item, idx) => React.createElement(Box, { key: item.id, height: 1 },
+          menuWindow.start > 0 ? React.createElement(Text, { key: 'menu-up', color: '#8f98a8' }, '…') : null,
+          ...MENU_ITEMS.slice(menuWindow.start, menuWindow.end).map((item, localIdx) => {
+            const idx = menuWindow.start + localIdx;
+            return React.createElement(Box, { key: item.id, height: 1 },
             React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, `${item.label} — ${item.description}`),
-          )),
+            );
+          }),
+          menuWindow.end < MENU_ITEMS.length ? React.createElement(Text, { key: 'menu-down', color: '#8f98a8' }, '…') : null,
           lastResult ? React.createElement(Text, { color: '#a6e3a1' }, lastResult) : null,
         ),
     ),
@@ -164,9 +173,14 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
     React.createElement(Text, { bold: true }, 'Command palette'),
     React.createElement(Text, { color: '#8f98a8' }, `> ${query}`),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+      paletteWindow.start > 0 ? React.createElement(Text, { key: 'palette-up', color: '#8f98a8' }, '…') : null,
       ...(filteredPalette.length
-        ? filteredPalette.map((item, idx) => React.createElement(Text, idx === paletteSelected ? { key: item, inverse: true } : { key: item, color: '#d0d5df' }, item))
+        ? filteredPalette.slice(paletteWindow.start, paletteWindow.end).map((item, localIdx) => {
+          const idx = paletteWindow.start + localIdx;
+          return React.createElement(Text, idx === paletteSelected ? { key: item, inverse: true } : { key: item, color: '#d0d5df' }, item);
+        })
         : [React.createElement(Text, { key: 'none', color: '#8f98a8' }, 'No commands')]),
+      paletteWindow.end < filteredPalette.length ? React.createElement(Text, { key: 'palette-down', color: '#8f98a8' }, '…') : null,
     )),
   );
 }

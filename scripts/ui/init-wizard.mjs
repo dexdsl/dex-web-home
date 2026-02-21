@@ -1,10 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
 import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { computeWindow } from './rolodex.mjs';
 
 const CHANNELS = ['mono', 'stereo', 'multichannel'];
 const SERIES_OPTIONS = ['dex', 'inDex', 'dexFest'];
@@ -12,7 +13,24 @@ const LAST_CACHE = '.dex-last.json';
 
 function iframeFor(url) { return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`; }
 function emptyCredits() { return { artist: [], artistAlt: '', instruments: [], video: { director: [], cinematography: [], editing: [] }, audio: { recording: [], mix: [], master: [] }, year: `${new Date().getUTCFullYear()}`, season: 'S1', location: '' }; }
-function emptyDownloadData() { return { mode: 'guided', series: 'dex', audio: {}, video: {}, fileSpecs: { bitDepth: '24', sampleRate: '48000', channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { sampleLength: '', tagsInput: '' }, pasteBuffer: '', pasteError: '', pasteWarnings: [] }; }
+function emptyDownloadData() { return { mode: 'guided', series: 'dex', audio: {}, video: {}, fileSpecs: { bitDepth: '24', sampleRate: '48000', channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { tagsSelected: [], tagsQuery: '', tagsCursor: 0 }, pasteBuffer: '', pasteError: '', pasteWarnings: [] }; }
+
+function downloadWarnings(form, formatKeys) {
+  const warnings = [];
+  const buckets = Array.isArray(form?.buckets) ? form.buckets : [];
+  const downloadData = form?.downloadData || emptyDownloadData();
+  const keysByType = formatKeys || { audio: [], video: [] };
+  for (const b of buckets) {
+    for (const k of keysByType.audio || []) {
+      if (!String(downloadData.audio?.[b]?.[k] || '').trim()) warnings.push(`audio ${b}/${k} missing`);
+    }
+    for (const k of keysByType.video || []) {
+      if (!String(downloadData.video?.[b]?.[k] || '').trim()) warnings.push(`video ${b}/${k} missing`);
+    }
+  }
+  return warnings;
+}
+
 export function createDefaultWizardForm() {
   return {
     title: '',
@@ -95,11 +113,14 @@ export function validateStep(stepId, form, selectedRole, formatKeys) {
   }
   if (stepId === 'download') {
     const downloadData = safeForm.downloadData || emptyDownloadData();
-    const keysByType = formatKeys || { audio: [], video: [] };
-    const check = (type, keys) => buckets.forEach((b) => keys.forEach((k) => { if (!String(downloadData[type]?.[b]?.[k] || '').trim()) throw new Error(`Missing ${type} ${b}/${k}`); }));
-    try { check('audio', keysByType.audio || []); check('video', keysByType.video || []); } catch (e) { return e.message; }
-    if (!String(downloadData.metadata?.sampleLength || '').trim()) return 'Sample length is required.';
-    if (safeList(String(downloadData.metadata?.tagsInput || '').split(',')).length < 1) return 'At least one tag is required.';
+    if (!downloadData || typeof downloadData !== 'object') return 'Download configuration is missing.';
+    const bitDepth = Number(downloadData.fileSpecs?.bitDepth);
+    const sampleRate = Number(downloadData.fileSpecs?.sampleRate);
+    if (Number.isNaN(bitDepth) || bitDepth <= 0) return 'Bit depth must be numeric.';
+    if (Number.isNaN(sampleRate) || sampleRate <= 0) return 'Sample rate must be numeric.';
+    if (!CHANNELS.includes(downloadData.fileSpecs?.channels)) return 'Channels must be mono, stereo, or multichannel.';
+    if (safeList(downloadData.metadata?.tagsSelected).length < 1) return 'Select at least one tag.';
+    if (!formatKeys) void selectedRole;
   }
   return null;
 }
@@ -147,10 +168,12 @@ const STEPS = [
 ];
 
 export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
+  const { stdout } = useStdout();
   const [stepIdx, setStepIdx] = useState(0); const [caretOn, setCaretOn] = useState(true); const [error, setError] = useState('');
   const [busy, setBusy] = useState(false); const [doneReport, setDoneReport] = useState(null); const [multiCursor, setMultiCursor] = useState(0);
   const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInputState, setCreditsInputState] = useState({ value: '', cursor: 0 }); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
-  const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false);
+  const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false); const [downloadFocus, setDownloadFocus] = useState('rows');
+  const [tagsCatalog, setTagsCatalog] = useState([]); const [tagsWarning, setTagsWarning] = useState('');
   const templateRef = useRef(null);
   const [form, setForm] = useState(createDefaultWizardForm());
   const [cursorByStep, setCursorByStep] = useState({ title: 0, slug: 0, lookupNumber: 0, videoUrl: 0, descriptionText: 0, attributionSentence: 0 });
@@ -167,6 +190,21 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     const value = scalarCreditKeys.has(roleKey) ? String(roleValue(form.creditsData, roleKey) || '') : '';
     setCreditsInputState({ value, cursor: value.length });
   }, [creditsCursor]);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const filePath = new URL('../data/tags.txt', import.meta.url);
+        const raw = await fs.readFile(filePath, 'utf8');
+        const tags = raw.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#'));
+        setTagsCatalog(tags);
+      } catch {
+        setTagsCatalog([]);
+        setTagsWarning('Tags file unavailable: scripts/data/tags.txt');
+      }
+    };
+    void loadTags();
+  }, []);
 
   const shiftStep = (d) => { setError(''); setStepIdx((p) => Math.max(0, Math.min(totalSteps - 1, p + d))); };
   const applyTextEdit = (input, key = {}, stepId = step.id) => {
@@ -185,7 +223,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     try {
       const entryPath = path.join(outDir, slug, 'entry.json');
       const entry = JSON.parse(await fs.readFile(entryPath, 'utf8'));
-      setForm((p) => ({ ...p, title: entry.title || p.title, lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber, videoUrl: entry.video?.dataUrl || p.videoUrl, descriptionText: entry.descriptionText || p.descriptionText, series: entry.series || p.series, buckets: safeList(entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.buckets), attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence, creditsData: { ...emptyCredits(), ...(entry.creditsData || {}), ...(entry.sidebarPageConfig?.credits ? { artist: safeList([entry.sidebarPageConfig.credits.artist?.name]), instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)) } : {}) }, downloadData: { ...p.downloadData, series: entry.series || p.series, fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) }, metadata: { ...p.downloadData.metadata, sampleLength: entry.metadata?.sampleLength || p.downloadData.metadata.sampleLength, tagsInput: Array.isArray(entry.metadata?.tags) ? entry.metadata.tags.join(', ') : p.downloadData.metadata.tagsInput }, audio: entry.manifest?.audio || p.downloadData.audio, video: entry.manifest?.video || p.downloadData.video } }));
+      setForm((p) => ({ ...p, title: entry.title || p.title, lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber, videoUrl: entry.video?.dataUrl || p.videoUrl, descriptionText: entry.descriptionText || p.descriptionText, series: entry.series || p.series, buckets: safeList(entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.buckets), attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence, creditsData: { ...emptyCredits(), ...(entry.creditsData || {}), ...(entry.sidebarPageConfig?.credits ? { artist: safeList([entry.sidebarPageConfig.credits.artist?.name]), instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)) } : {}) }, downloadData: { ...p.downloadData, series: entry.series || p.series, fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) }, metadata: { ...p.downloadData.metadata, tagsSelected: Array.isArray(entry.metadata?.tags) ? safeList(entry.metadata.tags) : p.downloadData.metadata.tagsSelected, tagsQuery: '', tagsCursor: 0 }, audio: entry.manifest?.audio || p.downloadData.audio, video: entry.manifest?.video || p.downloadData.video } }));
       return true;
     } catch { return false; }
   };
@@ -230,7 +268,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: null, attributionSentence: form.attributionSentence,
           credits: { artist: { name: creditsData.artist.join(', '), links: [] }, artistAlt: creditsData.artistAlt, instruments: creditsData.instruments.map((n) => ({ name: n, links: [] })), video: { director: { name: creditsData.video.director.join(', '), links: [] }, cinematography: { name: creditsData.video.cinematography.join(', '), links: [] }, editing: { name: creditsData.video.editing.join(', '), links: [] } }, audio: { recording: { name: creditsData.audio.recording.join(', '), links: [] }, mix: { name: creditsData.audio.mix.join(', '), links: [] }, master: { name: creditsData.audio.master.join(', '), links: [] } }, year: creditsData.year, season: creditsData.season, location: creditsData.location },
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
-          metadata: { sampleLength: form.downloadData.metadata.sampleLength, tags: safeList(form.downloadData.metadata.tagsInput.split(',')) },
+          metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
         };
         const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: iframeFor(form.videoUrl) }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.buckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
         await fs.mkdir(path.resolve(outDirDefault || './entries'), { recursive: true }).catch(() => {});
@@ -282,23 +320,58 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
       const rows = [];
       form.buckets.forEach((b) => fk.audio.forEach((k) => rows.push({ type: 'audio', b, k }))); form.buckets.forEach((b) => fk.video.forEach((k) => rows.push({ type: 'video', b, k })));
+      const isCtrlP = (key.ctrl && (input === 'p' || input === 'P')) || input === '\x10';
+      const isCtrlG = (key.ctrl && (input === 'g' || input === 'G')) || input === '\x07';
+
       if (pasteMode) {
         if (key.escape) { setPasteMode(false); return; }
-        if (key.ctrl && input === 'd') {
+        if (isCtrlP) {
           const parsed = parsePasteBlock(form.downloadData.pasteBuffer, form.buckets, fk);
           if (parsed.errors.length) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteError: parsed.errors.join(' | ') } })); return; }
           setForm((p) => ({ ...p, downloadData: { ...p.downloadData, audio: { ...p.downloadData.audio, ...parsed.next.audio }, video: { ...p.downloadData.video, ...parsed.next.video }, pasteError: '' } }));
-          setPasteMode(false); return;
+          setPasteMode(false);
+          return;
         }
         if (key.return) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteBuffer: `${p.downloadData.pasteBuffer}\n` } })); return; }
         const n = applyKeyToInputState({ value: form.downloadData.pasteBuffer, cursor: form.downloadData.pasteBuffer.length }, input, key);
         setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteBuffer: n.value } }));
         return;
       }
-      if (input === 'p') { setPasteMode(true); return; }
+
+      if (isCtrlP) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteError: '' } })); setPasteMode(true); return; }
+      if (isCtrlG) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, fileSpecs: { ...p.downloadData.fileSpecs, channels: CHANNELS[(CHANNELS.indexOf(p.downloadData.fileSpecs.channels) + 1) % CHANNELS.length] } } })); return; }
+      if (key.tab) { setDownloadFocus((p) => (p === 'rows' ? 'tags' : 'rows')); return; }
+
+      const filteredTags = tagsCatalog.filter((tag) => tag.toLowerCase().includes((form.downloadData.metadata.tagsQuery || '').toLowerCase()));
+
+      if (downloadFocus === 'tags') {
+        if (key.upArrow) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsCursor: Math.max(0, (p.downloadData.metadata.tagsCursor || 0) - 1) } } })); return; }
+        if (key.downArrow) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsCursor: Math.min(Math.max(0, filteredTags.length - 1), (p.downloadData.metadata.tagsCursor || 0) + 1) } } })); return; }
+        if (input === ' ') {
+          const currentTag = filteredTags[form.downloadData.metadata.tagsCursor || 0];
+          if (currentTag) {
+            setForm((p) => {
+              const selected = new Set(safeList(p.downloadData.metadata.tagsSelected));
+              if (selected.has(currentTag)) selected.delete(currentTag); else selected.add(currentTag);
+              return { ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsSelected: Array.from(selected) } } };
+            });
+          }
+          return;
+        }
+        if (isBackspaceKey(input, key)) {
+          setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsQuery: String(p.downloadData.metadata.tagsQuery || '').slice(0, -1), tagsCursor: 0 } } }));
+          return;
+        }
+        if (shouldAppendWizardChar(input, key)) {
+          setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsQuery: `${p.downloadData.metadata.tagsQuery || ''}${input}`, tagsCursor: 0 } } }));
+          return;
+        }
+        if (key.return) { void maybeAdvance(); }
+        return;
+      }
+
       if (key.upArrow) { setDownloadCursor((p) => Math.max(0, p - 1)); return; }
       if (key.downArrow) { setDownloadCursor((p) => Math.min(rows.length - 1, p + 1)); return; }
-      if (input === 'c') { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, fileSpecs: { ...p.downloadData.fileSpecs, channels: CHANNELS[(CHANNELS.indexOf(p.downloadData.fileSpecs.channels) + 1) % CHANNELS.length] } } })); return; }
       if (key.return) { void maybeAdvance(); return; }
       const cur = rows[downloadCursor];
       if (cur) {
@@ -312,33 +385,74 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   });
 
   const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
+  const downloadRows = [...form.buckets.flatMap((b) => fk.audio.map((k) => ({ type: 'audio', b, k }))), ...form.buckets.flatMap((b) => fk.video.map((k) => ({ type: 'video', b, k })))];
+  const filteredTags = tagsCatalog.filter((tag) => tag.toLowerCase().includes((form.downloadData.metadata.tagsQuery || '').toLowerCase()));
+  const safeTagCursor = Math.min(Math.max(0, form.downloadData.metadata.tagsCursor || 0), Math.max(0, filteredTags.length - 1));
+  const rowsAvailable = Math.max(4, Math.min(12, (stdout?.rows || 24) - 16));
+  const creditsWindow = computeWindow({ total: creditRoles.length, cursor: creditsCursor, height: rowsAvailable });
+  const bucketsWindow = computeWindow({ total: BUCKETS.length, cursor: multiCursor, height: rowsAvailable });
+  const downloadWindow = computeWindow({ total: downloadRows.length, cursor: downloadCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
+  const tagsWindow = computeWindow({ total: filteredTags.length, cursor: safeTagCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
+  const warnings = downloadWarnings(form, fk);
+
   const footer = doneReport
     ? 'Enter return to menu'
     : step.kind === 'credits'
       ? 'Type to edit • Ctrl+A add (lists) • Ctrl+D remove last • Enter next • Esc back • Ctrl+Q quit'
-      : 'Enter next • Esc back • Ctrl+Q quit';
+      : step.kind === 'download'
+        ? (pasteMode
+          ? 'Ctrl+P finish & parse • Esc cancel • Enter newline'
+          : 'Ctrl+P paste mode • Ctrl+G cycle channels • Tab switch list/tags • Enter next • Esc back • Ctrl+Q quit')
+        : 'Enter next • Esc back • Ctrl+Q quit';
 
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
     React.createElement(Text, { color: '#8f98a8' }, `Step ${stepIdx + 1}/${totalSteps} — ${step.label}`),
     React.createElement(Box, { marginTop: 1, borderStyle: 'round', borderColor: '#6fa8ff', paddingX: 1, flexDirection: 'column' },
       step.kind === 'text' ? React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(form[step.id] || '', cursorByStep[step.id] ?? 0, caretOn || process.env.DEX_NO_ANIM === '1')} ]`) : null,
       step.kind === 'select' ? React.createElement(Text, { color: '#d0d5df' }, `› Series: ${form.series} (←/→)`) : null,
-      step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' }, ...BUCKETS.map((b, i) => React.createElement(Text, { key: b, inverse: i === multiCursor }, `${i === multiCursor ? '›' : ' '} [${form.buckets.includes(b) ? 'x' : ' '}] ${b}`))) : null,
+      step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' },
+        bucketsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'buckets-up' }, '…') : null,
+        ...BUCKETS.slice(bucketsWindow.start, bucketsWindow.end).map((b, localIdx) => {
+          const i = bucketsWindow.start + localIdx;
+          return React.createElement(Text, { key: b, inverse: i === multiCursor }, `${i === multiCursor ? '›' : ' '} [${form.buckets.includes(b) ? 'x' : ' '}] ${b}`);
+        }),
+        bucketsWindow.end < BUCKETS.length ? React.createElement(Text, { color: '#8f98a8', key: 'buckets-down' }, '…') : null,
+      ) : null,
       step.kind === 'credits' ? React.createElement(Box, { flexDirection: 'column' },
         React.createElement(Text, { color: '#8f98a8' }, reuseAsked ? `Reuse instruments: ${reuseChoice ? 'yes' : 'no'}` : 'On Enter, instruments can reuse last entry cache'),
         React.createElement(Text, { color: '#d0d5df' }, `› Editing: ${selectedRole?.label || '-'}`),
         React.createElement(Text, { color: '#d0d5df' }, `Input: [ ${withCaret(creditsInputState.value, creditsInputState.cursor, caretOn || process.env.DEX_NO_ANIM === '1')} ]`),
-        ...creditRoles.map((r, i) => {
+        creditsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'credits-up' }, '…') : null,
+        ...creditRoles.slice(creditsWindow.start, creditsWindow.end).map((r, localIdx) => {
+          const i = creditsWindow.start + localIdx;
           const raw = roleValue(form.creditsData, r.key);
           const display = Array.isArray(raw) ? (raw.join(', ') || '(empty)') : (String(raw || '').trim() || '(empty)');
           return React.createElement(Text, { key: r.key, inverse: i === creditsCursor }, `${i === creditsCursor ? '›' : ' '} ${r.label}: ${display}`);
         }),
+        creditsWindow.end < creditRoles.length ? React.createElement(Text, { color: '#8f98a8', key: 'credits-down' }, '…') : null,
       ) : null,
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
-        pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,driveId\nCtrl+D finish • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
-        !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `p=paste mode, c=cycle channels(${form.downloadData.fileSpecs.channels})`) : null,
-        !pasteMode ? [...form.buckets.flatMap((b) => fk.audio.map((k) => ({ type: 'audio', b, k }))).concat(form.buckets.flatMap((b) => fk.video.map((k) => ({ type: 'video', b, k })))).map((row, idx) => React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`))] : null,
-        React.createElement(Text, { color: '#d0d5df' }, `sampleLength: ${form.downloadData.metadata.sampleLength || '(required)'} tags: ${form.downloadData.metadata.tagsInput || '(required)'}`),
+        pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,driveId\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
+        !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus}`) : null,
+        !pasteMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {
+          const idx = downloadWindow.start + localIdx;
+          return React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor && downloadFocus === 'rows' }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`);
+        }) : null,
+        !pasteMode && downloadWindow.end < downloadRows.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `sampleLength: AUTO`) : null,
+        !pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Tags (required) [${safeList(form.downloadData.metadata.tagsSelected).length} selected]`) : null,
+        !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `Filter: [ ${(downloadFocus === 'tags') ? withCaret(form.downloadData.metadata.tagsQuery || '', (form.downloadData.metadata.tagsQuery || '').length, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.metadata.tagsQuery || '')} ]`) : null,
+        !pasteMode && tagsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode ? filteredTags.slice(tagsWindow.start, tagsWindow.end).map((tag, localIdx) => {
+          const idx = tagsWindow.start + localIdx;
+          const selected = safeList(form.downloadData.metadata.tagsSelected).includes(tag);
+          return React.createElement(Text, { key: `tag-${tag}`, inverse: idx === safeTagCursor && downloadFocus === 'tags' }, `${idx === safeTagCursor ? '›' : ' '} [${selected ? 'x' : ' '}] ${tag}`);
+        }) : null,
+        !pasteMode && tagsWindow.end < filteredTags.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        tagsWarning ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, tagsWarning) : null,
+        !pasteMode && warnings.length ? warnings.slice(0, 4).map((msg) => React.createElement(Text, { key: `warn-${msg}`, color: '#8f98a8', dimColor: true }, `warning: ${msg}`)) : null,
+        !pasteMode && warnings.length > 4 ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, `warning: +${warnings.length - 4} more`) : null,
         form.downloadData.pasteError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.pasteError) : null,
       ) : null,
       step.kind === 'summary' ? React.createElement(Box, { flexDirection: 'column' }, React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`), React.createElement(Text, { color: '#d0d5df' }, `› Slug: ${form.slug}`), React.createElement(Text, { color: '#d0d5df' }, `› Buckets: ${form.buckets.join(', ')}`), React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate')) : null,
