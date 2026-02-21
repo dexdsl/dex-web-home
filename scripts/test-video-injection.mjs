@@ -8,6 +8,7 @@ const templatePath = path.join(root, 'entry-template', 'index.html');
 const templateHtml = await fs.readFile(templatePath, 'utf8');
 
 const videoUrl = 'https://www.youtube.com/watch?v=CSFGiU1gg4g';
+const schemelessVideoUrl = 'www.youtube.com/watch?v=CSFGiU1gg4g';
 
 const injected = injectEntryHtml(templateHtml, {
   descriptionText: 'Video injection test',
@@ -72,6 +73,37 @@ assert.doesNotMatch(videoRegion, /source_ve_path/i);
 
 assert.doesNotMatch(videoRegion, /sqs-video-wrapper/i);
 assert.doesNotMatch(videoRegion, /data-html="&lt;iframe/i);
+
+const injectedSchemeless = injectEntryHtml(templateHtml, {
+  descriptionText: 'Video injection test',
+  descriptionHtml: '',
+  manifest: {
+    audio: { A: { wav: '' }, B: { wav: '' }, C: { wav: '' }, D: { wav: '' }, E: { wav: '' }, X: { wav: '' } },
+    video: { A: { '1080p': '' }, B: { '1080p': '' }, C: { '1080p': '' }, D: { '1080p': '' }, E: { '1080p': '' }, X: { '1080p': '' } },
+  },
+  sidebarConfig: {
+    lookupNumber: 'LOOKUP-TEST',
+    attributionSentence: 'Attribution',
+    buckets: ['A'],
+    specialEventImage: '/assets/series/dex.png',
+    credits: {
+      artist: ['Artist'],
+      artistAlt: null,
+      instruments: ['Instrument'],
+      video: { director: ['Director'], cinematography: ['Cinematography'], editing: ['Editing'] },
+      audio: { recording: ['Recording'], mix: ['Mix'], master: ['Master'] },
+      year: 2026,
+      season: 'S1',
+      location: 'Somewhere',
+    },
+    fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
+    metadata: { sampleLength: '', tags: [] },
+  },
+  video: { mode: 'url', dataUrl: schemelessVideoUrl, dataHtml: '' },
+  title: 'Video Test',
+  authEnabled: false,
+}).html;
+assert.match(injectedSchemeless, /src="https:\/\/www\.youtube-nocookie\.com\/embed\/CSFGiU1gg4g"/);
 
 const videoEndIx = injected.indexOf('<!-- DEX:VIDEO_END -->');
 const descStartIx = injected.indexOf('<!-- DEX:DESC_START -->');

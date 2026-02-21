@@ -119,6 +119,94 @@ function stripSquarespaceRuntimeDataAttrs($) {
   });
 }
 
+function stripInlineStyleProps(styleText, propNames = []) {
+  let next = String(styleText || '');
+  for (const propName of propNames) {
+    const rx = new RegExp(`(?:^|;)\\s*${propName}\\s*:[^;]*;?`, 'gi');
+    next = next.replace(rx, ';');
+  }
+  next = next.replace(/;{2,}/g, ';').replace(/\s+/g, ' ').trim();
+  next = next.replace(/^;\s*/, '').replace(/\s*;$/, '').trim();
+  return next;
+}
+
+function markDexEntryHosts($) {
+  $('.fluid-engine').each((_, fluidElement) => {
+    const fluid = $(fluidElement);
+    const hostBlocks = fluid.children('.fe-block').filter((__, block) => $(block).find('.dex-entry-layout').length > 0);
+    if (!hostBlocks.length) return;
+
+    hostBlocks.each((__, block) => {
+      const host = $(block);
+      host.addClass('dex-entry-host');
+      const existingStyle = String(host.attr('style') || '').trim();
+      const cleanedStyle = existingStyle
+        .replace(/\bgrid-area\s*:[^;]*;?/gi, '')
+        .replace(/\bgrid-column\s*:[^;]*;?/gi, '')
+        .replace(/\bjustify-self\s*:[^;]*;?/gi, '')
+        .trim();
+      const prefix = cleanedStyle
+        ? `${cleanedStyle}${cleanedStyle.endsWith(';') ? '' : ';'} `
+        : '';
+      host.attr('style', `${prefix}grid-area: auto / 1 / auto / -1 !important; grid-column: 1 / -1 !important; justify-self: stretch !important;`);
+    });
+
+    fluid.children('.fe-block').each((__, block) => {
+      const sibling = $(block);
+      if (sibling.find('.dex-entry-layout').length > 0) return;
+      if (sibling.find('.website-component-block').length > 0) {
+        sibling.remove();
+        return;
+      }
+      const htmlContent = sibling.find('.sqs-html-content').first();
+      if (!htmlContent.length) return;
+      const text = htmlContent.text().replace(/\s+/g, ' ').trim();
+      const hasMedia = htmlContent.find('img, video, iframe, svg, canvas').length > 0;
+      if (!text && !hasMedia) sibling.remove();
+    });
+  });
+
+  $('.dex-entry-layout').each((_, layoutElement) => {
+    const host = $(layoutElement).closest('.fe-block').first();
+    if (host.length) host.addClass('dex-entry-host');
+  });
+}
+
+function normalizeDexSectionSpacing($) {
+  $('section').each((_, sectionElement) => {
+    const section = $(sectionElement);
+    const hasDexFooter = section.find('.dex-footer').length > 0;
+    const hasDexEntry = section.find('.dex-entry-layout').length > 0;
+    if (!hasDexFooter && !hasDexEntry) return;
+
+    if (hasDexEntry) {
+      section.addClass('dex-entry-section');
+      section.removeClass('has-section-divider');
+      section.find('.section-divider-display').remove();
+    }
+
+    if (hasDexFooter) {
+      section.addClass('dex-footer-section');
+      section.removeClass('section-height--custom');
+      const cleanedSectionStyle = stripInlineStyleProps(section.attr('style'), ['min-height']);
+      if (cleanedSectionStyle) section.attr('style', cleanedSectionStyle);
+      else section.removeAttr('style');
+
+      const previous = section.prev();
+      if (previous.length && previous.hasClass('section-divider-display')) previous.remove();
+    }
+
+    const wrappers = section.children('.content-wrapper');
+    wrappers.each((__, wrapperElement) => {
+      const wrapper = $(wrapperElement);
+      const propsToStrip = hasDexFooter ? ['padding-top', 'padding-bottom'] : ['padding-bottom'];
+      const cleanedWrapperStyle = stripInlineStyleProps(wrapper.attr('style'), propsToStrip);
+      if (cleanedWrapperStyle) wrapper.attr('style', cleanedWrapperStyle);
+      else wrapper.removeAttr('style');
+    });
+  });
+}
+
 function isBlockedScriptSrc(src) {
   const value = String(src || '').trim();
   if (!value) return false;
@@ -374,6 +462,8 @@ export function sanitizeGeneratedHtml(html) {
 
   $('base').remove();
   stripSquarespaceRuntimeDataAttrs($);
+  markDexEntryHosts($);
+  normalizeDexSectionSpacing($);
 
   $('script').each((_, element) => {
     const node = $(element);

@@ -1,0 +1,129 @@
+{
+  "slug": "test-6",
+  "title": "test-6",
+  "video": {
+    "mode": "url",
+    "dataUrl": "www.youtube.com/watch?v=CSFGiU1gg4g",
+    "dataUrlOriginal": "www.youtube.com/watch?v=CSFGiU1gg4g",
+    "dataHtml": ""
+  },
+  "descriptionText": "test",
+  "series": "dex",
+  "selectedBuckets": [
+    "A"
+  ],
+  "creditsData": {
+    "artist": [
+      "t"
+    ],
+    "artistAlt": "t",
+    "instruments": [
+      "test"
+    ],
+    "video": {
+      "director": [
+        "t"
+      ],
+      "cinematography": [
+        "t"
+      ],
+      "editing": [
+        "t"
+      ]
+    },
+    "audio": {
+      "recording": [
+        "t"
+      ],
+      "mix": [
+        "t"
+      ],
+      "master": [
+        "t"
+      ]
+    },
+    "year": 2026,
+    "season": "S1",
+    "location": "t"
+  },
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "AUTO",
+    "tags": [
+      "electronic"
+    ]
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "looku",
+    "buckets": [
+      "A"
+    ],
+    "specialEventImage": "/assets/series/dex.png",
+    "attributionSentence": "tet",
+    "credits": {
+      "artist": [
+        "t"
+      ],
+      "artistAlt": "t",
+      "instruments": [
+        "test"
+      ],
+      "video": {
+        "director": [
+          "t"
+        ],
+        "cinematography": [
+          "t"
+        ],
+        "editing": [
+          "t"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "t"
+        ],
+        "mix": [
+          "t"
+        ],
+        "master": [
+          "t"
+        ]
+      },
+      "year": 2026,
+      "season": "S1",
+      "location": "t"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "AUTO",
+      "tags": [
+        "electronic"
+      ]
+    }
+  }
+}

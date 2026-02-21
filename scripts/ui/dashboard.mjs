@@ -8,9 +8,10 @@ import { UpdateWizard } from './update-wizard.mjs';
 import { DoctorScreen } from './doctor-screen.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
+import { startViewer } from '../lib/viewer-server.mjs';
 
-const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }];
-const PALETTE_ITEMS = ['init', 'update', 'doctor'];
+const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }, { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' }];
+const PALETTE_ITEMS = ['init', 'update', 'doctor', 'view'];
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
   '██╔══██╗██╔════╝╚██╗██╔╝',
@@ -63,6 +64,9 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   const [paletteSelected, setPaletteSelected] = useState(0);
   const [mode, setMode] = useState(initialPaletteOpen ? 'palette' : initialMode);
   const [lastResult, setLastResult] = useState('');
+  const [viewerLaunchBusy, setViewerLaunchBusy] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState('');
+  const [viewerServer, setViewerServer] = useState(null);
 
   const cols = dimensions.cols;
   const rows = dimensions.rows;
@@ -89,6 +93,36 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
     if (paletteSelected >= filteredPalette.length) setPaletteSelected(Math.max(0, filteredPalette.length - 1));
   }, [filteredPalette, paletteSelected]);
 
+  useEffect(() => () => {
+    if (viewerServer && typeof viewerServer.close === 'function') {
+      viewerServer.close();
+    }
+  }, [viewerServer]);
+
+  const launchViewer = async () => {
+    if (viewerLaunchBusy) return;
+    setViewerLaunchBusy(true);
+    try {
+      if (viewerServer && viewerUrl) {
+        setLastResult(`Viewer already running: ${viewerUrl}`);
+      } else {
+        const started = await startViewer({
+          cwd: process.cwd(),
+          open: true,
+          port: 4173,
+        });
+        setViewerServer(started.server);
+        setViewerUrl(started.url);
+        setLastResult(`Viewer running: ${started.url}`);
+      }
+    } catch (error) {
+      setLastResult(`Viewer failed: ${error?.message || String(error)}`);
+    } finally {
+      setViewerLaunchBusy(false);
+      setMode('menu');
+    }
+  };
+
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
     if (mode === 'init' || mode === 'update' || mode === 'doctor') return;
@@ -103,6 +137,11 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
       if (key.escape) { setPaletteOpen(false); setMode('menu'); return; }
       if (key.return) {
         const item = filteredPalette[paletteSelected];
+        if (item === 'view') {
+          setPaletteOpen(false);
+          void launchViewer();
+          return;
+        }
         if (item === 'init' || item === 'update' || item === 'doctor') { setPaletteOpen(false); setMode(item); }
         return;
       }
@@ -115,7 +154,13 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
 
     if (key.upArrow) { setSelected((idx) => (idx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length); return; }
     if (key.downArrow) { setSelected((idx) => (idx + 1) % MENU_ITEMS.length); return; }
-    if (key.return && MENU_ITEMS[selected]) setMode(MENU_ITEMS[selected].id);
+    if (key.return && MENU_ITEMS[selected]) {
+      if (MENU_ITEMS[selected].id === 'view') {
+        void launchViewer();
+        return;
+      }
+      setMode(MENU_ITEMS[selected].id);
+    }
   });
 
   const paletteWidth = Math.min(72, Math.max(24, cols - 4));

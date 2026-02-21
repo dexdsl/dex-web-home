@@ -7,7 +7,9 @@ import { loadRecents, pushRecent } from './lib/recents-store.mjs';
 import { resolveSafePathUnderRoot } from './lib/viewer-server.mjs';
 
 assert.equal(extractYouTubeId('https://www.youtube.com/watch?v=CSFGiU1gg4g&feature=youtu.be'), 'CSFGiU1gg4g');
+assert.equal(extractYouTubeId('www.youtube.com/watch?v=CSFGiU1gg4g'), 'CSFGiU1gg4g');
 assert.equal(extractYouTubeId('https://youtu.be/CSFGiU1gg4g?si=abc123'), 'CSFGiU1gg4g');
+assert.equal(extractYouTubeId('youtu.be/CSFGiU1gg4g?si=abc123'), 'CSFGiU1gg4g');
 assert.equal(extractYouTubeId('https://www.youtube.com/embed/CSFGiU1gg4g?source_ve_path=MjM4NTE'), 'CSFGiU1gg4g');
 assert.equal(extractYouTubeId('https://example.com/watch?v=CSFGiU1gg4g'), '');
 assert.equal(extractYouTubeId('not-a-url'), '');

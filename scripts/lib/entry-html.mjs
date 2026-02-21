@@ -130,11 +130,18 @@ function replaceBetween(html, region, content) {
 
 function parseUrl(rawUrl) {
   if (!rawUrl) return null;
+  const input = String(rawUrl || '').trim();
+  if (!input) return null;
   try {
-    return new URL(rawUrl);
-  } catch {
-    return null;
+    return new URL(input);
+  } catch {}
+
+  if (/^(?:www\.|(?:m\.)?youtube\.com\/|youtu\.be\/|youtube-nocookie\.com\/|vimeo\.com\/|player\.vimeo\.com\/)/i.test(input)) {
+    try {
+      return new URL(`https://${input}`);
+    } catch {}
   }
+  return null;
 }
 
 function cleanVideoId(value) {

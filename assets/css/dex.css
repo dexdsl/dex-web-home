@@ -53,7 +53,8 @@ div.user-accounts-link {
 }
 
 //rounded videos//
-iframe[src*="youtube.com"] {
+iframe[src*="youtube.com"],
+iframe[src*="youtube-nocookie.com"] {
 
   border-radius : 8px;
   box-shadow : 8px 8px 20px rgba( 0, 0, 0, 0.5 );
@@ -282,6 +283,38 @@ div.sqs-add-to-cart-button-inner {
   }
 
 // sidebar //
+.dex-entry-host {
+width: 100% !important;
+max-width: none !important;
+}
+
+.fluid-engine .dex-entry-host {
+grid-column: 1 / -1 !important;
+justify-self: stretch !important;
+z-index: 20 !important;
+}
+
+.dex-entry-host .sqs-block,
+.dex-entry-host .sqs-block-content,
+.dex-entry-host .sqs-code-container {
+width: 100% !important;
+max-width: none !important;
+}
+
+.dex-entry-host .sqs-code-container {
+padding-top: 0 !important;
+padding-bottom: 0 !important;
+padding-left: var(--sqs-site-gutter, 4vw) !important;
+padding-right: var(--sqs-site-gutter, 4vw) !important;
+}
+
+@media (max-width: 767px) {
+.dex-entry-host .sqs-code-container {
+padding-left: var(--sqs-mobile-site-gutter, 6vw) !important;
+padding-right: var(--sqs-mobile-site-gutter, 6vw) !important;
+}
+}
+
 .dex-entry-layout {
 display: grid;
 grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
