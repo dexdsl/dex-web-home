@@ -4,14 +4,21 @@ export const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 export const ALL_BUCKETS = BUCKETS;
 
 const linkSchema = z.object({ label: z.string().min(1), href: z.string().min(1) });
-const personSchema = z.object({ name: z.string().default(''), links: z.array(linkSchema).default([]) });
+const personSchema = z.object({ name: z.string().min(1), links: z.array(linkSchema).optional() });
+const personArraySchema = z.array(personSchema).default([]);
+const legacyPersonSchema = z.object({ name: z.string().default(''), links: z.array(linkSchema).default([]) });
+const peopleFieldSchema = z.union([personArraySchema, legacyPersonSchema]).transform((value) => {
+  if (Array.isArray(value)) return value;
+  if (!value?.name) return [];
+  return [{ name: value.name, links: value.links?.length ? value.links : undefined }];
+});
 
 export const creditsSchema = z.object({
-  artist: personSchema,
+  artist: peopleFieldSchema,
   artistAlt: z.string().nullable().optional(),
-  instruments: z.array(personSchema).default([]),
-  video: z.object({ director: personSchema, cinematography: personSchema, editing: personSchema }),
-  audio: z.object({ recording: personSchema, mix: personSchema, master: personSchema }),
+  instruments: z.array(z.string().min(1)).default([]),
+  video: z.object({ director: peopleFieldSchema, cinematography: peopleFieldSchema, editing: peopleFieldSchema }),
+  audio: z.object({ recording: peopleFieldSchema, mix: peopleFieldSchema, master: peopleFieldSchema }),
   year: z.number().int(),
   season: z.string().min(1),
   location: z.string().min(1),
