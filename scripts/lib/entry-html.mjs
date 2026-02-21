@@ -239,9 +239,10 @@ export function extractFormatKeys(html) {
 
 function normalizeAllowedOutsideAnchorChanges(html) {
   return String(html || '')
+    .replace(/\b(src|href)\s*=\s*(["'])https?:\/\/[^"']+(\/(?:assets|scripts)\/[^"']*)\2/gi, '$1=$2$3$2')
     .replace(/<title>[\s\S]*?<\/title>/i, '<title>__DEX_TITLE__</title>')
     .replace(/(<script[^>]*id="dex-manifest"[^>]*type="application\/json"[^>]*>)([\s\S]*?)(<\/script>)/i, '$1__DEX_MANIFEST__$3')
-    .replace(/<script[^>]*src="(?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)"[^>]*><\/script>\s*/g, '');
+    .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '');
 }
 
 export function assertAnchorOnlyChanges(templateHtml, outputHtml) {

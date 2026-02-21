@@ -4,6 +4,8 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
 import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
+import { getAssetOrigin } from './asset-origin.mjs';
+import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -102,6 +104,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     title: data.title,
     authEnabled: true,
   });
+  const finalHtml = rewriteLocalAssetLinks(injected.html, getAssetOrigin());
 
   const folder = opts.flat ? path.join(path.resolve('.'), data.slug) : path.join(data.outDir, data.slug);
   const files = {
@@ -131,7 +134,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
 
   if (!opts.dryRun) {
     await fs.mkdir(folder, { recursive: true });
-    await fs.writeFile(files.html, injected.html, 'utf8');
+    await fs.writeFile(files.html, finalHtml, 'utf8');
     await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, descriptionText: data.descriptionText || '', series: data.series || 'dex', selectedBuckets: data.selectedBuckets || data.sidebar?.buckets || [], creditsData: data.creditsData, fileSpecs: data.fileSpecs || data.sidebar?.fileSpecs, metadata: data.metadata || data.sidebar?.metadata, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
     await fs.writeFile(files.desc, `${resolvedDescriptionText.trim()}\n`, 'utf8');
     await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');

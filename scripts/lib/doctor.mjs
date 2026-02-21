@@ -6,6 +6,7 @@ import { loadTagsCatalog } from './tags.mjs';
 import { readEntryFolder, writeEntryFolder, generateIndexHtml, normalizeManifestWithFormats, validateEntryFolderData, formatKeysFromTemplate } from './entry-store.mjs';
 
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+const esc = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function looksBadDriveId(v) {
   const s = String(v || '').trim();
@@ -14,7 +15,10 @@ function looksBadDriveId(v) {
 }
 
 function hasAuthTrio(html) {
-  return AUTH_TRIO.every((src) => html.includes(`src="${src}"`));
+  return AUTH_TRIO.every((src) => {
+    if (/^https?:\/\//i.test(src)) return html.includes(`src="${src}"`);
+    return new RegExp(`src=["'](?:https?:\\/\\/[^"']+)?${esc(src)}["']`).test(html);
+  });
 }
 
 function hasLegacyAuth(html) {

@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { descriptionTextFromSeed, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
 import { ALL_BUCKETS, entrySchema, manifestSchemaForFormats, normalizeManifest } from './entry-schema.mjs';
+import { getAssetOrigin } from './asset-origin.mjs';
+import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
 
 export async function readEntryFolder(slug, { entriesDir = './entries' } = {}) {
   const folder = path.join(path.resolve(entriesDir), slug);
@@ -77,7 +79,7 @@ export function validateEntryFolderData({ entry, manifest, formatKeys }) {
 }
 
 export function generateIndexHtml({ templateHtml, entry, descriptionText, manifest }) {
-  return injectEntryHtml(templateHtml, {
+  const injected = injectEntryHtml(templateHtml, {
     descriptionText,
     descriptionHtml: entry.descriptionHtml,
     manifest,
@@ -86,6 +88,7 @@ export function generateIndexHtml({ templateHtml, entry, descriptionText, manife
     title: entry.title,
     authEnabled: true,
   }).html;
+  return rewriteLocalAssetLinks(injected, getAssetOrigin());
 }
 
 export function diffSummary(oldHtml, newHtml) {

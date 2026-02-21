@@ -7,6 +7,7 @@
     "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check",
     "dex": "node scripts/dex.mjs",
     "smoke:dex-init": "node scripts/smoke-dex-init.mjs",
+    "test:portable": "node scripts/verify-portable-entry-html.mjs",
     "test:doctor": "node scripts/test-doctor-normalize.mjs && node scripts/test-doctor-drift.mjs",
     "test:update": "node scripts/test-update-rehydrate.mjs"
   },

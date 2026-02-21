@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { isBackspaceKey, shouldAppendWizardChar } from './lib/input-guard.mjs';
 import { applyKeyToInputState } from './ui/init-wizard.mjs';
+import { DEFAULT_ASSET_ORIGIN } from './lib/asset-origin.mjs';
 import { assertAnchorOnlyChanges as assertTemplateDrift, injectEntryHtml } from './lib/entry-html.mjs';
 
 const root = process.cwd();
@@ -52,8 +53,8 @@ for (const needle of [
   'src=&quot;https://player.vimeo.com/video/123456789&quot;',
   '<p></p>',
   'LOOKUP-0000',
-  '/assets/dex-auth0-config.js',
-  '/assets/dex-auth.js',
+  `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
+  `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   '<script id="dex-sidebar-page-config" type="application/json">',
   'window.dexSidebarPageConfig = JSON.parse(',
   '<script id="dex-manifest" type="application/json">',
@@ -99,6 +100,25 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
 {
   const next = applyKeyToInputState({ value: 'abc', cursor: 3 }, '', { backspace: true });
   if (next.value !== 'ab' || next.cursor !== 2) throw new Error('backspace should delete char before cursor');
+}
+
+const portableTemp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-portable-'));
+const runPortable = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: portableTemp, encoding: 'utf8' });
+const portable = runPortable(['init', '--quick', '--template', path.join(root, 'entry-template', 'index.html'), '--out', './entries']);
+if (portable.status !== 0) throw new Error(`portable write run failed: ${portable.stderr}\n${portable.stdout}`);
+const portableDirs = (await fs.readdir(path.join(portableTemp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());
+if (!portableDirs.length) throw new Error('no generated portable entry dir');
+const portableHtml = await fs.readFile(path.join(portableTemp, 'entries', portableDirs[0].name, 'index.html'), 'utf8');
+for (const needle of [
+  `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
+  `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
+  `${DEFAULT_ASSET_ORIGIN}/assets/dex-sidebar.js`,
+]) {
+  if (!portableHtml.includes(needle)) throw new Error(`portable output missing runtime URL: ${needle}`);
+}
+const portableVerify = spawnSync('node', [path.join(root, 'scripts/verify-portable-entry-html.mjs')], { cwd: portableTemp, encoding: 'utf8' });
+if (portableVerify.status !== 0) {
+  throw new Error(`portable verifier failed: ${portableVerify.stderr}\n${portableVerify.stdout}`);
 }
 
 console.log('smoke-dex-init ok');

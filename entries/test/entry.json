@@ -1,0 +1,130 @@
+{
+  "slug": "test",
+  "title": "test",
+  "video": {
+    "mode": "url",
+    "dataUrl": "example.com",
+    "dataHtml": "<iframe src=\"example.com\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen></iframe>"
+  },
+  "descriptionText": "test",
+  "series": "dex",
+  "selectedBuckets": [
+    "A"
+  ],
+  "creditsData": {
+    "artist": [
+      "t"
+    ],
+    "artistAlt": "test",
+    "instruments": [
+      "test"
+    ],
+    "video": {
+      "director": [
+        "t"
+      ],
+      "cinematography": [
+        "t"
+      ],
+      "editing": [
+        "t"
+      ]
+    },
+    "audio": {
+      "recording": [
+        "t"
+      ],
+      "mix": [
+        "t"
+      ],
+      "master": [
+        "t"
+      ]
+    },
+    "year": 2026,
+    "season": "S1",
+    "location": "test"
+  },
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "AUTO",
+    "tags": [
+      "live",
+      "improv"
+    ]
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "lookup",
+    "buckets": [
+      "A"
+    ],
+    "specialEventImage": null,
+    "attributionSentence": "test",
+    "credits": {
+      "artist": [
+        "t"
+      ],
+      "artistAlt": "test",
+      "instruments": [
+        "test"
+      ],
+      "video": {
+        "director": [
+          "t"
+        ],
+        "cinematography": [
+          "t"
+        ],
+        "editing": [
+          "t"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "t"
+        ],
+        "mix": [
+          "t"
+        ],
+        "master": [
+          "t"
+        ]
+      },
+      "year": 2026,
+      "season": "S1",
+      "location": "test"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "AUTO",
+      "tags": [
+        "live",
+        "improv"
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@
     <!-- This is Squarespace. --><!-- dexdsl -->
 <base href="">
 <meta charset="utf-8" />
-<title>Guitar and Voice - Aidan Yeats (Copy) &mdash; dex digital sample library</title>
+<title>test</title>
 <meta http-equiv="Accept-CH" content="Sec-CH-UA-Platform-Version, Sec-CH-UA-Model" /><link rel="icon" type="image/x-icon" href="https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/eed145f2-fd86-4457-85a7-9955b717fcf9/favicon.ico?format=100w"/>
 <link rel="canonical" href="https://dexdsl.org/test"/>
 <meta property="og:site_name" content="dex digital sample library"/>
@@ -464,8 +464,58 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })();
 </script><script id="dex-manifest" type="application/json">
 {
-  "audio": {},
-  "video": {}
+  "audio": {
+    "A": {
+      "mp3": "",
+      "wav": ""
+    },
+    "B": {
+      "mp3": "",
+      "wav": ""
+    },
+    "C": {
+      "mp3": "",
+      "wav": ""
+    },
+    "D": {
+      "mp3": "",
+      "wav": ""
+    },
+    "E": {
+      "mp3": "",
+      "wav": ""
+    },
+    "X": {
+      "mp3": "",
+      "wav": ""
+    }
+  },
+  "video": {
+    "A": {
+      "1080p": "",
+      "4K": ""
+    },
+    "B": {
+      "1080p": "",
+      "4K": ""
+    },
+    "C": {
+      "1080p": "",
+      "4K": ""
+    },
+    "D": {
+      "1080p": "",
+      "4K": ""
+    },
+    "E": {
+      "1080p": "",
+      "4K": ""
+    },
+    "X": {
+      "1080p": "",
+      "4K": ""
+    }
+  }
 }
 </script>
 
@@ -2339,86 +2389,67 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <!-- ─── Dex Sidebar: per-page Code Block ─── -->
 
 <!-- A) Page-specific config – replace ONLY these values -->
-<!-- @-- DEX:SIDEBAR_PAGE_CONFIG_START --
-@ -->
+<!-- DEX:SIDEBAR_PAGE_CONFIG_START -->
 <script id="dex-sidebar-page-config" type="application/json">
 {
-  "lookupNumber": "ABCD-1234",
+  "lookupNumber": "lookup",
   "buckets": [
-    "A",
-    "B",
-    "C"
+    "A"
   ],
   "specialEventImage": null,
-  "attributionSentence": "YOUR ATTRIBUTION SENTENCE HERE",
+  "attributionSentence": "test",
   "credits": {
-    "artist": {
-      "name": "ARTIST NAME",
-      "links": []
-    },
-    "artistAlt": null,
+    "artist": "<span data-person=\"test\" data-links='[]' style=\"position:relative; cursor:pointer;\">test<span class=\"person-pin\"></span></span>",
+    "artistAlt": "test",
     "instruments": [
-      {
-        "name": "INSTRUMENT1",
-        "links": []
-      }
+      "<span data-person=\"test\" data-links='[]' style=\"position:relative; cursor:pointer;\">test<span class=\"person-pin\"></span></span>"
     ],
     "video": {
-      "director": {
-        "name": "VIDEO DIRECTOR",
-        "links": []
-      },
-      "cinematography": {
-        "name": "CINEMATOGRAPHY",
-        "links": []
-      },
-      "editing": {
-        "name": "EDITING",
-        "links": []
-      }
+      "director": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
+      "cinematography": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
+      "editing": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>"
     },
     "audio": {
-      "recording": {
-        "name": "RECORDING ENGINEER",
-        "links": []
-      },
-      "mix": {
-        "name": "MIX ENGINEER",
-        "links": []
-      },
-      "master": {
-        "name": "MASTER ENGINEER",
-        "links": []
-      }
+      "recording": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
+      "mix": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
+      "master": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>"
     },
-    "year": 2025,
+    "year": 2026,
     "season": "S1",
-    "location": "LOCATION"
+    "location": "test"
   },
   "fileSpecs": {
     "bitDepth": 24,
     "sampleRate": 48000,
     "channels": "stereo",
     "staticSizes": {
-      "A": "...",
-      "B": "...",
-      "C": "...",
-      "D": "...",
-      "E": "...",
-      "X": "..."
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
     }
   },
   "metadata": {
-    "sampleLength": "00:00:00",
+    "sampleLength": "AUTO",
     "tags": [
-      "TAG1",
-      "TAG2"
+      "live",
+      "improv"
     ]
   }
 }
 </script>
-<!--
-@-- DEX:SIDEBAR_PAGE_CONFIG_END --@ -->
+<script>
+  try {
+    window.dexSidebarPageConfig = JSON.parse(
+      document.getElementById("dex-sidebar-page-config").textContent
+    );
+  } catch (e) {
+    console.error("[dex] failed to parse dex-sidebar-page-config", e);
+  }
+</script>
+<!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
 
 <!-- B) Sidebar container -->
 <aside class="dex-sidebar">
@@ -2454,9 +2485,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   
 </div>
-</div></div></div><!-- @-- DEX:VIDEO_START --
-@ --><div class="fe-block fe-block-22fd010319b834961314"><div class="sqs-block video-block sqs-block-video" data-block-json="&#123;&quot;blockAnimation&quot;:&quot;none&quot;,&quot;layout&quot;:&quot;caption-hidden&quot;,&quot;overlay&quot;:false,&quot;description&quot;:&#123;&#125;,&quot;isOldBlock&quot;:true,&quot;html&quot;:&quot;&lt;iframe width=\&quot;200\&quot; height=\&quot;113\&quot; src=\&quot;https://www.youtube.com/embed/CSFGiU1gg4g?feature=oembed\&quot; frameborder=\&quot;0\&quot; allow=\&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\&quot; referrerpolicy=\&quot;strict-origin-when-cross-origin\&quot; allowfullscreen title=\&quot;Aidan Yeats \u2013 Guitar and Voice &#124; dexFest 2024\&quot;&gt;&lt;/iframe&gt;&quot;,&quot;url&quot;:&quot;https://youtu.be/CSFGiU1gg4g&quot;,&quot;width&quot;:200,&quot;height&quot;:113,&quot;providerName&quot;:&quot;YouTube&quot;,&quot;thumbnailUrl&quot;:&quot;https://i.ytimg.com/vi/CSFGiU1gg4g/hqdefault.jpg&quot;,&quot;resolvedBy&quot;:&quot;youtube&quot;&#125;" data-block-type="32" data-sqsp-block="video" id="block-22fd010319b834961314"><div class="sqs-block-content"><div class="intrinsic" style="max-width:100%"><div class="embed-block-wrapper " style="padding-bottom:56.5%;"><div class="sqs-video-wrapper" data-provider-name="YouTube" data-html="<iframe src=&quot;https://player.vimeo.com/video/123456789&quot; frameborder=&quot;0&quot; allow=&quot;autoplay; fullscreen; picture-in-picture&quot; allowfullscreen></iframe>" data-url="https://player.vimeo.com/video/123456789"></div></div></div></div></div></div><!--
-@-- DEX:VIDEO_END --@ --><div class="fe-block fe-block-b8bee7b42f1f26e6afeb"><div class="sqs-block website-component-block sqs-block-website-component sqs-block-code code-block" data-block-css="[&quot;https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/9bf54d7c-e0cd-4b71-8431-6daef35f2d03_253/website.components.code.styles.css&quot;]" data-block-scripts="[&quot;https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/9bf54d7c-e0cd-4b71-8431-6daef35f2d03_253/website.components.code.visitor.js&quot;]" data-block-type="1337" data-definition-name="website.components.code" data-sqsp-block="code" id="block-b8bee7b42f1f26e6afeb"><div class="sqs-block-content"><div
+</div></div></div>
+<!-- DEX:VIDEO_START -->
+
+<div class="fe-block fe-block-22fd010319b834961314"><div class="sqs-block video-block sqs-block-video" data-block-json="&#123;&quot;blockAnimation&quot;:&quot;none&quot;,&quot;layout&quot;:&quot;caption-hidden&quot;,&quot;overlay&quot;:false,&quot;description&quot;:&#123;&#125;,&quot;isOldBlock&quot;:true,&quot;html&quot;:&quot;&lt;iframe width=\&quot;200\&quot; height=\&quot;113\&quot; src=\&quot;https://www.youtube.com/embed/CSFGiU1gg4g?feature=oembed\&quot; frameborder=\&quot;0\&quot; allow=\&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\&quot; referrerpolicy=\&quot;strict-origin-when-cross-origin\&quot; allowfullscreen title=\&quot;Aidan Yeats \u2013 Guitar and Voice &#124; dexFest 2024\&quot;&gt;&lt;/iframe&gt;&quot;,&quot;url&quot;:&quot;https://youtu.be/CSFGiU1gg4g&quot;,&quot;width&quot;:200,&quot;height&quot;:113,&quot;providerName&quot;:&quot;YouTube&quot;,&quot;thumbnailUrl&quot;:&quot;https://i.ytimg.com/vi/CSFGiU1gg4g/hqdefault.jpg&quot;,&quot;resolvedBy&quot;:&quot;youtube&quot;&#125;" data-block-type="32" data-sqsp-block="video" id="block-22fd010319b834961314"><div class="sqs-block-content"><div class="intrinsic" style="max-width:100%"><div class="embed-block-wrapper " style="padding-bottom:56.5%;"><div class="sqs-video-wrapper" data-provider-name="YouTube" data-html="&lt;iframe width=&quot;200&quot; height=&quot;113&quot; src=&quot;example.com&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share&quot; referrerpolicy=&quot;strict-origin-when-cross-origin&quot; allowfullscreen title=&quot;Aidan Yeats – Guitar and Voice | dexFest 2024&quot;&gt;&lt;/iframe&gt;" data-url="example.com"></div></div></div></div></div></div>
+
+<!-- DEX:VIDEO_END -->
+<div class="fe-block fe-block-b8bee7b42f1f26e6afeb"><div class="sqs-block website-component-block sqs-block-website-component sqs-block-code code-block" data-block-css="[&quot;https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/9bf54d7c-e0cd-4b71-8431-6daef35f2d03_253/website.components.code.styles.css&quot;]" data-block-scripts="[&quot;https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/9bf54d7c-e0cd-4b71-8431-6daef35f2d03_253/website.components.code.visitor.js&quot;]" data-block-type="1337" data-definition-name="website.components.code" data-sqsp-block="code" id="block-b8bee7b42f1f26e6afeb"><div class="sqs-block-content"><div
   class="sqs-code-container"
   
   
@@ -2599,9 +2634,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </div></div></div><div class="fe-block fe-block-yui_3_17_2_1_1753145517494_4707"><div class="sqs-block html-block sqs-block-html" data-blend-mode="NORMAL" data-block-type="2" data-border-radii="&#123;&quot;topLeft&quot;:&#123;&quot;unit&quot;:&quot;px&quot;,&quot;value&quot;:0.0&#125;,&quot;topRight&quot;:&#123;&quot;unit&quot;:&quot;px&quot;,&quot;value&quot;:0.0&#125;,&quot;bottomLeft&quot;:&#123;&quot;unit&quot;:&quot;px&quot;,&quot;value&quot;:0.0&#125;,&quot;bottomRight&quot;:&#123;&quot;unit&quot;:&quot;px&quot;,&quot;value&quot;:0.0&#125;&#125;" data-sqsp-block="text" id="block-yui_3_17_2_1_1753145517494_4707"><div class="sqs-block-content">
 
 <div class="sqs-html-content" data-sqsp-text-block-content>
-<!-- @-- DEX:DESC_START --
-<p>Entry description goes here.</p>
-@-- DEX:DESC_END --@ --></div>
+<!-- DEX:DESC_START -->
+<p>test</p>
+<!-- DEX:DESC_END -->
+</div>
 
 
 
