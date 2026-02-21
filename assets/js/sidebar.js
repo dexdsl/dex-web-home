@@ -151,6 +151,38 @@
 
         // 5) Helpers
 
+        const ALL_BUCKETS = ["A", "B", "C", "D", "E", "X"];
+        const SERIES_URLS = {
+            dex: "url(\"https://dexdsl.org/assets/series/dex.png\")",
+            index: "url(\"https://dexdsl.org/assets/series/index.png\")",
+            dexfest: "url(\"https://dexdsl.org/assets/series/dexfest.png\")",
+        };
+
+        const normalizeBuckets = (pageBuckets) =>
+            Array.isArray(pageBuckets) ? pageBuckets : [];
+
+        const buildBucketsHtml = (pageBuckets) => {
+            const selected = normalizeBuckets(pageBuckets);
+            return ALL_BUCKETS.map((bucket) => {
+                const cls = selected.includes(bucket)
+                    ? "available"
+                    : "unavailable";
+                return `<span class="badge ${cls}">${bucket}</span>`;
+            }).join("");
+        };
+
+        const normalizeSeries = (series) => {
+            const raw = String(series || "dex").toLowerCase();
+            const key = raw === "index" ? "index" : raw;
+            if (key === "index") {
+                return { seriesKey: "index", seriesUrl: SERIES_URLS.index };
+            }
+            if (key === "dexfest") {
+                return { seriesKey: "dexfest", seriesUrl: SERIES_URLS.dexfest };
+            }
+            return { seriesKey: "dex", seriesUrl: SERIES_URLS.dex };
+        };
+
         function randomizeTitle(txt) {
             const U = txt.toUpperCase();
             const r = Math.random();
@@ -205,10 +237,7 @@
             container.innerHTML = header + html;
         }
         function attach(type, selector) {
-            const allBuckets = Object.keys(cfg.downloads[type + "FileIds"]);
-            // If you actually want to show _every_ possible bucket (even those with zero entries),
-            // swap this for your master list: ['A','B','C','D','E','X']
-            // .map(b => b)
+            const allBuckets = ALL_BUCKETS;
             document.querySelectorAll(selector).forEach((el) => {
                 el.addEventListener("click", () => {
                     const okLabel = randomizeTitle("Download");
@@ -277,11 +306,16 @@
                     }
 
                     // initialize formats based on the first (enabled) bucket
-                    const firstBucket = bucketSel.querySelector(
+                    const firstBucketOption = bucketSel.querySelector(
                         "option:not([disabled])",
-                    ).value;
-                    bucketSel.value = firstBucket;
-                    populateFormats(firstBucket);
+                    );
+                    if (firstBucketOption) {
+                        const firstBucket = firstBucketOption.value;
+                        bucketSel.value = firstBucket;
+                        populateFormats(firstBucket);
+                    } else {
+                        formatSel.innerHTML = "";
+                    }
 
                     // when bucket changes, re-populate formats
                     bucketSel.addEventListener("change", (e) => {
@@ -316,43 +350,24 @@
         attach("video", ".btn-video");
 
         // overview
-        const lookup = page.lookupNumber;
-        const allBuckets = ["A", "B", "C", "D", "E", "X"];
-        const badgesHtml = allBuckets
-            .map((b) => {
-                // “filled” iff your page.buckets includes that letter
-                const cls = page.buckets.includes(b)
-                    ? "available"
-                    : "unavailable";
-                return `<span class="badge ${cls}">${b}</span>`;
-            })
-            .join("");
-
-        // only show event badge when URL is provided
-        const eventHtml = page.specialEventImage
-            ? `<div class="overview-event">
-         <img src="${page.specialEventImage}" alt="Special Event" />
-       </div>`
-            : "";
+        const lookup = page.lookupNumber || "";
+        const badgesHtml = buildBucketsHtml(page.buckets);
+        const { seriesKey, seriesUrl } = normalizeSeries(page.series);
 
         document.querySelector(".dex-overview").innerHTML = `
-           <div class="overview-item">
-             <span class="overview-lookup">#${lookup}</span>
-             <p class="p3 overview-label">Lookup #</p>
-           </div>
-           ${
-               page.specialEventImage
-                   ? `
-             <div class="overview-item">
-               <img src="${page.specialEventImage}" alt="Special Event"/>
-               <p class="p3 overview-label">Series</p>
+           <div class="dex-overview-row">
+             <div class="dex-overview-lookup">
+               <div class="dex-overview-lookupValue">#${lookup}</div>
+               <div class="dex-overview-lookupLabel">Lookup #</div>
              </div>
-           `
-                   : ""
-           }
-           <div class="overview-item">
-             <div class="overview-badges">${badgesHtml}</div>
-             <p class="p3 overview-label">Buckets</p>
+             <div class="dex-overview-series" data-series="${seriesKey}">
+               <div class="dex-overview-seriesMark" style="--dex-series-url:${seriesUrl}"></div>
+               <div class="dex-overview-seriesLabel">Series</div>
+             </div>
+             <div class="dex-overview-buckets">
+               <div class="dex-overview-badges">${badgesHtml}</div>
+               <div class="dex-overview-bucketsLabel">Buckets</div>
+             </div>
            </div>
          `;
 
