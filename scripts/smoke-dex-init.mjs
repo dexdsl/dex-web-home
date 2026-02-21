@@ -132,6 +132,12 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
   if (next.value !== 'abc' || next.cursor !== 1) throw new Error('left escape sequence should move cursor left');
 }
 
+
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 2 }, 'OD', { leftArrow: false });
+  if (next.value !== 'abc' || next.cursor !== 1) throw new Error('left SS3 sequence should move cursor left');
+}
+
 {
   const next = applyKeyToInputState({ value: 'abc', cursor: 1 }, '[3~', {});
   if (next.value !== 'ac' || next.cursor !== 1) throw new Error('delete escape sequence should remove char at cursor');

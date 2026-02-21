@@ -66,8 +66,8 @@ export function applyKeyToInputState(state, input, key = {}) {
 
   if (key.ctrl && (input === 'q' || input === 'Q')) return { value, cursor, quit: true };
 
-  const isLeft = !!(key.leftArrow || input === '\x1b[D');
-  const isRight = !!(key.rightArrow || input === '\x1b[C');
+  const isLeft = !!(key.leftArrow || input === '\x1b[D' || input === '\x1bOD');
+  const isRight = !!(key.rightArrow || input === '\x1b[C' || input === '\x1bOC');
   const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH');
   const isEnd = !!(key.end || input === '\x1b[F' || input === '\x1bOF');
   const isDelete = !!(key.delete || (typeof input === 'string' && /^\x1b\[3(?:;\d+)*~$/.test(input)));
@@ -192,10 +192,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     const value = form[step.id] ?? '';
     const pos = cursorByStep[step.id] ?? 0;
     const next = applyKeyToInputState({ value, cursor: pos }, input, key);
+    if (next.quit) return next;
     if (next.value === value && next.cursor === pos) return;
     setForm((prev) => ({ ...prev, [step.id]: next.value, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
     setCursorByStep((prev) => ({ ...prev, [step.id]: next.cursor }));
     setError('');
+    return next;
   };
 
   const maybeAdvance = async () => {
@@ -335,12 +337,11 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     }
 
     if (step.kind === 'text') {
-      const next = applyKeyToInputState({ value: form[step.id] ?? '', cursor: cursorByStep[step.id] ?? 0 }, input, key);
+      const next = applyTextEdit(input, key);
       if (next.quit) {
         onCancel();
         return;
       }
-      applyTextEdit(input, key);
       if (key.return) void maybeAdvance();
       return;
     }
