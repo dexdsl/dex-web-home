@@ -20,6 +20,7 @@ await fs.writeFile(path.join(temp, 'seed.json'), JSON.stringify({
   slug: 'smoke-title',
   descriptionText: 'desc',
   video: { dataUrl: 'https://player.vimeo.com/video/1' },
+  creditsData: { artist:['Artist'], artistAlt:null, instruments:['Synth'], video:{director:['Dir'],cinematography:['Cin'],editing:['Edit']}, audio:{recording:['Rec'],mix:['Mix'],master:['Master']}, year:2026, season:'S2', location:'Somewhere' },
   manifest: { audio: { A: { wav: 'a1' } }, video: { A: { '1080p': 'v1' } } },
   sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', credits: { artist: { name: 'Artist' }, instruments: [{name:'Synth', links: []}], year: 2026, season: 'S2', location: 'Somewhere', video: { director: {name:'',links:[]}, cinematography: {name:'',links:[]}, editing: {name:'',links:[]} }, audio: { recording: {name:'',links:[]}, mix: {name:'',links:[]}, master: {name:'',links:[]} } } },
 }), 'utf8');
@@ -68,7 +69,7 @@ for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
 }
 
 const sidebarRuntime = await fs.readFile(path.join(root, 'docs/assets/dex-sidebar.js'), 'utf8');
-if (!sidebarRuntime.includes("const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];")) throw new Error('sidebar runtime missing ALL_BUCKETS literal');
+if (!sidebarRuntime.includes("const allBuckets = ['A', 'B', 'C', 'D', 'E', 'X'];")) throw new Error('sidebar runtime missing fixed allBuckets list');
 
 
 

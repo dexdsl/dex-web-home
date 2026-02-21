@@ -43,7 +43,7 @@
     btn.dataset.dexBound = '1';
     btn.addEventListener('click', () => {
       const formats = cfg.downloads.formats[type] || [];
-      const allBuckets = ALL_BUCKETS;
+      const allBuckets = ['A', 'B', 'C', 'D', 'E', 'X'];
       const links = [];
       allBuckets.forEach((bucket) => {
         const fileIds = (type === 'audio' ? cfg.downloads.audioFileIds?.[bucket] : cfg.downloads.videoFileIds?.[bucket]) || {};

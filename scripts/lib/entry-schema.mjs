@@ -17,6 +17,32 @@ export const creditsSchema = z.object({
   location: z.string().min(1),
 });
 
+
+
+const personNameListSchema = z.array(z.string().min(1)).default([]);
+export const creditsDataSchema = z.object({
+  artist: personNameListSchema,
+  artistAlt: z.string().nullable().optional(),
+  instruments: personNameListSchema,
+  video: z.object({ director: personNameListSchema, cinematography: personNameListSchema, editing: personNameListSchema }),
+  audio: z.object({ recording: personNameListSchema, mix: personNameListSchema, master: personNameListSchema }),
+  year: z.number().int(),
+  season: z.string().min(1),
+  location: z.string().min(1),
+});
+
+export const downloadDataSchema = z.object({
+  selectedBuckets: z.array(z.enum(BUCKETS)).optional(),
+  series: z.string().optional(),
+  fileSpecs: z.object({
+    bitDepth: z.number().int().optional(),
+    sampleRate: z.number().int().optional(),
+    channels: z.enum(['mono', 'stereo', 'multichannel']).optional(),
+    staticSizes: z.object({ A: z.string().default(''), B: z.string().default(''), C: z.string().default(''), D: z.string().default(''), E: z.string().default(''), X: z.string().default('') }).optional(),
+  }).optional(),
+  metadata: z.object({ sampleLength: z.string().optional(), tags: z.array(z.string()).optional() }).optional(),
+}).optional();
+
 export const sidebarConfigSchema = z.object({
   lookupNumber: z.string().min(1),
   buckets: z.array(z.enum(BUCKETS)).min(1),
@@ -37,6 +63,17 @@ export const entrySchema = z.object({
   title: z.string().min(1),
   video: z.object({ mode: z.enum(['url', 'embed']), dataUrl: z.string().default(''), dataHtml: z.string().default('') }),
   sidebarPageConfig: sidebarConfigSchema,
+  descriptionText: z.string().optional(),
+  series: z.string().optional(),
+  selectedBuckets: z.array(z.enum(BUCKETS)).optional(),
+  creditsData: creditsDataSchema.optional(),
+  fileSpecs: z.object({
+    bitDepth: z.number().int().optional(),
+    sampleRate: z.number().int().optional(),
+    channels: z.enum(['mono', 'stereo', 'multichannel']).optional(),
+    staticSizes: z.object({ A: z.string().default(''), B: z.string().default(''), C: z.string().default(''), D: z.string().default(''), E: z.string().default(''), X: z.string().default('') }).optional(),
+  }).optional(),
+  metadata: z.object({ sampleLength: z.string().optional(), tags: z.array(z.string()).optional() }).optional(),
 });
 
 export function manifestSchemaForFormats(audioKeys = [], videoKeys = []) {
