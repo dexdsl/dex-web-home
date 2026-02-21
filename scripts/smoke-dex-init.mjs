@@ -39,9 +39,9 @@ const ytInjected = injectEntryHtml(tmpl, {
 if (!ytInjected.html.includes('src=&quot;https://www.youtube.com/embed/CSFGiU1gg4g&quot;')) throw new Error('youtube normalization failed');
 if (!ytInjected.html.includes('data-person') || !ytInjected.html.includes('person-pin')) throw new Error('compiled credits pins missing');
 const run = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: temp, encoding: 'utf8' });
-const dry = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--dry-run']);
+const dry = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json', '--dry-run']);
 if (dry.status !== 0) throw new Error(`dry-run failed: ${dry.stderr}\n${dry.stdout}`);
-const real = run(['init', '--quick', '--template', './index.html', '--out', './entries']);
+const real = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json']);
 if (real.status !== 0) throw new Error(`write run failed: ${real.stderr}\n${real.stdout}`);
 
 const generatedDirs = (await fs.readdir(path.join(temp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());
@@ -50,9 +50,10 @@ const generatedSlug = generatedDirs[0].name;
 const outHtml = await fs.readFile(path.join(temp, 'entries', generatedSlug, 'index.html'), 'utf8');
 assertTemplateDrift(tmpl, outHtml);
 for (const needle of [
-  'src=&quot;https://player.vimeo.com/video/123456789&quot;',
-  '<p></p>',
-  'LOOKUP-0000',
+  'src=&quot;https://www.youtube.com/embed/CSFGiU1gg4g&quot;',
+  'data-url="https://youtu.be/CSFGiU1gg4g?si=x"',
+  '<p>desc</p>',
+  'LOOKUP-1',
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   '<script id="dex-sidebar-page-config" type="application/json">',
@@ -104,7 +105,7 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
 
 const portableTemp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-portable-'));
 const runPortable = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: portableTemp, encoding: 'utf8' });
-const portable = runPortable(['init', '--quick', '--template', path.join(root, 'entry-template', 'index.html'), '--out', './entries']);
+const portable = runPortable(['init', '--quick', '--template', path.join(root, 'entry-template', 'index.html'), '--out', './entries', '--from', path.join(temp, 'seed.json')]);
 if (portable.status !== 0) throw new Error(`portable write run failed: ${portable.stderr}\n${portable.stdout}`);
 const portableDirs = (await fs.readdir(path.join(portableTemp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());
 if (!portableDirs.length) throw new Error('no generated portable entry dir');

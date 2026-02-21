@@ -1,3 +1,5 @@
+import { load as loadCheerio } from 'cheerio';
+
 const MARKERS = {
   video: ['DEX:VIDEO_START', 'DEX:VIDEO_END'],
   desc: ['DEX:DESC_START', 'DEX:DESC_END'],
@@ -125,40 +127,140 @@ function replaceBetween(html, region, content) {
   return `${html.slice(0, region.contentStart)}\n${content}\n${html.slice(region.contentEnd)}`;
 }
 
-function providerId(rawUrl, hosts) {
+function parseUrl(rawUrl) {
   if (!rawUrl) return null;
-  let parsed;
   try {
-    parsed = new URL(rawUrl);
+    return new URL(rawUrl);
   } catch {
     return null;
   }
+}
+
+function youtubeIdFromUrl(rawUrl) {
+  const parsed = parseUrl(rawUrl);
+  if (!parsed) return null;
   const host = parsed.hostname.toLowerCase();
-  if (!hosts.some((candidate) => host === candidate || host.endsWith(`.${candidate}`))) return null;
   const pathParts = parsed.pathname.split('/').filter(Boolean);
-  if (host.includes('youtu.be') && pathParts[0]) return pathParts[0];
-  if (pathParts[0] === 'embed' && pathParts[1]) return pathParts[1];
+
+  if (host === 'youtu.be' || host.endsWith('.youtu.be')) return pathParts[0] || null;
+  if (!(host === 'youtube.com' || host.endsWith('.youtube.com'))) return null;
+
   if (parsed.searchParams.get('v')) return parsed.searchParams.get('v');
-  if (pathParts[0] === 'video' && pathParts[1]) return pathParts[1];
-  if (pathParts[0]) return pathParts[0];
+  if (pathParts[0] === 'embed' && pathParts[1]) return pathParts[1];
+  if (pathParts[0] === 'shorts' && pathParts[1]) return pathParts[1];
+  if (pathParts[0] === 'live' && pathParts[1]) return pathParts[1];
   return null;
 }
 
-export function normalizeVideoUrl(url) {
+function vimeoIdFromUrl(rawUrl) {
+  const parsed = parseUrl(rawUrl);
+  if (!parsed) return null;
+  const host = parsed.hostname.toLowerCase();
+  if (!(host === 'vimeo.com' || host.endsWith('.vimeo.com'))) return null;
+
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  if (!pathParts.length) return null;
+  if ((host === 'player.vimeo.com' || host.endsWith('.player.vimeo.com')) && pathParts[0] === 'video' && pathParts[1]) {
+    return pathParts[1];
+  }
+  const numericPart = [...pathParts].reverse().find((part) => /^\d+$/.test(part));
+  return numericPart || null;
+}
+
+export function normalizeVideoEmbedUrl(url) {
   const input = String(url || '').trim();
-  const yt = providerId(input, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be']);
+  const yt = youtubeIdFromUrl(input);
   if (yt) return `https://www.youtube.com/embed/${yt}`;
-  const vimeo = providerId(input, ['vimeo.com', 'www.vimeo.com', 'player.vimeo.com']);
+  const vimeo = vimeoIdFromUrl(input);
   if (vimeo) return `https://player.vimeo.com/video/${vimeo}`;
   return input;
 }
 
-function replaceIframeSrcInDataHtml(dataHtml, normalizedEmbedUrl) {
-  const srcRx = /(\bsrc\s*=\s*)(["'])([^"']*)(\2)/i;
-  if (!srcRx.test(dataHtml)) {
-    throw new Error('Template video wrapper data-html missing iframe src; re-snapshot or adjust template.');
+export function normalizeVideoUrl(url) {
+  return normalizeVideoEmbedUrl(url);
+}
+
+function buildIframeHtml(embedUrl) {
+  return `<iframe width="200" height="113" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+}
+
+function encodeDataHtmlIframe(rawIframeHtml) {
+  return String(rawIframeHtml || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function readTagAttr(tag, attrName) {
+  const rx = new RegExp(`\\s${attrName}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, 'i');
+  const match = tag.match(rx);
+  if (!match) return '';
+  return decodeAttrEntities(match[2]);
+}
+
+function writeTagAttr(tag, attrName, attrValue) {
+  const rx = new RegExp(`\\s${attrName}\\s*=\\s*(["'])[\\s\\S]*?\\1`, 'i');
+  if (rx.test(tag)) return tag.replace(rx, ` ${attrName}="${attrValue}"`);
+  return `${tag.slice(0, -1)} ${attrName}="${attrValue}">`;
+}
+
+function decodePossiblyEncodedHtml(value) {
+  const input = String(value || '').trim();
+  if (!input) return '';
+  const once = decodeAttrEntities(input);
+  if (/<iframe\b/i.test(once)) return once;
+  const twice = decodeAttrEntities(once);
+  return /<iframe\b/i.test(twice) ? twice : once;
+}
+
+function iframeSrcFromHtml(rawHtml) {
+  const srcMatch = String(rawHtml || '').match(/\bsrc\s*=\s*(["'])([^"']+)\1/i);
+  return srcMatch ? String(srcMatch[2] || '').trim() : '';
+}
+
+function hasVideoProviderHint(url) {
+  return /(?:youtu\.be|youtube\.com|vimeo\.com)/i.test(String(url || ''));
+}
+
+function ensureEmbeddableKnownProvider(pageUrl, embedUrl) {
+  if (/(?:youtu\.be|youtube\.com)/i.test(pageUrl) && !/youtube\.com\/embed\/[^/?#&]+/i.test(embedUrl)) {
+    throw new Error(`Failed to parse embed ID from video URL: ${pageUrl}`);
   }
-  return dataHtml.replace(srcRx, `$1$2${normalizedEmbedUrl}$2`);
+  if (/(?:vimeo\.com)/i.test(pageUrl) && !/player\.vimeo\.com\/video\/[^/?#&]+/i.test(embedUrl)) {
+    throw new Error(`Failed to parse embed ID from video URL: ${pageUrl}`);
+  }
+}
+
+function resolveVideoWrapperPayload(video, tag) {
+  const mode = video?.mode === 'embed' ? 'embed' : 'url';
+  if (mode === 'url') {
+    const dataUrl = String(video?.dataUrl || '').trim();
+    if (!dataUrl) throw new Error('Video URL is required for injection.');
+    const embedUrl = normalizeVideoEmbedUrl(dataUrl);
+    if (hasVideoProviderHint(dataUrl)) ensureEmbeddableKnownProvider(dataUrl, embedUrl);
+    const iframeHtml = buildIframeHtml(embedUrl);
+    return { dataUrl, dataHtml: encodeDataHtmlIframe(iframeHtml) };
+  }
+
+  let rawEmbedHtml = decodePossiblyEncodedHtml(video?.dataHtml || '');
+  let dataUrl = String(video?.dataUrl || '').trim();
+  if (!rawEmbedHtml) {
+    if (!dataUrl) throw new Error('Video embed HTML is required when mode is "embed".');
+    const embedUrl = normalizeVideoEmbedUrl(dataUrl);
+    if (hasVideoProviderHint(dataUrl)) ensureEmbeddableKnownProvider(dataUrl, embedUrl);
+    rawEmbedHtml = buildIframeHtml(embedUrl);
+  }
+  if (!dataUrl) dataUrl = iframeSrcFromHtml(rawEmbedHtml) || readTagAttr(tag, 'data-url');
+  if (!dataUrl) throw new Error('Video URL is required for injection.');
+  return { dataUrl, dataHtml: encodeDataHtmlIframe(rawEmbedHtml) };
+}
+
+function updateVideoWrapperTag(tag, video) {
+  const payload = resolveVideoWrapperPayload(video, tag);
+  let updatedTag = writeTagAttr(tag, 'data-html', payload.dataHtml);
+  updatedTag = writeTagAttr(updatedTag, 'data-url', encodeAttrEntities(payload.dataUrl));
+  return updatedTag;
 }
 
 function injectVideoRegion(regionHtml, video) {
@@ -167,31 +269,22 @@ function injectVideoRegion(regionHtml, video) {
   if (!wrapper) throw new Error('Template video anchor region missing .sqs-video-wrapper tag.');
 
   const tag = wrapper[0];
-  const dataHtmlMatch = tag.match(/\sdata-html\s*=\s*(["'])([\s\S]*?)\1/i);
-  if (!dataHtmlMatch) throw new Error('Template video wrapper missing data-html attribute; re-snapshot or adjust template.');
-
-  const normalizedUrl = normalizeVideoUrl(video?.dataUrl || '');
-  if (!normalizedUrl) throw new Error('Video URL is required for injection.');
-  const rawVideoUrl = String(video?.dataUrl || '').trim();
-  if (/(?:youtu\.be|youtube\.com)/i.test(rawVideoUrl) && !/youtube\.com\/embed\/[^/?#&]+/i.test(normalizedUrl)) {
-    throw new Error(`Failed to parse embed ID from video URL: ${rawVideoUrl}`);
-  }
-  if (/(?:vimeo\.com)/i.test(rawVideoUrl) && !/player\.vimeo\.com\/video\/[^/?#&]+/i.test(normalizedUrl)) {
-    throw new Error(`Failed to parse embed ID from video URL: ${rawVideoUrl}`);
-  }
-
-  const decodedDataHtml = decodeAttrEntities(dataHtmlMatch[2]);
-  const updatedDataHtml = replaceIframeSrcInDataHtml(decodedDataHtml, normalizedUrl);
-  const encodedDataHtml = encodeAttrEntities(updatedDataHtml);
-
-  let updatedTag = tag.replace(dataHtmlMatch[0], ` data-html="${encodedDataHtml}"`);
-  if (/\sdata-url\s*=\s*["'][\s\S]*?["']/i.test(updatedTag)) {
-    updatedTag = updatedTag.replace(/\sdata-url\s*=\s*(["'])[\s\S]*?\1/i, ` data-url="${encodeAttrEntities(normalizedUrl)}"`);
-  } else {
-    updatedTag = `${updatedTag.slice(0, -1)} data-url="${encodeAttrEntities(normalizedUrl)}">`;
-  }
-
+  const updatedTag = updateVideoWrapperTag(tag, video);
   return regionHtml.replace(tag, updatedTag);
+}
+
+function injectVideoBySelectorFallback(html, video) {
+  const $ = loadCheerio(html, { sourceCodeLocationInfo: true });
+  const wrapper = $('.sqs-block.video-block .sqs-video-wrapper').first();
+  if (!wrapper.length) throw new Error('Template missing .sqs-block.video-block .sqs-video-wrapper for video injection.');
+  const node = wrapper.get(0);
+  const startTag = node?.sourceCodeLocation?.startTag;
+  if (!startTag || typeof startTag.startOffset !== 'number' || typeof startTag.endOffset !== 'number') {
+    throw new Error('Unable to locate .sqs-video-wrapper start tag offsets for selector fallback.');
+  }
+  const tag = html.slice(startTag.startOffset, startTag.endOffset);
+  const updatedTag = updateVideoWrapperTag(tag, video);
+  return `${html.slice(0, startTag.startOffset)}${updatedTag}${html.slice(startTag.endOffset)}`;
 }
 
 function buildSidebarRegion(sidebarConfig) {
@@ -270,11 +363,21 @@ export function assertAnchorOnlyChanges(templateHtml, outputHtml) {
 export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, video, title, authEnabled = true }) {
   let html = templateHtml;
   detectTemplateProblems(html).forEach((problem) => {
+    if (problem.includes('anchors') && problem.includes('DEX:VIDEO_START')) return;
     if (problem.includes('anchors')) throw new Error(`Template must contain anchors: ${problem}`);
   });
 
-  const videoRegion = getAnchoredRegion(html, 'video');
-  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
+  let videoStrategy = 'anchors';
+  let videoRegion = null;
+  try {
+    videoRegion = getAnchoredRegion(html, 'video');
+  } catch {}
+  if (videoRegion) {
+    html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
+  } else {
+    html = injectVideoBySelectorFallback(html, video);
+    videoStrategy = 'selector';
+  }
 
   const resolvedDescriptionHtml = descriptionTextToHtml(typeof descriptionText === 'string' ? descriptionText : stripHtmlTags(descriptionHtml));
   const descRegion = getAnchoredRegion(html, 'desc');
@@ -301,7 +404,7 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
     html = html.replace('</head>', `${trio}\n</head>`);
   }
 
-  return { html, strategy: { video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
+  return { html, strategy: { video: videoStrategy, description: 'anchors', sidebar: 'anchors' } };
 }
 
 export const AUTH_TRIO = [...AUTH_CANDIDATES, AUTH_CDN, '/assets/dex-auth.js'];

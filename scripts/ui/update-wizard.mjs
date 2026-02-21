@@ -66,7 +66,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
     if (selectedSections.includes('Title')) entry.title = form.title;
     if (selectedSections.includes('Description')) entry.descriptionText = form.descriptionText;
     if (selectedSections.includes('Lookup #')) entry.sidebarPageConfig.lookupNumber = form.lookupNumber;
-    if (selectedSections.includes('Video URL')) entry.video = { mode: 'url', dataUrl: form.videoUrl, dataHtml: `<iframe src="${form.videoUrl}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>` };
+    if (selectedSections.includes('Video URL')) entry.video = { mode: 'url', dataUrl: form.videoUrl, dataHtml: '' };
     if (selectedSections.includes('Series')) {
       entry.series = form.series;
       entry.sidebarPageConfig.specialEventImage = mapSeriesToImage(form.series);

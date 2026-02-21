@@ -67,10 +67,6 @@ function mapSeriesToImage(series) {
   return '/assets/series/dex.png';
 }
 
-function iframeFor(url) {
-  return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
-}
-
 
 
 async function collectInitData(opts, slugArg) {
@@ -84,7 +80,8 @@ async function collectInitData(opts, slugArg) {
     const outDir = path.resolve(opts.out || './entries');
     const existing = new Set((await ensure(outDir)) ? (await fs.readdir(outDir, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : []);
     const computedSlug = dedupeSlug(slugify(slugArg || base.slug || title), existing);
-    const videoUrl = base.video?.dataUrl || 'https://player.vimeo.com/video/123456789';
+    const videoUrl = String(base.video?.dataUrl || '').trim();
+    if (!videoUrl) throw new Error('Video URL is required for non-interactive init. Pass --from with video.dataUrl.');
     const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
     const sidebar = {
       lookupNumber: lookup,
@@ -97,7 +94,7 @@ async function collectInitData(opts, slugArg) {
     };
     const manifest = normalizeManifest(buildEmptyManifestSkeleton(opts.formatKeys), opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: iframeFor(videoUrl) }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
+    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
   }
 
   const id = await prompts([
@@ -138,7 +135,7 @@ async function collectInitData(opts, slugArg) {
   if (video.mode === 'url') {
     const ans = await prompts({ type: 'text', name: 'url', message: 'Video URL:', initial: base.video?.dataUrl || '', validate: (v) => (!!v || 'Required') });
     video.dataUrl = ans.url;
-    video.dataHtml = iframeFor(ans.url);
+    video.dataHtml = '';
   }
 
 
@@ -222,6 +219,27 @@ function parseTopLevelMode(argv) {
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
+function parseInitArgs(rest = []) {
+  const opts = { quick: true, out: './entries' };
+  let slugArg;
+  for (let i = 0; i < rest.length; i += 1) {
+    const arg = rest[i];
+    const next = rest[i + 1];
+    if (arg === '--quick') { opts.quick = true; continue; }
+    if (arg === '--dry-run') { opts.dryRun = true; continue; }
+    if (arg === '--flat') { opts.flat = true; continue; }
+    if (arg === '--open') { opts.open = true; continue; }
+    if (arg === '--template' && next) { opts.template = next; i += 1; continue; }
+    if (arg.startsWith('--template=')) { opts.template = arg.slice('--template='.length); continue; }
+    if (arg === '--out' && next) { opts.out = next; i += 1; continue; }
+    if (arg.startsWith('--out=')) { opts.out = arg.slice('--out='.length); continue; }
+    if (arg === '--from' && next) { opts.from = next; i += 1; continue; }
+    if (arg.startsWith('--from=')) { opts.from = arg.slice('--from='.length); continue; }
+    if (!arg.startsWith('-') && !slugArg) slugArg = arg;
+  }
+  return { slugArg, opts };
+}
+
 const topLevel = parseTopLevelMode(process.argv);
 const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
 const { runDashboard } = await import('./ui/dashboard.mjs');
@@ -248,7 +266,8 @@ if (topLevel.mode === 'ink-command') {
   }
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
     if (topLevel.command === 'init') {
-      await initCommand(topLevel.rest[0], { quick: true, out: './entries' });
+      const parsed = parseInitArgs(topLevel.rest);
+      await initCommand(parsed.slugArg, parsed.opts);
       process.exit(0);
     }
     console.log(`dex ${topLevel.command}: requires a TTY`);
@@ -261,5 +280,6 @@ if (topLevel.mode === 'ink-command') {
 
 if (topLevel.mode === 'legacy') {
   // Backward compatibility: treat bare slug as init argument in non-dashboard scripts.
-  await initCommand(topLevel.rest[0], { quick: true, out: './entries' });
+  const parsed = parseInitArgs(topLevel.rest);
+  await initCommand(parsed.slugArg, parsed.opts);
 }

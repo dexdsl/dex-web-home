@@ -17,7 +17,6 @@ function mapSeriesToImage(series) {
 }
 const LAST_CACHE = '.dex-last.json';
 
-function iframeFor(url) { return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`; }
 function emptyCredits() { return { artist: [], artistAlt: '', instruments: [], video: { director: [], cinematography: [], editing: [] }, audio: { recording: [], mix: [], master: [] }, year: `${new Date().getUTCFullYear()}`, season: 'S1', location: '' }; }
 function emptyDownloadData() { return { mode: 'guided', series: 'dex', audio: {}, video: {}, fileSpecs: { bitDepth: '24', sampleRate: '48000', channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { tagsSelected: [], tagsQuery: '', tagsCursor: 0 }, pasteBuffer: '', pasteError: '', pasteWarnings: [] }; }
 
@@ -276,7 +275,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
         };
-        const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: iframeFor(form.videoUrl) }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.buckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
+        const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: '' }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.buckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
         await fs.mkdir(path.resolve(outDirDefault || './entries'), { recursive: true }).catch(() => {});
         await fs.writeFile(path.join(path.resolve(outDirDefault || './entries'), LAST_CACHE), `${JSON.stringify({ lastInstruments: creditsData.instruments }, null, 2)}\n`, 'utf8');
         setDoneReport(report);
