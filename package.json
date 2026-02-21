@@ -6,7 +6,9 @@
     "rewrite:anchors": "node scripts/rewrite-internal-anchors.mjs",
     "check:anchors": "node scripts/rewrite-internal-anchors.mjs --check",
     "dex": "node scripts/dex.mjs",
-    "smoke:dex-init": "node scripts/smoke-dex-init.mjs"
+    "smoke:dex-init": "node scripts/smoke-dex-init.mjs",
+    "test:doctor": "node scripts/test-doctor-normalize.mjs && node scripts/test-doctor-drift.mjs",
+    "test:update": "node scripts/test-update-rehydrate.mjs"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

@@ -194,13 +194,13 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const filePath = new URL('../data/tags.txt', import.meta.url);
+        const filePath = new URL('../data/tags.json', import.meta.url);
         const raw = await fs.readFile(filePath, 'utf8');
-        const tags = raw.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#'));
+        const tags = JSON.parse(raw).map((line) => String(line || '').trim()).filter(Boolean);
         setTagsCatalog(tags);
       } catch {
         setTagsCatalog([]);
-        setTagsWarning('Tags file unavailable: scripts/data/tags.txt');
+        setTagsWarning('Tags file unavailable: scripts/data/tags.json');
       }
     };
     void loadTags();

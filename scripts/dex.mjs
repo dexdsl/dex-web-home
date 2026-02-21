@@ -3,7 +3,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import prompts from 'prompts';
-import { Command } from 'commander';
 import { fileURLToPath } from 'node:url';
 import {
   ALL_BUCKETS,
@@ -13,6 +12,7 @@ import {
   slugify,
 } from './lib/entry-schema.mjs';
 import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
+import { scanEntries } from './lib/doctor.mjs';
 import { descriptionTextFromSeed } from './lib/entry-html.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -209,32 +209,55 @@ async function initCommand(slugArg, opts) {
 
 function parseTopLevelMode(argv) {
   const args = argv.slice(2);
-  const firstNonFlag = args.find((arg) => !arg.startsWith('-'));
   const hasTopHelp = args.includes('--help') || args.includes('-h');
-
-  if (!firstNonFlag && args.length === 0) return { mode: 'dashboard', paletteOpen: false };
-  if (!firstNonFlag && hasTopHelp) return { mode: 'dashboard', paletteOpen: true };
-  return { mode: 'commander', paletteOpen: false };
+  const firstNonFlag = args.find((arg) => !arg.startsWith('-'));
+  if (!firstNonFlag && args.length === 0) return { mode: 'dashboard', paletteOpen: false, command: null, rest: [] };
+  if (!firstNonFlag && hasTopHelp) return { mode: 'dashboard', paletteOpen: true, command: null, rest: [] };
+  if (['init', 'update', 'doctor'].includes(firstNonFlag)) {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'ink-command', paletteOpen: false, command: firstNonFlag, rest: args.slice(idx + 1) };
+  }
+  return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
 const topLevel = parseTopLevelMode(process.argv);
+const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
+const { runDashboard } = await import('./ui/dashboard.mjs');
+
 if (topLevel.mode === 'dashboard') {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
     console.log('dex: interactive dashboard requires a TTY. Try: dex init');
     process.exit(0);
   }
-
-  const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
-  const { runDashboard } = await import('./ui/dashboard.mjs');
-  await runDashboard({
-    paletteOpen: topLevel.paletteOpen,
-    version: packageJson.version || 'dev',
-  });
+  await runDashboard({ paletteOpen: topLevel.paletteOpen, version: packageJson.version || 'dev' });
   process.exit(0);
 }
 
-const program = new Command();
-program.name('dex');
-program.command('init').argument('[slug]').option('--quick').option('--advanced').option('--out <dir>', 'output root', './entries').option('--template <path>').option('--open').option('--dry-run').option('--flat').option('--from <entryJson>').action(initCommand);
+if (topLevel.mode === 'ink-command') {
+  if (topLevel.command === 'doctor' && (!process.stdout.isTTY || !process.stdin.isTTY)) {
+    const reports = await scanEntries({ entriesDir: './entries' });
+    reports.forEach((r) => {
+      const status = r.errors.length ? '❌' : r.warnings.length ? '⚠️' : '✅';
+      console.log(`${status} ${r.slug}`);
+      r.errors.forEach((e) => console.log(`  - ERROR: ${e}`));
+      r.warnings.forEach((w) => console.log(`  - WARN: ${w}`));
+    });
+    process.exit(reports.some((r) => r.errors.length) ? 1 : 0);
+  }
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    if (topLevel.command === 'init') {
+      await initCommand(topLevel.rest[0], { quick: true, out: './entries' });
+      process.exit(0);
+    }
+    console.log(`dex ${topLevel.command}: requires a TTY`);
+    process.exit(1);
+  }
+  const mode = topLevel.command === 'init' ? 'init' : topLevel.command === 'update' ? 'update' : 'doctor';
+  await runDashboard({ initialMode: mode, version: packageJson.version || 'dev' });
+  process.exit(0);
+}
 
-await program.parseAsync(process.argv);
+if (topLevel.mode === 'legacy') {
+  // Backward compatibility: treat bare slug as init argument in non-dashboard scripts.
+  await initCommand(topLevel.rest[0], { quick: true, out: './entries' });
+}

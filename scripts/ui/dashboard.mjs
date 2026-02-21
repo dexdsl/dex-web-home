@@ -4,11 +4,13 @@ import { Box, Text, render, useApp, useInput, useStdout } from 'ink';
 import chalk from 'chalk';
 import cliCursor from 'cli-cursor';
 import { InitWizard } from './init-wizard.mjs';
+import { UpdateWizard } from './update-wizard.mjs';
+import { DoctorScreen } from './doctor-screen.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
 
-const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }];
-const PALETTE_ITEMS = ['init'];
+const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }];
+const PALETTE_ITEMS = ['init', 'update', 'doctor'];
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
   '██╔══██╗██╔════╝╚██╗██╔╝',
@@ -50,7 +52,7 @@ function badge(text, fg = '#d0d5df', bg = '#313745') {
   return chalk.hex(bg).bold(` ${chalk.hex(fg)(text)} `);
 }
 
-function DashboardApp({ initialPaletteOpen, version, noAnim }) {
+function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAnim }) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({ cols: stdout?.columns || 80, rows: stdout?.rows || 24 });
@@ -59,7 +61,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
   const [paletteOpen, setPaletteOpen] = useState(initialPaletteOpen);
   const [query, setQuery] = useState('');
   const [paletteSelected, setPaletteSelected] = useState(0);
-  const [mode, setMode] = useState(initialPaletteOpen ? 'palette' : 'menu');
+  const [mode, setMode] = useState(initialPaletteOpen ? 'palette' : initialMode);
   const [lastResult, setLastResult] = useState('');
 
   const cols = dimensions.cols;
@@ -89,7 +91,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
 
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
-    if (mode === 'init') return;
+    if (mode === 'init' || mode === 'update' || mode === 'doctor') return;
 
     if (input === '?') {
       setPaletteOpen((open) => !open);
@@ -101,7 +103,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
       if (key.escape) { setPaletteOpen(false); setMode('menu'); return; }
       if (key.return) {
         const item = filteredPalette[paletteSelected];
-        if (item === 'init') { setPaletteOpen(false); setMode('init'); }
+        if (item === 'init' || item === 'update' || item === 'doctor') { setPaletteOpen(false); setMode(item); }
         return;
       }
       if (key.upArrow) { setPaletteSelected((idx) => (filteredPalette.length ? (idx - 1 + filteredPalette.length) % filteredPalette.length : 0)); return; }
@@ -113,8 +115,8 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
 
     if (key.upArrow) { setSelected((idx) => (idx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length); return; }
     if (key.downArrow) { setSelected((idx) => (idx + 1) % MENU_ITEMS.length); return; }
-    if (key.return && MENU_ITEMS[selected]?.id === 'init') setMode('init');
-  }, { isActive: mode === 'menu' || mode === 'palette' });
+    if (key.return && MENU_ITEMS[selected]) setMode(MENU_ITEMS[selected].id);
+  });
 
   const paletteWidth = Math.min(72, Math.max(24, cols - 4));
   const paletteHeight = Math.min(14, Math.max(8, rows - 4));
@@ -150,6 +152,16 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
             setMode('menu');
           },
         })
+        : mode === 'update'
+          ? React.createElement(UpdateWizard, {
+            onCancel: () => setMode('menu'),
+            onDone: (report) => {
+              setLastResult(`Last: ✓ Updated entries/${report.slug}/index.html`);
+              setMode('menu');
+            },
+          })
+          : mode === 'doctor'
+            ? React.createElement(DoctorScreen, {})
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
           menuWindow.start > 0 ? React.createElement(Text, { key: 'menu-up', color: '#8f98a8' }, '…') : null,
@@ -185,13 +197,14 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
   );
 }
 
-export async function runDashboard({ paletteOpen = false, version = 'dev' } = {}) {
+export async function runDashboard({ paletteOpen = false, initialMode = 'menu', version = 'dev' } = {}) {
   if (!process.stdout.isTTY || !process.stdin.isTTY) return { action: null };
 
   cliCursor.hide();
   try {
     const instance = render(React.createElement(DashboardApp, {
       initialPaletteOpen: paletteOpen,
+      initialMode,
       version,
       noAnim: process.env.DEX_NO_ANIM === '1',
     }), { exitOnCtrlC: true });
