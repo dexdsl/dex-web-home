@@ -79,6 +79,11 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
       title: data.title,
       video: data.video,
       sidebarPageConfig: data.sidebar,
+      series: data.series,
+      selectedBuckets: data.selectedBuckets,
+      creditsData: data.creditsData,
+      fileSpecs: data.fileSpecs,
+      metadata: data.metadata,
     });
   } catch (error) {
     throw new Error(formatZodError(error, 'Entry data'));
@@ -127,7 +132,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
   if (!opts.dryRun) {
     await fs.mkdir(folder, { recursive: true });
     await fs.writeFile(files.html, injected.html, 'utf8');
-    await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
+    await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, descriptionText: data.descriptionText || '', series: data.series || 'dex', selectedBuckets: data.selectedBuckets || data.sidebar?.buckets || [], creditsData: data.creditsData, fileSpecs: data.fileSpecs || data.sidebar?.fileSpecs, metadata: data.metadata || data.sidebar?.metadata, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
     await fs.writeFile(files.desc, `${resolvedDescriptionHtml.trim()}\n`, 'utf8');
     await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');
 
