@@ -16,4 +16,27 @@ if (ok != null) {
   throw new Error(`expected no buckets validation error, got: ${String(ok)}`);
 }
 
+const defaultCreditsError = validateStep('credits', base);
+if (defaultCreditsError !== 'Artist(s) needs at least one name.') {
+  throw new Error(`expected default credits validation error, got: ${String(defaultCreditsError)}`);
+}
+
+const populatedCredits = {
+  ...base,
+  creditsData: {
+    ...base.creditsData,
+    artist: ['A'],
+    instruments: ['B'],
+    video: { director: ['C'], cinematography: ['D'], editing: ['E'] },
+    audio: { recording: ['F'], mix: ['G'], master: ['H'] },
+    year: '2024',
+    season: 'S1',
+    location: 'Somewhere',
+  },
+};
+const creditsOk = validateStep('credits', populatedCredits);
+if (creditsOk != null) {
+  throw new Error(`expected no credits validation error, got: ${String(creditsOk)}`);
+}
+
 console.log('test-init-wizard-validate ok');
