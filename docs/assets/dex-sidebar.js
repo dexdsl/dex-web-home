@@ -15,6 +15,27 @@
       .join('');
   };
 
+  const getSidebarAssetOrigin = () => {
+    const s = document.querySelector('script[src*="dex-sidebar.js"]');
+    if (s && s.src) {
+      try {
+        return new URL(s.src, window.location.href).origin;
+      } catch {}
+    }
+    return window.location.origin;
+  };
+
+  const seriesKey = (page) => {
+    const raw = String(page.series || '').toLowerCase();
+    if (raw === 'index' || raw === 'indes') return 'index';
+    if (raw === 'dexfest') return 'dexfest';
+    if (raw === 'dex') return 'dex';
+    const u = String(page.specialEventImage || '').toLowerCase();
+    if (u.includes('dexfest')) return 'dexfest';
+    if (u.includes('/index')) return 'index';
+    return 'dex';
+  };
+
   const parseJsonScript = (id) => {
     const el = document.getElementById(id);
     if (!el) return null;
@@ -153,28 +174,38 @@
     };
 
     const lookup = page.lookupNumber || '';
-    const badgesHtml = buildBucketsHtml(page.buckets);
-    const seriesUrl = String(page.specialEventImage || '').trim();
-    render('.dex-overview', 'Overview', `
-      <div class="dex-overview-grid" role="group" aria-label="Overview">
-        <div class="overview-cell overview-cell--lookup">
-          <div class="overview-top overview-lookup">#${lookup}</div>
-          <div class="overview-bottom overview-label">LOOKUP #</div>
+    const selected = normalizeBuckets(page.buckets);
+    const badgesHtml = ALL_BUCKETS
+      .map((bucket) => {
+        const cls = selected.includes(bucket) ? 'available' : 'unavailable';
+        return `<span class="badge ${cls}">${bucket}</span>`;
+      })
+      .join('');
+    const origin = getSidebarAssetOrigin();
+    const SERIES_PATHS = {
+      dex: '/assets/series/dex.png',
+      index: '/assets/series/index.png',
+      dexfest: '/assets/series/dexfest.png',
+    };
+    const sk = seriesKey(page);
+    const seriesSrc = new URL(SERIES_PATHS[sk] || SERIES_PATHS.dex, origin).toString();
+    const overviewEl = document.querySelector('.dex-overview');
+    if (overviewEl) {
+      overviewEl.innerHTML = `
+        <div class="overview-item">
+          <span class="overview-lookup">#${lookup}</span>
+          <p class="p3 overview-label">Lookup #</p>
         </div>
-
-        <div class="overview-cell overview-cell--series">
-          <div class="overview-top overview-series">
-            <img class="overview-series-img" src="${seriesUrl}" alt="Series" />
-          </div>
-          <div class="overview-bottom overview-label">SERIES</div>
+        <div class="overview-item">
+          <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
+          <p class="p3 overview-label">Series</p>
         </div>
-
-        <div class="overview-cell overview-cell--buckets">
-          <div class="overview-top overview-badges">${badgesHtml}</div>
-          <div class="overview-bottom overview-label">BUCKETS</div>
+        <div class="overview-item">
+          <div class="overview-badges">${badgesHtml}</div>
+          <p class="p3 overview-label">Buckets</p>
         </div>
-      </div>
-    `);
+      `;
+    }
 
     render('.dex-license', 'License', `
       <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
