@@ -1201,3 +1201,84 @@ div.sqs-add-to-cart-button-inner {
   margin-top: var(--space-1);
   line-height: 1;
 }
+
+/* Overview row refresh (CLI parity) */
+.dex-overview .dex-overview-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .dex-overview .dex-overview-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dex-overview .dex-overview-lookupValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.dex-overview .dex-overview-lookupLabel,
+.dex-overview .dex-overview-seriesLabel,
+.dex-overview .dex-overview-bucketsLabel {
+  opacity: 0.7;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.dex-overview .dex-overview-series,
+.dex-overview .dex-overview-buckets {
+  display: flex;
+  flex-direction: column;
+}
+
+.dex-overview .dex-overview-series {
+  align-items: center;
+}
+
+.dex-overview .dex-overview-buckets {
+  align-items: flex-end;
+}
+
+.dex-overview .dex-overview-seriesMark {
+  width: 56px;
+  height: 32px;
+  border-radius: 10px;
+  background-image: var(--dex-series-url);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 1px solid var(--dex-border);
+}
+
+.dex-overview .dex-overview-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.dex-overview .dex-overview-badges .badge {
+  min-width: 22px;
+  text-align: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.dex-overview .dex-overview-badges .badge.unavailable {
+  display: inline-flex;
+  opacity: 0.55;
+  border: 1px solid var(--dex-border);
+  background: transparent;
+}
+
+.dex-overview .dex-overview-badges .badge.available {
+  opacity: 1;
+  border: 1px solid var(--dex-border-strong);
+  background: var(--dex-accent, rgba(120, 170, 255, 0.22));
+}
