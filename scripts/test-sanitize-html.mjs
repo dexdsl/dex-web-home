@@ -9,7 +9,7 @@ const fixtureHtml = `
     <base href="">
     <script src="//use.typekit.net/ik/abc.js" onload="try{Typekit.load();}catch(e){}"></script>
     <script>SQUARESPACE_ROLLUPS = {};</script>
-    <script>Static.SQUARESPACE_CONTEXT = { rollups: { core: "//assets.squarespace.com/x.js" } };</script>
+    <script>Static.SQUARESPACE_CONTEXT = {"showAnnouncementBar":true,"websiteSettings":{"announcementBarSettings":{"text":"<p>Fixture notice</p>","clickthroughUrl":{"url":"/fixture-donate","newWindow":false}}},"rollups":{"core":"//assets.squarespace.com/x.js"}};</script>
     <link rel="stylesheet" href="https://static1.squarespace.com/static/versioned-site-css/demo/site.css">
     <link rel="stylesheet" href="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css">
     <script defer src="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"></script>
@@ -20,6 +20,10 @@ const fixtureHtml = `
     <script defer src="/assets/js/dex-breadcrumb-motion.js"></script>
   </head>
   <body>
+    <div class="sqs-announcement-bar-dropzone"></div>
+    <div class="header-announcement-bar-wrapper">
+      <a href="#page" class="header-skip-link sqs-button-element--primary">Skip to Content</a>
+    </div>
     <section class="page-section has-section-divider">
       <div class="content-wrapper" style="padding-bottom: 10px;">
         <div class="fluid-engine fe-demo">
@@ -45,6 +49,25 @@ const fixtureHtml = `
               data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"]'>
               <div class="sqs-block-content">
                 <div class="sqs-code-container">
+                  <div class="dex-entry-header" data-dex-entry-header>
+                    <div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay>
+                      <div class="dex-breadcrumb" data-dex-breadcrumb>
+                        <a class="dex-breadcrumb-back" href="/catalog" data-dex-breadcrumb-back>catalog</a>
+                        <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter aria-hidden="true">
+                          <svg class="dex-breadcrumb-icon" viewBox="0 0 24 24" width="24" height="24" focusable="false" aria-hidden="true">
+                            <path data-dex-breadcrumb-path d="M12 1.75L19.85 12L12 22.25L4.15 12Z"></path>
+                          </svg>
+                        </span>
+                        <span class="dex-breadcrumb-current">guitar and voice, aidan yeats</span>
+                      </div>
+                    </div>
+                    <h1 class="dex-entry-page-title" data-dex-entry-page-title>guitar and voice, aidan yeats</h1>
+                    <div class="dex-entry-subtitle" data-dex-entry-subtitle>
+                      <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">published</span><time class="dex-entry-subtitle-value" datetime="2024-01-07T00:00:00.000Z">jan 7, 2024</time></span>
+                      <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">updated</span><time class="dex-entry-subtitle-value" datetime="2026-02-21T00:00:00.000Z">feb 21, 2026</time></span>
+                      <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">location</span><span class="dex-entry-subtitle-value">somewhere</span></span>
+                    </div>
+                  </div>
                   <div class="dex-entry-layout">
                     <div class="dex-entry-main"></div>
                     <aside class="dex-sidebar"></aside>
@@ -118,8 +141,26 @@ assert.match(String($('.fluid-engine .fe-block.dex-entry-host').attr('style') ||
 assert.equal($('.dex-entry-section').length, 1, 'Dex entry section should be tagged');
 assert.ok(!$('.dex-entry-section').hasClass('has-section-divider'), 'Dex entry section should drop section-divider class');
 assert.equal($('.dex-entry-fluid-engine').length, 1, 'Dex entry fluid engine should be tagged');
+assert.ok($('body').hasClass('dex-entry-page'), 'Sanitizer should tag entry pages on body for scoped layout overrides');
+assert.ok($('body').hasClass('announcement-bar-reserved-space'), 'Sanitizer should reserve announcement-bar spacing on entry pages');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar, .sqs-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure announcement bar markup exists in announcement dropzone');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-custom-location').length, 1, 'Sanitizer should include Squarespace announcement custom location wrapper');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-widget.sqs-announcement-bar').length, 1, 'Sanitizer should include Squarespace announcement widget structure');
+assert.equal($('.header-announcement-bar-wrapper .sqs-announcement-bar, .header-announcement-bar-wrapper .announcement-bar').length, 0, 'Announcement bar should not be injected inside header wrapper');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-url').first().attr('href'), '/fixture-donate', 'Announcement bar link should be preserved from template context');
+assert.match($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-content').first().text(), /fixture notice/i, 'Announcement bar text should be preserved from template context');
 assert.equal($('style#dex-layout-patch[data-managed="1"]').length, 1, 'Dex layout patch style should be injected');
+assert.ok($('#dex-layout-patch').text().includes('.dex-entry-header'), 'Dex layout patch should include entry header rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-entry-subtitle'), 'Dex layout patch should include entry subtitle rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-overlay'), 'Dex layout patch should include breadcrumb overlay rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-icon'), 'Dex layout patch should include breadcrumb SVG icon rules');
+assert.ok($('#dex-layout-patch').text().includes('[data-dex-breadcrumb-path]'), 'Dex layout patch should include breadcrumb SVG path rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-entry-page-title'), 'Dex layout patch should include entry page title rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-scroll'), 'Dex layout patch should include entry description scroll rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-heading'), 'Dex layout patch should include description heading rules');
+assert.equal($('.dex-entry-header').length, 1, 'Sanitizer should preserve entry header wrapper');
+assert.equal($('.dex-entry-page-title').length, 1, 'Sanitizer should preserve entry page title');
+assert.equal($('.dex-entry-subtitle').length, 1, 'Sanitizer should preserve entry subtitle');
 assert.equal($('.section-divider-display').length, 0, 'Divider before dex footer section should be removed');
 assert.equal($('.dex-footer-section').length, 1, 'Dex footer section should be tagged');
 assert.ok(!$('.dex-footer-section').hasClass('section-height--custom'), 'Dex footer section should drop custom-height class');

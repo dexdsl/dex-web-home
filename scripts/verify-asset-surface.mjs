@@ -9,10 +9,15 @@ const TEMPLATE_PATH = path.join(PROJECT_ROOT, 'entry-template', 'index.html');
 const ENTRIES_DIR = path.join(PROJECT_ROOT, 'entries');
 const DOCS_DIR = path.join(PROJECT_ROOT, 'docs');
 const PUBLIC_ORIGIN = 'https://dexdsl.github.io';
+const BREADCRUMB_BUNDLE_RELATIVE_PATH = path.join('assets', 'js', 'dex-breadcrumb-motion.js');
 
 const ATTR_RX = /\b(?:src|href)\s*=\s*(["'])([^"']+)\1/gi;
 const CORE_RUNTIME = ['/assets/dex-auth0-config.js', '/assets/dex-auth.js', '/assets/dex-sidebar.js', '/assets/js/dex-breadcrumb-motion.js'];
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+const FORBIDDEN_BUNDLE_PATTERNS = [
+  { token: 'esm.sh import', regex: /esm\.sh/i },
+  { token: 'dynamic import call', regex: /\bimport\s*\(/i },
+];
 
 function extractRuntimePaths(html) {
   const paths = new Set();
@@ -40,6 +45,21 @@ async function fileExists(filePath) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function verifyBreadcrumbBundleIntegrity() {
+  const runtimeTargets = [
+    path.join(PROJECT_ROOT, BREADCRUMB_BUNDLE_RELATIVE_PATH),
+    path.join(DOCS_DIR, BREADCRUMB_BUNDLE_RELATIVE_PATH),
+  ];
+  for (const filePath of runtimeTargets) {
+    const source = await fs.readFile(filePath, 'utf8');
+    for (const pattern of FORBIDDEN_BUNDLE_PATTERNS) {
+      if (pattern.regex.test(source)) {
+        throw new Error(`Breadcrumb runtime bundle contains forbidden ${pattern.token}: ${path.relative(PROJECT_ROOT, filePath)}`);
+      }
+    }
   }
 }
 
@@ -142,6 +162,8 @@ async function main() {
   if (missing > 0) {
     throw new Error(`Asset surface verification failed: ${missing} required runtime file(s) missing from docs/.`);
   }
+
+  await verifyBreadcrumbBundleIntegrity();
 
   console.log('Asset surface verification passed.');
 }

@@ -36,6 +36,14 @@ const BASE_HEADERS = {
 };
 
 const KNOWN_OUTPUT_DIRS = ['entries'];
+const LOCAL_ASSET_ROOTS = ['assets', path.join('docs', 'assets')];
+const BREADCRUMB_RUNTIME_PATH = '/assets/js/dex-breadcrumb-motion.js';
+const BREADCRUMB_RUNTIME_URLS = [
+  'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js',
+  'https://www.dexdsl.github.io/assets/js/dex-breadcrumb-motion.js',
+  'https://dexdsl.org/assets/js/dex-breadcrumb-motion.js',
+  'https://dexdsl.com/assets/js/dex-breadcrumb-motion.js',
+];
 
 function htmlEscape(value) {
   return String(value || '')
@@ -100,6 +108,14 @@ function send(res, statusCode, body, contentType = 'text/plain; charset=utf-8', 
   res.end(payload);
 }
 
+function rewriteViewerHtml(html) {
+  let output = String(html || '');
+  for (const runtimeUrl of BREADCRUMB_RUNTIME_URLS) {
+    output = output.split(runtimeUrl).join(BREADCRUMB_RUNTIME_PATH);
+  }
+  return output;
+}
+
 async function fileExists(filePath) {
   try {
     await fs.access(filePath);
@@ -107,6 +123,21 @@ async function fileExists(filePath) {
   } catch {
     return false;
   }
+}
+
+async function resolveViewerAssetPath(cwd, pathname) {
+  if (!String(pathname || '').startsWith('/assets/')) return '';
+  const trailing = String(pathname || '').slice(1);
+  for (const relativeRoot of LOCAL_ASSET_ROOTS) {
+    const rootPath = normalizePath(path.join(cwd, relativeRoot));
+    const candidate = resolveSafePathUnderRoot(rootPath, trailing.replace(/^assets\//, ''));
+    if (!candidate) continue;
+    try {
+      const stat = await fs.stat(candidate);
+      if (stat.isFile()) return candidate;
+    } catch {}
+  }
+  return '';
 }
 
 async function listHtmlFiles(rootDir, { max = LIST_CAP } = {}) {
@@ -412,6 +443,23 @@ export async function startViewer({
         return;
       }
 
+      if (method === 'GET' && pathname.startsWith('/assets/')) {
+        const assetPath = await resolveViewerAssetPath(cwd, pathname);
+        if (!assetPath) {
+          send(res, 404, 'Not found');
+          return;
+        }
+        let body;
+        try {
+          body = await fs.readFile(assetPath);
+        } catch {
+          send(res, 404, 'Not found');
+          return;
+        }
+        send(res, 200, body, contentTypeFor(assetPath));
+        return;
+      }
+
       if (pathname === '/' && method === 'GET') {
         const html = pickerHtml({
           recents: viewState.recents,
@@ -476,7 +524,12 @@ export async function startViewer({
           send(res, 404, 'Not found');
           return;
         }
-        send(res, 200, body, contentTypeFor(targetPath));
+        const contentType = contentTypeFor(targetPath);
+        if (contentType.startsWith('text/html')) {
+          send(res, 200, rewriteViewerHtml(body.toString('utf8')), contentType);
+          return;
+        }
+        send(res, 200, body, contentType);
         return;
       }
 

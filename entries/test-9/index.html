@@ -4,7 +4,7 @@
     <!-- This is Squarespace. --><!-- dexdsl -->
 
 <meta charset="utf-8">
-<title>test-9</title>
+<title>test, t</title>
 <meta http-equiv="Accept-CH" content="Sec-CH-UA-Platform-Version, Sec-CH-UA-Model"><link rel="icon" type="image/x-icon" href="https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/eed145f2-fd86-4457-85a7-9955b717fcf9/favicon.ico?format=100w">
 <link rel="canonical" href="https://dexdsl.org/test">
 <meta property="og:site_name" content="dex digital sample library">
@@ -252,8 +252,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     const dots = new Map();
     const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
     const overflowEnabledY = (el) => { const oy = getComputedStyle(el).overflowY; return oy==='auto'||oy==='scroll'||oy==='overlay'; };
-    const ALLOW_CONTAINER_DOTS = false; /* perf: only keep the window dot */
-    const isScrollableY = (el) => ALLOW_CONTAINER_DOTS && overflowEnabledY(el) && (el.scrollHeight - el.clientHeight) > 6;
+    const CONTAINER_DOT_SELECTOR = '[data-dex-scroll-dot="y"]';
+    const isScrollableY = (el) => !!(
+      el &&
+      el.matches &&
+      el.matches(CONTAINER_DOT_SELECTOR) &&
+      overflowEnabledY(el) &&
+      (el.scrollHeight - el.clientHeight) > 6
+    );
     const create = (cls)=>{ const d=document.createElement('div'); d.className=cls; return d; };
 
     function smoothAxis(state, apply){
@@ -515,14 +521,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .sqs-code-container {
-  padding-top: clamp(24px, 3vw, 40px) !important;
-  padding-bottom: 0 !important;
+  --dex-entry-outer-gap: clamp(12px, 1.6vw, 20px);
+  padding-top: var(--dex-entry-outer-gap) !important;
+  padding-bottom: var(--dex-entry-outer-gap) !important;
   padding-left: var(--sqs-site-gutter, 4vw) !important;
   padding-right: var(--sqs-site-gutter, 4vw) !important;
 }
 @media (max-width: 767px) {
   .dex-entry-host .sqs-code-container {
-    padding-top: clamp(19px, 5vw, 30px) !important;
+    --dex-entry-outer-gap: clamp(8px, 2.6vw, 12px);
+    padding-top: var(--dex-entry-outer-gap) !important;
+    padding-bottom: var(--dex-entry-outer-gap) !important;
     padding-left: var(--sqs-mobile-site-gutter, 6vw) !important;
     padding-right: var(--sqs-mobile-site-gutter, 6vw) !important;
   }
@@ -533,15 +542,146 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 .dex-entry-fluid-engine { grid-template-rows: auto !important; }
 #footer-sections.sections { margin-top: 0 !important; padding-top: 0 !important; }
 #footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+.dex-entry-layout { align-items: stretch; }
+@media (max-width: 960px) {
+  .dex-entry-layout { align-items: start; }
+}
 .dex-entry-main { overflow: visible !important; }
+.dex-entry-main { min-height: 0; }
+.dex-entry-desc-scroll {
+  position: relative;
+  min-height: 0;
+  overflow-y: hidden;
+  overscroll-behavior: auto;
+}
+.dex-entry-desc-scroll[data-dex-desc-scrollable="true"] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.dex-entry-desc-heading {
+  position: relative;
+  display: inline-grid;
+  grid-template-areas: "stack";
+  margin: 0;
+  font-family: "Typefesse", sans-serif;
+  font-size: clamp(0.92rem, 1.25vw, 1.12rem);
+  line-height: 0.94;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(24, 24, 24, 0.86);
+  vertical-align: baseline;
+}
+.dex-entry-desc-heading-label {
+  grid-area: stack;
+  transition: opacity 0.22s ease;
+  will-change: opacity;
+}
+.dex-entry-desc-heading-label--base {
+  opacity: 1;
+}
+.dex-entry-desc-heading-label--hover {
+  opacity: 0;
+}
+.dex-entry-desc-heading:hover .dex-entry-desc-heading-label--base {
+  opacity: 0;
+}
+.dex-entry-desc-heading:hover .dex-entry-desc-heading-label--hover {
+  opacity: 1;
+}
+.dex-entry-desc-heading-gap {
+  display: inline;
+}
+.dex-entry-desc-content > :first-child { margin-top: 0; }
+.dex-entry-desc-content > :last-child { margin-bottom: 0; }
+@media (max-width: 960px) {
+  .dex-entry-desc-scroll {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .dex-entry-desc-heading {
+    font-size: clamp(0.9rem, 3.6vw, 1.05rem);
+  }
+}
+.dex-entry-header {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dex-entry-page-title {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  font-family: "Typefesse", sans-serif;
+  font-size: clamp(2.2rem, 5.2vw, 4.8rem);
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+  max-block-size: calc(3 * 0.92em);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dex-entry-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin: 0;
+}
+.dex-entry-subtitle-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.dex-entry-subtitle-item + .dex-entry-subtitle-item::before {
+  content: "·";
+  color: rgba(40, 40, 40, 0.36);
+  margin-right: 6px;
+}
+.dex-entry-subtitle-label {
+  font-family: "Courier New", monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(40, 40, 40, 0.5);
+}
+.dex-entry-subtitle-value {
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: lowercase;
+  color: rgba(30, 30, 30, 0.78);
+}
+@media (max-width: 960px) {
+  .dex-entry-header {
+    margin-bottom: 14px;
+    gap: 5px;
+  }
+  .dex-entry-page-title {
+    font-size: clamp(2rem, 8.5vw, 3.4rem);
+    line-height: 0.95;
+    max-block-size: calc(3 * 0.95em);
+  }
+  .dex-entry-subtitle {
+    gap: 6px 10px;
+  }
+  .dex-entry-subtitle-item + .dex-entry-subtitle-item::before {
+    margin-right: 4px;
+  }
+}
 .dex-video-shell { position: relative; overflow: visible; }
 .dex-breadcrumb-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: translateY(calc(-100% - 10px));
-  z-index: 2;
-  max-width: min(100%, 560px);
+  position: static;
+  max-width: 100%;
+  overflow: visible;
 }
 .dex-breadcrumb {
   display: inline-flex;
@@ -575,9 +715,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 .dex-breadcrumb-delimiter {
   color: #ff1910;
   opacity: 0.92;
-  font-size: 0.78rem;
-  display: inline-block;
-  transform-origin: center;
+  display: inline-grid;
+  place-items: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  line-height: 0;
+  flex: 0 0 auto;
+  transform-origin: center center;
+  will-change: transform, color, opacity;
+}
+.dex-breadcrumb-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+[data-dex-breadcrumb-path] {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 .dex-breadcrumb-current {
   color: rgba(40, 40, 40, 0.72);
@@ -587,10 +746,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 }
 @media (max-width: 767px) {
   .dex-breadcrumb-overlay {
-    position: static;
-    transform: none;
-    margin-bottom: 12px;
-    max-width: 100%;
+    margin-bottom: 2px;
   }
   .dex-breadcrumb {
     display: flex;
@@ -598,10 +754,136 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     row-gap: 6px;
   }
 }
+.dex-overview .overview-item {
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 1 1 0 !important;
+  min-width: 0;
+  row-gap: 0.35rem;
+}
+.dex-overview .overview-item:nth-child(1),
+.dex-overview .overview-item:nth-child(2),
+.dex-overview .overview-item:nth-child(3) {
+  align-items: center !important;
+}
+.dex-overview .overview-label {
+  margin: 0 !important;
+  min-height: 1.25em;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+.dex-overview .overview-item .overview-badges {
+  min-height: 2rem;
+  align-items: center !important;
+}
+.dex-sidebar .dex-license-controls .copy-btn,
+.dex-sidebar .dex-license-controls .usage-btn,
+.dex-sidebar #downloads .btn-audio,
+.dex-sidebar #downloads .btn-video {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  background: linear-gradient(130deg, var(--dex-accent, #ff1910), orange) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+  font: 800 clamp(18px, 1.5vw, 36px) var(--font-heading, "Typefesse", sans-serif) !important;
+  line-height: 1 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 10px 30px rgba(255, 0, 80, 0.25) !important;
+  cursor: pointer !important;
+  filter: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.dex-sidebar #downloads .btn-audio,
+.dex-sidebar #downloads .btn-video {
+  flex: 1 1 0;
+}
+.dex-sidebar #downloads {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem !important;
+  padding-inline: 0.5rem !important;
+  align-items: stretch;
+}
+.dex-sidebar #downloads > p {
+  grid-column: 1 / -1;
+  margin: 0 !important;
+}
+.dex-sidebar #downloads .btn-audio,
+.dex-sidebar #downloads .btn-video {
+  width: 100% !important;
+  min-width: 0;
+  margin: 0 !important;
+}
+@media (max-width: 570px) {
+  .dex-sidebar #downloads {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dex-sidebar .dex-license-controls .copy-btn,
+  .dex-sidebar .dex-license-controls .usage-btn,
+  .dex-sidebar #downloads .btn-audio,
+  .dex-sidebar #downloads .btn-video {
+    transition: transform 0.16s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+}
+.dex-sidebar .dex-license-controls .copy-btn:hover,
+.dex-sidebar .dex-license-controls .usage-btn:hover,
+.dex-sidebar #downloads .btn-audio:hover,
+.dex-sidebar #downloads .btn-video:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 36px rgba(255, 0, 80, 0.28) !important;
+}
+@media (hover: hover) {
+  .dex-sidebar .dex-license-controls .copy-btn::after,
+  .dex-sidebar .dex-license-controls .usage-btn::after,
+  .dex-sidebar #downloads .btn-audio::after,
+  .dex-sidebar #downloads .btn-video::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .dex-sidebar .dex-license-controls .copy-btn:hover::after,
+  .dex-sidebar .dex-license-controls .usage-btn:hover::after,
+  .dex-sidebar #downloads .btn-audio:hover::after,
+  .dex-sidebar #downloads .btn-video:hover::after,
+  .dex-sidebar .dex-license-controls .copy-btn:focus-visible::after,
+  .dex-sidebar .dex-license-controls .usage-btn:focus-visible::after,
+  .dex-sidebar #downloads .btn-audio:focus-visible::after,
+  .dex-sidebar #downloads .btn-video:focus-visible::after {
+    animation: dex-sidebar-primary-glint 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+.dex-sidebar .dex-license-controls .copy-btn:focus-visible,
+.dex-sidebar .dex-license-controls .usage-btn:focus-visible,
+.dex-sidebar #downloads .btn-audio:focus-visible,
+.dex-sidebar #downloads .btn-video:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) inset, 0 0 0 4px rgba(255, 25, 16, 0.25), 0 10px 30px rgba(255, 0, 80, 0.25) !important;
+}
+@keyframes dex-sidebar-primary-glint {
+  to {
+    transform: translateX(120%);
+  }
+}
 </style></head>
 
-  <body id="collection-687eb3031ba8de4bb237fbce" class="
-      tweak-blog-alternating-side-by-side-width-full tweak-blog-alternating-side-by-side-image-aspect-ratio-11-square tweak-blog-alternating-side-by-side-text-alignment-left tweak-blog-alternating-side-by-side-read-more-style-hide tweak-blog-alternating-side-by-side-image-text-alignment-middle tweak-blog-alternating-side-by-side-delimiter-bullet tweak-blog-alternating-side-by-side-meta-position-top tweak-blog-alternating-side-by-side-primary-meta-categories tweak-blog-alternating-side-by-side-secondary-meta-date tweak-blog-alternating-side-by-side-excerpt-show form-use-theme-colors form-field-style-outline form-field-shape-square form-field-border-bottom form-field-checkbox-type-button form-field-checkbox-fill-outline form-field-checkbox-color-inverted form-field-checkbox-shape-square form-field-checkbox-layout-fit form-field-radio-type-button form-field-radio-fill-outline form-field-radio-color-inverted form-field-radio-shape-square form-field-radio-layout-fit form-field-survey-fill-outline form-field-survey-color-inverted form-field-survey-shape-square form-field-hover-focus-opacity form-submit-button-style-bar  tweak-global-animations-complexity-level-detailed tweak-global-animations-animation-style-fade tweak-global-animations-animation-type-none tweak-global-animations-animation-curve-ease tweak-blog-masonry-width-inset tweak-blog-masonry-text-alignment-left tweak-blog-masonry-primary-meta-categories tweak-blog-masonry-secondary-meta-date tweak-blog-masonry-meta-position-top tweak-blog-masonry-read-more-style-hide tweak-blog-masonry-delimiter-space tweak-blog-masonry-image-placement-above tweak-blog-masonry-excerpt-show tweak-portfolio-grid-overlay-width-full tweak-portfolio-grid-overlay-height-large tweak-portfolio-grid-overlay-image-aspect-ratio-11-square tweak-portfolio-grid-overlay-text-placement-center tweak-portfolio-grid-overlay-show-text-after-hover image-block-poster-text-alignment-center image-block-card-content-position-center image-block-card-text-alignment-left image-block-overlap-content-position-center image-block-overlap-text-alignment-left image-block-collage-content-position-center image-block-collage-text-alignment-center image-block-stack-text-alignment-left tweak-blog-single-column-width-inset tweak-blog-single-column-text-alignment-center tweak-blog-single-column-image-placement-above tweak-blog-single-column-delimiter-bullet tweak-blog-single-column-read-more-style-show tweak-blog-single-column-primary-meta-categories tweak-blog-single-column-secondary-meta-date tweak-blog-single-column-meta-position-top tweak-blog-single-column-content-full-post header-width-inset  tweak-fixed-header tweak-fixed-header-style-basic tweak-blog-item-width-medium tweak-blog-item-text-alignment-left tweak-blog-item-meta-position-below-title tweak-blog-item-show-categories tweak-blog-item-show-date tweak-blog-item-show-author-name  tweak-blog-item-delimiter-pipe tweak-blog-side-by-side-width-inset tweak-blog-side-by-side-image-placement-left tweak-blog-side-by-side-image-aspect-ratio-11-square tweak-blog-side-by-side-primary-meta-categories tweak-blog-side-by-side-secondary-meta-date tweak-blog-side-by-side-meta-position-top tweak-blog-side-by-side-text-alignment-left tweak-blog-side-by-side-image-text-alignment-middle tweak-blog-side-by-side-read-more-style-show tweak-blog-side-by-side-delimiter-bullet tweak-blog-side-by-side-excerpt-show primary-button-style-solid primary-button-shape-square secondary-button-style-outline secondary-button-shape-square tertiary-button-style-outline tertiary-button-shape-square tweak-events-stacked-width-full tweak-events-stacked-height-large  tweak-events-stacked-show-thumbnails tweak-events-stacked-thumbnail-size-32-standard tweak-events-stacked-date-style-with-text tweak-events-stacked-show-time tweak-events-stacked-show-location  tweak-events-stacked-show-excerpt  tweak-blog-basic-grid-width-inset tweak-blog-basic-grid-image-aspect-ratio-23-standard-vertical tweak-blog-basic-grid-text-alignment-left tweak-blog-basic-grid-delimiter-bullet tweak-blog-basic-grid-image-placement-above tweak-blog-basic-grid-read-more-style-hide tweak-blog-basic-grid-primary-meta-categories tweak-blog-basic-grid-secondary-meta-date tweak-blog-basic-grid-excerpt-show tweak-portfolio-grid-basic-width-full tweak-portfolio-grid-basic-height-small tweak-portfolio-grid-basic-image-aspect-ratio-11-square tweak-portfolio-grid-basic-text-alignment-left tweak-portfolio-grid-basic-hover-effect-fade header-overlay-alignment-center tweak-portfolio-index-background-link-format-stacked tweak-portfolio-index-background-width-full tweak-portfolio-index-background-height-large  tweak-portfolio-index-background-vertical-alignment-middle tweak-portfolio-index-background-horizontal-alignment-center tweak-portfolio-index-background-delimiter-none tweak-portfolio-index-background-animation-type-fade tweak-portfolio-index-background-animation-duration-medium tweak-portfolio-hover-follow-layout-inline  tweak-portfolio-hover-follow-delimiter-bullet tweak-portfolio-hover-follow-animation-type-fade tweak-portfolio-hover-follow-animation-duration-fast tweak-portfolio-hover-static-layout-inline tweak-portfolio-hover-static-front tweak-portfolio-hover-static-delimiter-hyphen tweak-portfolio-hover-static-animation-type-fade tweak-portfolio-hover-static-animation-duration-fast hide-opentable-icons opentable-style-dark tweak-product-quick-view-button-style-floating tweak-product-quick-view-button-position-center tweak-product-quick-view-lightbox-excerpt-display-truncate tweak-product-quick-view-lightbox-show-arrows tweak-product-quick-view-lightbox-show-close-button tweak-product-quick-view-lightbox-controls-weight-light native-currency-code-usd collection-type-page collection-687eb3031ba8de4bb237fbce collection-layout-default mobile-style-available sqs-seven-one
+  <body id="collection-687eb3031ba8de4bb237fbce" class="tweak-blog-alternating-side-by-side-width-full tweak-blog-alternating-side-by-side-image-aspect-ratio-11-square tweak-blog-alternating-side-by-side-text-alignment-left tweak-blog-alternating-side-by-side-read-more-style-hide tweak-blog-alternating-side-by-side-image-text-alignment-middle tweak-blog-alternating-side-by-side-delimiter-bullet tweak-blog-alternating-side-by-side-meta-position-top tweak-blog-alternating-side-by-side-primary-meta-categories tweak-blog-alternating-side-by-side-secondary-meta-date tweak-blog-alternating-side-by-side-excerpt-show form-use-theme-colors form-field-style-outline form-field-shape-square form-field-border-bottom form-field-checkbox-type-button form-field-checkbox-fill-outline form-field-checkbox-color-inverted form-field-checkbox-shape-square form-field-checkbox-layout-fit form-field-radio-type-button form-field-radio-fill-outline form-field-radio-color-inverted form-field-radio-shape-square form-field-radio-layout-fit form-field-survey-fill-outline form-field-survey-color-inverted form-field-survey-shape-square form-field-hover-focus-opacity form-submit-button-style-bar  tweak-global-animations-complexity-level-detailed tweak-global-animations-animation-style-fade tweak-global-animations-animation-type-none tweak-global-animations-animation-curve-ease tweak-blog-masonry-width-inset tweak-blog-masonry-text-alignment-left tweak-blog-masonry-primary-meta-categories tweak-blog-masonry-secondary-meta-date tweak-blog-masonry-meta-position-top tweak-blog-masonry-read-more-style-hide tweak-blog-masonry-delimiter-space tweak-blog-masonry-image-placement-above tweak-blog-masonry-excerpt-show tweak-portfolio-grid-overlay-width-full tweak-portfolio-grid-overlay-height-large tweak-portfolio-grid-overlay-image-aspect-ratio-11-square tweak-portfolio-grid-overlay-text-placement-center tweak-portfolio-grid-overlay-show-text-after-hover image-block-poster-text-alignment-center image-block-card-content-position-center image-block-card-text-alignment-left image-block-overlap-content-position-center image-block-overlap-text-alignment-left image-block-collage-content-position-center image-block-collage-text-alignment-center image-block-stack-text-alignment-left tweak-blog-single-column-width-inset tweak-blog-single-column-text-alignment-center tweak-blog-single-column-image-placement-above tweak-blog-single-column-delimiter-bullet tweak-blog-single-column-read-more-style-show tweak-blog-single-column-primary-meta-categories tweak-blog-single-column-secondary-meta-date tweak-blog-single-column-meta-position-top tweak-blog-single-column-content-full-post header-width-inset  tweak-fixed-header tweak-fixed-header-style-basic tweak-blog-item-width-medium tweak-blog-item-text-alignment-left tweak-blog-item-meta-position-below-title tweak-blog-item-show-categories tweak-blog-item-show-date tweak-blog-item-show-author-name  tweak-blog-item-delimiter-pipe tweak-blog-side-by-side-width-inset tweak-blog-side-by-side-image-placement-left tweak-blog-side-by-side-image-aspect-ratio-11-square tweak-blog-side-by-side-primary-meta-categories tweak-blog-side-by-side-secondary-meta-date tweak-blog-side-by-side-meta-position-top tweak-blog-side-by-side-text-alignment-left tweak-blog-side-by-side-image-text-alignment-middle tweak-blog-side-by-side-read-more-style-show tweak-blog-side-by-side-delimiter-bullet tweak-blog-side-by-side-excerpt-show primary-button-style-solid primary-button-shape-square secondary-button-style-outline secondary-button-shape-square tertiary-button-style-outline tertiary-button-shape-square tweak-events-stacked-width-full tweak-events-stacked-height-large  tweak-events-stacked-show-thumbnails tweak-events-stacked-thumbnail-size-32-standard tweak-events-stacked-date-style-with-text tweak-events-stacked-show-time tweak-events-stacked-show-location  tweak-events-stacked-show-excerpt  tweak-blog-basic-grid-width-inset tweak-blog-basic-grid-image-aspect-ratio-23-standard-vertical tweak-blog-basic-grid-text-alignment-left tweak-blog-basic-grid-delimiter-bullet tweak-blog-basic-grid-image-placement-above tweak-blog-basic-grid-read-more-style-hide tweak-blog-basic-grid-primary-meta-categories tweak-blog-basic-grid-secondary-meta-date tweak-blog-basic-grid-excerpt-show tweak-portfolio-grid-basic-width-full tweak-portfolio-grid-basic-height-small tweak-portfolio-grid-basic-image-aspect-ratio-11-square tweak-portfolio-grid-basic-text-alignment-left tweak-portfolio-grid-basic-hover-effect-fade header-overlay-alignment-center tweak-portfolio-index-background-link-format-stacked tweak-portfolio-index-background-width-full tweak-portfolio-index-background-height-large  tweak-portfolio-index-background-vertical-alignment-middle tweak-portfolio-index-background-horizontal-alignment-center tweak-portfolio-index-background-delimiter-none tweak-portfolio-index-background-animation-type-fade tweak-portfolio-index-background-animation-duration-medium tweak-portfolio-hover-follow-layout-inline  tweak-portfolio-hover-follow-delimiter-bullet tweak-portfolio-hover-follow-animation-type-fade tweak-portfolio-hover-follow-animation-duration-fast tweak-portfolio-hover-static-layout-inline tweak-portfolio-hover-static-front tweak-portfolio-hover-static-delimiter-hyphen tweak-portfolio-hover-static-animation-type-fade tweak-portfolio-hover-static-animation-duration-fast hide-opentable-icons opentable-style-dark tweak-product-quick-view-button-style-floating tweak-product-quick-view-button-position-center tweak-product-quick-view-lightbox-excerpt-display-truncate tweak-product-quick-view-lightbox-show-arrows tweak-product-quick-view-lightbox-show-close-button tweak-product-quick-view-lightbox-controls-weight-light native-currency-code-usd collection-type-page collection-687eb3031ba8de4bb237fbce collection-layout-default mobile-style-available sqs-seven-one
       
         
           
@@ -611,7 +893,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           
         
       
-    " tabindex="-1">
+     dex-entry-page announcement-bar-reserved-space" tabindex="-1">
     <div id="siteWrapper" class="clearfix site-wrapper">
       
         <div id="floatingCart" class="floating-cart hidden">
@@ -965,7 +1247,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     
   
 
-<div class="sqs-announcement-bar-dropzone"></div>
+<div class="sqs-announcement-bar-dropzone">
+
+
+<div class="sqs-announcement-bar-custom-location" data-dex-announcement-bar="1"><div class="yui3-widget sqs-widget sqs-announcement-bar"><div class="sqs-announcement-bar-content"><a class="sqs-announcement-bar-url" href="/donate" aria-labelledby="dex-announcement-bar-text-inner-id"></a>
+<div class="sqs-announcement-bar-text">
+  <span class="sqs-announcement-bar-close" tabindex="0" role="button" aria-label="Close Announcement"></span>
+  <div id="dex-announcement-bar-text-inner-id" class="sqs-announcement-bar-text-inner"><p data-rte-preserve-empty="true" style="white-space:pre-wrap;">Donate to dex today to help us provide arts resources &amp; events!</p></div>
+</div></div></div></div>
+</div>
 
     <div class="header-announcement-bar-wrapper">
       
@@ -2320,14 +2610,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </script>
 <!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
 
-<div class="dex-entry-layout">
-<div class="dex-entry-main">
-<!-- DEX:VIDEO_START -->
-<div class="dex-video-shell">
+<!-- DEX:TITLE_START -->
+<div class="dex-entry-header" data-dex-entry-header="">
 <div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay="">
   <div class="dex-breadcrumb" data-dex-breadcrumb="">
     <a class="dex-breadcrumb-back" href="/catalog" data-dex-breadcrumb-back="">catalog</a>
-    <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter="" aria-hidden="true">⟡</span>
+    <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter="" aria-hidden="true">
+      <svg class="dex-breadcrumb-icon" viewBox="0 0 24 24" width="24" height="24" focusable="false" aria-hidden="true">
+        <path data-dex-breadcrumb-path="" d="M12 1.75L19.85 12L12 22.25L4.15 12Z"></path>
+      </svg>
+    </span>
     <span class="dex-breadcrumb-current">test, t</span>
   </div>
 </div>
@@ -2374,6 +2666,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }, true);
 })();
 </script>
+<h1 class="dex-entry-page-title" data-dex-entry-page-title="">test, t</h1>
+<div class="dex-entry-subtitle" data-dex-entry-subtitle="">
+  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">published</span><time class="dex-entry-subtitle-value" datetime="2026-02-21T21:41:56.091Z">feb 21, 2026</time></span>
+  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">updated</span><time class="dex-entry-subtitle-value" datetime="2026-02-21T23:39:44.168Z">feb 21, 2026</time></span>
+  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">location</span><span class="dex-entry-subtitle-value">t</span></span>
+</div>
+</div>
+<!-- DEX:TITLE_END -->
+
+<div class="dex-entry-layout">
+<div class="dex-entry-main">
+<!-- DEX:VIDEO_START -->
+<div class="dex-video-shell">
 <div class="dex-video" data-video-url="https://youtube.com/watch?v=CSFGiU1gg4g">
   <div class="dex-video-aspect">
 <iframe src="https://www.youtube-nocookie.com/embed/CSFGiU1gg4g" title="Video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen=""></iframe>
@@ -2382,7 +2687,128 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </div>
 <!-- DEX:VIDEO_END -->
 <!-- DEX:DESC_START -->
-<p>description</p>
+<div class="dex-entry-desc-scroll" data-dex-scroll-dot="y">
+  <div class="dex-entry-desc-content">
+<p><span class="dex-entry-desc-heading" aria-label="description">
+  <span class="dex-entry-desc-heading-label dex-entry-desc-heading-label--base">description</span>
+  <span class="dex-entry-desc-heading-label dex-entry-desc-heading-label--hover" aria-hidden="true">dexcription</span>
+</span><span class="dex-entry-desc-heading-gap" aria-hidden="true">&nbsp;</span>description</p>
+  </div>
+</div>
+<script id="dex-entry-desc-sync">
+(function(){
+  var MOBILE_BREAKPOINT = 960;
+  var resizeObserver = null;
+
+  function visibleChildren(container){
+    return Array.prototype.filter.call(container.children || [], function(node){
+      return !!(node && node.nodeType === 1 && node.offsetParent !== null);
+    });
+  }
+
+  function clearDesc(desc){
+    if (!desc) return;
+    desc.style.height = '';
+    desc.style.maxHeight = '';
+    desc.style.minHeight = '';
+    desc.style.overflowY = '';
+    desc.style.overscrollBehavior = '';
+    desc.removeAttribute('data-dex-desc-scrollable');
+    desc.scrollTop = 0;
+  }
+
+  function syncLayout(layout){
+    var main = layout.querySelector('.dex-entry-main');
+    var sidebar = layout.querySelector('.dex-sidebar');
+    var desc = layout.querySelector('.dex-entry-desc-scroll');
+    if (!main || !sidebar || !desc) return;
+
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+      clearDesc(desc);
+      return;
+    }
+
+    desc.style.minHeight = '0px';
+
+    var children = visibleChildren(main);
+    var descIndex = children.indexOf(desc);
+    if (descIndex < 0) return;
+
+    var mainStyle = window.getComputedStyle(main);
+    var gap = parseFloat(mainStyle.rowGap || mainStyle.gap || '0') || 0;
+    var occupiedHeight = 0;
+    for (var i = 0; i < children.length; i += 1) {
+      if (i === descIndex) continue;
+      occupiedHeight += children[i].getBoundingClientRect().height;
+    }
+    var totalGaps = Math.max(0, children.length - 1);
+    var sidebarHeight = sidebar.getBoundingClientRect().height;
+    var available = Math.max(120, Math.floor(sidebarHeight - occupiedHeight - (gap * totalGaps)));
+
+    desc.style.height = available + 'px';
+    desc.style.maxHeight = available + 'px';
+    var canScroll = (desc.scrollHeight - desc.clientHeight) > 6;
+    if (canScroll) {
+      desc.style.overflowY = 'auto';
+      desc.style.overscrollBehavior = 'contain';
+      desc.setAttribute('data-dex-desc-scrollable', 'true');
+    } else {
+      desc.style.overflowY = 'hidden';
+      desc.style.overscrollBehavior = 'auto';
+      desc.setAttribute('data-dex-desc-scrollable', 'false');
+      desc.scrollTop = 0;
+    }
+  }
+
+  function syncAll(){
+    var layouts = document.querySelectorAll('.dex-entry-layout');
+    layouts.forEach(syncLayout);
+  }
+
+  function setupObservers(){
+    if (typeof ResizeObserver !== 'function') return;
+    if (resizeObserver) resizeObserver.disconnect();
+    resizeObserver = new ResizeObserver(function(){ syncAll(); });
+    document.querySelectorAll('.dex-entry-layout').forEach(function(layout){
+      var main = layout.querySelector('.dex-entry-main');
+      var sidebar = layout.querySelector('.dex-sidebar');
+      if (main) resizeObserver.observe(main);
+      if (sidebar) resizeObserver.observe(sidebar);
+    });
+  }
+
+  var queued = false;
+  function schedule(){
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function(){
+      queued = false;
+      syncAll();
+    });
+  }
+
+  function boot(){
+    setupObservers();
+    schedule();
+  }
+
+  if (window.__dexDescSyncBooted) {
+    if (typeof window.__dexDescSyncSchedule === 'function') window.__dexDescSyncSchedule();
+    return;
+  }
+
+  window.__dexDescSyncBooted = true;
+  window.__dexDescSyncSchedule = schedule;
+
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('load', boot, { once: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
 <!-- DEX:DESC_END -->
 </div>
 

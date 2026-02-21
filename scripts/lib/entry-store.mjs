@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { deriveCanonicalEntry, descriptionTextFromSeed, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
+import { resolveLifecycleForWrite } from './entry-lifecycle.mjs';
 import { ALL_BUCKETS, entrySchema, manifestSchemaForFormats, normalizeManifest } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
@@ -43,6 +44,13 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
   const folder = path.join(path.resolve(entriesDir), slug);
   await fs.mkdir(folder, { recursive: true });
   const wroteFiles = [];
+  const lifecycle = data.entry
+    ? await resolveLifecycleForWrite({
+      existingLifecycle: data.entry.lifecycle,
+      entryFolder: folder,
+      now: Date.now(),
+    })
+    : null;
   const entryToWrite = data.entry
     ? {
       ...data.entry,
@@ -51,6 +59,7 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
         sidebarConfig: data.entry.sidebarPageConfig,
         creditsData: data.entry.creditsData,
       }),
+      lifecycle,
     }
     : null;
 
@@ -103,7 +112,7 @@ export function validateEntryFolderData({ entry, manifest, formatKeys }) {
   manifestSchemaForFormats(formatKeys.audio || [], formatKeys.video || []).parse(manifest);
 }
 
-export function generateIndexHtml({ templateHtml, entry, descriptionText, manifest }) {
+export function generateIndexHtml({ templateHtml, entry, descriptionText, manifest, lifecycle }) {
   const canonical = deriveCanonicalEntry({
     canonical: entry?.canonical,
     sidebarConfig: entry?.sidebarPageConfig,
@@ -116,6 +125,7 @@ export function generateIndexHtml({ templateHtml, entry, descriptionText, manife
     sidebarConfig: entry.sidebarPageConfig,
     creditsData: entry.creditsData,
     canonical,
+    lifecycle: lifecycle || entry?.lifecycle,
     video: entry.video,
     title: entry.title,
     authEnabled: true,

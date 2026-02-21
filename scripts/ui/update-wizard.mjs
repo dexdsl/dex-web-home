@@ -3,6 +3,7 @@ import path from 'node:path';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { prepareTemplate } from '../lib/init-core.mjs';
+import { resolveLifecycleForWrite } from '../lib/entry-lifecycle.mjs';
 import { loadTagsCatalog } from '../lib/tags.mjs';
 import { readEntryFolder, writeEntryFolder, normalizeManifestWithFormats, generateIndexHtml } from '../lib/entry-store.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
@@ -93,7 +94,13 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
     }
 
     const manifest = normalizeManifestWithFormats(form.payload.manifest, formatKeys);
-    const indexHtml = generateIndexHtml({ templateHtml, entry, descriptionText: entry.descriptionText || form.descriptionText, manifest });
+    const lifecycle = await resolveLifecycleForWrite({
+      existingLifecycle: entry.lifecycle,
+      entryFolder: form.payload.folder,
+      now: Date.now(),
+    });
+    entry.lifecycle = lifecycle;
+    const indexHtml = generateIndexHtml({ templateHtml, entry, descriptionText: entry.descriptionText || form.descriptionText, manifest, lifecycle });
     const res = await writeEntryFolder(slug, { entry, descriptionText: entry.descriptionText || form.descriptionText, manifest, indexHtml }, { entriesDir: './entries' });
     setMsg(`Updated ${slug}: ${res.wroteFiles.length} files`);
     if (onDone) onDone({ slug, wroteFiles: res.wroteFiles });

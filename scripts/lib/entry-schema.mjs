@@ -69,6 +69,10 @@ export const entrySchema = z.object({
     instrument: z.string().default(''),
     artistName: z.string().default(''),
   }).optional(),
+  lifecycle: z.object({
+    publishedAt: z.string().min(1),
+    updatedAt: z.string().min(1),
+  }).optional(),
   video: z.object({ mode: z.enum(['url', 'embed']), dataUrl: z.string().default(''), dataHtml: z.string().default('') }),
   sidebarPageConfig: sidebarConfigSchema,
   descriptionText: z.string().optional(),

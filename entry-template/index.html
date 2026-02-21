@@ -286,8 +286,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     const dots = new Map();
     const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
     const overflowEnabledY = (el) => { const oy = getComputedStyle(el).overflowY; return oy==='auto'||oy==='scroll'||oy==='overlay'; };
-    const ALLOW_CONTAINER_DOTS = false; /* perf: only keep the window dot */
-    const isScrollableY = (el) => ALLOW_CONTAINER_DOTS && overflowEnabledY(el) && (el.scrollHeight - el.clientHeight) > 6;
+    const CONTAINER_DOT_SELECTOR = '[data-dex-scroll-dot="y"]';
+    const isScrollableY = (el) => !!(
+      el &&
+      el.matches &&
+      el.matches(CONTAINER_DOT_SELECTOR) &&
+      overflowEnabledY(el) &&
+      (el.scrollHeight - el.clientHeight) > 6
+    );
     const create = (cls)=>{ const d=document.createElement('div'); d.className=cls; return d; };
 
     function smoothAxis(state, apply){
@@ -2357,6 +2363,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- DEX:SIDEBAR_PAGE_CONFIG_START -->
 <script id="dex-sidebar-page-config" type="application/json">{}</script>
 <!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
+
+<!-- DEX:TITLE_START -->
+<h1 class="dex-entry-page-title" data-dex-entry-page-title></h1>
+<!-- DEX:TITLE_END -->
 
 <div class="dex-entry-layout">
 <div class="dex-entry-main">

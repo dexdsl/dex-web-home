@@ -3,6 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deriveCanonicalEntry, detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './entry-html.mjs';
+import { resolveLifecycleForInit } from './entry-lifecycle.mjs';
 import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
@@ -68,6 +69,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     sidebarConfig: data.sidebar,
     creditsData: data.creditsData,
   });
+  const lifecycle = resolveLifecycleForInit();
 
   try {
     sidebarConfigSchema.parse(data.sidebar);
@@ -87,6 +89,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
       slug: data.slug,
       title: data.title,
       canonical,
+      lifecycle,
       video: data.video,
       sidebarPageConfig: data.sidebar,
       series: data.series,
@@ -110,6 +113,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     sidebarConfig: data.sidebar,
     creditsData: data.creditsData,
     canonical,
+    lifecycle,
     video: data.video,
     title: data.title,
     authEnabled: true,
@@ -154,6 +158,7 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
       slug: data.slug,
       title: data.title,
       canonical,
+      lifecycle,
       video: {
         mode: data.video?.mode === 'embed' ? 'embed' : 'url',
         dataUrl: String(data.video?.dataUrl || ''),

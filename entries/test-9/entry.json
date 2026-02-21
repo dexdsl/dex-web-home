@@ -129,5 +129,9 @@
   "canonical": {
     "instrument": "test",
     "artistName": "t"
+  },
+  "lifecycle": {
+    "publishedAt": "2026-02-21T21:41:56.091Z",
+    "updatedAt": "2026-02-21T23:39:44.263Z"
   }
 }

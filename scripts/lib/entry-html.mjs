@@ -1,4 +1,5 @@
 const MARKERS = {
+  title: ['DEX:TITLE_START', 'DEX:TITLE_END'],
   video: ['DEX:VIDEO_START', 'DEX:VIDEO_END'],
   desc: ['DEX:DESC_START', 'DEX:DESC_END'],
   sidebar: ['DEX:SIDEBAR_PAGE_CONFIG_START', 'DEX:SIDEBAR_PAGE_CONFIG_END'],
@@ -11,6 +12,14 @@ const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-co
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const BREADCRUMB_BACK_HREF = '/catalog';
 const BREADCRUMB_MOTION_RUNTIME_SRC = 'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js';
+const BREADCRUMB_ICON_INITIAL_PATH = 'M12 1.75L19.85 12L12 22.25L4.15 12Z';
+const DESC_SYNC_SCRIPT_ID = 'dex-entry-desc-sync';
+const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -89,6 +98,33 @@ export function formatBreadcrumbCurrentLabel(canonical = {}) {
   return 'entry';
 }
 
+export function formatCanonicalEntryDisplayLabel(canonical = {}, title = '') {
+  const canonicalLabel = formatBreadcrumbCurrentLabel(canonical);
+  if (canonicalLabel && canonicalLabel !== 'entry') return canonicalLabel;
+  const fallbackTitle = normalizeCanonicalValue(title).toLowerCase();
+  return fallbackTitle || 'entry';
+}
+
+function normalizeIsoDateTime(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  return date.toISOString();
+}
+
+function formatLifecycleDateLabel(value) {
+  const iso = normalizeIsoDateTime(value);
+  if (!iso) return { iso: '', label: '—' };
+  return { iso, label: DATE_DISPLAY_FORMATTER.format(new Date(iso)).toLowerCase() };
+}
+
+function resolveSubtitleLocation({ creditsData, sidebarConfig } = {}) {
+  const direct = normalizeCanonicalValue(creditsData?.location);
+  if (direct) return direct;
+  const fallback = normalizeCanonicalValue(sidebarConfig?.credits?.location);
+  return fallback || '—';
+}
+
 export function resolveBreadcrumbBackStrategy({ referrer = '', locationOrigin = '', locationPath = '', historyLength = 0 } = {}) {
   const fallbackHref = BREADCRUMB_BACK_HREF;
   try {
@@ -147,6 +183,145 @@ export function descriptionTextToHtml(descriptionText) {
   return `<p>${escapeHtml(value)}</p>`;
 }
 
+function buildDescriptionHeadingMarkup() {
+  return `<span class="dex-entry-desc-heading" aria-label="description">
+  <span class="dex-entry-desc-heading-label dex-entry-desc-heading-label--base">description</span>
+  <span class="dex-entry-desc-heading-label dex-entry-desc-heading-label--hover" aria-hidden="true">dexcription</span>
+</span><span class="dex-entry-desc-heading-gap" aria-hidden="true">&nbsp;</span>`;
+}
+
+function prependDescriptionHeading(descriptionHtml = '<p></p>') {
+  const input = String(descriptionHtml || '').trim() || '<p></p>';
+  const heading = buildDescriptionHeadingMarkup();
+  if (/<p\b[^>]*>/i.test(input)) {
+    return input.replace(/<p\b([^>]*)>/i, (_, attrs = '') => `<p${attrs}>${heading}`);
+  }
+  return `<p>${heading}${input}</p>`;
+}
+
+function buildDescriptionRegion(descriptionHtml = '<p></p>') {
+  const descriptionWithHeading = prependDescriptionHeading(descriptionHtml);
+  return `<div class="dex-entry-desc-scroll" data-dex-scroll-dot="y">
+  <div class="dex-entry-desc-content">
+${descriptionWithHeading}
+  </div>
+</div>
+<script id="${DESC_SYNC_SCRIPT_ID}">
+(function(){
+  var MOBILE_BREAKPOINT = 960;
+  var resizeObserver = null;
+
+  function visibleChildren(container){
+    return Array.prototype.filter.call(container.children || [], function(node){
+      return !!(node && node.nodeType === 1 && node.offsetParent !== null);
+    });
+  }
+
+  function clearDesc(desc){
+    if (!desc) return;
+    desc.style.height = '';
+    desc.style.maxHeight = '';
+    desc.style.minHeight = '';
+    desc.style.overflowY = '';
+    desc.style.overscrollBehavior = '';
+    desc.removeAttribute('data-dex-desc-scrollable');
+    desc.scrollTop = 0;
+  }
+
+  function syncLayout(layout){
+    var main = layout.querySelector('.dex-entry-main');
+    var sidebar = layout.querySelector('.dex-sidebar');
+    var desc = layout.querySelector('.dex-entry-desc-scroll');
+    if (!main || !sidebar || !desc) return;
+
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+      clearDesc(desc);
+      return;
+    }
+
+    desc.style.minHeight = '0px';
+
+    var children = visibleChildren(main);
+    var descIndex = children.indexOf(desc);
+    if (descIndex < 0) return;
+
+    var mainStyle = window.getComputedStyle(main);
+    var gap = parseFloat(mainStyle.rowGap || mainStyle.gap || '0') || 0;
+    var occupiedHeight = 0;
+    for (var i = 0; i < children.length; i += 1) {
+      if (i === descIndex) continue;
+      occupiedHeight += children[i].getBoundingClientRect().height;
+    }
+    var totalGaps = Math.max(0, children.length - 1);
+    var sidebarHeight = sidebar.getBoundingClientRect().height;
+    var available = Math.max(120, Math.floor(sidebarHeight - occupiedHeight - (gap * totalGaps)));
+
+    desc.style.height = available + 'px';
+    desc.style.maxHeight = available + 'px';
+    var canScroll = (desc.scrollHeight - desc.clientHeight) > 6;
+    if (canScroll) {
+      desc.style.overflowY = 'auto';
+      desc.style.overscrollBehavior = 'contain';
+      desc.setAttribute('data-dex-desc-scrollable', 'true');
+    } else {
+      desc.style.overflowY = 'hidden';
+      desc.style.overscrollBehavior = 'auto';
+      desc.setAttribute('data-dex-desc-scrollable', 'false');
+      desc.scrollTop = 0;
+    }
+  }
+
+  function syncAll(){
+    var layouts = document.querySelectorAll('.dex-entry-layout');
+    layouts.forEach(syncLayout);
+  }
+
+  function setupObservers(){
+    if (typeof ResizeObserver !== 'function') return;
+    if (resizeObserver) resizeObserver.disconnect();
+    resizeObserver = new ResizeObserver(function(){ syncAll(); });
+    document.querySelectorAll('.dex-entry-layout').forEach(function(layout){
+      var main = layout.querySelector('.dex-entry-main');
+      var sidebar = layout.querySelector('.dex-sidebar');
+      if (main) resizeObserver.observe(main);
+      if (sidebar) resizeObserver.observe(sidebar);
+    });
+  }
+
+  var queued = false;
+  function schedule(){
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function(){
+      queued = false;
+      syncAll();
+    });
+  }
+
+  function boot(){
+    setupObservers();
+    schedule();
+  }
+
+  if (window.__dexDescSyncBooted) {
+    if (typeof window.__dexDescSyncSchedule === 'function') window.__dexDescSyncSchedule();
+    return;
+  }
+
+  window.__dexDescSyncBooted = true;
+  window.__dexDescSyncSchedule = schedule;
+
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('load', boot, { once: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>`;
+}
+
 function markerTokens(html, key) {
   const [startCore, endCore] = MARKERS[key];
   const start = `<!-- ${startCore} -->`;
@@ -171,6 +346,13 @@ function getAnchoredRegion(html, key) {
     contentEnd: endIx,
     content: html.slice(startIx + start.length, endIx),
   };
+}
+
+function hasAnchoredRegion(html, key) {
+  const { start, end } = markerTokens(html, key);
+  const startIx = html.indexOf(start);
+  const endIx = html.indexOf(end);
+  return startIx >= 0 && endIx > startIx;
 }
 
 function replaceBetween(html, region, content) {
@@ -284,12 +466,16 @@ export function buildVideoIframe(embedUrl) {
 ></iframe>`;
 }
 
-function buildBreadcrumbMarkup(canonical = {}) {
-  const current = escapeHtml(formatBreadcrumbCurrentLabel(canonical));
+function buildBreadcrumbMarkup(currentLabel = 'entry') {
+  const current = escapeHtml(currentLabel);
   return `<div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay>
   <div class="dex-breadcrumb" data-dex-breadcrumb>
     <a class="dex-breadcrumb-back" href="${BREADCRUMB_BACK_HREF}" data-dex-breadcrumb-back>catalog</a>
-    <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter aria-hidden="true">⟡</span>
+    <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter aria-hidden="true">
+      <svg class="dex-breadcrumb-icon" viewBox="0 0 24 24" width="24" height="24" focusable="false" aria-hidden="true">
+        <path data-dex-breadcrumb-path d="${BREADCRUMB_ICON_INITIAL_PATH}"></path>
+      </svg>
+    </span>
     <span class="dex-breadcrumb-current">${current}</span>
   </div>
 </div>
@@ -338,6 +524,53 @@ function buildBreadcrumbMarkup(canonical = {}) {
 </script>`;
 }
 
+function buildEntryPageTitleMarkup(displayLabel = 'entry') {
+  return `<h1 class="dex-entry-page-title" data-dex-entry-page-title>${escapeHtml(displayLabel)}</h1>`;
+}
+
+function buildSubtitleItemMarkup({ label, value, iso = '' }) {
+  const safeLabel = escapeHtml(label);
+  const safeValue = escapeHtml(value);
+  if (iso) {
+    return `<span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">${safeLabel}</span><time class="dex-entry-subtitle-value" datetime="${escapeHtml(iso)}">${safeValue}</time></span>`;
+  }
+  return `<span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">${safeLabel}</span><span class="dex-entry-subtitle-value">${safeValue}</span></span>`;
+}
+
+function buildEntrySubtitleMarkup({ lifecycle, creditsData, sidebarConfig }) {
+  const published = formatLifecycleDateLabel(lifecycle?.publishedAt);
+  const updated = formatLifecycleDateLabel(lifecycle?.updatedAt);
+  const location = resolveSubtitleLocation({ creditsData, sidebarConfig });
+  return `<div class="dex-entry-subtitle" data-dex-entry-subtitle>
+  ${buildSubtitleItemMarkup({ label: 'published', value: published.label, iso: published.iso })}
+  ${buildSubtitleItemMarkup({ label: 'updated', value: updated.label, iso: updated.iso })}
+  ${buildSubtitleItemMarkup({ label: 'location', value: location })}
+</div>`;
+}
+
+function buildEntryHeaderMarkup({ displayLabel = 'entry', lifecycle, creditsData, sidebarConfig }) {
+  return `<div class="dex-entry-header" data-dex-entry-header>
+${buildBreadcrumbMarkup(displayLabel)}
+${buildEntryPageTitleMarkup(displayLabel)}
+${buildEntrySubtitleMarkup({ lifecycle, creditsData, sidebarConfig })}
+</div>`;
+}
+
+function injectTitleRegion(_regionHtml, { displayLabel = 'entry', lifecycle, creditsData, sidebarConfig } = {}) {
+  const headerMarkup = buildEntryHeaderMarkup({ displayLabel, lifecycle, creditsData, sidebarConfig });
+  return headerMarkup;
+}
+
+function injectTitleBeforeLayout(html, { displayLabel = 'entry', lifecycle, creditsData, sidebarConfig } = {}) {
+  const layoutTagRx = /<div[^>]*class=["'][^"']*\bdex-entry-layout\b[^"']*["'][^>]*>/i;
+  if (!layoutTagRx.test(html)) return { html, injected: false };
+  const titleMarkup = `${buildEntryHeaderMarkup({ displayLabel, lifecycle, creditsData, sidebarConfig })}\n`;
+  return {
+    html: html.replace(layoutTagRx, `${titleMarkup}$&`),
+    injected: true,
+  };
+}
+
 function writeTagAttr(tag, attrName, attrValue) {
   const rx = new RegExp(`\\s${attrName}\\s*=\\s*(["'])[\\s\\S]*?\\1`, 'i');
   if (rx.test(tag)) return tag.replace(rx, ` ${attrName}="${attrValue}"`);
@@ -375,7 +608,7 @@ function resolveVideoSourceUrl(video) {
   return url;
 }
 
-function injectVideoRegion(regionHtml, video, canonical) {
+function injectVideoRegion(regionHtml, video) {
   const originalUrl = resolveVideoSourceUrl(video);
   const parsed = parseVideoUrl(originalUrl);
   if (parsed.provider === 'unknown') {
@@ -392,7 +625,6 @@ function injectVideoRegion(regionHtml, video, canonical) {
   const aspectRx = /(<div[^>]*class=["'][^"']*\bdex-video-aspect\b[^"']*["'][^>]*>)([\s\S]*?)(<\/div>)/i;
   if (!aspectRx.test(regionHtml)) throw new Error('Template video anchor region missing .dex-video-aspect container.');
 
-  const breadcrumbMarkup = buildBreadcrumbMarkup(canonical);
   const videoMarkup = `${updatedVideoTag}
   <div class="dex-video-aspect">
 ${iframeHtml}
@@ -400,7 +632,6 @@ ${iframeHtml}
 </div>`;
 
   return `<div class="dex-video-shell">
-${breadcrumbMarkup}
 ${videoMarkup}
 </div>`;
 }
@@ -511,7 +742,11 @@ function normalizeAllowedOutsideAnchorChanges(html) {
 export function assertAnchorOnlyChanges(templateHtml, outputHtml) {
   const normalizedTemplate = normalizeAllowedOutsideAnchorChanges(templateHtml);
   const normalizedOutput = normalizeAllowedOutsideAnchorChanges(outputHtml);
-  const regions = REQUIRED_ANCHORS.map((key) => ({ key, template: getAnchoredRegion(normalizedTemplate, key), output: getAnchoredRegion(normalizedOutput, key) }))
+  const anchorKeys = [...REQUIRED_ANCHORS];
+  if (hasAnchoredRegion(normalizedTemplate, 'title') && hasAnchoredRegion(normalizedOutput, 'title')) {
+    anchorKeys.push('title');
+  }
+  const regions = anchorKeys.map((key) => ({ key, template: getAnchoredRegion(normalizedTemplate, key), output: getAnchoredRegion(normalizedOutput, key) }))
     .sort((a, b) => a.template.startIx - b.template.startIx);
 
   let tCursor = 0;
@@ -530,7 +765,7 @@ export function assertAnchorOnlyChanges(templateHtml, outputHtml) {
   }
 }
 
-export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, creditsData, canonical, video, title, authEnabled = true }) {
+export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml, manifest, sidebarConfig, creditsData, canonical, lifecycle, video, title, authEnabled = true }) {
   let html = templateHtml;
   detectTemplateProblems(html).forEach((problem) => {
     if (problem.includes('DEX:VIDEO_START')) throw new Error('Template missing DEX:VIDEO anchors');
@@ -541,17 +776,39 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   html = stripDexContractScripts(html);
 
   const resolvedCanonical = deriveCanonicalEntry({ canonical, sidebarConfig, creditsData });
+  const displayLabel = formatCanonicalEntryDisplayLabel(resolvedCanonical, title);
+
+  let titleInjectionStrategy = 'layout-fallback';
+  if (hasAnchoredRegion(html, 'title')) {
+    const titleRegion = getAnchoredRegion(html, 'title');
+    html = replaceBetween(html, titleRegion, injectTitleRegion(titleRegion.content, {
+      displayLabel,
+      lifecycle,
+      creditsData,
+      sidebarConfig,
+    }));
+    titleInjectionStrategy = 'anchors';
+  } else {
+    const withFallback = injectTitleBeforeLayout(html, {
+      displayLabel,
+      lifecycle,
+      creditsData,
+      sidebarConfig,
+    });
+    html = withFallback.html;
+    if (!withFallback.injected) titleInjectionStrategy = 'none';
+  }
 
   const videoRegion = getAnchoredRegion(html, 'video');
-  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video, resolvedCanonical));
+  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
 
   const resolvedDescriptionHtml = descriptionTextToHtml(typeof descriptionText === 'string' ? descriptionText : stripHtmlTags(descriptionHtml));
   const descRegion = getAnchoredRegion(html, 'desc');
-  html = replaceBetween(html, descRegion, resolvedDescriptionHtml.trim());
+  html = replaceBetween(html, descRegion, buildDescriptionRegion(resolvedDescriptionHtml.trim()));
 
   const sidebarRegion = getAnchoredRegion(html, 'sidebar');
   html = replaceBetween(html, sidebarRegion, buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }));
-  if (title) html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(displayLabel)}</title>`);
 
   if (authEnabled) {
     const canonical = AUTH_CANDIDATES.find((s) => html.includes(`src="${s}"`)) || AUTH_CANDIDATES[0];
@@ -568,7 +825,7 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   }
 
   assertDexSidebarContract(html);
-  return { html, strategy: { video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
+  return { html, strategy: { title: titleInjectionStrategy, video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
 }
 
 export const AUTH_TRIO = [...AUTH_CANDIDATES, AUTH_CDN, '/assets/dex-auth.js'];

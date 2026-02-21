@@ -12,6 +12,7 @@ const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-'));
 const tmpl = `<!doctype html><html><head><title>Template</title><link rel="stylesheet" href="/assets/css/dex.css"><script defer src="/assets/dex-auth0-config.js"></script></head><body>
 <script id="dex-sidebar-config" type="application/json">{"downloads":{"formats":{"audio":[{"key":"wav"}],"video":[{"key":"1080p"}]}}}</script>
 <!-- DEX:SIDEBAR_PAGE_CONFIG_START --><script id="dex-sidebar-page-config" type="application/json">{}</script><!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
+<!-- DEX:TITLE_START --><h1 class="dex-entry-page-title" data-dex-entry-page-title></h1><!-- DEX:TITLE_END -->
 <!-- DEX:VIDEO_START --><div class="dex-video" data-video-url=""><div class="dex-video-aspect"></div></div><!-- DEX:VIDEO_END -->
 <!-- DEX:DESC_START --><p>lorem ipsum</p><!-- DEX:DESC_END -->
 <script id="dex-manifest" type="application/json">{}</script>
@@ -32,6 +33,7 @@ const ytInjected = injectEntryHtml(tmpl, {
   descriptionText: 'desc',
   manifest: { audio: { A: { wav: '' }, B: { wav: '' }, C: { wav: '' }, D: { wav: '' }, E: { wav: '' }, X: { wav: '' } }, video: { A: { '1080p': '' }, B: { '1080p': '' }, C: { '1080p': '' }, D: { '1080p': '' }, E: { '1080p': '' }, X: { '1080p': '' } } },
   sidebarConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A'], specialEventImage: null, credits: { artist: ['Artist'], instruments: ['Synth'], year: 2026, season: 'S2', location: 'Somewhere', video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] }, audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] } }, fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { sampleLength: '', tags: [] } },
+  lifecycle: { publishedAt: '2024-01-07T00:00:00.000Z', updatedAt: '2026-02-21T00:00:00.000Z' },
   video: { mode: 'url', dataUrl: 'https://youtu.be/CSFGiU1gg4g?si=x', dataHtml: '' },
   title: 'Yt Test',
   authEnabled: true,
@@ -52,7 +54,10 @@ assertTemplateDrift(tmpl, outHtml);
 for (const needle of [
   'src="https://www.youtube-nocookie.com/embed/CSFGiU1gg4g"',
   'data-video-url="https://youtu.be/CSFGiU1gg4g?si=x"',
-  '<p>desc</p>',
+  'desc</p>',
+  'class="dex-entry-desc-scroll"',
+  'id="dex-entry-desc-sync"',
+  '<title>synth, artist</title>',
   'LOOKUP-1',
   `${DEFAULT_ASSET_ORIGIN}/assets/css/dex.css`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
@@ -70,19 +75,36 @@ if (!regionMatch[1].includes('<iframe')) throw new Error('DEX:VIDEO region missi
 if (!regionMatch[1].includes('https://www.youtube-nocookie.com/embed/CSFGiU1gg4g')) {
   throw new Error('DEX:VIDEO region missing normalized YouTube embed URL');
 }
-if (!regionMatch[1].includes('class="dex-breadcrumb"')) throw new Error('DEX:VIDEO region missing breadcrumb component');
 if (!regionMatch[1].includes('class="dex-video-shell"')) throw new Error('DEX:VIDEO region missing video shell wrapper');
-if (!regionMatch[1].includes('class="dex-breadcrumb-overlay"')) throw new Error('DEX:VIDEO region missing breadcrumb overlay wrapper');
-if (!regionMatch[1].includes('https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:VIDEO region missing breadcrumb motion runtime');
-if (!regionMatch[1].includes('synth, artist')) throw new Error('breadcrumb should render lowercase canonical instrument + artist');
-if (regionMatch[1].indexOf('class="dex-breadcrumb"') > regionMatch[1].indexOf('class="dex-video"')) {
-  throw new Error('breadcrumb should render above .dex-video container');
-}
+if (regionMatch[1].includes('class="dex-breadcrumb"')) throw new Error('DEX:VIDEO region should not include breadcrumb component');
 if (/source_ve_path/i.test(regionMatch[1])) {
   throw new Error('DEX:VIDEO region should not include source_ve_path');
 }
 const breadcrumbCount = (outHtml.match(/class="dex-breadcrumb"/g) || []).length;
 if (breadcrumbCount !== 1) throw new Error(`expected 1 breadcrumb component, found ${breadcrumbCount}`);
+const titleRegion = outHtml.match(/<!-- DEX:TITLE_START -->([\s\S]*?)<!-- DEX:TITLE_END -->/);
+if (!titleRegion) throw new Error('missing DEX:TITLE region');
+if (!titleRegion[1].includes('class="dex-entry-header"')) throw new Error('DEX:TITLE region missing entry header wrapper');
+if (!titleRegion[1].includes('class="dex-breadcrumb"')) throw new Error('DEX:TITLE region missing breadcrumb component');
+if (!titleRegion[1].includes('class="dex-entry-page-title"')) throw new Error('DEX:TITLE region missing entry page title');
+if (!titleRegion[1].includes('synth, artist')) throw new Error('DEX:TITLE region should render canonical display title');
+if (!titleRegion[1].includes('class="dex-entry-subtitle"')) throw new Error('DEX:TITLE region missing subtitle row');
+if (!titleRegion[1].includes('class="dex-entry-subtitle-label">published')) throw new Error('DEX:TITLE region missing published subtitle item');
+if (!titleRegion[1].includes('class="dex-entry-subtitle-label">updated')) throw new Error('DEX:TITLE region missing updated subtitle item');
+if (!titleRegion[1].includes('class="dex-entry-subtitle-label">location')) throw new Error('DEX:TITLE region missing location subtitle item');
+if (!titleRegion[1].includes('https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:TITLE region missing breadcrumb motion runtime');
+const descRegion = outHtml.match(/<!-- DEX:DESC_START -->([\s\S]*?)<!-- DEX:DESC_END -->/);
+if (!descRegion) throw new Error('missing DEX:DESC region');
+if (!descRegion[1].includes('class="dex-entry-desc-scroll"')) throw new Error('DEX:DESC region missing scroll wrapper');
+if (!descRegion[1].includes('class="dex-entry-desc-heading"')) throw new Error('DEX:DESC region missing description heading');
+if (!descRegion[1].includes('dex-entry-desc-heading-label--base')) throw new Error('DEX:DESC region missing base heading label');
+if (!descRegion[1].includes('dex-entry-desc-heading-label--hover')) throw new Error('DEX:DESC region missing hover heading label');
+if (!descRegion[1].includes('data-dex-scroll-dot="y"')) throw new Error('DEX:DESC region missing dot-scroll marker');
+
+const outEntry = JSON.parse(await fs.readFile(path.join(temp, 'entries', generatedSlug, 'entry.json'), 'utf8'));
+if (!outEntry.lifecycle?.publishedAt || !outEntry.lifecycle?.updatedAt) throw new Error('entry.json missing lifecycle timestamps');
+if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.publishedAt)) throw new Error('entry.json lifecycle.publishedAt should be ISO datetime');
+if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.updatedAt)) throw new Error('entry.json lifecycle.updatedAt should be ISO datetime');
 
 const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
 if (!cfgMatch) throw new Error('missing #dex-sidebar-config script node in output html');
@@ -138,6 +160,16 @@ for (const needle of [
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-sidebar.js`,
 ]) {
   if (!portableHtml.includes(needle)) throw new Error(`portable output missing runtime URL: ${needle}`);
+}
+for (const needle of [
+  'announcement-bar-reserved-space',
+  'class="sqs-announcement-bar-custom-location"',
+  'class="yui3-widget sqs-widget sqs-announcement-bar"',
+]) {
+  if (!portableHtml.includes(needle)) throw new Error(`portable output missing announcement bar contract: ${needle}`);
+}
+if (!/class="sqs-announcement-bar-dropzone"[\s\S]*?class="sqs-announcement-bar-custom-location"[\s\S]*?class="yui3-widget sqs-widget sqs-announcement-bar"/.test(portableHtml)) {
+  throw new Error('portable output should place announcement bar inside announcement dropzone');
 }
 const portableVerify = spawnSync('node', [path.join(root, 'scripts/verify-portable-entry-html.mjs')], { cwd: portableTemp, encoding: 'utf8' });
 if (portableVerify.status !== 0) {

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { AUTH_TRIO } from './entry-html.mjs';
+import { resolveLifecycleForWrite } from './entry-lifecycle.mjs';
 import { prepareTemplate } from './init-core.mjs';
 import { loadTagsCatalog } from './tags.mjs';
 import { readEntryFolder, writeEntryFolder, generateIndexHtml, normalizeManifestWithFormats, validateEntryFolderData, formatKeysFromTemplate } from './entry-store.mjs';
@@ -112,8 +113,13 @@ export async function repairEntry({ slug, entriesDir = './entries', templateArg,
   const payload = await readEntryFolder(slug, { entriesDir });
   const manifest = normalizeManifestWithFormats(payload.manifest, formatKeys);
   const descriptionText = String(payload.descriptionText || payload.entry.descriptionText || '').trim();
-  const nextEntry = { ...payload.entry, descriptionText };
-  const indexHtml = generateIndexHtml({ templateHtml: template.templateHtml, entry: nextEntry, descriptionText, manifest });
+  const lifecycle = await resolveLifecycleForWrite({
+    existingLifecycle: payload.entry.lifecycle,
+    entryFolder: payload.folder,
+    now: Date.now(),
+  });
+  const nextEntry = { ...payload.entry, descriptionText, lifecycle };
+  const indexHtml = generateIndexHtml({ templateHtml: template.templateHtml, entry: nextEntry, descriptionText, manifest, lifecycle });
   const sanitizedCheck = verifySanitizedHtml(indexHtml);
   if (!sanitizedCheck.ok) {
     throw new Error(`Repair aborted; regenerated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
