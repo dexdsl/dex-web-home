@@ -11,6 +11,12 @@ import { computeWindow } from './rolodex.mjs';
 const CHECKS = ['Title', 'Description', 'Lookup #', 'Video URL', 'Series', 'Buckets', 'License sentence', 'Instruments', 'Credits / People', 'Downloads', 'File Specs', 'Metadata'];
 
 function toPeople(list = []) { return list.map((name) => ({ name, links: [] })); }
+function mapSeriesToImage(series) {
+  if (series === 'dex') return '/assets/series/dex.png';
+  if (series === 'inDex') return '/assets/series/index.png';
+  if (series === 'dexFest') return '/assets/series/dexfest.png';
+  return '/assets/series/dex.png';
+}
 
 export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
   const [entries, setEntries] = useState([]);
@@ -61,7 +67,10 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
     if (selectedSections.includes('Description')) entry.descriptionText = form.descriptionText;
     if (selectedSections.includes('Lookup #')) entry.sidebarPageConfig.lookupNumber = form.lookupNumber;
     if (selectedSections.includes('Video URL')) entry.video = { mode: 'url', dataUrl: form.videoUrl, dataHtml: `<iframe src="${form.videoUrl}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>` };
-    if (selectedSections.includes('Series')) entry.series = form.series;
+    if (selectedSections.includes('Series')) {
+      entry.series = form.series;
+      entry.sidebarPageConfig.specialEventImage = mapSeriesToImage(form.series);
+    }
     if (selectedSections.includes('Buckets')) { entry.selectedBuckets = form.buckets; entry.sidebarPageConfig.buckets = form.buckets; }
     if (selectedSections.includes('License sentence')) entry.sidebarPageConfig.attributionSentence = form.attributionSentence;
     if (selectedSections.includes('Instruments')) entry.sidebarPageConfig.credits.instruments = form.instruments;

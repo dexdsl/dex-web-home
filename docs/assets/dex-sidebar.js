@@ -3,12 +3,6 @@
   window.__dexSidebarRuntimeBound = true;
 
   const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
-  const SERIES_URLS = {
-    dex: 'url("https://dexdsl.org/assets/series/dex.png")',
-    index: 'url("https://dexdsl.org/assets/series/index.png")',
-    dexfest: 'url("https://dexdsl.org/assets/series/dexfest.png")',
-  };
-
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
   const buildBucketsHtml = (pageBuckets) => {
@@ -19,14 +13,6 @@
         return `<span class="badge ${cls}">${bucket}</span>`;
       })
       .join('');
-  };
-
-  const normalizeSeries = (series) => {
-    const raw = String(series || 'dex').toLowerCase();
-    const key = raw === 'index' ? 'index' : raw;
-    if (key === 'index') return { seriesKey: 'index', seriesUrl: SERIES_URLS.index };
-    if (key === 'dexfest') return { seriesKey: 'dexfest', seriesUrl: SERIES_URLS.dexfest };
-    return { seriesKey: 'dex', seriesUrl: SERIES_URLS.dex };
   };
 
   const parseJsonScript = (id) => {
@@ -168,20 +154,24 @@
 
     const lookup = page.lookupNumber || '';
     const badgesHtml = buildBucketsHtml(page.buckets);
-    const { seriesKey, seriesUrl } = normalizeSeries(page.series);
+    const seriesUrl = String(page.specialEventImage || '').trim();
     render('.dex-overview', 'Overview', `
-      <div class="dex-overview-row">
-        <div class="dex-overview-lookup">
-          <div class="dex-overview-lookupValue">#${lookup}</div>
-          <div class="dex-overview-lookupLabel">Lookup #</div>
+      <div class="dex-overview-grid" role="group" aria-label="Overview">
+        <div class="overview-cell overview-cell--lookup">
+          <div class="overview-top overview-lookup">#${lookup}</div>
+          <div class="overview-bottom overview-label">LOOKUP #</div>
         </div>
-        <div class="dex-overview-series" data-series="${seriesKey}">
-          <div class="dex-overview-seriesMark" style="--dex-series-url:${seriesUrl}"></div>
-          <div class="dex-overview-seriesLabel">Series</div>
+
+        <div class="overview-cell overview-cell--series">
+          <div class="overview-top overview-series">
+            <img class="overview-series-img" src="${seriesUrl}" alt="Series" />
+          </div>
+          <div class="overview-bottom overview-label">SERIES</div>
         </div>
-        <div class="dex-overview-buckets">
-          <div class="dex-overview-badges">${badgesHtml}</div>
-          <div class="dex-overview-bucketsLabel">Buckets</div>
+
+        <div class="overview-cell overview-cell--buckets">
+          <div class="overview-top overview-badges">${badgesHtml}</div>
+          <div class="overview-bottom overview-label">BUCKETS</div>
         </div>
       </div>
     `);

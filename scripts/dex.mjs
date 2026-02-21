@@ -64,7 +64,7 @@ function mapSeriesToImage(series) {
   if (series === 'dex') return '/assets/series/dex.png';
   if (series === 'inDex') return '/assets/series/index.png';
   if (series === 'dexFest') return '/assets/series/dexfest.png';
-  return null;
+  return '/assets/series/dex.png';
 }
 
 function iframeFor(url) {
@@ -87,7 +87,9 @@ async function collectInitData(opts, slugArg) {
     const videoUrl = base.video?.dataUrl || 'https://player.vimeo.com/video/123456789';
     const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
     const sidebar = {
-      lookupNumber: lookup, buckets: base.sidebarPageConfig?.buckets || ['A'], specialEventImage: base.sidebarPageConfig?.specialEventImage || null,
+      lookupNumber: lookup,
+      buckets: base.sidebarPageConfig?.buckets || ['A'],
+      specialEventImage: base.sidebarPageConfig?.specialEventImage || mapSeriesToImage(base.series || 'dex'),
       attributionSentence: base.sidebarPageConfig?.attributionSentence || 'Attribution',
       credits: defaultCredits(seedCredits),
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },

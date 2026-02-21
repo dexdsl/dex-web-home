@@ -9,6 +9,12 @@ import { computeWindow } from './rolodex.mjs';
 
 const CHANNELS = ['mono', 'stereo', 'multichannel'];
 const SERIES_OPTIONS = ['dex', 'inDex', 'dexFest'];
+function mapSeriesToImage(series) {
+  if (series === 'dex') return '/assets/series/dex.png';
+  if (series === 'inDex') return '/assets/series/index.png';
+  if (series === 'dexFest') return '/assets/series/dexfest.png';
+  return '/assets/series/dex.png';
+}
 const LAST_CACHE = '.dex-last.json';
 
 function iframeFor(url) { return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`; }
@@ -265,7 +271,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           year: Number(form.creditsData.year), season: form.creditsData.season, location: form.creditsData.location,
         };
         const sidebar = {
-          lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: null, attributionSentence: form.attributionSentence,
+          lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: mapSeriesToImage(form.series), attributionSentence: form.attributionSentence,
           credits: { artist: creditsData.artist, artistAlt: creditsData.artistAlt, instruments: creditsData.instruments, video: { director: creditsData.video.director, cinematography: creditsData.video.cinematography, editing: creditsData.video.editing }, audio: { recording: creditsData.audio.recording, mix: creditsData.audio.mix, master: creditsData.audio.master }, year: creditsData.year, season: creditsData.season, location: creditsData.location },
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
