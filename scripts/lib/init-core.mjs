@@ -9,7 +9,6 @@ import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
-const VIDEO_ANCHOR_MARKER = 'anchors <!-- DEX:VIDEO_START --> ... <!-- DEX:VIDEO_END -->';
 
 const ensure = async (p) => {
   try {
@@ -25,7 +24,7 @@ export async function prepareTemplate({ templateArg } = {}) {
     const templatePath = path.resolve(templateArg);
     if (!(await ensure(templatePath))) throw new Error(`Template not found: ${templatePath}`);
     const templateHtml = await fs.readFile(templatePath, 'utf8');
-    const missing = detectTemplateProblems(templateHtml).filter((problem) => problem !== VIDEO_ANCHOR_MARKER);
+    const missing = detectTemplateProblems(templateHtml);
     if (missing.length) throw new Error(`Template validation failed (${templatePath}); missing: ${missing.join(', ')}`);
     return { templatePath, templateHtml, formatKeys: extractFormatKeys(templateHtml) };
   }
@@ -43,7 +42,7 @@ export async function prepareTemplate({ templateArg } = {}) {
     }
 
     const templateHtml = await fs.readFile(candidatePath, 'utf8');
-    const missing = detectTemplateProblems(templateHtml).filter((problem) => problem !== VIDEO_ANCHOR_MARKER);
+    const missing = detectTemplateProblems(templateHtml);
     if (!missing.length) {
       return { templatePath: candidatePath, templateHtml, formatKeys: extractFormatKeys(templateHtml) };
     }
@@ -58,7 +57,7 @@ export async function prepareTemplate({ templateArg } = {}) {
 }
 
 export async function writeEntryFromData({ templateHtml, templatePath, data, opts = {} }) {
-  const missing = detectTemplateProblems(templateHtml).filter((problem) => problem !== VIDEO_ANCHOR_MARKER);
+  const missing = detectTemplateProblems(templateHtml);
   if (missing.length) throw new Error(`Template validation failed; missing: ${missing.join(', ')}`);
 
   const formatKeys = extractFormatKeys(templateHtml);

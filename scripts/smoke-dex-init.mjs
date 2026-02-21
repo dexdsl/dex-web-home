@@ -9,10 +9,10 @@ import { assertAnchorOnlyChanges as assertTemplateDrift, injectEntryHtml } from 
 
 const root = process.cwd();
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-'));
-const tmpl = `<!doctype html><html><head><title>Template</title><script defer src="/assets/dex-auth0-config.js"></script></head><body>
+const tmpl = `<!doctype html><html><head><title>Template</title><link rel="stylesheet" href="/assets/css/dex.css"><script defer src="/assets/dex-auth0-config.js"></script></head><body>
 <script id="dex-sidebar-config" type="application/json">{"downloads":{"formats":{"audio":[{"key":"wav"}],"video":[{"key":"1080p"}]}}}</script>
 <!-- DEX:SIDEBAR_PAGE_CONFIG_START --><script id="dex-sidebar-page-config" type="application/json">{}</script><!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
-<!-- DEX:VIDEO_START --><div class="sqs-block video-block"><div class="sqs-video-wrapper" data-url="https://youtu.be/seed" data-html="&lt;iframe src=&quot;https://www.youtube.com/embed/seed?feature=oembed&quot;&gt;&lt;/iframe&gt;"></div></div><!-- DEX:VIDEO_END -->
+<!-- DEX:VIDEO_START --><div class="dex-video" data-video-url=""><div class="dex-video-aspect"></div></div><!-- DEX:VIDEO_END -->
 <!-- DEX:DESC_START --><p>lorem ipsum</p><!-- DEX:DESC_END -->
 <script id="dex-manifest" type="application/json">{}</script>
 </body></html>`;
@@ -36,7 +36,7 @@ const ytInjected = injectEntryHtml(tmpl, {
   title: 'Yt Test',
   authEnabled: true,
 });
-if (!ytInjected.html.includes('src=&quot;https://www.youtube.com/embed/CSFGiU1gg4g&quot;')) throw new Error('youtube normalization failed');
+if (!ytInjected.html.includes('src="https://www.youtube-nocookie.com/embed/CSFGiU1gg4g"')) throw new Error('youtube normalization failed');
 if (!ytInjected.html.includes('data-person') || !ytInjected.html.includes('person-pin')) throw new Error('compiled credits pins missing');
 const run = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: temp, encoding: 'utf8' });
 const dry = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json', '--dry-run']);
@@ -50,10 +50,11 @@ const generatedSlug = generatedDirs[0].name;
 const outHtml = await fs.readFile(path.join(temp, 'entries', generatedSlug, 'index.html'), 'utf8');
 assertTemplateDrift(tmpl, outHtml);
 for (const needle of [
-  'src=&quot;https://www.youtube.com/embed/CSFGiU1gg4g&quot;',
-  'data-url="https://youtu.be/CSFGiU1gg4g?si=x"',
+  'src="https://www.youtube-nocookie.com/embed/CSFGiU1gg4g"',
+  'data-video-url="https://youtu.be/CSFGiU1gg4g?si=x"',
   '<p>desc</p>',
   'LOOKUP-1',
+  `${DEFAULT_ASSET_ORIGIN}/assets/css/dex.css`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   '<script id="dex-sidebar-page-config" type="application/json">',
@@ -61,6 +62,13 @@ for (const needle of [
   '<script id="dex-manifest" type="application/json">',
 ]) {
   if (!outHtml.includes(needle)) throw new Error(`missing in output html: ${needle}`);
+}
+
+const regionMatch = outHtml.match(/<!-- DEX:VIDEO_START -->([\s\S]*?)<!-- DEX:VIDEO_END -->/);
+if (!regionMatch) throw new Error('missing DEX:VIDEO region');
+if (!regionMatch[1].includes('<iframe')) throw new Error('DEX:VIDEO region missing iframe');
+if (!regionMatch[1].includes('https://www.youtube-nocookie.com/embed/CSFGiU1gg4g')) {
+  throw new Error('DEX:VIDEO region missing normalized YouTube embed URL');
 }
 
 const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
@@ -111,6 +119,7 @@ const portableDirs = (await fs.readdir(path.join(portableTemp, 'entries'), { wit
 if (!portableDirs.length) throw new Error('no generated portable entry dir');
 const portableHtml = await fs.readFile(path.join(portableTemp, 'entries', portableDirs[0].name, 'index.html'), 'utf8');
 for (const needle of [
+  `${DEFAULT_ASSET_ORIGIN}/assets/css/dex.css`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-sidebar.js`,

@@ -3,10 +3,10 @@
   "title": "test",
   "video": {
     "mode": "url",
-    "dataUrl": "example.com",
-    "dataHtml": "<iframe src=\"example.com\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen></iframe>"
+    "dataUrl": "https://www.youtube.com/watch?v=CSFGiU1gg4g",
+    "dataHtml": ""
   },
-  "descriptionText": "test",
+  "descriptionText": "desc",
   "series": "dex",
   "selectedBuckets": [
     "A"
@@ -15,7 +15,7 @@
     "artist": [
       "t"
     ],
-    "artistAlt": "test",
+    "artistAlt": null,
     "instruments": [
       "test"
     ],
@@ -43,7 +43,7 @@
     },
     "year": 2026,
     "season": "S1",
-    "location": "test"
+    "location": "t"
   },
   "fileSpecs": {
     "bitDepth": 24,
@@ -61,22 +61,21 @@
   "metadata": {
     "sampleLength": "AUTO",
     "tags": [
-      "live",
-      "improv"
+      "ambient"
     ]
   },
   "sidebarPageConfig": {
-    "lookupNumber": "lookup",
+    "lookupNumber": "test",
     "buckets": [
       "A"
     ],
-    "specialEventImage": null,
-    "attributionSentence": "test",
+    "specialEventImage": "/assets/series/dex.png",
+    "attributionSentence": "attribution",
     "credits": {
       "artist": [
         "t"
       ],
-      "artistAlt": "test",
+      "artistAlt": null,
       "instruments": [
         "test"
       ],
@@ -104,7 +103,7 @@
       },
       "year": 2026,
       "season": "S1",
-      "location": "test"
+      "location": "t"
     },
     "fileSpecs": {
       "bitDepth": 24,
@@ -122,8 +121,7 @@
     "metadata": {
       "sampleLength": "AUTO",
       "tags": [
-        "live",
-        "improv"
+        "ambient"
       ]
     }
   }

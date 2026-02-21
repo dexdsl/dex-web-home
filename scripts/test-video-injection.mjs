@@ -7,7 +7,9 @@ const root = process.cwd();
 const templatePath = path.join(root, 'entry-template', 'index.html');
 const templateHtml = await fs.readFile(templatePath, 'utf8');
 
-const basePayload = {
+const videoUrl = 'https://www.youtube.com/watch?v=CSFGiU1gg4g';
+
+const injected = injectEntryHtml(templateHtml, {
   descriptionText: 'Video injection test',
   descriptionHtml: '',
   manifest: {
@@ -51,59 +53,22 @@ const basePayload = {
     },
     metadata: { sampleLength: '', tags: [] },
   },
+  video: { mode: 'url', dataUrl: videoUrl, dataHtml: '' },
   title: 'Video Test',
   authEnabled: false,
-};
+}).html;
 
-function render(video) {
-  return injectEntryHtml(templateHtml, { ...basePayload, video }).html;
-}
+const videoRegionMatch = injected.match(/<!-- DEX:VIDEO_START -->([\s\S]*?)<!-- DEX:VIDEO_END -->/);
+assert.ok(videoRegionMatch, 'DEX:VIDEO region missing');
+const videoRegion = videoRegionMatch[1];
 
-function renderResult(video, templateOverride = templateHtml) {
-  return injectEntryHtml(templateOverride, { ...basePayload, video });
-}
+assert.match(videoRegion, /class="dex-video"/);
+assert.match(videoRegion, /data-video-url="https:\/\/www\.youtube\.com\/watch\?v=CSFGiU1gg4g"/);
+assert.match(videoRegion, /src="https:\/\/www\.youtube-nocookie\.com\/embed\/CSFGiU1gg4g"/);
+assert.match(videoRegion, /loading="lazy"/);
+assert.match(videoRegion, /referrerpolicy="strict-origin-when-cross-origin"/);
 
-const watchHtml = render({
-  mode: 'url',
-  dataUrl: 'https://www.youtube.com/watch?v=CSFGiU1gg4g',
-  dataHtml: '<iframe src="example.com"></iframe>',
-});
-assert.match(watchHtml, /data-html="&lt;iframe/i);
-assert.match(watchHtml, /youtube\.com\/embed\/CSFGiU1gg4g/);
-assert.doesNotMatch(watchHtml, /data-html="<iframe/i);
-assert.doesNotMatch(watchHtml, /data-url="example\.com"/i);
-assert.doesNotMatch(watchHtml, /src="example\.com"/i);
-
-const shortHtml = render({
-  mode: 'url',
-  dataUrl: 'https://youtu.be/CSFGiU1gg4g?t=30',
-  dataHtml: '<iframe src="example.com"></iframe>',
-});
-assert.match(shortHtml, /youtube\.com\/embed\/CSFGiU1gg4g/);
-assert.match(shortHtml, /data-url="https:\/\/youtu\.be\/CSFGiU1gg4g\?t=30"/);
-assert.doesNotMatch(shortHtml, /data-url="example\.com"/i);
-assert.doesNotMatch(shortHtml, /src="example\.com"/i);
-
-const vimeoHtml = render({
-  mode: 'url',
-  dataUrl: 'https://vimeo.com/123456789?feature=oembed',
-  dataHtml: '<iframe src="example.com"></iframe>',
-});
-assert.match(vimeoHtml, /player\.vimeo\.com\/video\/123456789/);
-assert.match(vimeoHtml, /data-url="https:\/\/vimeo\.com\/123456789\?feature=oembed"/);
-assert.doesNotMatch(vimeoHtml, /data-url="example\.com"/i);
-assert.doesNotMatch(vimeoHtml, /src="example\.com"/i);
-
-const selectorTemplate = templateHtml
-  .replace('<!-- DEX:VIDEO_START -->', '')
-  .replace('<!-- DEX:VIDEO_END -->', '');
-const selectorInjected = renderResult({
-  mode: 'url',
-  dataUrl: 'https://youtu.be/CSFGiU1gg4g',
-  dataHtml: '',
-}, selectorTemplate);
-assert.equal(selectorInjected.strategy.video, 'selector');
-assert.match(selectorInjected.html, /data-url="https:\/\/youtu\.be\/CSFGiU1gg4g"/);
-assert.match(selectorInjected.html, /youtube\.com\/embed\/CSFGiU1gg4g/);
+assert.doesNotMatch(videoRegion, /sqs-video-wrapper/i);
+assert.doesNotMatch(videoRegion, /data-html="&lt;iframe/i);
 
 console.log('test-video-injection ok');
