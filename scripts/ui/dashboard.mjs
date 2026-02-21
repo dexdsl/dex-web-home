@@ -113,7 +113,7 @@ function DashboardApp({ initialPaletteOpen, version, noAnim }) {
     if (key.upArrow) { setSelected((idx) => (idx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length); return; }
     if (key.downArrow) { setSelected((idx) => (idx + 1) % MENU_ITEMS.length); return; }
     if (key.return && MENU_ITEMS[selected]?.id === 'init') setMode('init');
-  });
+  }, { isActive: mode === 'menu' || mode === 'palette' });
 
   const paletteWidth = Math.min(72, Math.max(24, cols - 4));
   const paletteHeight = Math.min(14, Math.max(8, rows - 4));
