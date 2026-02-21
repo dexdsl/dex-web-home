@@ -4,6 +4,7 @@ import { AUTH_TRIO } from './entry-html.mjs';
 import { prepareTemplate } from './init-core.mjs';
 import { loadTagsCatalog } from './tags.mjs';
 import { readEntryFolder, writeEntryFolder, generateIndexHtml, normalizeManifestWithFormats, validateEntryFolderData, formatKeysFromTemplate } from './entry-store.mjs';
+import { formatSanitizationIssues, verifySanitizedHtml } from './sanitize-generated-html.mjs';
 
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const esc = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -113,6 +114,10 @@ export async function repairEntry({ slug, entriesDir = './entries', templateArg,
   const descriptionText = String(payload.descriptionText || payload.entry.descriptionText || '').trim();
   const nextEntry = { ...payload.entry, descriptionText };
   const indexHtml = generateIndexHtml({ templateHtml: template.templateHtml, entry: nextEntry, descriptionText, manifest });
+  const sanitizedCheck = verifySanitizedHtml(indexHtml);
+  if (!sanitizedCheck.ok) {
+    throw new Error(`Repair aborted; regenerated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+  }
 
   const data = { indexHtml };
   if (normalizeManifest) data.manifest = manifest;

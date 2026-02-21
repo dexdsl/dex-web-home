@@ -1,0 +1,130 @@
+{
+  "slug": "test-4",
+  "title": "test-4",
+  "video": {
+    "mode": "url",
+    "dataUrl": "https://youtube.com/watch?v=CSFGiU1gg4g",
+    "dataHtml": ""
+  },
+  "descriptionText": "descrip",
+  "series": "dex",
+  "selectedBuckets": [
+    "A",
+    "B"
+  ],
+  "creditsData": {
+    "artist": [
+      "t"
+    ],
+    "artistAlt": "t",
+    "instruments": [
+      "test"
+    ],
+    "video": {
+      "director": [
+        "t"
+      ],
+      "cinematography": [
+        "t"
+      ],
+      "editing": [
+        "t"
+      ]
+    },
+    "audio": {
+      "recording": [
+        "t"
+      ],
+      "mix": [
+        "t"
+      ],
+      "master": [
+        "t"
+      ]
+    },
+    "year": 2026,
+    "season": "S1",
+    "location": "t"
+  },
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "AUTO",
+    "tags": [
+      "ambient"
+    ]
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "lookup",
+    "buckets": [
+      "A",
+      "B"
+    ],
+    "specialEventImage": "/assets/series/dex.png",
+    "attributionSentence": "attri",
+    "credits": {
+      "artist": [
+        "t"
+      ],
+      "artistAlt": "t",
+      "instruments": [
+        "test"
+      ],
+      "video": {
+        "director": [
+          "t"
+        ],
+        "cinematography": [
+          "t"
+        ],
+        "editing": [
+          "t"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "t"
+        ],
+        "mix": [
+          "t"
+        ],
+        "master": [
+          "t"
+        ]
+      },
+      "year": 2026,
+      "season": "S1",
+      "location": "t"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "AUTO",
+      "tags": [
+        "ambient"
+      ]
+    }
+  }
+}

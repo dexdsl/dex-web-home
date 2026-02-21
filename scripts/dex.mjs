@@ -199,6 +199,11 @@ async function initCommand(slugArg, opts) {
   const data = await collectInitData({ ...opts, formatKeys }, slugArg);
   const { report, lines } = await writeEntryFromData({ templatePath, templateHtml, data, opts });
   lines.forEach((line) => console.log(line));
+  if (!opts.dryRun) {
+    const relativeHtmlPath = path.relative(process.cwd(), report.htmlPath) || report.htmlPath;
+    console.log(`To preview: node scripts/serve-entry.mjs ${relativeHtmlPath}`);
+    console.log('URL: http://localhost:4173/');
+  }
 
   if (process.env.DEX_INIT_REPORT_PATH) {
     await fs.writeFile(process.env.DEX_INIT_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8').catch(() => {});

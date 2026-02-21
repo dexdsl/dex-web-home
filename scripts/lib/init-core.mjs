@@ -6,6 +6,7 @@ import { detectTemplateProblems, extractFormatKeys, injectEntryHtml } from './en
 import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, normalizeManifest, sidebarConfigSchema } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
+import { formatSanitizationIssues, sanitizeGeneratedHtml, verifySanitizedHtml } from './sanitize-generated-html.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -104,7 +105,12 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     title: data.title,
     authEnabled: true,
   });
-  const finalHtml = rewriteLocalAssetLinks(injected.html, getAssetOrigin());
+  const rewrittenHtml = rewriteLocalAssetLinks(injected.html, getAssetOrigin());
+  const finalHtml = sanitizeGeneratedHtml(rewrittenHtml);
+  const sanitizedCheck = verifySanitizedHtml(finalHtml);
+  if (!sanitizedCheck.ok) {
+    throw new Error(`Generated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+  }
 
   const folder = opts.flat ? path.join(path.resolve('.'), data.slug) : path.join(data.outDir, data.slug);
   const files = {

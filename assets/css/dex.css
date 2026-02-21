@@ -282,20 +282,37 @@ div.sqs-add-to-cart-button-inner {
   }
 
 // sidebar //
-.dex-video { width: 100%; }
-.dex-video-aspect{
-  position:relative;
-  width:100%;
-  padding-bottom:56.25%; /* 16:9 */
-  border-radius:12px;
-  overflow:hidden;
-  border:1px solid var(--dex-border, rgba(255,255,255,.18));
-  background: rgba(0,0,0,.15);
+.dex-entry-layout {
+display: grid;
+grid-template-columns: minmax(0, 1fr) 320px;
+gap: 24px;
 }
-.dex-video-aspect > iframe{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  border:0;
+
+@media (max-width: 960px) {
+.dex-entry-layout {
+grid-template-columns: 1fr;
+}
+}
+
+.dex-entry-main {
+position: relative;
+z-index: 1;
+}
+
+.dex-video-aspect {
+position: relative;
+width: 100%;
+padding-bottom: 56.25%;
+overflow: hidden;
+border-radius: 12px;
+}
+
+.dex-video-aspect iframe {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+border: 0;
 }
 /*──────────────────────────────────────────────────*/
 /*  :root – extended design tokens                */

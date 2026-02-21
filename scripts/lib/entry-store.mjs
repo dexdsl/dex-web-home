@@ -4,6 +4,7 @@ import { descriptionTextFromSeed, extractFormatKeys, injectEntryHtml } from './e
 import { ALL_BUCKETS, entrySchema, manifestSchemaForFormats, normalizeManifest } from './entry-schema.mjs';
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
+import { formatSanitizationIssues, sanitizeGeneratedHtml, verifySanitizedHtml } from './sanitize-generated-html.mjs';
 
 export async function readEntryFolder(slug, { entriesDir = './entries' } = {}) {
   const folder = path.join(path.resolve(entriesDir), slug);
@@ -62,7 +63,12 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
   }
   if (typeof data.indexHtml === 'string') {
     const file = path.join(folder, 'index.html');
-    await fs.writeFile(file, data.indexHtml, 'utf8');
+    const sanitizedHtml = sanitizeGeneratedHtml(data.indexHtml);
+    const sanitizedCheck = verifySanitizedHtml(sanitizedHtml);
+    if (!sanitizedCheck.ok) {
+      throw new Error(`Refusing to write unsanitized index.html for ${slug}: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+    }
+    await fs.writeFile(file, sanitizedHtml, 'utf8');
     wroteFiles.push(file);
   }
 
@@ -88,7 +94,13 @@ export function generateIndexHtml({ templateHtml, entry, descriptionText, manife
     title: entry.title,
     authEnabled: true,
   }).html;
-  return rewriteLocalAssetLinks(injected, getAssetOrigin());
+  const rewrittenHtml = rewriteLocalAssetLinks(injected, getAssetOrigin());
+  const sanitizedHtml = sanitizeGeneratedHtml(rewrittenHtml);
+  const sanitizedCheck = verifySanitizedHtml(sanitizedHtml);
+  if (!sanitizedCheck.ok) {
+    throw new Error(`Generated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+  }
+  return sanitizedHtml;
 }
 
 export function diffSummary(oldHtml, newHtml) {

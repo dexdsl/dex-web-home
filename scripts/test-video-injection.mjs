@@ -67,8 +67,15 @@ assert.match(videoRegion, /data-video-url="https:\/\/www\.youtube\.com\/watch\?v
 assert.match(videoRegion, /src="https:\/\/www\.youtube-nocookie\.com\/embed\/CSFGiU1gg4g"/);
 assert.match(videoRegion, /loading="lazy"/);
 assert.match(videoRegion, /referrerpolicy="strict-origin-when-cross-origin"/);
+assert.doesNotMatch(videoRegion, /\bstyle=/i);
 
 assert.doesNotMatch(videoRegion, /sqs-video-wrapper/i);
 assert.doesNotMatch(videoRegion, /data-html="&lt;iframe/i);
+
+const videoEndIx = injected.indexOf('<!-- DEX:VIDEO_END -->');
+const descStartIx = injected.indexOf('<!-- DEX:DESC_START -->');
+const asideCloseIx = injected.indexOf('</aside>');
+assert.ok(videoEndIx >= 0 && descStartIx >= 0 && videoEndIx < descStartIx, 'DEX:VIDEO must come before DEX:DESC');
+assert.ok(videoEndIx >= 0 && asideCloseIx >= 0 && videoEndIx < asideCloseIx, 'DEX:VIDEO must be inside main column before closing </aside>');
 
 console.log('test-video-injection ok');

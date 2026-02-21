@@ -7,6 +7,7 @@ const MARKERS = {
 const AUTH_CANDIDATES = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
 const AUTH_CDN = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js';
 const REQUIRED_ANCHORS = ['video', 'desc', 'sidebar'];
+const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -255,7 +256,7 @@ function injectVideoRegion(regionHtml, video) {
   const videoTagMatch = regionHtml.match(videoTagRx);
   if (!videoTagMatch) throw new Error('Template video anchor region missing .dex-video container.');
   const videoTag = videoTagMatch[0];
-  const updatedVideoTag = writeTagAttr(videoTag, 'data-video-url', encodeAttrEntities(originalUrl));
+  let updatedVideoTag = writeTagAttr(videoTag, 'data-video-url', encodeAttrEntities(originalUrl));
 
   const aspectRx = /(<div[^>]*class=["'][^"']*\bdex-video-aspect\b[^"']*["'][^>]*>)([\s\S]*?)(<\/div>)/i;
   if (!aspectRx.test(regionHtml)) throw new Error('Template video anchor region missing .dex-video-aspect container.');
@@ -265,13 +266,57 @@ function injectVideoRegion(regionHtml, video) {
     .replace(aspectRx, `$1\n${iframeHtml}\n$3`);
 }
 
-function buildSidebarRegion(sidebarConfig) {
+function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
   const compiled = {
     ...sidebarConfig,
     credits: compileSidebarCredits(sidebarConfig?.credits || {}),
   };
+  const globalJson = JSON.stringify(globalSidebarConfig || {}, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);
-  return `<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script>\n  try {\n    window.dexSidebarPageConfig = JSON.parse(\n      document.getElementById("dex-sidebar-page-config").textContent\n    );\n  } catch (e) {\n    console.error("[dex] failed to parse dex-sidebar-page-config", e);\n  }\n</script>`;
+  const manifestJson = JSON.stringify(manifest || {}, null, 2);
+  return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script>\n  try {\n    const el = document.getElementById('dex-sidebar-page-config');\n    if (el && !window.dexSidebarPageConfig) {\n      window.dexSidebarPageConfig = JSON.parse(el.textContent || '{}');\n    }\n  } catch (e) { console.error('[dex] sidebar page config parse failed', e); }\n</script>\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;
+}
+
+function scriptByIdRegex(id) {
+  return new RegExp(`<script[^>]*id=["']${esc(id)}["'][^>]*>[\\s\\S]*?<\\/script>\\s*`, 'gi');
+}
+
+function extractJsonScriptById(html, id) {
+  const rx = new RegExp(`<script[^>]*id=["']${esc(id)}["'][^>]*>([\\s\\S]*?)<\\/script>`, 'i');
+  const match = String(html || '').match(rx);
+  if (!match) throw new Error(`Template missing #${id} JSON script.`);
+  try {
+    return JSON.parse(String(match[1] || '{}').trim() || '{}');
+  } catch (error) {
+    throw new Error(`Invalid JSON in #${id}: ${error.message || error}`);
+  }
+}
+
+function stripDexContractScripts(html) {
+  return REQUIRED_CONTRACT_SCRIPT_IDS.reduce(
+    (acc, id) => acc.replace(scriptByIdRegex(id), ''),
+    String(html || ''),
+  );
+}
+
+function countScriptById(html, id) {
+  const rx = new RegExp(`<script[^>]*id=["']${esc(id)}["']`, 'gi');
+  return (String(html || '').match(rx) || []).length;
+}
+
+function assertDexSidebarContract(html) {
+  for (const id of REQUIRED_CONTRACT_SCRIPT_IDS) {
+    const count = countScriptById(html, id);
+    if (count !== 1) {
+      throw new Error(`Generated HTML must contain exactly one script#${id}; found ${count}.`);
+    }
+  }
+
+  const hasSidebarRuntime = /<script[^>]*src=["'][^"']*dex-sidebar\.js[^"']*["'][^>]*>/i.test(String(html || ''));
+  const hasPageConfig = countScriptById(html, 'dex-sidebar-page-config') === 1;
+  if (hasSidebarRuntime && !hasPageConfig) {
+    throw new Error('Generated HTML includes dex-sidebar.js but is missing script#dex-sidebar-page-config.');
+  }
 }
 
 export function detectTemplateProblems(html) {
@@ -310,10 +355,16 @@ export function extractFormatKeys(html) {
 
 function normalizeAllowedOutsideAnchorChanges(html) {
   return String(html || '')
+    .replace(/<!doctype[^>]*>/i, '<!doctype html>')
     .replace(/\b(src|href)\s*=\s*(["'])https?:\/\/[^"']+(\/(?:assets|scripts)\/[^"']*)\2/gi, '$1=$2$3$2')
     .replace(/<title>[\s\S]*?<\/title>/i, '<title>__DEX_TITLE__</title>')
-    .replace(/(<script[^>]*id="dex-manifest"[^>]*type="application\/json"[^>]*>)([\s\S]*?)(<\/script>)/i, '$1__DEX_MANIFEST__$3')
-    .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '');
+    .replace(scriptByIdRegex('dex-sidebar-config'), '')
+    .replace(scriptByIdRegex('dex-manifest'), '')
+    .replace(scriptByIdRegex('dex-sidebar-page-config'), '')
+    .replace(/<script[^>]*src=['"]\/assets\/dex-sidebar\.js['"][^>]*><\/script>\s*/g, '')
+    .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function assertAnchorOnlyChanges(templateHtml, outputHtml) {
@@ -345,6 +396,9 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
     if (problem.includes('anchors')) throw new Error(`Template must contain anchors: ${problem}`);
   });
 
+  const globalSidebarConfig = extractJsonScriptById(html, 'dex-sidebar-config');
+  html = stripDexContractScripts(html);
+
   const videoRegion = getAnchoredRegion(html, 'video');
   html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
 
@@ -353,10 +407,7 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   html = replaceBetween(html, descRegion, resolvedDescriptionHtml.trim());
 
   const sidebarRegion = getAnchoredRegion(html, 'sidebar');
-  html = replaceBetween(html, sidebarRegion, buildSidebarRegion(sidebarConfig));
-
-  html = html.replace(/(<script[^>]*id="dex-manifest"[^>]*type="application\/json"[^>]*>)([\s\S]*?)(<\/script>)/i, `$1\n${JSON.stringify(manifest, null, 2)}\n$3`);
-  if (!/"audio"\s*:/.test(html)) throw new Error('Failed to update dex-manifest JSON');
+  html = replaceBetween(html, sidebarRegion, buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }));
   if (title) html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
 
   if (authEnabled) {
@@ -373,6 +424,7 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
     html = html.replace('</head>', `${trio}\n</head>`);
   }
 
+  assertDexSidebarContract(html);
   return { html, strategy: { video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
 }
 
