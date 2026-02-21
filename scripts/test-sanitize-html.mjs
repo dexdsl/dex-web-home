@@ -52,6 +52,8 @@ assert.equal(dexCssCount, 1, 'Dex stylesheet should exist exactly once');
 assert.equal(dexSidebarCount, 1, 'Dex sidebar script should exist exactly once');
 assert.ok(sanitized.includes('id="dex-sidebar-config"'), 'Dex global config script should remain');
 assert.ok(sanitized.includes('id="dex-sidebar-page-config"'), 'Dex page config script should remain');
+assert.ok(sanitized.includes('id="dex-sidebar-page-config-bridge"'), 'Dex page config bridge script should exist');
+assert.ok(sanitized.includes("window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');"), 'Dex page config bridge should use deterministic snippet');
 assert.ok(sanitized.includes('id="dex-manifest"'), 'Dex manifest script should remain');
 
 const siteCssIndex = sanitized.search(/https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/demo\/site\.css/i);

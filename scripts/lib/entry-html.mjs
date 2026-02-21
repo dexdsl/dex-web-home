@@ -8,6 +8,7 @@ const AUTH_CANDIDATES = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config
 const AUTH_CDN = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js';
 const REQUIRED_ANCHORS = ['video', 'desc', 'sidebar'];
 const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
+const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -143,33 +144,50 @@ function cleanVideoId(value) {
     .trim();
 }
 
+function isLikelyYouTubeId(value) {
+  return /^[A-Za-z0-9_-]{6,}$/.test(String(value || '').trim());
+}
+
+export function extractYouTubeId(rawUrl) {
+  const input = String(rawUrl || '').trim();
+  if (!input) return '';
+  const parsed = parseUrl(input);
+  if (!parsed) return '';
+
+  const host = parsed.hostname.toLowerCase();
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  let id = '';
+
+  if (host === 'youtu.be' || host.endsWith('.youtu.be')) {
+    id = cleanVideoId(pathParts[0]);
+  } else if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')) {
+    if (parsed.searchParams.get('v')) {
+      id = cleanVideoId(parsed.searchParams.get('v'));
+    } else if (['embed', 'shorts', 'live', 'v'].includes(pathParts[0]) && pathParts[1]) {
+      id = cleanVideoId(pathParts[1]);
+    }
+  }
+
+  return isLikelyYouTubeId(id) ? id : '';
+}
+
 export function parseVideoUrl(raw) {
   const input = String(raw || '').trim();
   if (!input) return { provider: 'unknown', id: '', embedUrl: '' };
 
   const parsed = parseUrl(input);
   if (parsed) {
-    const host = parsed.hostname.toLowerCase();
-    const pathParts = parsed.pathname.split('/').filter(Boolean);
-
-    if (host === 'youtu.be' || host.endsWith('.youtu.be') || host === 'youtube.com' || host.endsWith('.youtube.com')) {
-      let id = '';
-      if (host === 'youtu.be' || host.endsWith('.youtu.be')) {
-        id = cleanVideoId(pathParts[0]);
-      } else if (parsed.searchParams.get('v')) {
-        id = cleanVideoId(parsed.searchParams.get('v'));
-      } else if (pathParts[0] === 'embed' && pathParts[1]) {
-        id = cleanVideoId(pathParts[1]);
-      }
-      if (id) {
-        return {
-          provider: 'youtube',
-          id,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${id}`,
-        };
-      }
+    const youtubeId = extractYouTubeId(input);
+    if (youtubeId) {
+      return {
+        provider: 'youtube',
+        id: youtubeId,
+        embedUrl: `https://www.youtube-nocookie.com/embed/${youtubeId}`,
+      };
     }
 
+    const host = parsed.hostname.toLowerCase();
+    const pathParts = parsed.pathname.split('/').filter(Boolean);
     if (host === 'vimeo.com' || host.endsWith('.vimeo.com')) {
       let id = '';
       if ((host === 'player.vimeo.com' || host.endsWith('.player.vimeo.com')) && pathParts[0] === 'video' && pathParts[1]) {
@@ -231,6 +249,9 @@ function iframeSrcFromHtml(rawHtml) {
 }
 
 function resolveVideoSourceUrl(video) {
+  const originalUrl = String(video?.dataUrlOriginal || '').trim();
+  if (originalUrl) return originalUrl;
+
   const mode = video?.mode === 'embed' ? 'embed' : 'url';
   if (mode === 'embed') {
     const dataUrl = String(video?.dataUrl || '').trim();
@@ -274,7 +295,7 @@ function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
   const globalJson = JSON.stringify(globalSidebarConfig || {}, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);
   const manifestJson = JSON.stringify(manifest || {}, null, 2);
-  return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script>\n  try {\n    const el = document.getElementById('dex-sidebar-page-config');\n    if (el && !window.dexSidebarPageConfig) {\n      window.dexSidebarPageConfig = JSON.parse(el.textContent || '{}');\n    }\n  } catch (e) { console.error('[dex] sidebar page config parse failed', e); }\n</script>\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;
+  return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}">\nwindow.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');\n</script>\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;
 }
 
 function scriptByIdRegex(id) {
@@ -361,6 +382,7 @@ function normalizeAllowedOutsideAnchorChanges(html) {
     .replace(scriptByIdRegex('dex-sidebar-config'), '')
     .replace(scriptByIdRegex('dex-manifest'), '')
     .replace(scriptByIdRegex('dex-sidebar-page-config'), '')
+    .replace(scriptByIdRegex(PAGE_CONFIG_BRIDGE_SCRIPT_ID), '')
     .replace(/<script[^>]*src=['"]\/assets\/dex-sidebar\.js['"][^>]*><\/script>\s*/g, '')
     .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '')
     .replace(/\s+/g, ' ')

@@ -70,6 +70,9 @@ if (!regionMatch[1].includes('<iframe')) throw new Error('DEX:VIDEO region missi
 if (!regionMatch[1].includes('https://www.youtube-nocookie.com/embed/CSFGiU1gg4g')) {
   throw new Error('DEX:VIDEO region missing normalized YouTube embed URL');
 }
+if (/source_ve_path/i.test(regionMatch[1])) {
+  throw new Error('DEX:VIDEO region should not include source_ve_path');
+}
 
 const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
 if (!cfgMatch) throw new Error('missing #dex-sidebar-config script node in output html');

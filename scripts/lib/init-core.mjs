@@ -7,6 +7,7 @@ import { ALL_BUCKETS, entrySchema, formatZodError, manifestSchemaForFormats, nor
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
 import { formatSanitizationIssues, sanitizeGeneratedHtml, verifySanitizedHtml } from './sanitize-generated-html.mjs';
+import { pushRecent } from './recents-store.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -141,9 +142,34 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
   if (!opts.dryRun) {
     await fs.mkdir(folder, { recursive: true });
     await fs.writeFile(files.html, finalHtml, 'utf8');
-    await fs.writeFile(files.entry, `${JSON.stringify({ slug: data.slug, title: data.title, video: data.video, descriptionText: data.descriptionText || '', series: data.series || 'dex', selectedBuckets: data.selectedBuckets || data.sidebar?.buckets || [], creditsData: data.creditsData, fileSpecs: data.fileSpecs || data.sidebar?.fileSpecs, metadata: data.metadata || data.sidebar?.metadata, sidebarPageConfig: data.sidebar }, null, 2)}\n`, 'utf8');
+    await fs.writeFile(files.entry, `${JSON.stringify({
+      slug: data.slug,
+      title: data.title,
+      video: {
+        mode: data.video?.mode === 'embed' ? 'embed' : 'url',
+        dataUrl: String(data.video?.dataUrl || ''),
+        dataUrlOriginal: String(data.video?.dataUrlOriginal || data.video?.dataUrl || ''),
+        dataHtml: String(data.video?.dataHtml || ''),
+      },
+      descriptionText: data.descriptionText || '',
+      series: data.series || 'dex',
+      selectedBuckets: data.selectedBuckets || data.sidebar?.buckets || [],
+      creditsData: data.creditsData,
+      fileSpecs: data.fileSpecs || data.sidebar?.fileSpecs,
+      metadata: data.metadata || data.sidebar?.metadata,
+      sidebarPageConfig: data.sidebar,
+    }, null, 2)}\n`, 'utf8');
     await fs.writeFile(files.desc, `${resolvedDescriptionText.trim()}\n`, 'utf8');
     await fs.writeFile(files.manifest, `${JSON.stringify(data.manifest, null, 2)}\n`, 'utf8');
+
+    try {
+      await pushRecent(files.html, {
+        displayName: data.title || data.slug,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.warn(`[dex] failed to update recent files: ${error?.message || error}`);
+    }
 
     if (opts.open) {
       const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';

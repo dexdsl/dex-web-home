@@ -8,6 +8,8 @@
 4. Optional global linking during development:
    - `npm link`
    - `dex init`
+5. Localhost viewer for generated pages:
+   - `dex view` (or `node scripts/dex.mjs view`)
 
 `dex init` uses `./index.html` in your current folder by default. If needed, pass `--template <path>`.
 

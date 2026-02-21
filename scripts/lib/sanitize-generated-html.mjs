@@ -7,6 +7,8 @@ export const AUTH_CDN_SRC = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa
 
 const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
 const REQUIRED_CONTRACT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
+const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
+const PAGE_CONFIG_BRIDGE_SNIPPET = "window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');";
 const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
 
 const BLOCKED_SCRIPT_SRC_PATTERNS = [
@@ -30,7 +32,7 @@ const INLINE_SCRIPT_MARKERS = [
   { token: 'assets.squarespace.com', regex: /assets\.squarespace\.com/i },
   { token: 'website.components', regex: /website\.components/i },
   { token: 'sqsp runtime marker', regex: /\bsqsp[a-z0-9_.-]*/i },
-  { token: 'sqs runtime marker', regex: /\bSQS[A-Z_]+/ },
+  { token: 'sqs runtime marker', regex: /\bsqs[a-z0-9_.-]*/i },
 ];
 
 const FORBIDDEN_REMAINING_MARKERS = [
@@ -45,6 +47,7 @@ export const REQUIRED_SANITIZED_SNIPPETS = [
   DEX_SIDEBAR_SRC,
   'id="dex-sidebar-config"',
   'id="dex-sidebar-page-config"',
+  `id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}"`,
   'id="dex-manifest"',
 ];
 
@@ -133,7 +136,7 @@ function canonicalDexPath(rawValue) {
   if (!/^https?:\/\//i.test(value)) return null;
   try {
     const parsed = new URL(value);
-    if (!/^(?:www\.)?dexdsl\.(?:github\.io|org)$/i.test(parsed.hostname)) return null;
+    if (!/^(?:www\.)?dexdsl\.(?:github\.io|org|com)$/i.test(parsed.hostname)) return null;
     if (!/^\/(?:assets|scripts)\//i.test(parsed.pathname)) return null;
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
@@ -164,6 +167,10 @@ function ensureHead($) {
   }
   head = $('head').first();
   return head;
+}
+
+function isContractScriptId(id) {
+  return REQUIRED_CONTRACT_IDS.includes(String(id || '').trim()) || String(id || '').trim() === PAGE_CONFIG_BRIDGE_SCRIPT_ID;
 }
 
 function dedupeScriptsByPath($, pathMatch, canonicalUrl, options = {}) {
@@ -235,6 +242,51 @@ function ensureRequiredRuntimeScripts($, head) {
   }
 }
 
+function ensureContractScript($, id, fallbackJson, preferredContainer) {
+  const matches = $(`script#${id}`);
+  matches.each((index, element) => {
+    if (index > 0) $(element).remove();
+  });
+
+  let script = $(`script#${id}`).first();
+  if (!script.length) {
+    script = $(`<script id="${id}" type="application/json">${fallbackJson}</script>`);
+    preferredContainer.append(`\n`);
+    preferredContainer.append(script);
+    return script;
+  }
+
+  script.attr('type', 'application/json');
+  if (!String(script.html() || '').trim()) {
+    script.text(fallbackJson);
+  }
+  return script;
+}
+
+function ensureDexContractScripts($, head) {
+  const body = $('body').first();
+  const baseContainer = body.length ? body : head;
+  const existingPageConfig = $('script#dex-sidebar-page-config').first();
+  const contractContainer = existingPageConfig.length ? existingPageConfig.parent() : baseContainer;
+
+  const pageScript = ensureContractScript($, 'dex-sidebar-page-config', '{}', contractContainer);
+  ensureContractScript($, 'dex-sidebar-config', '{}', contractContainer);
+  ensureContractScript($, 'dex-manifest', '{}', contractContainer);
+
+  let bridge = $(`script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}`).first();
+  $(`script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}`).each((index, element) => {
+    if (index > 0) $(element).remove();
+  });
+  if (!bridge.length) {
+    bridge = $(`<script id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}">${PAGE_CONFIG_BRIDGE_SNIPPET}</script>`);
+  } else {
+    bridge.text(PAGE_CONFIG_BRIDGE_SNIPPET);
+  }
+  bridge.remove();
+  pageScript.after(`\n`);
+  pageScript.after(bridge);
+}
+
 function scriptTagCount($, id) {
   const typed = $(`script#${id}[type="application/json"]`).length;
   if (typed) return typed;
@@ -252,6 +304,13 @@ function collectSanitizationIssues($) {
     const count = scriptTagCount($, id);
     if (count === 0) issues.push({ type: 'missing', token: `script#${id}` });
     if (count > 1) issues.push({ type: 'duplicate', token: `script#${id}` });
+  }
+  const bridgeCount = $(`script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}`).length;
+  if (bridgeCount === 0) issues.push({ type: 'missing', token: `script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}` });
+  if (bridgeCount > 1) issues.push({ type: 'duplicate', token: `script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}` });
+  const bridgeText = String($(`script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID}`).first().html() || '').trim();
+  if (bridgeCount === 1 && bridgeText !== PAGE_CONFIG_BRIDGE_SNIPPET) {
+    issues.push({ type: 'mismatch', token: `script#${PAGE_CONFIG_BRIDGE_SCRIPT_ID} must match bridge snippet` });
   }
 
   $('script[src]').each((_, element) => {
@@ -318,11 +377,13 @@ export function sanitizeGeneratedHtml(html) {
 
   $('script').each((_, element) => {
     const node = $(element);
+    const scriptId = String(node.attr('id') || '').trim();
+    const protectedScript = isContractScriptId(scriptId);
     const rawSrc = String(node.attr('src') || '').trim();
     const src = normalizeProtocolRelativeUrl(rawSrc);
     if (src) {
       if (src !== rawSrc) node.attr('src', src);
-      if (isBlockedScriptSrc(src) || hasSquarespaceRuntimeDataAttrs(element)) {
+      if (!protectedScript && (isBlockedScriptSrc(src) || hasSquarespaceRuntimeDataAttrs(element))) {
         node.remove();
         return;
       }
@@ -331,13 +392,13 @@ export function sanitizeGeneratedHtml(html) {
       return;
     }
 
-    if (hasSquarespaceRuntimeDataAttrs(element)) {
+    if (!protectedScript && hasSquarespaceRuntimeDataAttrs(element)) {
       node.remove();
       return;
     }
 
     if (!isExecutableInlineScriptType(node.attr('type'))) return;
-    if (findInlineMarker(node.html() || '')) {
+    if (!protectedScript && findInlineMarker(node.html() || '')) {
       node.remove();
     }
   });
@@ -374,6 +435,7 @@ export function sanitizeGeneratedHtml(html) {
 
   const head = ensureHead($);
   ensureDexCssAfterSiteCss($, head);
+  ensureDexContractScripts($, head);
   ensureRequiredRuntimeScripts($, head);
 
   let output = $.html();

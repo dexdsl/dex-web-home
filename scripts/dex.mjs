@@ -14,6 +14,7 @@ import {
 import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
 import { scanEntries } from './lib/doctor.mjs';
 import { descriptionTextFromSeed } from './lib/entry-html.mjs';
+import { parseViewerArgs, startViewer } from './lib/viewer-server.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 
@@ -80,7 +81,7 @@ async function collectInitData(opts, slugArg) {
     const outDir = path.resolve(opts.out || './entries');
     const existing = new Set((await ensure(outDir)) ? (await fs.readdir(outDir, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : []);
     const computedSlug = dedupeSlug(slugify(slugArg || base.slug || title), existing);
-    const videoUrl = String(base.video?.dataUrl || '').trim();
+    const videoUrl = String(base.video?.dataUrlOriginal || base.video?.dataUrl || '').trim();
     if (!videoUrl) throw new Error('Video URL is required for non-interactive init. Pass --from with video.dataUrl.');
     const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
     const sidebar = {
@@ -94,7 +95,7 @@ async function collectInitData(opts, slugArg) {
     };
     const manifest = normalizeManifest(buildEmptyManifestSkeleton(opts.formatKeys), opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
+    return { slug: computedSlug, title, video: { mode: 'url', dataUrl: videoUrl, dataUrlOriginal: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
   }
 
   const id = await prompts([
@@ -130,11 +131,12 @@ async function collectInitData(opts, slugArg) {
     initial: 0,
   });
   const video = videoMode.mode === 'embed'
-    ? { mode: 'embed', dataUrl: '', dataHtml: (await prompts({ type: 'text', name: 'dataHtml', message: 'Paste raw embed HTML:' })).dataHtml || '' }
-    : { mode: 'url', dataUrl: '', dataHtml: '' };
+    ? { mode: 'embed', dataUrl: '', dataUrlOriginal: '', dataHtml: (await prompts({ type: 'text', name: 'dataHtml', message: 'Paste raw embed HTML:' })).dataHtml || '' }
+    : { mode: 'url', dataUrl: '', dataUrlOriginal: '', dataHtml: '' };
   if (video.mode === 'url') {
-    const ans = await prompts({ type: 'text', name: 'url', message: 'Video URL:', initial: base.video?.dataUrl || '', validate: (v) => (!!v || 'Required') });
+    const ans = await prompts({ type: 'text', name: 'url', message: 'Video URL:', initial: base.video?.dataUrlOriginal || base.video?.dataUrl || '', validate: (v) => (!!v || 'Required') });
     video.dataUrl = ans.url;
+    video.dataUrlOriginal = ans.url;
     video.dataHtml = '';
   }
 
@@ -201,8 +203,8 @@ async function initCommand(slugArg, opts) {
   lines.forEach((line) => console.log(line));
   if (!opts.dryRun) {
     const relativeHtmlPath = path.relative(process.cwd(), report.htmlPath) || report.htmlPath;
-    console.log(`To preview: node scripts/serve-entry.mjs ${relativeHtmlPath}`);
-    console.log('URL: http://localhost:4173/');
+    console.log(`Recent entry: ${relativeHtmlPath}`);
+    console.log('To preview in localhost mode: dex view');
   }
 
   if (process.env.DEX_INIT_REPORT_PATH) {
@@ -220,6 +222,10 @@ function parseTopLevelMode(argv) {
   if (['init', 'update', 'doctor'].includes(firstNonFlag)) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'ink-command', paletteOpen: false, command: firstNonFlag, rest: args.slice(idx + 1) };
+  }
+  if (['view', 'viewer'].includes(firstNonFlag)) {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'view', rest: args.slice(idx + 1) };
   }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
@@ -281,6 +287,32 @@ if (topLevel.mode === 'ink-command') {
   const mode = topLevel.command === 'init' ? 'init' : topLevel.command === 'update' ? 'update' : 'doctor';
   await runDashboard({ initialMode: mode, version: packageJson.version || 'dev' });
   process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'view') {
+  const viewOpts = parseViewerArgs(topLevel.rest);
+  const { server, url, port } = await startViewer({
+    cwd: process.cwd(),
+    open: viewOpts.open,
+    port: viewOpts.port,
+    root: viewOpts.root,
+  });
+  console.log(`Dex viewer running at ${url}`);
+  if (viewOpts.root) {
+    console.log(`Scoped root: ${path.resolve(viewOpts.root)}`);
+  } else {
+    console.log('Scoped roots: recents + known output directories');
+  }
+  if (!viewOpts.open) {
+    console.log('Tip: pass --open to launch your browser automatically.');
+  }
+  const shutdown = () => {
+    server.close(() => process.exit(0));
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGHUP', shutdown);
+  process.stdin.resume();
 }
 
 if (topLevel.mode === 'legacy') {

@@ -171,15 +171,43 @@
       redirectUri: window.location.origin + "/auth/callback/"
     };
 
+    function normalizeHostForLookup(value) {
+      var raw = String(value || "").trim().toLowerCase();
+      if (!raw) return "";
+      if (raw.charAt(0) === "[") {
+        var end = raw.indexOf("]");
+        if (end > 0) return raw.slice(1, end);
+        return raw.replace(/^\[|\]$/g, "");
+      }
+      return raw.split(":")[0];
+    }
+
+    function hostForLookup() {
+      return normalizeHostForLookup(window.location.host || window.location.hostname);
+    }
+
     function getCfg() {
       var root = window.DEX_AUTH0_CONFIG;
       var cfg = root && root.current;
       if (cfg) return cfg;
+      var byHost = root && root.byHost || {};
+      var lookupHost = hostForLookup();
+      if (byHost && byHost[lookupHost]) return byHost[lookupHost];
 
       // fallback for your known hosts (covers “config script missing / load order” cases)
-      var h = window.location.hostname;
-      if (h === "dexdsl.github.io" || h === "dexdsl.org" || h === "dexdsl.com") {
-        return FALLBACK_AUTH0;
+      if (
+        lookupHost === "dexdsl.github.io" ||
+        lookupHost === "dexdsl.org" ||
+        lookupHost === "dexdsl.com" ||
+        lookupHost === "localhost" ||
+        lookupHost === "127.0.0.1"
+      ) {
+        return {
+          domain: FALLBACK_AUTH0.domain,
+          clientId: FALLBACK_AUTH0.clientId,
+          audience: FALLBACK_AUTH0.audience,
+          redirectUri: window.location.origin + "/auth/callback/"
+        };
       }
       return null;
     }

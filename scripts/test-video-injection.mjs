@@ -68,6 +68,7 @@ assert.match(videoRegion, /src="https:\/\/www\.youtube-nocookie\.com\/embed\/CSF
 assert.match(videoRegion, /loading="lazy"/);
 assert.match(videoRegion, /referrerpolicy="strict-origin-when-cross-origin"/);
 assert.doesNotMatch(videoRegion, /\bstyle=/i);
+assert.doesNotMatch(videoRegion, /source_ve_path/i);
 
 assert.doesNotMatch(videoRegion, /sqs-video-wrapper/i);
 assert.doesNotMatch(videoRegion, /data-html="&lt;iframe/i);

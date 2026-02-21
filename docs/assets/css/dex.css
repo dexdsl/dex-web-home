@@ -1,3 +1,23 @@
+.dex-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .dex-entry-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.dex-entry-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.dex-sidebar {
+  min-width: 0;
+}
 .dex-video { width: 100%; }
 .dex-video-aspect{
   position:relative;

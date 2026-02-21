@@ -5,6 +5,7 @@ import { ALL_BUCKETS, entrySchema, manifestSchemaForFormats, normalizeManifest }
 import { getAssetOrigin } from './asset-origin.mjs';
 import { rewriteLocalAssetLinks } from './rewrite-asset-links.mjs';
 import { formatSanitizationIssues, sanitizeGeneratedHtml, verifySanitizedHtml } from './sanitize-generated-html.mjs';
+import { pushRecent } from './recents-store.mjs';
 
 export async function readEntryFolder(slug, { entriesDir = './entries' } = {}) {
   const folder = path.join(path.resolve(entriesDir), slug);
@@ -69,6 +70,14 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
       throw new Error(`Refusing to write unsanitized index.html for ${slug}: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
     }
     await fs.writeFile(file, sanitizedHtml, 'utf8');
+    try {
+      await pushRecent(file, {
+        displayName: data.entry?.title || slug,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.warn(`[dex] failed to update recent files: ${error?.message || error}`);
+    }
     wroteFiles.push(file);
   }
 
