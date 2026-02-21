@@ -68,8 +68,8 @@ export function applyKeyToInputState(state, input, key = {}) {
 
   const isLeft = !!(key.leftArrow || input === '\x1b[D' || input === '\x1bOD');
   const isRight = !!(key.rightArrow || input === '\x1b[C' || input === '\x1bOC');
-  const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH');
-  const isEnd = !!(key.end || input === '\x1b[F' || input === '\x1bOF');
+  const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH' || input === '\x1b[1~' || input === '\x1b[7~');
+  const isEnd = !!(key.end || input === '\x1b[F' || input === '\x1bOF' || input === '\x1b[4~' || input === '\x1b[8~');
   const isDelete = !!(key.delete || (typeof input === 'string' && /^\x1b\[3(?:;\d+)*~$/.test(input)));
 
   if (isLeft) return { value, cursor: Math.max(0, cursor - 1) };
@@ -192,11 +192,11 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     const value = form[step.id] ?? '';
     const pos = cursorByStep[step.id] ?? 0;
     const next = applyKeyToInputState({ value, cursor: pos }, input, key);
-    if (next.quit) return next;
-    if (next.value === value && next.cursor === pos) return;
-    setForm((prev) => ({ ...prev, [step.id]: next.value, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
-    setCursorByStep((prev) => ({ ...prev, [step.id]: next.cursor }));
-    setError('');
+    if (next.value !== value || next.cursor !== pos) {
+      setForm((prev) => ({ ...prev, [step.id]: next.value, ...(step.id === 'slug' ? { slugTouched: true } : {}) }));
+      setCursorByStep((prev) => ({ ...prev, [step.id]: next.cursor }));
+      setError('');
+    }
     return next;
   };
 
@@ -338,7 +338,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
     if (step.kind === 'text') {
       const next = applyTextEdit(input, key);
-      if (next.quit) {
+      if (next?.quit) {
         onCancel();
         return;
       }
@@ -379,6 +379,8 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       ? React.createElement(Box, { marginTop: 1, borderStyle: 'single', borderColor: '#5f6a7d', paddingX: 1, flexDirection: 'column' },
         React.createElement(Text, { color: '#8f98a8' }, 'Key debug'),
         React.createElement(Text, { color: '#d0d5df' }, `input: ${JSON.stringify(lastKeyEvent?.input ?? null)}`),
+        React.createElement(Text, { color: '#d0d5df' }, `inputLen: ${typeof lastKeyEvent?.input === 'string' ? lastKeyEvent.input.length : 0}`),
+        React.createElement(Text, { color: '#d0d5df' }, `hasEscape: ${typeof lastKeyEvent?.input === 'string' ? lastKeyEvent.input.includes('\x1b') : false}`),
         React.createElement(Text, { color: '#d0d5df' }, `flags: ${JSON.stringify(lastKeyEvent?.flags ?? {})}`),
       ) : null,
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { color: '#6e7688' }, footer)),
