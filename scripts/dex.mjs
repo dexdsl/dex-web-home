@@ -45,18 +45,18 @@ async function promptLinks(message) {
 function defaultCredits(base) {
   const now = new Date().getUTCFullYear();
   return {
-    artist: { name: base?.artist?.name || '', links: Array.isArray(base?.artist?.links) ? base.artist.links : [] },
+    artist: Array.isArray(base?.artist) ? base.artist : (base?.artist?.name ? String(base.artist.name).split(',').map((v) => v.trim()).filter(Boolean) : []),
     artistAlt: base?.artistAlt || null,
     instruments: Array.isArray(base?.instruments) ? base.instruments : [],
     video: {
-      director: { name: base?.video?.director?.name || '', links: Array.isArray(base?.video?.director?.links) ? base.video.director.links : [] },
-      cinematography: { name: base?.video?.cinematography?.name || '', links: Array.isArray(base?.video?.cinematography?.links) ? base.video.cinematography.links : [] },
-      editing: { name: base?.video?.editing?.name || '', links: Array.isArray(base?.video?.editing?.links) ? base.video.editing.links : [] },
+      director: Array.isArray(base?.video?.director) ? base.video.director : (base?.video?.director?.name ? String(base.video.director.name).split(',').map((v) => v.trim()).filter(Boolean) : []),
+      cinematography: Array.isArray(base?.video?.cinematography) ? base.video.cinematography : (base?.video?.cinematography?.name ? String(base.video.cinematography.name).split(',').map((v) => v.trim()).filter(Boolean) : []),
+      editing: Array.isArray(base?.video?.editing) ? base.video.editing : (base?.video?.editing?.name ? String(base.video.editing.name).split(',').map((v) => v.trim()).filter(Boolean) : []),
     },
-    audio: { recording: { name: base?.audio?.recording?.name || '', links: Array.isArray(base?.audio?.recording?.links) ? base.audio.recording.links : [] }, mix: { name: base?.audio?.mix?.name || '', links: Array.isArray(base?.audio?.mix?.links) ? base.audio.mix.links : [] }, master: { name: base?.audio?.master?.name || '', links: Array.isArray(base?.audio?.master?.links) ? base.audio.master.links : [] } },
+    audio: { recording: Array.isArray(base?.audio?.recording) ? base.audio.recording : (base?.audio?.recording?.name ? String(base.audio.recording.name).split(',').map((v) => v.trim()).filter(Boolean) : []), mix: Array.isArray(base?.audio?.mix) ? base.audio.mix : (base?.audio?.mix?.name ? String(base.audio.mix.name).split(',').map((v) => v.trim()).filter(Boolean) : []), master: Array.isArray(base?.audio?.master) ? base.audio.master : (base?.audio?.master?.name ? String(base.audio.master.name).split(',').map((v) => v.trim()).filter(Boolean) : []) },
     year: Number(base?.year) || now,
     season: base?.season || 'S1',
-    location: typeof base?.location === 'string' ? base.location : '',
+    location: typeof base?.location === 'string' && base.location.trim() ? base.location : 'Unknown',
   };
 }
 
@@ -85,10 +85,11 @@ async function collectInitData(opts, slugArg) {
     const existing = new Set((await ensure(outDir)) ? (await fs.readdir(outDir, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : []);
     const computedSlug = dedupeSlug(slugify(slugArg || base.slug || title), existing);
     const videoUrl = base.video?.dataUrl || 'https://player.vimeo.com/video/123456789';
+    const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
     const sidebar = {
       lookupNumber: lookup, buckets: base.sidebarPageConfig?.buckets || ['A'], specialEventImage: base.sidebarPageConfig?.specialEventImage || null,
       attributionSentence: base.sidebarPageConfig?.attributionSentence || 'Attribution',
-      credits: defaultCredits(base.sidebarPageConfig?.credits),
+      credits: defaultCredits(seedCredits),
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
@@ -105,16 +106,16 @@ async function collectInitData(opts, slugArg) {
   const existing = new Set((await ensure(outDir)) ? (await fs.readdir(outDir, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name) : []);
   const computedSlug = dedupeSlug(slugify(id.slug || id.title), existing);
 
-  const nameAns = await prompts({ type: 'text', name: 'name', message: 'Name:', initial: base.sidebarPageConfig?.credits?.artist?.name || '', validate: (v) => (!!v || 'Required') });
+  const nameAns = await prompts({ type: 'text', name: 'name', message: 'Name:', initial: Array.isArray(base.sidebarPageConfig?.credits?.artist) ? base.sidebarPageConfig.credits.artist.join(', ') : (base.sidebarPageConfig?.credits?.artist?.name || ''), validate: (v) => (!!v || 'Required') });
 
-  const instruments = [{ name: (await prompts({ type: 'text', name: 'instrument', message: 'Instrument:', initial: base.sidebarPageConfig?.credits?.instruments?.[0]?.name || '', validate: (v) => (!!v || 'Required') })).instrument, links: quick ? [] : await promptLinks('Add instrument link?') }];
+  const instruments = [(await prompts({ type: 'text', name: 'instrument', message: 'Instrument:', initial: Array.isArray(base.sidebarPageConfig?.credits?.instruments) ? String(base.sidebarPageConfig.credits.instruments[0] || '') : String(base.sidebarPageConfig?.credits?.instruments?.[0]?.name || ''), validate: (v) => (!!v || 'Required') })).instrument];
   if (!quick) {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const { add } = await prompts({ type: 'toggle', name: 'add', message: 'Add another instrument?', initial: false, active: 'yes', inactive: 'no' });
       if (!add) break;
       const item = await prompts({ type: 'text', name: 'name', message: 'Instrument name:', validate: (v) => (!!v || 'Required') });
-      instruments.push({ name: item.name, links: await promptLinks('Add instrument link?') });
+      instruments.push(item.name);
     }
   }
 
@@ -138,7 +139,6 @@ async function collectInitData(opts, slugArg) {
     video.dataHtml = iframeFor(ans.url);
   }
 
-  const artistLinks = quick ? [] : await promptLinks('Add artist link?');
 
   const descriptionText = (await prompts({ type: 'text', name: 'description', message: 'Description (plain text):', initial: descriptionTextFromSeed(base) })).description || '';
 
@@ -160,7 +160,7 @@ async function collectInitData(opts, slugArg) {
     message: 'Credits flow not implemented yet. Using minimal defaults for now. Press Enter to continue.',
     initial: '',
   });
-  credits.artist = { name: nameAns.name, links: artistLinks };
+  credits.artist = nameAns.name.split(',').map((v) => v.trim()).filter(Boolean);
   credits.instruments = instruments;
 
   const sidebar = {
