@@ -13,6 +13,21 @@ const LAST_CACHE = '.dex-last.json';
 function iframeFor(url) { return `<iframe src="${url}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`; }
 function emptyCredits() { return { artist: [], artistAlt: '', instruments: [], video: { director: [], cinematography: [], editing: [] }, audio: { recording: [], mix: [], master: [] }, year: `${new Date().getUTCFullYear()}`, season: 'S1', location: '' }; }
 function emptyDownloadData() { return { mode: 'guided', series: 'dex', audio: {}, video: {}, fileSpecs: { bitDepth: '24', sampleRate: '48000', channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { sampleLength: '', tagsInput: '' }, pasteBuffer: '', pasteError: '', pasteWarnings: [] }; }
+export function createDefaultWizardForm() {
+  return {
+    title: '',
+    slug: '',
+    slugTouched: false,
+    lookupNumber: '',
+    videoUrl: '',
+    descriptionText: '',
+    series: 'dex',
+    buckets: ['A'],
+    attributionSentence: '',
+    creditsData: emptyCredits(),
+    downloadData: emptyDownloadData(),
+  };
+}
 function withCaret(value, cursor, caretOn) { const safe = value || ''; return caretOn ? `${safe.slice(0, cursor)}▌${safe.slice(cursor)}` : safe; }
 function looksLikeEscapeSequence(input) { return typeof input === 'string' && input.includes('\x1b'); }
 const safeList = (arr) => (Array.isArray(arr) ? arr.map((v) => String(v || '').trim()).filter(Boolean) : []);
@@ -45,32 +60,36 @@ export function applyKeyToInputState(state, input, key = {}) {
   return { value, cursor };
 }
 
-function validateStep(stepId, form, selectedRole, formatKeys) {
-  if (stepId === 'title' && !form.title.trim()) return 'Title is required.';
-  if (stepId === 'slug' && !form.slug.trim()) return 'Slug is required.';
-  if (stepId === 'lookupNumber' && !form.lookupNumber.trim()) return 'Lookup number is required.';
-  if (stepId === 'videoUrl' && !form.videoUrl.trim()) return 'Video URL is required.';
-  if (stepId === 'buckets' && form.buckets.length < 1) return 'Select at least one bucket.';
-  if (stepId === 'attributionSentence' && !form.attributionSentence.trim()) return 'Attribution sentence is required.';
+export function validateStep(stepId, form, selectedRole, formatKeys) {
+  const safeForm = form || {};
+  const buckets = Array.isArray(safeForm.buckets) ? safeForm.buckets : [];
+  if (stepId === 'title' && !String(safeForm.title || '').trim()) return 'Title is required.';
+  if (stepId === 'slug' && !String(safeForm.slug || '').trim()) return 'Slug is required.';
+  if (stepId === 'lookupNumber' && !String(safeForm.lookupNumber || '').trim()) return 'Lookup number is required.';
+  if (stepId === 'videoUrl' && !String(safeForm.videoUrl || '').trim()) return 'Video URL is required.';
+  if (stepId === 'buckets' && buckets.length < 1) return 'Select at least one bucket.';
+  if (stepId === 'attributionSentence' && !String(safeForm.attributionSentence || '').trim()) return 'Attribution sentence is required.';
   if (stepId === 'credits') {
+    const creditsData = safeForm.creditsData || emptyCredits();
     const role = selectedRole?.key;
     if (role) {
-      const list = roleValue(form.creditsData, role);
+      const list = roleValue(creditsData, role);
       if (safeList(list).length < 1) return `${selectedRole.label} needs at least one name.`;
     }
-    if (!String(form.creditsData.year || '').trim()) return 'Year is required.';
-    if (Number.isNaN(Number(form.creditsData.year))) return 'Year must be numeric.';
-    if (!form.creditsData.season.trim()) return 'Season is required.';
-    if (!form.creditsData.location.trim()) return 'Location is required.';
+    if (!String(creditsData.year || '').trim()) return 'Year is required.';
+    if (Number.isNaN(Number(creditsData.year))) return 'Year must be numeric.';
+    if (!String(creditsData.season || '').trim()) return 'Season is required.';
+    if (!String(creditsData.location || '').trim()) return 'Location is required.';
   }
   if (stepId === 'download') {
-    const { selectedBuckets, downloadData } = form;
-    const check = (type, keys) => selectedBuckets.forEach((b) => keys.forEach((k) => { if (!String(downloadData[type]?.[b]?.[k] || '').trim()) throw new Error(`Missing ${type} ${b}/${k}`); }));
-    try { check('audio', formatKeys.audio || []); check('video', formatKeys.video || []); } catch (e) { return e.message; }
-    if (!downloadData.metadata.sampleLength.trim()) return 'Sample length is required.';
-    if (safeList(downloadData.metadata.tagsInput.split(',')).length < 1) return 'At least one tag is required.';
+    const downloadData = safeForm.downloadData || emptyDownloadData();
+    const keysByType = formatKeys || { audio: [], video: [] };
+    const check = (type, keys) => buckets.forEach((b) => keys.forEach((k) => { if (!String(downloadData[type]?.[b]?.[k] || '').trim()) throw new Error(`Missing ${type} ${b}/${k}`); }));
+    try { check('audio', keysByType.audio || []); check('video', keysByType.video || []); } catch (e) { return e.message; }
+    if (!String(downloadData.metadata?.sampleLength || '').trim()) return 'Sample length is required.';
+    if (safeList(String(downloadData.metadata?.tagsInput || '').split(',')).length < 1) return 'At least one tag is required.';
   }
-  return '';
+  return null;
 }
 
 function parseDriveId(value) {
@@ -121,7 +140,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInput, setCreditsInput] = useState(''); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
   const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false);
   const templateRef = useRef(null);
-  const [form, setForm] = useState({ title: '', slug: '', slugTouched: false, lookupNumber: '', videoUrl: '', descriptionText: '', series: 'dex', selectedBuckets: ['A'], attributionSentence: '', creditsData: emptyCredits(), downloadData: emptyDownloadData() });
+  const [form, setForm] = useState(createDefaultWizardForm());
   const [cursorByStep, setCursorByStep] = useState({ title: 0, slug: 0, lookupNumber: 0, videoUrl: 0, descriptionText: 0, attributionSentence: 0 });
 
   const step = STEPS[stepIdx]; const totalSteps = STEPS.length;
@@ -148,7 +167,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     try {
       const entryPath = path.join(outDir, slug, 'entry.json');
       const entry = JSON.parse(await fs.readFile(entryPath, 'utf8'));
-      setForm((p) => ({ ...p, title: entry.title || p.title, lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber, videoUrl: entry.video?.dataUrl || p.videoUrl, descriptionText: entry.descriptionText || p.descriptionText, series: entry.series || p.series, selectedBuckets: entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.selectedBuckets, attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence, creditsData: { ...emptyCredits(), ...(entry.creditsData || {}), ...(entry.sidebarPageConfig?.credits ? { artist: safeList([entry.sidebarPageConfig.credits.artist?.name]), instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)) } : {}) }, downloadData: { ...p.downloadData, series: entry.series || p.series, fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) }, metadata: { ...p.downloadData.metadata, sampleLength: entry.metadata?.sampleLength || p.downloadData.metadata.sampleLength, tagsInput: Array.isArray(entry.metadata?.tags) ? entry.metadata.tags.join(', ') : p.downloadData.metadata.tagsInput }, audio: entry.manifest?.audio || p.downloadData.audio, video: entry.manifest?.video || p.downloadData.video } }));
+      setForm((p) => ({ ...p, title: entry.title || p.title, lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber, videoUrl: entry.video?.dataUrl || p.videoUrl, descriptionText: entry.descriptionText || p.descriptionText, series: entry.series || p.series, buckets: safeList(entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.buckets), attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence, creditsData: { ...emptyCredits(), ...(entry.creditsData || {}), ...(entry.sidebarPageConfig?.credits ? { artist: safeList([entry.sidebarPageConfig.credits.artist?.name]), instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)) } : {}) }, downloadData: { ...p.downloadData, series: entry.series || p.series, fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) }, metadata: { ...p.downloadData.metadata, sampleLength: entry.metadata?.sampleLength || p.downloadData.metadata.sampleLength, tagsInput: Array.isArray(entry.metadata?.tags) ? entry.metadata.tags.join(', ') : p.downloadData.metadata.tagsInput }, audio: entry.manifest?.audio || p.downloadData.audio, video: entry.manifest?.video || p.downloadData.video } }));
       return true;
     } catch { return false; }
   };
@@ -190,12 +209,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           year: Number(form.creditsData.year), season: form.creditsData.season, location: form.creditsData.location,
         };
         const sidebar = {
-          lookupNumber: form.lookupNumber, buckets: form.selectedBuckets, specialEventImage: null, attributionSentence: form.attributionSentence,
+          lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: null, attributionSentence: form.attributionSentence,
           credits: { artist: { name: creditsData.artist.join(', '), links: [] }, artistAlt: creditsData.artistAlt, instruments: creditsData.instruments.map((n) => ({ name: n, links: [] })), video: { director: { name: creditsData.video.director.join(', '), links: [] }, cinematography: { name: creditsData.video.cinematography.join(', '), links: [] }, editing: { name: creditsData.video.editing.join(', '), links: [] } }, audio: { recording: { name: creditsData.audio.recording.join(', '), links: [] }, mix: { name: creditsData.audio.mix.join(', '), links: [] }, master: { name: creditsData.audio.master.join(', '), links: [] } }, year: creditsData.year, season: creditsData.season, location: creditsData.location },
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: form.downloadData.metadata.sampleLength, tags: safeList(form.downloadData.metadata.tagsInput.split(',')) },
         };
-        const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: iframeFor(form.videoUrl) }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.selectedBuckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
+        const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataHtml: iframeFor(form.videoUrl) }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.buckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
         await fs.mkdir(path.resolve(outDirDefault || './entries'), { recursive: true }).catch(() => {});
         await fs.writeFile(path.join(path.resolve(outDirDefault || './entries'), LAST_CACHE), `${JSON.stringify({ lastInstruments: creditsData.instruments }, null, 2)}\n`, 'utf8');
         setDoneReport(report);
@@ -214,7 +233,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
     if (step.kind === 'text') { const next = applyTextEdit(input, key); if (next?.quit) { onCancel(); return; } if (key.return) void maybeAdvance(); return; }
     if (step.kind === 'select') { if (key.leftArrow || key.upArrow) setForm((p) => ({ ...p, series: SERIES_OPTIONS[(SERIES_OPTIONS.indexOf(p.series) - 1 + SERIES_OPTIONS.length) % SERIES_OPTIONS.length] })); if (key.rightArrow || key.downArrow) setForm((p) => ({ ...p, series: SERIES_OPTIONS[(SERIES_OPTIONS.indexOf(p.series) + 1) % SERIES_OPTIONS.length] })); if (key.return) void maybeAdvance(); return; }
-    if (step.kind === 'multi') { if (key.upArrow) setMultiCursor((p) => (p - 1 + BUCKETS.length) % BUCKETS.length); if (key.downArrow) setMultiCursor((p) => (p + 1) % BUCKETS.length); if (input === ' ') setForm((p) => { const b = BUCKETS[multiCursor]; const s = new Set(p.selectedBuckets); if (s.has(b)) s.delete(b); else s.add(b); return { ...p, selectedBuckets: BUCKETS.filter((x) => s.has(x)) }; }); if (key.return) void maybeAdvance(); return; }
+    if (step.kind === 'multi') { if (key.upArrow) setMultiCursor((p) => (p - 1 + BUCKETS.length) % BUCKETS.length); if (key.downArrow) setMultiCursor((p) => (p + 1) % BUCKETS.length); if (input === ' ') setForm((p) => { const b = BUCKETS[multiCursor]; const s = new Set(Array.isArray(p.buckets) ? p.buckets : []); if (s.has(b)) s.delete(b); else s.add(b); return { ...p, buckets: BUCKETS.filter((x) => s.has(x)) }; }); if (key.return) void maybeAdvance(); return; }
     if (step.kind === 'credits') {
       if (key.upArrow) { setCreditsCursor((p) => Math.max(0, p - 1)); return; }
       if (key.downArrow) { setCreditsCursor((p) => Math.min(creditRoles.length - 1, p + 1)); return; }
@@ -227,11 +246,11 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     if (step.kind === 'download') {
       const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
       const rows = [];
-      form.selectedBuckets.forEach((b) => fk.audio.forEach((k) => rows.push({ type: 'audio', b, k }))); form.selectedBuckets.forEach((b) => fk.video.forEach((k) => rows.push({ type: 'video', b, k })));
+      form.buckets.forEach((b) => fk.audio.forEach((k) => rows.push({ type: 'audio', b, k }))); form.buckets.forEach((b) => fk.video.forEach((k) => rows.push({ type: 'video', b, k })));
       if (pasteMode) {
         if (key.escape) { setPasteMode(false); return; }
         if (key.ctrl && input === 'd') {
-          const parsed = parsePasteBlock(form.downloadData.pasteBuffer, form.selectedBuckets, fk);
+          const parsed = parsePasteBlock(form.downloadData.pasteBuffer, form.buckets, fk);
           if (parsed.errors.length) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteError: parsed.errors.join(' | ') } })); return; }
           setForm((p) => ({ ...p, downloadData: { ...p.downloadData, audio: { ...p.downloadData.audio, ...parsed.next.audio }, video: { ...p.downloadData.video, ...parsed.next.video }, pasteError: '' } }));
           setPasteMode(false); return;
@@ -265,7 +284,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     React.createElement(Box, { marginTop: 1, borderStyle: 'round', borderColor: '#6fa8ff', paddingX: 1, flexDirection: 'column' },
       step.kind === 'text' ? React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(form[step.id] || '', cursorByStep[step.id] ?? 0, caretOn || process.env.DEX_NO_ANIM === '1')} ]`) : null,
       step.kind === 'select' ? React.createElement(Text, { color: '#d0d5df' }, `› Series: ${form.series} (←/→)`) : null,
-      step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' }, ...BUCKETS.map((b, i) => React.createElement(Text, { key: b, inverse: i === multiCursor }, `${i === multiCursor ? '›' : ' '} [${form.selectedBuckets.includes(b) ? 'x' : ' '}] ${b}`))) : null,
+      step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' }, ...BUCKETS.map((b, i) => React.createElement(Text, { key: b, inverse: i === multiCursor }, `${i === multiCursor ? '›' : ' '} [${form.buckets.includes(b) ? 'x' : ' '}] ${b}`))) : null,
       step.kind === 'credits' ? React.createElement(Box, { flexDirection: 'column' },
         React.createElement(Text, { color: '#8f98a8' }, reuseAsked ? `Reuse instruments: ${reuseChoice ? 'yes' : 'no'}` : 'On Enter, instruments can reuse last entry cache'),
         ...creditRoles.map((r, i) => React.createElement(Text, { key: r.key, inverse: i === creditsCursor }, `${i === creditsCursor ? '›' : ' '} ${r.label}: ${(roleValue(form.creditsData, r.key) || []).join(', ') || '(empty)'}`)),
@@ -275,11 +294,11 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
         pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,driveId\nCtrl+D finish • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
         !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `p=paste mode, c=cycle channels(${form.downloadData.fileSpecs.channels})`) : null,
-        !pasteMode ? [...form.selectedBuckets.flatMap((b) => fk.audio.map((k) => ({ type: 'audio', b, k }))).concat(form.selectedBuckets.flatMap((b) => fk.video.map((k) => ({ type: 'video', b, k })))).map((row, idx) => React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`))] : null,
+        !pasteMode ? [...form.buckets.flatMap((b) => fk.audio.map((k) => ({ type: 'audio', b, k }))).concat(form.buckets.flatMap((b) => fk.video.map((k) => ({ type: 'video', b, k })))).map((row, idx) => React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`))] : null,
         React.createElement(Text, { color: '#d0d5df' }, `sampleLength: ${form.downloadData.metadata.sampleLength || '(required)'} tags: ${form.downloadData.metadata.tagsInput || '(required)'}`),
         form.downloadData.pasteError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.pasteError) : null,
       ) : null,
-      step.kind === 'summary' ? React.createElement(Box, { flexDirection: 'column' }, React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`), React.createElement(Text, { color: '#d0d5df' }, `› Slug: ${form.slug}`), React.createElement(Text, { color: '#d0d5df' }, `› Buckets: ${form.selectedBuckets.join(', ')}`), React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate')) : null,
+      step.kind === 'summary' ? React.createElement(Box, { flexDirection: 'column' }, React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`), React.createElement(Text, { color: '#d0d5df' }, `› Slug: ${form.slug}`), React.createElement(Text, { color: '#d0d5df' }, `› Buckets: ${form.buckets.join(', ')}`), React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate')) : null,
     ),
     busy ? React.createElement(Text, { color: '#ffcc66' }, 'Generating...') : null,
     error ? React.createElement(Text, { color: '#ff6b6b' }, error) : null,
