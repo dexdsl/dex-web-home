@@ -30,6 +30,9 @@ export function createDefaultWizardForm() {
 }
 function withCaret(value, cursor, caretOn) { const safe = value || ''; return caretOn ? `${safe.slice(0, cursor)}▌${safe.slice(cursor)}` : safe; }
 function looksLikeEscapeSequence(input) { return typeof input === 'string' && input.includes('\x1b'); }
+function looksLikeBracketTildeSequence(input) {
+  return typeof input === 'string' && (/^\[[0-9;]+~$/.test(input) || /^[0-9;]+~$/.test(input));
+}
 const safeList = (arr) => (Array.isArray(arr) ? arr.map((v) => String(v || '').trim()).filter(Boolean) : []);
 const roleValue = (credits, roleKey) => roleKey.includes('.') ? credits[roleKey.split('.')[0]][roleKey.split('.')[1]] : credits[roleKey];
 const roleSet = (credits, roleKey, value) => {
@@ -43,7 +46,7 @@ const roleSet = (credits, roleKey, value) => {
 export function applyKeyToInputState(state, input, key = {}) {
   const value = state?.value ?? '';
   const cursor = Math.max(0, Math.min(value.length, state?.cursor ?? 0));
-  if (key.ctrl && (input === 'q' || input === 'Q')) return { value, cursor, quit: true };
+  if ((key.ctrl && (input === 'q' || input === 'Q')) || input === '\x11') return { value, cursor, quit: true };
   const isLeft = !!(key.leftArrow || input === '\x1b[D' || input === '\x1bOD');
   const isRight = !!(key.rightArrow || input === '\x1b[C' || input === '\x1bOC');
   const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH' || input === '\x1b[1~' || input === '\x1b[7~');
@@ -55,6 +58,7 @@ export function applyKeyToInputState(state, input, key = {}) {
   if (isEnd) return { value, cursor: value.length };
   if (isBackspaceKey(input, key)) { if (cursor === 0) return { value, cursor }; return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 }; }
   if (isDelete) { if (cursor >= value.length) return { value, cursor }; return { value: `${value.slice(0, cursor)}${value.slice(cursor + 1)}`, cursor }; }
+  if (looksLikeBracketTildeSequence(input)) return { value, cursor };
   if (looksLikeEscapeSequence(input)) return { value, cursor };
   if (shouldAppendWizardChar(input, key)) return { value: `${value.slice(0, cursor)}${input}${value.slice(cursor)}`, cursor: cursor + 1 };
   return { value, cursor };
@@ -71,10 +75,18 @@ export function validateStep(stepId, form, selectedRole, formatKeys) {
   if (stepId === 'attributionSentence' && !String(safeForm.attributionSentence || '').trim()) return 'Attribution sentence is required.';
   if (stepId === 'credits') {
     const creditsData = safeForm.creditsData || emptyCredits();
-    const role = selectedRole?.key;
-    if (role) {
-      const list = roleValue(creditsData, role);
-      if (safeList(list).length < 1) return `${selectedRole.label} needs at least one name.`;
+    const requiredRoles = [
+      { key: 'artist', label: 'Artist(s)' },
+      { key: 'instruments', label: 'Instruments' },
+      { key: 'video.director', label: 'Video Director' },
+      { key: 'video.cinematography', label: 'Video Cinematography' },
+      { key: 'video.editing', label: 'Video Editing' },
+      { key: 'audio.recording', label: 'Audio Recording' },
+      { key: 'audio.mix', label: 'Audio Mix' },
+      { key: 'audio.master', label: 'Audio Master' },
+    ];
+    for (const role of requiredRoles) {
+      if (safeList(roleValue(creditsData, role.key)).length < 1) return `${role.label} needs at least one name.`;
     }
     if (!String(creditsData.year || '').trim()) return 'Year is required.';
     if (Number.isNaN(Number(creditsData.year))) return 'Year must be numeric.';
@@ -137,18 +149,24 @@ const STEPS = [
 export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [stepIdx, setStepIdx] = useState(0); const [caretOn, setCaretOn] = useState(true); const [error, setError] = useState('');
   const [busy, setBusy] = useState(false); const [doneReport, setDoneReport] = useState(null); const [multiCursor, setMultiCursor] = useState(0);
-  const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInput, setCreditsInput] = useState(''); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
+  const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInputState, setCreditsInputState] = useState({ value: '', cursor: 0 }); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
   const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false);
   const templateRef = useRef(null);
   const [form, setForm] = useState(createDefaultWizardForm());
   const [cursorByStep, setCursorByStep] = useState({ title: 0, slug: 0, lookupNumber: 0, videoUrl: 0, descriptionText: 0, attributionSentence: 0 });
 
   const step = STEPS[stepIdx]; const totalSteps = STEPS.length;
-  const creditRoles = [{ key: 'artist', label: 'Artist(s)' }, { key: 'instruments', label: 'Instruments' }, { key: 'video.director', label: 'Video Director' }, { key: 'video.cinematography', label: 'Video Cinematography' }, { key: 'video.editing', label: 'Video Editing' }, { key: 'audio.recording', label: 'Audio Recording' }, { key: 'audio.mix', label: 'Audio Mix' }, { key: 'audio.master', label: 'Audio Master' }];
+  const creditRoles = [{ key: 'artist', label: 'Artist(s)' }, { key: 'instruments', label: 'Instruments' }, { key: 'video.director', label: 'Video Director' }, { key: 'video.cinematography', label: 'Video Cinematography' }, { key: 'video.editing', label: 'Video Editing' }, { key: 'audio.recording', label: 'Audio Recording' }, { key: 'audio.mix', label: 'Audio Mix' }, { key: 'audio.master', label: 'Audio Master' }, { key: 'year', label: 'Year' }, { key: 'season', label: 'Season' }, { key: 'location', label: 'Location' }, { key: 'artistAlt', label: 'Artist Alt' }];
   const selectedRole = creditRoles[Math.min(creditsCursor, creditRoles.length - 1)];
+  const scalarCreditKeys = new Set(['year', 'season', 'location', 'artistAlt']);
 
   useEffect(() => { if (process.env.DEX_NO_ANIM === '1') return undefined; const id = setInterval(() => setCaretOn((p) => !p), 500); return () => clearInterval(id); }, []);
   useEffect(() => { if (!form.slugTouched) { const s = slugify(form.title || ''); setForm((p) => ({ ...p, slug: s })); setCursorByStep((p) => ({ ...p, slug: s.length })); } }, [form.title, form.slugTouched]);
+  useEffect(() => {
+    const roleKey = selectedRole?.key || '';
+    const value = scalarCreditKeys.has(roleKey) ? String(roleValue(form.creditsData, roleKey) || '') : '';
+    setCreditsInputState({ value, cursor: value.length });
+  }, [creditsCursor]);
 
   const shiftStep = (d) => { setError(''); setStepIdx((p) => Math.max(0, Math.min(totalSteps - 1, p + d))); };
   const applyTextEdit = (input, key = {}, stepId = step.id) => {
@@ -228,7 +246,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   useInput((input, key) => {
     if (busy) return;
     if (doneReport) { if (key.return) onDone(doneReport); return; }
-    if (key.ctrl && (input === 'q' || input === 'Q')) { onCancel(); return; }
+    if ((key.ctrl && (input === 'q' || input === 'Q')) || input === '\x11') { onCancel(); return; }
     if (key.escape && !pasteMode) { if (stepIdx === 0) onCancel(); else shiftStep(-1); return; }
 
     if (step.kind === 'text') { const next = applyTextEdit(input, key); if (next?.quit) { onCancel(); return; } if (key.return) void maybeAdvance(); return; }
@@ -237,11 +255,28 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     if (step.kind === 'credits') {
       if (key.upArrow) { setCreditsCursor((p) => Math.max(0, p - 1)); return; }
       if (key.downArrow) { setCreditsCursor((p) => Math.min(creditRoles.length - 1, p + 1)); return; }
-      if (input === 'a') { const list = safeList(creditsInput.split(',')); if (list.length) { setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, [...safeList(roleValue(p.creditsData, selectedRole.key)), ...list]) })); setCreditsInput(''); } return; }
-      if (input === 'd') { setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, safeList(roleValue(p.creditsData, selectedRole.key)).slice(0, -1)) })); return; }
-      if (['year','season','location'].includes(selectedRole?.key || '')) return;
+      const isAdd = (key.ctrl && (input === 'a' || input === 'A')) || input === '\x01';
+      const isRemoveLast = (key.ctrl && (input === 'd' || input === 'D')) || (key.ctrl && key.backspace);
+      const isScalar = scalarCreditKeys.has(selectedRole?.key || '');
+      if (isAdd && !isScalar) {
+        const list = safeList(creditsInputState.value.split(','));
+        if (list.length) {
+          setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, [...safeList(roleValue(p.creditsData, selectedRole.key)), ...list]) }));
+          setCreditsInputState({ value: '', cursor: 0 });
+        }
+        return;
+      }
+      if (isRemoveLast && !isScalar) {
+        setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, safeList(roleValue(p.creditsData, selectedRole.key)).slice(0, -1)) }));
+        return;
+      }
       if (key.return) { void maybeAdvance(); return; }
-      const next = applyKeyToInputState({ value: creditsInput, cursor: creditsInput.length }, input, key); setCreditsInput(next.value); return;
+      const next = applyKeyToInputState(creditsInputState, input, key);
+      setCreditsInputState({ value: next.value, cursor: next.cursor });
+      if (isScalar && selectedRole?.key) {
+        setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, next.value) }));
+      }
+      return;
     }
     if (step.kind === 'download') {
       const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
@@ -277,7 +312,11 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   });
 
   const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
-  const footer = doneReport ? 'Enter return to menu' : 'Enter next • Esc back • Ctrl+Q quit';
+  const footer = doneReport
+    ? 'Enter return to menu'
+    : step.kind === 'credits'
+      ? 'Type to edit • Ctrl+A add (lists) • Ctrl+D remove last • Enter next • Esc back • Ctrl+Q quit'
+      : 'Enter next • Esc back • Ctrl+Q quit';
 
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
     React.createElement(Text, { color: '#8f98a8' }, `Step ${stepIdx + 1}/${totalSteps} — ${step.label}`),
@@ -287,9 +326,13 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' }, ...BUCKETS.map((b, i) => React.createElement(Text, { key: b, inverse: i === multiCursor }, `${i === multiCursor ? '›' : ' '} [${form.buckets.includes(b) ? 'x' : ' '}] ${b}`))) : null,
       step.kind === 'credits' ? React.createElement(Box, { flexDirection: 'column' },
         React.createElement(Text, { color: '#8f98a8' }, reuseAsked ? `Reuse instruments: ${reuseChoice ? 'yes' : 'no'}` : 'On Enter, instruments can reuse last entry cache'),
-        ...creditRoles.map((r, i) => React.createElement(Text, { key: r.key, inverse: i === creditsCursor }, `${i === creditsCursor ? '›' : ' '} ${r.label}: ${(roleValue(form.creditsData, r.key) || []).join(', ') || '(empty)'}`)),
-        React.createElement(Text, { color: '#d0d5df' }, `Input(add with 'a'): ${creditsInput}`),
-        React.createElement(Text, { color: '#d0d5df' }, `Year ${form.creditsData.year} / Season ${form.creditsData.season} / Location ${form.creditsData.location}`),
+        React.createElement(Text, { color: '#d0d5df' }, `› Editing: ${selectedRole?.label || '-'}`),
+        React.createElement(Text, { color: '#d0d5df' }, `Input: [ ${withCaret(creditsInputState.value, creditsInputState.cursor, caretOn || process.env.DEX_NO_ANIM === '1')} ]`),
+        ...creditRoles.map((r, i) => {
+          const raw = roleValue(form.creditsData, r.key);
+          const display = Array.isArray(raw) ? (raw.join(', ') || '(empty)') : (String(raw || '').trim() || '(empty)');
+          return React.createElement(Text, { key: r.key, inverse: i === creditsCursor }, `${i === creditsCursor ? '›' : ' '} ${r.label}: ${display}`);
+        }),
       ) : null,
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
         pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,driveId\nCtrl+D finish • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
