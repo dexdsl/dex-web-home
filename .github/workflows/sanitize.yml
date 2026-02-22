@@ -23,14 +23,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Discover repo targets
+        run: npm run repo:discover
+
       - name: Repo purity scan
         run: npm run sanitize:scan
 
-      - name: Verify remote image references (no mutation in CI)
-        run: npm run sanitize:assets -- --verify
+      - name: Verify forbidden domains
+        run: npm run verify:no-forbidden-domains
+
+      - name: Verify no Squarespace image URLs
+        run: npm run verify:no-sq-images
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+
+      - name: Phase 2 pipeline
+        run: npm run phase2:all
 
       - name: Network purity test
         run: npm run test:net

@@ -2,7 +2,7 @@
   "fields": {
     "alignItems": {
       "normal": {
-        "count": 225,
+        "count": 195,
         "examples": [
           {
             "page": "/",
@@ -193,7 +193,7 @@
     },
     "alignSelf": {
       "auto": {
-        "count": 417,
+        "count": 387,
         "examples": [
           {
             "page": "/",
@@ -260,7 +260,7 @@
     },
     "backgroundColor": {
       "rgba(0, 0, 0, 0)": {
-        "count": 339,
+        "count": 312,
         "examples": [
           {
             "page": "/",
@@ -664,29 +664,6 @@
             "selectorHint": "button.cta-btn [role:buttons]"
           }
         ]
-      },
-      "rgb(234, 202, 44)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          }
-        ]
       }
     },
     "borderBottomColor": {
@@ -950,73 +927,8 @@
           }
         ]
       },
-      "rgb(255, 255, 255)": {
-        "count": 24,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          }
-        ]
-      },
       "rgb(0, 0, 0)": {
-        "count": 21,
+        "count": 24,
         "examples": [
           {
             "page": "/",
@@ -1077,6 +989,71 @@
             "viewport": "mobile",
             "role": "buttons",
             "selectorHint": "button#faq-h2.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "rgb(255, 255, 255)": {
+        "count": 15,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
           }
         ]
       },
@@ -1204,65 +1181,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -1381,47 +1299,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
       "rgb(17, 17, 17)": {
         "count": 6,
         "examples": [
@@ -1460,47 +1337,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "h2#featuredTitle [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
           }
         ]
       },
@@ -1568,29 +1404,6 @@
           }
         ]
       },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "rgba(0, 0, 0, 0)": {
         "count": 3,
         "examples": [
@@ -1640,7 +1453,7 @@
     },
     "borderBottomLeftRadius": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -1705,7 +1518,7 @@
         ]
       },
       "4px": {
-        "count": 99,
+        "count": 96,
         "examples": [
           {
             "page": "/",
@@ -1937,7 +1750,7 @@
     },
     "borderBottomRightRadius": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -2002,7 +1815,7 @@
         ]
       },
       "4px": {
-        "count": 99,
+        "count": 96,
         "examples": [
           {
             "page": "/",
@@ -2234,7 +2047,7 @@
     },
     "borderBottomWidth": {
       "0px": {
-        "count": 321,
+        "count": 291,
         "examples": [
           {
             "page": "/",
@@ -2625,73 +2438,8 @@
           }
         ]
       },
-      "rgb(255, 255, 255)": {
-        "count": 24,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          }
-        ]
-      },
       "rgb(0, 0, 0)": {
-        "count": 21,
+        "count": 24,
         "examples": [
           {
             "page": "/",
@@ -2752,6 +2500,71 @@
             "viewport": "mobile",
             "role": "buttons",
             "selectorHint": "button#faq-h2.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "rgb(255, 255, 255)": {
+        "count": 15,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
           }
         ]
       },
@@ -2879,65 +2692,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -3056,47 +2810,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
       "rgb(17, 17, 17)": {
         "count": 6,
         "examples": [
@@ -3135,47 +2848,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "h2#featuredTitle [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
           }
         ]
       },
@@ -3243,29 +2915,6 @@
           }
         ]
       },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "rgba(0, 0, 0, 0)": {
         "count": 3,
         "examples": [
@@ -3315,7 +2964,7 @@
     },
     "borderLeftWidth": {
       "0px": {
-        "count": 321,
+        "count": 291,
         "examples": [
           {
             "page": "/",
@@ -3706,73 +3355,8 @@
           }
         ]
       },
-      "rgb(255, 255, 255)": {
-        "count": 24,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          }
-        ]
-      },
       "rgb(0, 0, 0)": {
-        "count": 21,
+        "count": 24,
         "examples": [
           {
             "page": "/",
@@ -3833,6 +3417,71 @@
             "viewport": "mobile",
             "role": "buttons",
             "selectorHint": "button#faq-h2.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "rgb(255, 255, 255)": {
+        "count": 15,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
           }
         ]
       },
@@ -3960,65 +3609,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -4137,47 +3727,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
       "rgb(17, 17, 17)": {
         "count": 6,
         "examples": [
@@ -4216,47 +3765,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "h2#featuredTitle [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
           }
         ]
       },
@@ -4324,29 +3832,6 @@
           }
         ]
       },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "rgba(0, 0, 0, 0)": {
         "count": 3,
         "examples": [
@@ -4396,7 +3881,7 @@
     },
     "borderRightWidth": {
       "0px": {
-        "count": 321,
+        "count": 291,
         "examples": [
           {
             "page": "/",
@@ -4787,73 +4272,8 @@
           }
         ]
       },
-      "rgb(255, 255, 255)": {
-        "count": 24,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "nav.footer-nav [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.icon [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h1.carousel-title [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.lead-text [role:typography]"
-          }
-        ]
-      },
       "rgb(0, 0, 0)": {
-        "count": 21,
+        "count": 24,
         "examples": [
           {
             "page": "/",
@@ -4914,6 +4334,71 @@
             "viewport": "mobile",
             "role": "buttons",
             "selectorHint": "button#faq-h2.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "rgb(255, 255, 255)": {
+        "count": 15,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "nav.footer-nav [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.icon [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h1.carousel-title [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "p.lead-text [role:typography]"
           }
         ]
       },
@@ -5041,65 +4526,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -5218,47 +4644,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
       "rgb(17, 17, 17)": {
         "count": 6,
         "examples": [
@@ -5297,47 +4682,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "h2#featuredTitle [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
           }
         ]
       },
@@ -5405,29 +4749,6 @@
           }
         ]
       },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "rgba(0, 0, 0, 0)": {
         "count": 3,
         "examples": [
@@ -5477,7 +4798,7 @@
     },
     "borderTopLeftRadius": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -5542,7 +4863,7 @@
         ]
       },
       "4px": {
-        "count": 99,
+        "count": 96,
         "examples": [
           {
             "page": "/",
@@ -5774,7 +5095,7 @@
     },
     "borderTopRightRadius": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -5839,7 +5160,7 @@
         ]
       },
       "4px": {
-        "count": 99,
+        "count": 96,
         "examples": [
           {
             "page": "/",
@@ -6071,7 +5392,7 @@
     },
     "borderTopWidth": {
       "0px": {
-        "count": 321,
+        "count": 291,
         "examples": [
           {
             "page": "/",
@@ -6203,7 +5524,7 @@
     },
     "bottom": {
       "auto": {
-        "count": 256,
+        "count": 226,
         "examples": [
           {
             "page": "/",
@@ -6431,7 +5752,7 @@
     },
     "boxShadow": {
       "none": {
-        "count": 312,
+        "count": 282,
         "examples": [
           {
             "page": "/",
@@ -6873,7 +6194,7 @@
         ]
       },
       "rgb(255, 255, 255)": {
-        "count": 66,
+        "count": 57,
         "examples": [
           {
             "page": "/",
@@ -6938,7 +6259,7 @@
         ]
       },
       "rgb(0, 0, 0)": {
-        "count": 30,
+        "count": 33,
         "examples": [
           {
             "page": "/",
@@ -7256,65 +6577,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -7374,88 +6636,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          }
-        ]
-      },
       "rgb(51, 51, 51)": {
         "count": 3,
         "examples": [
@@ -7476,29 +6656,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "p.kicker [role:typography]"
-          }
-        ]
-      },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
           }
         ]
       },
@@ -7551,7 +6708,7 @@
     },
     "columnGap": {
       "normal": {
-        "count": 384,
+        "count": 354,
         "examples": [
           {
             "page": "/",
@@ -7860,71 +7017,6 @@
       }
     },
     "display": {
-      "block": {
-        "count": 158,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "cards_chips",
-            "selectorHint": "div.chip [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "cards_chips",
-            "selectorHint": "div.chip [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "cards_chips",
-            "selectorHint": "div.chip [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.container [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.container [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.container [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.container [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.content [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.content [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "layout",
-            "selectorHint": "div.content [role:layout]"
-          }
-        ]
-      },
       "flex": {
         "count": 153,
         "examples": [
@@ -7987,6 +7079,71 @@
             "viewport": "desktop",
             "role": "buttons",
             "selectorHint": "button#faq-h3.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "block": {
+        "count": 140,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "cards_chips",
+            "selectorHint": "div.chip [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "cards_chips",
+            "selectorHint": "div.chip [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "cards_chips",
+            "selectorHint": "div.chip [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.container [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.container [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.container [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.container [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.content [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.content [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "layout",
+            "selectorHint": "div.content [role:layout]"
           }
         ]
       },
@@ -8121,7 +7278,7 @@
         ]
       },
       "inline-block": {
-        "count": 19,
+        "count": 16,
         "examples": [
           {
             "page": "/",
@@ -8186,7 +7343,7 @@
         ]
       },
       "inline": {
-        "count": 12,
+        "count": 3,
         "examples": [
           {
             "page": "/",
@@ -8205,55 +7362,13 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
           }
         ]
       }
     },
     "fill": {
       "rgb(0, 0, 0)": {
-        "count": 417,
+        "count": 387,
         "examples": [
           {
             "page": "/",
@@ -8320,7 +7435,7 @@
     },
     "flexDirection": {
       "row": {
-        "count": 375,
+        "count": 345,
         "examples": [
           {
             "page": "/",
@@ -8452,7 +7567,7 @@
     },
     "flexWrap": {
       "nowrap": {
-        "count": 402,
+        "count": 372,
         "examples": [
           {
             "page": "/",
@@ -8778,68 +7893,26 @@
           }
         ]
       },
-      "Inter": {
-        "count": 33,
+      "monospace": {
+        "count": 3,
         "examples": [
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "a [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
-            "viewport": "desktop",
+            "page": "/404",
+            "viewport": "mobile",
             "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
-            "viewport": "desktop",
+            "page": "/404",
+            "viewport": "tablet",
             "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
+            "selectorHint": "pre [role:typography]"
           }
         ]
       }
@@ -9041,7 +8114,7 @@
         ]
       },
       "13px": {
-        "count": 45,
+        "count": 48,
         "examples": [
           {
             "page": "/",
@@ -9235,71 +8308,6 @@
           }
         ]
       },
-      "14px": {
-        "count": 17,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "21.6px": {
         "count": 13,
         "examples": [
@@ -9362,71 +8370,6 @@
             "viewport": "desktop",
             "role": "typography",
             "selectorHint": "a.btn [role:typography]"
-          }
-        ]
-      },
-      "12px": {
-        "count": 10,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "buttons",
-            "selectorHint": "button.cta-btn [role:buttons]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
           }
         ]
       },
@@ -9800,35 +8743,6 @@
           }
         ]
       },
-      "16px": {
-        "count": 4,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "20px": {
         "count": 4,
         "examples": [
@@ -9858,55 +8772,26 @@
           }
         ]
       },
-      "24px": {
-        "count": 4,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h2#dex-board-promo-title.headline [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h2#featuredTitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          }
-        ]
-      },
-      "30px": {
+      "14px": {
         "count": 3,
         "examples": [
           {
-            "page": "/favorites",
+            "page": "/",
             "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "li.value [role:typography]"
           },
           {
-            "page": "/favorites",
-            "viewport": "mobile",
+            "page": "/",
+            "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "li.value [role:typography]"
           },
           {
-            "page": "/favorites",
-            "viewport": "tablet",
+            "page": "/",
+            "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "li.value [role:typography]"
           }
         ]
       },
@@ -10001,6 +8886,23 @@
           }
         ]
       },
+      "24px": {
+        "count": 2,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h2#dex-board-promo-title.headline [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h2#featuredTitle [role:typography]"
+          }
+        ]
+      },
       "36px": {
         "count": 2,
         "examples": [
@@ -10015,6 +8917,17 @@
             "viewport": "desktop",
             "role": "typography",
             "selectorHint": "h2#featuredTitle [role:typography]"
+          }
+        ]
+      },
+      "12px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "buttons",
+            "selectorHint": "button.cta-btn [role:buttons]"
           }
         ]
       },
@@ -10051,17 +8964,6 @@
           }
         ]
       },
-      "22px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          }
-        ]
-      },
       "41.7px": {
         "count": 1,
         "examples": [
@@ -10076,7 +8978,7 @@
     },
     "fontStyle": {
       "normal": {
-        "count": 417,
+        "count": 387,
         "examples": [
           {
             "page": "/",
@@ -10143,7 +9045,7 @@
     },
     "fontVariantLigatures": {
       "normal": {
-        "count": 417,
+        "count": 387,
         "examples": [
           {
             "page": "/",
@@ -10210,7 +9112,7 @@
     },
     "fontWeight": {
       "400": {
-        "count": 303,
+        "count": 291,
         "examples": [
           {
             "page": "/",
@@ -10271,29 +9173,6 @@
             "viewport": "desktop",
             "role": "buttons",
             "selectorHint": "button#faq-h3.spark-accordion__header [role:buttons]"
-          }
-        ]
-      },
-      "500": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
           }
         ]
       },
@@ -10363,7 +9242,7 @@
         ]
       },
       "700": {
-        "count": 30,
+        "count": 15,
         "examples": [
           {
             "page": "/",
@@ -10495,7 +9374,7 @@
     },
     "gap": {
       "normal": {
-        "count": 384,
+        "count": 354,
         "examples": [
           {
             "page": "/",
@@ -10805,7 +9684,7 @@
     },
     "gridTemplateColumns": {
       "none": {
-        "count": 396,
+        "count": 366,
         "examples": [
           {
             "page": "/",
@@ -11058,7 +9937,7 @@
     },
     "gridTemplateRows": {
       "none": {
-        "count": 396,
+        "count": 366,
         "examples": [
           {
             "page": "/",
@@ -11238,17 +10117,6 @@
           }
         ]
       },
-      "163.969px 251px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "section#dex-faq [role:layout]"
-          }
-        ]
-      },
       "165.141px 199px": {
         "count": 1,
         "examples": [
@@ -11257,6 +10125,17 @@
             "viewport": "mobile",
             "role": "layout",
             "selectorHint": "section#dex-signup.dex-signup-card [role:layout]"
+          }
+        ]
+      },
+      "182.969px 251px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "section#dex-faq [role:layout]"
           }
         ]
       },
@@ -11296,7 +10175,7 @@
     },
     "height": {
       "auto": {
-        "count": 98,
+        "count": 83,
         "examples": [
           {
             "page": "/",
@@ -11490,136 +10369,6 @@
           }
         ]
       },
-      "20px": {
-        "count": 12,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "li.value [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
-      "38.1875px": {
-        "count": 11,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "buttons",
-            "selectorHint": "a.header-skip-link [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "buttons",
-            "selectorHint": "a.theme-btn--primary [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "buttons",
-            "selectorHint": "a#btn-call.cta [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.header-skip-link [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.theme-btn--primary [role:typography]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "buttons",
-            "selectorHint": "a.header-skip-link [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "buttons",
-            "selectorHint": "a.theme-btn--primary [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "buttons",
-            "selectorHint": "a#btn-call.cta [role:buttons]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "nav.faq-cta [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.header-skip-link [role:typography]"
-          }
-        ]
-      },
       "35px": {
         "count": 10,
         "examples": [
@@ -11682,6 +10431,130 @@
             "viewport": "tablet",
             "role": "buttons",
             "selectorHint": "button#faq-h4.spark-accordion__header [role:buttons]"
+          }
+        ]
+      },
+      "38.1875px": {
+        "count": 10,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "buttons",
+            "selectorHint": "a.header-skip-link [role:buttons]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "buttons",
+            "selectorHint": "a.theme-btn--primary [role:buttons]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.header-skip-link [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "a.theme-btn--primary [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "buttons",
+            "selectorHint": "a.header-skip-link [role:buttons]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "buttons",
+            "selectorHint": "a.theme-btn--primary [role:buttons]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "buttons",
+            "selectorHint": "a#btn-call.cta [role:buttons]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "nav.faq-cta [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "a.header-skip-link [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "a.theme-btn--primary [role:typography]"
+          }
+        ]
+      },
+      "20px": {
+        "count": 9,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "li.value [role:typography]"
           }
         ]
       },
@@ -11776,47 +10649,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "small [role:typography]"
-          }
-        ]
-      },
-      "26px": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
           }
         ]
       },
@@ -12512,6 +11344,29 @@
           }
         ]
       },
+      "15px": {
+        "count": 3,
+        "examples": [
+          {
+            "page": "/404",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "pre [role:typography]"
+          },
+          {
+            "page": "/404",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "pre [role:typography]"
+          },
+          {
+            "page": "/404",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "pre [role:typography]"
+          }
+        ]
+      },
       "284.297px": {
         "count": 3,
         "examples": [
@@ -12532,29 +11387,6 @@
             "viewport": "tablet",
             "role": "layout",
             "selectorHint": "div#block-7ccf390e6577e4e9f69e.sqs-block [role:layout]"
-          }
-        ]
-      },
-      "33px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
           }
         ]
       },
@@ -12581,30 +11413,7 @@
           }
         ]
       },
-      "41px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          }
-        ]
-      },
-      "422.969px": {
+      "441.969px": {
         "count": 3,
         "examples": [
           {
@@ -12776,23 +11585,6 @@
           }
         ]
       },
-      "240px": {
-        "count": 2,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "269px": {
         "count": 2,
         "examples": [
@@ -12895,23 +11687,6 @@
           }
         ]
       },
-      "569.594px": {
-        "count": 2,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "cards_chips",
-            "selectorHint": "div.sqs-block-content [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "div#block-448bd8f915f4abba552b.sqs-block [role:layout]"
-          }
-        ]
-      },
       "59.9844px": {
         "count": 2,
         "examples": [
@@ -12926,6 +11701,23 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "a [role:typography]"
+          }
+        ]
+      },
+      "606.391px": {
+        "count": 2,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "cards_chips",
+            "selectorHint": "div.sqs-block-content [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "div#block-448bd8f915f4abba552b.sqs-block [role:layout]"
           }
         ]
       },
@@ -13028,28 +11820,6 @@
           }
         ]
       },
-      "160px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
-      "163.969px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "header.hdr [role:layout]"
-          }
-        ]
-      },
       "17.2031px": {
         "count": 1,
         "examples": [
@@ -13058,6 +11828,17 @@
             "viewport": "tablet",
             "role": "layout",
             "selectorHint": "div#block-22f4e234192109a5d76c.sqs-block [role:layout]"
+          }
+        ]
+      },
+      "182.969px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "header.hdr [role:layout]"
           }
         ]
       },
@@ -13116,17 +11897,6 @@
           }
         ]
       },
-      "220.781px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h1 [role:typography]"
-          }
-        ]
-      },
       "2311.33px": {
         "count": 1,
         "examples": [
@@ -13160,6 +11930,17 @@
           }
         ]
       },
+      "257.578px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "typography",
+            "selectorHint": "h1 [role:typography]"
+          }
+        ]
+      },
       "26.3906px": {
         "count": 1,
         "examples": [
@@ -13182,7 +11963,7 @@
           }
         ]
       },
-      "2715.53px": {
+      "2771.33px": {
         "count": 1,
         "examples": [
           {
@@ -13201,17 +11982,6 @@
             "viewport": "tablet",
             "role": "layout",
             "selectorHint": "nav.header-nav-list [role:layout]"
-          }
-        ]
-      },
-      "310.469px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h1 [role:typography]"
           }
         ]
       },
@@ -13303,6 +12073,17 @@
           }
         ]
       },
+      "372.562px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "h1 [role:typography]"
+          }
+        ]
+      },
       "378.219px": {
         "count": 1,
         "examples": [
@@ -13358,28 +12139,6 @@
           }
         ]
       },
-      "446.969px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "div.content [role:layout]"
-          }
-        ]
-      },
-      "448.656px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "section.page-section [role:layout]"
-          }
-        ]
-      },
       "45.1562px": {
         "count": 1,
         "examples": [
@@ -13413,6 +12172,28 @@
           }
         ]
       },
+      "465.969px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "div.content [role:layout]"
+          }
+        ]
+      },
+      "467.656px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "section.page-section [role:layout]"
+          }
+        ]
+      },
       "484.516px": {
         "count": 1,
         "examples": [
@@ -13432,6 +12213,17 @@
             "viewport": "desktop",
             "role": "layout",
             "selectorHint": "section.page-section [role:layout]"
+          }
+        ]
+      },
+      "57.1875px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "buttons",
+            "selectorHint": "a#btn-call.cta [role:buttons]"
           }
         ]
       },
@@ -13512,17 +12304,6 @@
           }
         ]
       },
-      "641.594px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "div.content [role:layout]"
-          }
-        ]
-      },
       "65.25px": {
         "count": 1,
         "examples": [
@@ -13545,6 +12326,17 @@
           }
         ]
       },
+      "678.391px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "div.content [role:layout]"
+          }
+        ]
+      },
       "72.5625px": {
         "count": 1,
         "examples": [
@@ -13556,7 +12348,7 @@
           }
         ]
       },
-      "726.828px": {
+      "763.625px": {
         "count": 1,
         "examples": [
           {
@@ -13564,17 +12356,6 @@
             "viewport": "mobile",
             "role": "layout",
             "selectorHint": "section.page-section [role:layout]"
-          }
-        ]
-      },
-      "79.8125px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "nav.faq-cta [role:layout]"
           }
         ]
       },
@@ -13687,11 +12468,22 @@
             "selectorHint": "footer.dex-footer [role:layout]"
           }
         ]
+      },
+      "98.8125px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "nav.faq-cta [role:layout]"
+          }
+        ]
       }
     },
     "justifyContent": {
       "normal": {
-        "count": 309,
+        "count": 279,
         "examples": [
           {
             "page": "/",
@@ -13928,7 +12720,7 @@
     },
     "justifySelf": {
       "auto": {
-        "count": 411,
+        "count": 381,
         "examples": [
           {
             "page": "/",
@@ -14036,7 +12828,7 @@
     },
     "left": {
       "auto": {
-        "count": 254,
+        "count": 224,
         "examples": [
           {
             "page": "/",
@@ -14253,7 +13045,7 @@
     },
     "letterSpacing": {
       "normal": {
-        "count": 393,
+        "count": 372,
         "examples": [
           {
             "page": "/",
@@ -14376,70 +13168,6 @@
           }
         ]
       },
-      "1.38px": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          }
-        ]
-      },
-      "0.5px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          }
-        ]
-      },
       "1.43px": {
         "count": 3,
         "examples": [
@@ -14494,7 +13222,7 @@
     },
     "lineHeight": {
       "normal": {
-        "count": 72,
+        "count": 75,
         "examples": [
           {
             "page": "/",
@@ -15337,129 +14065,6 @@
           }
         ]
       },
-      "25px": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          }
-        ]
-      },
-      "26px": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          }
-        ]
-      },
-      "40px": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "33.15px": {
         "count": 4,
         "examples": [
@@ -15570,29 +14175,6 @@
           }
         ]
       },
-      "16px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          }
-        ]
-      },
       "17.5px": {
         "count": 3,
         "examples": [
@@ -15613,98 +14195,6 @@
             "viewport": "desktop",
             "role": "typography",
             "selectorHint": "li.value [role:typography]"
-          }
-        ]
-      },
-      "20px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
-      "28px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
-      "33px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          }
-        ]
-      },
-      "41px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
           }
         ]
       },
@@ -15938,7 +14428,7 @@
     },
     "marginBottom": {
       "0px": {
-        "count": 351,
+        "count": 333,
         "examples": [
           {
             "page": "/",
@@ -16067,65 +14557,6 @@
           }
         ]
       },
-      "5px": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          }
-        ]
-      },
       "19.5px": {
         "count": 5,
         "examples": [
@@ -16231,49 +14662,26 @@
           }
         ]
       },
-      "14px": {
+      "13px": {
         "count": 3,
         "examples": [
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "mobile",
             "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "tablet",
             "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          }
-        ]
-      },
-      "15px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
+            "selectorHint": "pre [role:typography]"
           }
         ]
       },
@@ -16354,7 +14762,7 @@
     },
     "marginLeft": {
       "0px": {
-        "count": 366,
+        "count": 339,
         "examples": [
           {
             "page": "/",
@@ -16650,17 +15058,6 @@
           }
         ]
       },
-      "208.5px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "28.7969px": {
         "count": 1,
         "examples": [
@@ -16669,28 +15066,6 @@
             "viewport": "desktop",
             "role": "layout",
             "selectorHint": "header#header.white [role:layout]"
-          }
-        ]
-      },
-      "29.25px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
-      "360px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
           }
         ]
       },
@@ -16708,7 +15083,7 @@
     },
     "marginRight": {
       "0px": {
-        "count": 360,
+        "count": 333,
         "examples": [
           {
             "page": "/",
@@ -17154,17 +15529,6 @@
           }
         ]
       },
-      "208.5px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "28.8125px": {
         "count": 1,
         "examples": [
@@ -17173,28 +15537,6 @@
             "viewport": "desktop",
             "role": "layout",
             "selectorHint": "header#header.white [role:layout]"
-          }
-        ]
-      },
-      "29.25px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
-      "360px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
           }
         ]
       },
@@ -17212,7 +15554,7 @@
     },
     "marginTop": {
       "0px": {
-        "count": 378,
+        "count": 351,
         "examples": [
           {
             "page": "/",
@@ -17422,26 +15764,26 @@
           }
         ]
       },
-      "28px": {
+      "13px": {
         "count": 3,
         "examples": [
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "desktop",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "mobile",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "pre [role:typography]"
           },
           {
-            "page": "/favorites",
+            "page": "/404",
             "viewport": "tablet",
             "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
+            "selectorHint": "pre [role:typography]"
           }
         ]
       },
@@ -17465,29 +15807,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "h2#dex-board-promo-title.headline [role:typography]"
-          }
-        ]
-      },
-      "5px": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
           }
         ]
       },
@@ -17573,7 +15892,7 @@
     },
     "maxWidth": {
       "none": {
-        "count": 375,
+        "count": 345,
         "examples": [
           {
             "page": "/",
@@ -17779,7 +16098,7 @@
     },
     "minWidth": {
       "0px": {
-        "count": 271,
+        "count": 241,
         "examples": [
           {
             "page": "/",
@@ -18091,7 +16410,7 @@
         ]
       },
       "1": {
-        "count": 387,
+        "count": 363,
         "examples": [
           {
             "page": "/",
@@ -18152,52 +16471,6 @@
             "viewport": "desktop",
             "role": "buttons",
             "selectorHint": "button.cta-btn [role:buttons]"
-          }
-        ]
-      },
-      "0.68": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
-      "0.8": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
           }
         ]
       },
@@ -18292,7 +16565,7 @@
         ]
       },
       "rgb(255, 255, 255)": {
-        "count": 66,
+        "count": 57,
         "examples": [
           {
             "page": "/",
@@ -18357,7 +16630,7 @@
         ]
       },
       "rgb(0, 0, 0)": {
-        "count": 30,
+        "count": 33,
         "examples": [
           {
             "page": "/",
@@ -18675,65 +16948,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -18793,88 +17007,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          }
-        ]
-      },
       "rgb(51, 51, 51)": {
         "count": 3,
         "examples": [
@@ -18895,29 +17027,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "p.kicker [role:typography]"
-          }
-        ]
-      },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
           }
         ]
       },
@@ -18970,7 +17079,7 @@
     },
     "paddingBottom": {
       "0px": {
-        "count": 264,
+        "count": 237,
         "examples": [
           {
             "page": "/",
@@ -19035,7 +17144,7 @@
         ]
       },
       "9px": {
-        "count": 30,
+        "count": 27,
         "examples": [
           {
             "page": "/",
@@ -19769,7 +17878,7 @@
     },
     "paddingLeft": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -20158,71 +18267,6 @@
           }
         ]
       },
-      "16px": {
-        "count": 11,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "cards_chips",
-            "selectorHint": "main.card [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "footer.dex-footer [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "header.hdr [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "main.card [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "cards_chips",
-            "selectorHint": "main.card [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "footer.dex-footer [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "header.hdr [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "main.card [role:layout]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          }
-        ]
-      },
       "8px": {
         "count": 9,
         "examples": [
@@ -20279,6 +18323,59 @@
             "viewport": "tablet",
             "role": "cards_chips",
             "selectorHint": "div.chip [role:cards_chips]"
+          }
+        ]
+      },
+      "16px": {
+        "count": 8,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "cards_chips",
+            "selectorHint": "main.card [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "footer.dex-footer [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "header.hdr [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "main.card [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "cards_chips",
+            "selectorHint": "main.card [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "footer.dex-footer [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "header.hdr [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "main.card [role:layout]"
           }
         ]
       },
@@ -20480,7 +18577,7 @@
     },
     "paddingRight": {
       "0px": {
-        "count": 276,
+        "count": 249,
         "examples": [
           {
             "page": "/",
@@ -20869,71 +18966,6 @@
           }
         ]
       },
-      "16px": {
-        "count": 11,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "cards_chips",
-            "selectorHint": "main.card [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "footer.dex-footer [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "header.hdr [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "mobile",
-            "role": "layout",
-            "selectorHint": "main.card [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "cards_chips",
-            "selectorHint": "main.card [role:cards_chips]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "footer.dex-footer [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "header.hdr [role:layout]"
-          },
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "main.card [role:layout]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.view-logs-btn [role:typography]"
-          }
-        ]
-      },
       "8px": {
         "count": 9,
         "examples": [
@@ -20990,6 +19022,59 @@
             "viewport": "tablet",
             "role": "cards_chips",
             "selectorHint": "div.chip [role:cards_chips]"
+          }
+        ]
+      },
+      "16px": {
+        "count": 8,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "cards_chips",
+            "selectorHint": "main.card [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "footer.dex-footer [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "header.hdr [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "mobile",
+            "role": "layout",
+            "selectorHint": "main.card [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "cards_chips",
+            "selectorHint": "main.card [role:cards_chips]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "footer.dex-footer [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "header.hdr [role:layout]"
+          },
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "main.card [role:layout]"
           }
         ]
       },
@@ -21191,7 +19276,7 @@
     },
     "paddingTop": {
       "0px": {
-        "count": 261,
+        "count": 234,
         "examples": [
           {
             "page": "/",
@@ -21256,7 +19341,7 @@
         ]
       },
       "9px": {
-        "count": 30,
+        "count": 27,
         "examples": [
           {
             "page": "/",
@@ -22083,7 +20168,7 @@
         ]
       },
       "static": {
-        "count": 162,
+        "count": 132,
         "examples": [
           {
             "page": "/",
@@ -22214,7 +20299,7 @@
     },
     "right": {
       "auto": {
-        "count": 254,
+        "count": 224,
         "examples": [
           {
             "page": "/",
@@ -22431,7 +20516,7 @@
     },
     "rowGap": {
       "normal": {
-        "count": 384,
+        "count": 354,
         "examples": [
           {
             "page": "/",
@@ -22741,7 +20826,7 @@
     },
     "stroke": {
       "none": {
-        "count": 417,
+        "count": 387,
         "examples": [
           {
             "page": "/",
@@ -22808,7 +20893,7 @@
     },
     "textAlign": {
       "start": {
-        "count": 205,
+        "count": 208,
         "examples": [
           {
             "page": "/",
@@ -22873,7 +20958,7 @@
         ]
       },
       "center": {
-        "count": 170,
+        "count": 151,
         "examples": [
           {
             "page": "/",
@@ -22938,7 +21023,7 @@
         ]
       },
       "left": {
-        "count": 42,
+        "count": 28,
         "examples": [
           {
             "page": "/",
@@ -23070,7 +21155,7 @@
         ]
       },
       "rgb(255, 255, 255)": {
-        "count": 66,
+        "count": 57,
         "examples": [
           {
             "page": "/",
@@ -23135,7 +21220,7 @@
         ]
       },
       "rgb(0, 0, 0)": {
-        "count": 30,
+        "count": 33,
         "examples": [
           {
             "page": "/",
@@ -23453,65 +21538,6 @@
           }
         ]
       },
-      "rgb(74, 74, 74)": {
-        "count": 9,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "rgb(85, 85, 85)": {
         "count": 9,
         "examples": [
@@ -23571,88 +21597,6 @@
           }
         ]
       },
-      "rgb(10, 132, 174)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "a.toggle-details [role:typography]"
-          }
-        ]
-      },
-      "rgb(187, 148, 85)": {
-        "count": 6,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-status [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "strong [role:typography]"
-          }
-        ]
-      },
       "rgb(51, 51, 51)": {
         "count": 3,
         "examples": [
@@ -23673,29 +21617,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "p.kicker [role:typography]"
-          }
-        ]
-      },
-      "rgba(0, 0, 0, 0.86)": {
-        "count": 3,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
           }
         ]
       },
@@ -23748,7 +21669,7 @@
     },
     "textTransform": {
       "none": {
-        "count": 363,
+        "count": 333,
         "examples": [
           {
             "page": "/",
@@ -23880,7 +21801,7 @@
     },
     "top": {
       "auto": {
-        "count": 252,
+        "count": 222,
         "examples": [
           {
             "page": "/",
@@ -24127,7 +22048,7 @@
     },
     "width": {
       "auto": {
-        "count": 70,
+        "count": 55,
         "examples": [
           {
             "page": "/",
@@ -24321,138 +22242,138 @@
           }
         ]
       },
-      "390px": {
-        "count": 20,
+      "1440px": {
+        "count": 17,
         "examples": [
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "mobile",
+            "viewport": "desktop",
             "role": "layout",
             "selectorHint": "footer#footer-sections.sections [role:layout]"
           }
         ]
       },
-      "1440px": {
-        "count": 19,
+      "390px": {
+        "count": 17,
         "examples": [
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.container [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "div.content [role:layout]"
           },
           {
             "page": "/",
-            "viewport": "desktop",
+            "viewport": "mobile",
             "role": "layout",
             "selectorHint": "footer#footer-sections.sections [role:layout]"
           }
         ]
       },
       "834px": {
-        "count": 19,
+        "count": 17,
         "examples": [
           {
             "page": "/",
@@ -25133,35 +23054,6 @@
           }
         ]
       },
-      "275.594px": {
-        "count": 4,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "p.footer-group-detail [role:typography]"
-          }
-        ]
-      },
       "48px": {
         "count": 4,
         "examples": [
@@ -25530,23 +23422,6 @@
           }
         ]
       },
-      "158.906px": {
-        "count": 2,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "tablet",
-            "role": "typography",
-            "selectorHint": "h4.footer-group-title [role:typography]"
-          }
-        ]
-      },
       "167.641px": {
         "count": 2,
         "examples": [
@@ -25680,23 +23555,6 @@
             "viewport": "desktop",
             "role": "typography",
             "selectorHint": "a.header-skip-link [role:typography]"
-          }
-        ]
-      },
-      "360px": {
-        "count": 2,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-subtitle [role:typography]"
-          },
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "h3.error-title [role:typography]"
           }
         ]
       },
@@ -25856,6 +23714,17 @@
           }
         ]
       },
+      "1424px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/404",
+            "viewport": "desktop",
+            "role": "typography",
+            "selectorHint": "pre [role:typography]"
+          }
+        ]
+      },
       "150.156px": {
         "count": 1,
         "examples": [
@@ -25977,18 +23846,7 @@
           }
         ]
       },
-      "331.5px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "mobile",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
-      "334.688px": {
+      "306.422px": {
         "count": 1,
         "examples": [
           {
@@ -26010,14 +23868,14 @@
           }
         ]
       },
-      "417px": {
+      "374px": {
         "count": 1,
         "examples": [
           {
-            "page": "/favorites",
-            "viewport": "tablet",
+            "page": "/404",
+            "viewport": "mobile",
             "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
+            "selectorHint": "pre [role:typography]"
           }
         ]
       },
@@ -26087,6 +23945,17 @@
           }
         ]
       },
+      "566.719px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/",
+            "viewport": "tablet",
+            "role": "layout",
+            "selectorHint": "nav.faq-cta [role:layout]"
+          }
+        ]
+      },
       "59.1719px": {
         "count": 1,
         "examples": [
@@ -26117,17 +23986,6 @@
             "viewport": "tablet",
             "role": "typography",
             "selectorHint": "a [role:typography]"
-          }
-        ]
-      },
-      "613.281px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/",
-            "viewport": "tablet",
-            "role": "layout",
-            "selectorHint": "nav.faq-cta [role:layout]"
           }
         ]
       },
@@ -26164,17 +24022,6 @@
           }
         ]
       },
-      "720px": {
-        "count": 1,
-        "examples": [
-          {
-            "page": "/favorites",
-            "viewport": "desktop",
-            "role": "typography",
-            "selectorHint": "p.error-message [role:typography]"
-          }
-        ]
-      },
       "734.656px": {
         "count": 1,
         "examples": [
@@ -26205,6 +24052,17 @@
             "viewport": "tablet",
             "role": "layout",
             "selectorHint": "header#header.white [role:layout]"
+          }
+        ]
+      },
+      "818px": {
+        "count": 1,
+        "examples": [
+          {
+            "page": "/404",
+            "viewport": "tablet",
+            "role": "typography",
+            "selectorHint": "pre [role:typography]"
           }
         ]
       },
@@ -26477,7 +24335,7 @@
         ]
       },
       "auto": {
-        "count": 384,
+        "count": 354,
         "examples": [
           {
             "page": "/",

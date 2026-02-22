@@ -1,10 +1,10 @@
 {
   "forbiddenDomains": [
     "squarespace.com",
-    "squarespace-cdn.com",
     "static1.squarespace.com",
     "assets.squarespace.com",
     "images.squarespace-cdn.com",
+    "squarespace-cdn.com",
     "typekit.net",
     "p.typekit.net",
     "use.typekit.net"
@@ -12,12 +12,16 @@
   "forbiddenNeedles": [
     "squarespace",
     "sqs-",
-    "squarespace-cdn",
     "static1.squarespace",
     "assets.squarespace",
     "images.squarespace-cdn",
+    "squarespace-cdn",
     "typekit",
     "adobe"
+  ],
+  "squarespaceImageDomains": [
+    "images.squarespace-cdn.com",
+    "static1.squarespace.com"
   ],
   "pages": [
     "/",
@@ -34,5 +38,6 @@
   ],
   "cssGlobs": [
     "**/*.css"
-  ]
+  ],
+  "pageLimit": null
 }

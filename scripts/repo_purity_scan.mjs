@@ -1,221 +1,134 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 
-const repoRoot = process.cwd();
-const configPath = path.join(repoRoot, 'sanitize.config.json');
+const ROOT = process.cwd();
+const CONFIG_PATH = path.join(ROOT, 'sanitize.config.json');
+const TARGETS_PATH = path.join(ROOT, 'artifacts', 'repo-targets.json');
+const MAX_FINDINGS_PER_TERM = 3;
+const MAX_TOTAL_FINDINGS = 1000;
 
-if (!fs.existsSync(configPath)) {
-  console.error('sanitize:scan error: sanitize.config.json was not found.');
+function loadJSON(filePath, label) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`${label} was not found: ${filePath}`);
+  }
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function normalizeList(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item).trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function buildSnippet(content, start, length) {
+  const left = Math.max(0, start - 50);
+  const right = Math.min(content.length, start + length + 50);
+  return content
+    .slice(left, right)
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n');
+}
+
+function findAll(haystackLower, needleLower) {
+  const indexes = [];
+  let cursor = 0;
+  while (cursor <= haystackLower.length) {
+    const index = haystackLower.indexOf(needleLower, cursor);
+    if (index === -1) break;
+    indexes.push(index);
+    if (indexes.length >= MAX_FINDINGS_PER_TERM) break;
+    cursor = index + Math.max(needleLower.length, 1);
+  }
+  return indexes;
+}
+
+function scanFile(relativePath, forbiddenNeedles, forbiddenDomains) {
+  const absolutePath = path.join(ROOT, relativePath);
+  if (!fs.existsSync(absolutePath)) return [];
+  const content = fs.readFileSync(absolutePath, 'utf8');
+  const contentLower = content.toLowerCase();
+  const findings = [];
+
+  for (const needle of forbiddenNeedles) {
+    if (findings.length >= MAX_TOTAL_FINDINGS) break;
+    const positions = findAll(contentLower, needle);
+    for (const index of positions) {
+      if (findings.length >= MAX_TOTAL_FINDINGS) break;
+      findings.push({
+        file: relativePath,
+        kind: 'needle',
+        match: needle,
+        snippet: buildSnippet(content, index, needle.length),
+      });
+    }
+  }
+
+  for (const domain of forbiddenDomains) {
+    if (findings.length >= MAX_TOTAL_FINDINGS) break;
+    const positions = findAll(contentLower, domain);
+    for (const index of positions) {
+      if (findings.length >= MAX_TOTAL_FINDINGS) break;
+      findings.push({
+        file: relativePath,
+        kind: 'domain',
+        match: domain,
+        snippet: buildSnippet(content, index, domain.length),
+      });
+    }
+  }
+
+  return findings;
+}
+
+function main() {
+  const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
+  const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
+
+  const forbiddenNeedles = normalizeList(config.forbiddenNeedles);
+  const forbiddenDomains = normalizeList(config.forbiddenDomains);
+  if (forbiddenNeedles.length === 0 || forbiddenDomains.length === 0) {
+    throw new Error('forbiddenNeedles and forbiddenDomains must both be configured in sanitize.config.json.');
+  }
+
+  const files = Array.from(
+    new Set([
+      ...(Array.isArray(targets.htmlFiles) ? targets.htmlFiles : []),
+      ...(Array.isArray(targets.cssFiles) ? targets.cssFiles : []),
+      ...(Array.isArray(targets.jsFiles) ? targets.jsFiles : []),
+    ]),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const findings = [];
+  for (const filePath of files) {
+    if (findings.length >= MAX_TOTAL_FINDINGS) break;
+    findings.push(...scanFile(filePath, forbiddenNeedles, forbiddenDomains));
+  }
+
+  if (findings.length > 0) {
+    findings.sort((a, b) => {
+      if (a.file !== b.file) return a.file.localeCompare(b.file);
+      if (a.kind !== b.kind) return a.kind.localeCompare(b.kind);
+      return a.match.localeCompare(b.match);
+    });
+    console.error(`sanitize:scan failed. Findings: ${findings.length}`);
+    if (findings.length >= MAX_TOTAL_FINDINGS) {
+      console.error(`(output truncated to first ${MAX_TOTAL_FINDINGS} findings)`);
+    }
+    for (const finding of findings) {
+      console.error(`- ${finding.file} [${finding.kind}] ${finding.match}`);
+      console.error(`  ${finding.snippet}`);
+    }
+    process.exit(1);
+  }
+
+  console.log(`sanitize:scan passed (${files.length} files scanned).`);
+}
+
+try {
+  main();
+} catch (error) {
+  console.error(`sanitize:scan error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
-
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-const forbiddenNeedles = Array.isArray(config.forbiddenNeedles)
-  ? config.forbiddenNeedles.map((value) => String(value).toLowerCase())
-  : [];
-
-if (forbiddenNeedles.length === 0) {
-  console.error('sanitize:scan error: forbiddenNeedles is empty in sanitize.config.json.');
-  process.exit(1);
-}
-
-const ACTIVE_SURFACE_PATTERNS = [
-  /^assets\/css\//,
-  /^css\//,
-  /^docs\/css\//,
-  /^docs\/index\.html$/,
-  /^docs\/favorites\/index\.html$/,
-  /^entry-template\//,
-  /^tests\//,
-  /^\.github\/workflows\/sanitize\.yml$/,
-  /^package\.json$/,
-  /^package-lock\.json$/,
-  /^sanitize\.config\.json$/,
-  /^playwright\.config\.ts$/,
-];
-
-const EXCLUDED_PATH_PATTERNS = [
-  /^\.git\//,
-  /^node_modules\//,
-  /^dist\//,
-  /^assets\/assets-manifest\.json$/,
-];
-
-const TEXT_EXTENSIONS = new Set([
-  '.css',
-  '.html',
-  '.js',
-  '.json',
-  '.md',
-  '.mjs',
-  '.ts',
-  '.tsx',
-  '.txt',
-  '.xml',
-  '.yml',
-  '.yaml',
-]);
-
-function toPosix(relativePath) {
-  return relativePath.split(path.sep).join('/');
-}
-
-function isActiveSurface(relativePath) {
-  if (EXCLUDED_PATH_PATTERNS.some((pattern) => pattern.test(relativePath))) {
-    return false;
-  }
-
-  if (ACTIVE_SURFACE_PATTERNS.some((pattern) => pattern.test(relativePath))) {
-    return true;
-  }
-
-  return false;
-}
-
-function isLikelyText(buffer, extension) {
-  if (TEXT_EXTENSIONS.has(extension.toLowerCase())) {
-    return !buffer.includes(0);
-  }
-
-  if (buffer.length === 0) {
-    return true;
-  }
-
-  const sampleSize = Math.min(buffer.length, 4096);
-  let binaryBytes = 0;
-  for (let index = 0; index < sampleSize; index += 1) {
-    const value = buffer[index];
-    if (value === 0) {
-      return false;
-    }
-    if (value < 7 || (value > 14 && value < 32)) {
-      binaryBytes += 1;
-    }
-  }
-  return binaryBytes / sampleSize < 0.03;
-}
-
-function collectTrackedFiles() {
-  const output = execFileSync('git', ['ls-files', '-z'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-
-  return output
-    .split('\0')
-    .filter(Boolean)
-    .map(toPosix)
-    .filter((relativePath) => isActiveSurface(relativePath));
-}
-
-function collectUrlSurfaces(content) {
-  const values = new Set();
-
-  const rawUrlPattern = /https?:\/\/[^\s"'`<>\)]+/gi;
-  let match = rawUrlPattern.exec(content);
-  while (match) {
-    values.add(match[0]);
-    match = rawUrlPattern.exec(content);
-  }
-
-  const protocolRelativePattern = /(?:src|href|content)\s*=\s*["'](\/\/[^"']+)["']/gi;
-  match = protocolRelativePattern.exec(content);
-  while (match) {
-    values.add(match[1]);
-    match = protocolRelativePattern.exec(content);
-  }
-
-  const attrPattern = /(?:src|href|content)\s*=\s*["']([^"']+)["']/gi;
-  match = attrPattern.exec(content);
-  while (match) {
-    values.add(match[1]);
-    match = attrPattern.exec(content);
-  }
-
-  const cssUrlPattern = /url\(\s*["']?([^\)"'\s]+)["']?\s*\)/gi;
-  match = cssUrlPattern.exec(content);
-  while (match) {
-    values.add(match[1]);
-    match = cssUrlPattern.exec(content);
-  }
-
-  const srcsetPattern = /srcset\s*=\s*["']([^"']+)["']/gi;
-  match = srcsetPattern.exec(content);
-  while (match) {
-    const srcsetBody = match[1];
-    const urlTokenPattern = /https?:\/\/[^\s,]+|\/\/[^\s,]+/gi;
-    let token = urlTokenPattern.exec(srcsetBody);
-    while (token) {
-      values.add(token[0]);
-      token = urlTokenPattern.exec(srcsetBody);
-    }
-    match = srcsetPattern.exec(content);
-  }
-
-  return Array.from(values);
-}
-
-const trackedFiles = collectTrackedFiles();
-const offenders = [];
-
-for (const relativePath of trackedFiles) {
-  const absolutePath = path.join(repoRoot, relativePath);
-  if (!fs.existsSync(absolutePath)) {
-    continue;
-  }
-
-  const extension = path.extname(relativePath);
-  const buffer = fs.readFileSync(absolutePath);
-  if (!isLikelyText(buffer, extension)) {
-    continue;
-  }
-
-  const content = buffer.toString('utf8');
-  const urlSurfaces = collectUrlSurfaces(content);
-
-  for (const surface of urlSurfaces) {
-    const lowerSurface = surface.toLowerCase();
-    for (const needle of forbiddenNeedles) {
-      if (!needle) {
-        continue;
-      }
-
-      if (lowerSurface.includes(needle)) {
-        offenders.push({
-          file: relativePath,
-          needle,
-          sample: surface,
-        });
-      }
-    }
-  }
-}
-
-if (offenders.length > 0) {
-  const deduped = new Map();
-  for (const offender of offenders) {
-    const key = `${offender.file}\u0000${offender.needle}\u0000${offender.sample}`;
-    if (!deduped.has(key)) {
-      deduped.set(key, offender);
-    }
-  }
-
-  const sorted = Array.from(deduped.values()).sort((left, right) => {
-    const fileCompare = left.file.localeCompare(right.file);
-    if (fileCompare !== 0) return fileCompare;
-    const needleCompare = left.needle.localeCompare(right.needle);
-    if (needleCompare !== 0) return needleCompare;
-    return left.sample.localeCompare(right.sample);
-  });
-
-  console.error('sanitize:scan failed. Forbidden references were found:');
-  for (const offender of sorted) {
-    console.error(`- ${offender.file} :: ${offender.needle} :: ${offender.sample}`);
-  }
-  process.exit(1);
-}
-
-console.log(`sanitize:scan passed (${trackedFiles.length} files scanned).`);

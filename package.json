@@ -14,15 +14,20 @@
     "test:portable": "node scripts/verify-portable-entry-html.mjs",
     "test:doctor": "node scripts/test-doctor-normalize.mjs && node scripts/test-doctor-drift.mjs",
     "test:update": "node scripts/test-update-rehydrate.mjs",
-    "sanitize:scan": "node scripts/repo_purity_scan.mjs",
-    "sanitize:assets": "node scripts/fetch_remote_images.mjs",
+    "repo:discover": "node scripts/discover_repo_targets.mjs",
+    "sanitize:scan": "npm run repo:discover && node scripts/repo_purity_scan.mjs",
+    "sanitize:assets": "npm run repo:discover && node scripts/fetch_squarespace_images.mjs",
+    "verify:no-forbidden-domains": "npm run repo:discover && node scripts/verify_no_forbidden_domains.mjs",
+    "verify:no-sq-images": "npm run repo:discover && node scripts/verify_no_squarespace_images.mjs",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-sq-images",
     "test:net": "playwright test tests/network-purity.spec.ts",
     "test:visual": "playwright test tests/visual.spec.ts",
-    "sanitize:all": "npm run sanitize:scan && npm run sanitize:assets && npm run test:net && npm run test:visual",
+    "sanitize:all": "npm run phase1:all && npm run test:net && npm run test:visual",
     "phase2:inventory": "node scripts/style_inventory.mjs",
     "phase2:states": "node scripts/style_states.mjs",
     "phase2:tokens": "node scripts/tokenize_inventory.mjs",
-    "phase2:all": "npm run phase2:inventory && npm run phase2:states && npm run phase2:tokens"
+    "phase2:all": "npm run repo:discover && npm run phase2:inventory && npm run phase2:states && npm run phase2:tokens",
+    "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-sq-images && npm run phase2:all && npm run test:net && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

@@ -4,11 +4,15 @@ import { test, expect } from 'playwright/test';
 
 type SanitizeConfig = {
   forbiddenDomains?: string[];
-  pages?: string[];
 };
 
 const configPath = path.join(process.cwd(), 'sanitize.config.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as SanitizeConfig;
+const targetsPath = path.join(process.cwd(), 'artifacts', 'repo-targets.json');
+if (!fs.existsSync(targetsPath)) {
+  throw new Error('Missing artifacts/repo-targets.json. Run `npm run repo:discover` before `npm run test:net`.');
+}
+const targets = JSON.parse(fs.readFileSync(targetsPath, 'utf8')) as { routes?: string[] };
 const forbiddenDomains = (config.forbiddenDomains ?? []).map((domain) => domain.toLowerCase());
 
 function hostMatchesForbidden(host: string): boolean {
@@ -16,32 +20,19 @@ function hostMatchesForbidden(host: string): boolean {
   return forbiddenDomains.some((domain) => normalized === domain || normalized.endsWith(`.${domain}`));
 }
 
-function resolvePages(): string[] {
-  const docsRoot = path.join(process.cwd(), 'docs');
-  const configuredPages = Array.isArray(config.pages) && config.pages.length > 0 ? config.pages : ['/'];
-  const resolved: string[] = [];
-
-  for (const pagePath of configuredPages) {
-    if (pagePath === '/') {
-      resolved.push('/');
-      continue;
-    }
-
-    const normalized = pagePath.replace(/^\/+/, '').replace(/\/+$/, '');
-    const candidate = path.join(docsRoot, normalized, 'index.html');
-    if (fs.existsSync(candidate)) {
-      resolved.push(`/${normalized}`);
-    }
+function resolveRoutes(): string[] {
+  const discovered = Array.isArray(targets.routes) ? targets.routes.map((route) => String(route).trim()).filter(Boolean) : ['/'];
+  const unique = Array.from(new Set(discovered)).sort((a, b) => a.localeCompare(b));
+  const pageFilter = process.env.PAGE_FILTER ? String(process.env.PAGE_FILTER) : '';
+  let filtered = pageFilter ? unique.filter((route) => route.includes(pageFilter)) : unique;
+  const pageLimit = process.env.PAGE_LIMIT ? Number(process.env.PAGE_LIMIT) : Number.NaN;
+  if (Number.isFinite(pageLimit) && pageLimit > 0) {
+    filtered = filtered.slice(0, Math.floor(pageLimit));
   }
-
-  if (resolved.length === 0) {
-    return ['/'];
-  }
-
-  return Array.from(new Set(resolved));
+  return filtered.length > 0 ? filtered : ['/'];
 }
 
-const pages = resolvePages();
+const pages = resolveRoutes();
 
 for (const pagePath of pages) {
   test(`network purity ${pagePath}`, async ({ page }) => {

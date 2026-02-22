@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const RAW_PATH = path.join(ROOT, 'artifacts', 'style-inventory.raw.json');
 const DEDUP_PATH = path.join(ROOT, 'artifacts', 'style-inventory.dedup.json');
 const TOKENS_JSON_PATH = path.join(ROOT, 'tokens.candidates.json');
+const TOKENS_ROOT_CSS_PATH = path.join(ROOT, 'tokens.css');
 const TOKENS_CSS_PATH = path.join(ROOT, 'css', 'tokens.css');
 
 const COLOR_FIELDS = [
@@ -61,6 +62,7 @@ function ensureFiles() {
     throw new Error('Missing artifacts/style-inventory.raw.json. Run phase2:inventory first.');
   }
   fs.mkdirSync(path.dirname(DEDUP_PATH), { recursive: true });
+  fs.mkdirSync(path.dirname(TOKENS_ROOT_CSS_PATH), { recursive: true });
   fs.mkdirSync(path.dirname(TOKENS_CSS_PATH), { recursive: true });
 }
 
@@ -307,7 +309,9 @@ function writeTokensCSS(tokens) {
   }
 
   lines.push('}');
-  fs.writeFileSync(TOKENS_CSS_PATH, lines.join('\n'));
+  const css = lines.join('\n');
+  fs.writeFileSync(TOKENS_ROOT_CSS_PATH, css);
+  fs.writeFileSync(TOKENS_CSS_PATH, css);
 }
 
 function summarize(tokens) {
