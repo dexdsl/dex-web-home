@@ -11,8 +11,187 @@ const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const PAGE_CONFIG_BRIDGE_SNIPPET = "window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');";
 const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
 const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
+const DEX_ENTRY_BG_STYLE_ID = 'dex-entry-gooey-bg-style';
+const DEX_ENTRY_BG_SCRIPT_ID = 'dex-entry-gooey-bg-script';
 const DEFAULT_ANNOUNCEMENT_HTML = '<p>Donate to dex today to help us provide arts resources &amp; events!</p>';
 const DEFAULT_ANNOUNCEMENT_HREF = '/donate';
+const DEX_ENTRY_BG_STYLE = `
+body.dex-entry-page {
+  background: transparent !important;
+}
+body.dex-entry-page .sqs-announcement-bar-dropzone,
+body.dex-entry-page .header-announcement-bar-wrapper,
+body.dex-entry-page #siteWrapper {
+  position: relative;
+  z-index: 2;
+}
+body.dex-entry-page #siteWrapper,
+body.dex-entry-page #page,
+body.dex-entry-page #sections,
+body.dex-entry-page .dex-entry-section,
+body.dex-entry-page .dex-footer-section,
+body.dex-entry-page .dex-entry-section > .section-border,
+body.dex-entry-page .dex-footer-section > .section-border,
+body.dex-entry-page .dex-entry-section > .section-border > .section-background,
+body.dex-entry-page .dex-footer-section > .section-border > .section-background {
+  background: transparent !important;
+}
+#scroll-gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: #fcfcfc;
+  pointer-events: none;
+  z-index: 0;
+}
+#gooey-mesh-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  pointer-events: none;
+  z-index: 1;
+}
+#gooey-mesh-wrapper .gooey-stage {
+  position: absolute;
+  inset: 0;
+  filter: url("#goo");
+}
+#gooey-mesh-wrapper .gooey-blob {
+  position: absolute;
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 30% 30%, var(--g1a) 0%, var(--g1b) 45%, transparent 75%),
+    radial-gradient(circle at 70% 70%, var(--g2a) 0%, var(--g2b) 45%, transparent 75%);
+  filter: blur(34px) saturate(150%);
+  will-change: transform;
+}
+#gooey-mesh-wrapper svg#goo-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+`;
+const DEX_ENTRY_BG_MARKUP = `
+<div id="scroll-gradient-bg" data-dex-entry-bg="1"></div>
+<div id="gooey-mesh-wrapper" data-dex-entry-bg="1">
+  <div class="gooey-stage">
+    <div class="gooey-blob" style="--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7"></div>
+    <div class="gooey-blob" style="--d:32vmax;--g1a:#7f00ff;--g1b:#e100ff;--g2a:#00dbde;--g2b:#fc00ff"></div>
+    <div class="gooey-blob" style="--d:33vmax;--g1a:#ffd452;--g1b:#ffb347;--g2a:#ff8456;--g2b:#ff5e62"></div>
+    <div class="gooey-blob" style="--d:37vmax;--g1a:#13f1fc;--g1b:#0470dc;--g2a:#a1ffce;--g2b:#faffd1"></div>
+    <div class="gooey-blob" style="--d:27vmax;--g1a:#f9516d;--g1b:#ff9a44;--g2a:#fa8bff;--g2b:#6f7bf7"></div>
+  </div>
+  <svg id="goo-filter" aria-hidden="true">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur"></feGaussianBlur>
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo"></feColorMatrix>
+        <feBlend in="SourceGraphic" in2="goo" mode="normal"></feBlend>
+      </filter>
+    </defs>
+  </svg>
+</div>
+`;
+const DEX_ENTRY_BG_SCRIPT = `
+;(function(){
+  if (window.__dexEntryGooeyBgInit) return;
+  window.__dexEntryGooeyBgInit = true;
+
+  var start = function(){
+    var mesh = document.getElementById('gooey-mesh-wrapper');
+    var grad = document.getElementById('scroll-gradient-bg');
+    if (!mesh) return;
+    if (grad) grad.style.background = 'rgb(252, 252, 252)';
+
+    var blobs = Array.from(mesh.querySelectorAll('.gooey-blob'));
+    if (!blobs.length) return;
+
+    var vw = Math.max(window.innerWidth || 0, 1);
+    var vh = Math.max(window.innerHeight || 0, 1);
+
+    var updateViewport = function(){
+      vw = Math.max(window.innerWidth || 0, 1);
+      vh = Math.max(window.innerHeight || 0, 1);
+      blobs.forEach(function(b){
+        b._x = Math.min(Math.max(b._r, b._x), vw - b._r);
+        b._y = Math.min(Math.max(b._r, b._y), vh - b._r);
+      });
+    };
+
+    blobs.forEach(function(b){
+      var speed = 60 + Math.random() * 60;
+      var ang = Math.random() * Math.PI * 2;
+      b._r = Math.max(b.offsetWidth / 2, 1);
+      b._x = b._r + Math.random() * Math.max(vw - b._r * 2, 1);
+      b._y = b._r + Math.random() * Math.max(vh - b._r * 2, 1);
+      b._vx = Math.cos(ang) * speed * 0.25;
+      b._vy = Math.sin(ang) * speed * 0.25;
+      b.style.transform = 'translate(' + b._x + 'px,' + b._y + 'px) translate(-50%,-50%)';
+    });
+
+    var state = { raf: 0, timer: 0, last: performance.now(), lastFrame: performance.now(), stopped: false };
+    var step = function(now){
+      var dt = Math.min(Math.max((now - state.last) / 1000, 0), 0.05);
+      state.last = now;
+      for (var i = 0; i < blobs.length; i += 1) {
+        var b = blobs[i];
+        b._x += b._vx * dt;
+        b._y += b._vy * dt;
+        if ((b._x - b._r <= 0 && b._vx < 0) || (b._x + b._r >= vw && b._vx > 0)) b._vx *= -1;
+        if ((b._y - b._r <= 0 && b._vy < 0) || (b._y + b._r >= vh && b._vy > 0)) b._vy *= -1;
+        b.style.transform = 'translate(' + b._x + 'px,' + b._y + 'px) translate(-50%,-50%)';
+      }
+      state.lastFrame = now;
+    };
+    var tick = function(now){
+      if (state.stopped) return;
+      try { step(now); } catch {}
+      state.raf = requestAnimationFrame(tick);
+    };
+    var watchdog = function(){
+      if (state.stopped) return;
+      var now = performance.now();
+      if (now - state.lastFrame > 140) {
+        try { step(now); } catch {}
+      }
+    };
+
+    state.raf = requestAnimationFrame(tick);
+    state.timer = setInterval(watchdog, 80);
+    window.addEventListener('resize', updateViewport, { passive: true });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) return;
+      var now = performance.now();
+      state.last = now;
+      state.lastFrame = now;
+    });
+    window.addEventListener('pagehide', function(){
+      state.stopped = true;
+      if (state.raf) cancelAnimationFrame(state.raf);
+      if (state.timer) clearInterval(state.timer);
+    }, { once: true });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+})();`;
 
 const BLOCKED_SCRIPT_SRC_PATTERNS = [
   /squarespace\.com/i,
@@ -59,6 +238,8 @@ export const VERIFY_TOKEN_CHECKS = [
   { token: 'Static runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\bStatic(?:\.|\s*=)/ },
   { token: 'SQUARESPACE_ runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?SQUARESPACE_/i },
   { token: 'protocol-relative src/href', regex: /\b(?:src|href)\s*=\s*["']\/\//i },
+  { token: 'grain filter id', regex: /<filter[^>]*id=["']noise["']/i },
+  { token: 'grain filter usage', regex: /url\((["'])#noise\1\)/i },
   ...FORBIDDEN_REMAINING_MARKERS,
 ];
 
@@ -311,6 +492,60 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
   dropzone.append('\n');
   dropzone.append(location);
   dropzone.append('\n');
+}
+
+function ensureEntryBackgroundPresence($) {
+  const body = $('body').first();
+  if (!body.length || !body.hasClass('dex-entry-page')) return;
+
+  // Remove legacy blob/grain snippets before injecting the managed version.
+  $('style').each((_, element) => {
+    const css = String($(element).html() || '');
+    if (!css) return;
+    if (css.includes('#gooey-mesh-wrapper') || css.includes('#scroll-gradient-bg') || css.includes('id="noise"')) {
+      $(element).remove();
+    }
+  });
+  $('script:not([src])').each((_, element) => {
+    const text = String($(element).html() || '');
+    if (!text) return;
+    if (text.includes('#gooey-mesh-wrapper') || text.includes('scroll-gradient-bg')) {
+      $(element).remove();
+    }
+  });
+  $('#scroll-gradient-bg, #gooey-mesh-wrapper').remove();
+  $(`script#${DEX_ENTRY_BG_SCRIPT_ID}`).remove();
+  $(`style#${DEX_ENTRY_BG_STYLE_ID}`).remove();
+
+  const head = ensureHead($);
+  head.append(`\n<style id="${DEX_ENTRY_BG_STYLE_ID}" data-managed="1">\n${DEX_ENTRY_BG_STYLE}\n</style>`);
+
+  if (body.children().length) {
+    body.children().first().before(`\n${DEX_ENTRY_BG_MARKUP}\n`);
+  } else {
+    body.append(`\n${DEX_ENTRY_BG_MARKUP}\n`);
+  }
+  body.append(`\n<script id="${DEX_ENTRY_BG_SCRIPT_ID}" data-managed="1">\n${DEX_ENTRY_BG_SCRIPT}\n</script>\n`);
+}
+
+function normalizeEntryFooterSurface($) {
+  const body = $('body').first();
+  if (!body.length || !body.hasClass('dex-entry-page')) return;
+
+  // Keep entry footer on the stock/light logo variant.
+  $('.dex-footer').each((_, footer) => {
+    $(footer).attr('data-surface', 'light');
+  });
+
+  // Remove runtime auto-detection that can flip the footer back to dark.
+  $('script#dex-footer-surface').remove();
+  $('script:not([src])').each((_, element) => {
+    const text = String($(element).html() || '');
+    if (!text) return;
+    if (text.includes('measureFooter') && text.includes("querySelectorAll('.dex-footer')")) {
+      $(element).remove();
+    }
+  });
 }
 
 function markDexEntryHosts($) {
@@ -1100,6 +1335,8 @@ export function sanitizeGeneratedHtml(html) {
   ensureDexCssAfterSiteCss($, head);
   ensureDexContractScripts($, head);
   ensureRequiredRuntimeScripts($, head);
+  ensureEntryBackgroundPresence($);
+  normalizeEntryFooterSurface($);
 
   let output = $.html();
   if (doctypeMatch && !/^\s*<!doctype/i.test(output)) {

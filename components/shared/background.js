@@ -49,12 +49,6 @@
     pointer-events: none;
     z-index: 0; /* CHANGED from big negative to 0 */
   }
-  #gooey-mesh-wrapper::before {
-    content: "";
-    position: absolute; inset: 0;
-    filter: url("#noise");
-    opacity: 0.8;
-  }
   #gooey-mesh-wrapper .gooey-stage {
     position: absolute; inset: 0;
     filter: url("#goo");

@@ -143,6 +143,12 @@ assert.ok(!$('.dex-entry-section').hasClass('has-section-divider'), 'Dex entry s
 assert.equal($('.dex-entry-fluid-engine').length, 1, 'Dex entry fluid engine should be tagged');
 assert.ok($('body').hasClass('dex-entry-page'), 'Sanitizer should tag entry pages on body for scoped layout overrides');
 assert.ok($('body').hasClass('announcement-bar-reserved-space'), 'Sanitizer should reserve announcement-bar spacing on entry pages');
+assert.equal($('#scroll-gradient-bg').length, 1, 'Sanitizer should inject entry gradient background layer');
+assert.equal($('#gooey-mesh-wrapper').length, 1, 'Sanitizer should inject entry blob background layer');
+assert.equal($('style#dex-entry-gooey-bg-style[data-managed="1"]').length, 1, 'Sanitizer should inject managed entry background styles');
+assert.equal($('script#dex-entry-gooey-bg-script[data-managed="1"]').length, 1, 'Sanitizer should inject managed entry background runtime');
+assert.ok(!/id=["']noise["']/i.test(sanitized), 'Sanitizer should remove legacy grain filter definitions');
+assert.ok(!/url\((["'])#noise\1\)/i.test(sanitized), 'Sanitizer should remove legacy grain filter usage');
 assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar, .sqs-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure announcement bar markup exists in announcement dropzone');
 assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-custom-location').length, 1, 'Sanitizer should include Squarespace announcement custom location wrapper');
 assert.equal($('.sqs-announcement-bar-dropzone .sqs-widget.sqs-announcement-bar').length, 1, 'Sanitizer should include Squarespace announcement widget structure');

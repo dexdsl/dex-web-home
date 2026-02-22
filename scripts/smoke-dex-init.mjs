@@ -171,6 +171,17 @@ for (const needle of [
 if (!/class="sqs-announcement-bar-dropzone"[\s\S]*?class="sqs-announcement-bar-custom-location"[\s\S]*?class="yui3-widget sqs-widget sqs-announcement-bar"/.test(portableHtml)) {
   throw new Error('portable output should place announcement bar inside announcement dropzone');
 }
+for (const needle of [
+  'id="scroll-gradient-bg"',
+  'id="gooey-mesh-wrapper"',
+  'id="dex-entry-gooey-bg-style"',
+  'id="dex-entry-gooey-bg-script"',
+]) {
+  if (!portableHtml.includes(needle)) throw new Error(`portable output missing blob background contract: ${needle}`);
+}
+if (/id=["']noise["']/i.test(portableHtml) || /url\((["'])#noise\1\)/i.test(portableHtml)) {
+  throw new Error('portable output should not include legacy grain filter');
+}
 const portableVerify = spawnSync('node', [path.join(root, 'scripts/verify-portable-entry-html.mjs')], { cwd: portableTemp, encoding: 'utf8' });
 if (portableVerify.status !== 0) {
   throw new Error(`portable verifier failed: ${portableVerify.stderr}\n${portableVerify.stdout}`);
