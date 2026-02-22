@@ -1,1 +1,37 @@
-/* Local navigation overrides for headers, menus, and breadcrumbs. */
+.header,
+.Header,
+.header-announcement-bar-wrapper,
+.header-nav-wrapper,
+nav[role='navigation'] {
+  background: color-mix(in srgb, var(--dx-color-surface-strong, var(--color-003)) 84%, transparent);
+  color: var(--dx-color-text, var(--color-004));
+}
+
+.header-nav-item a,
+.header-nav a,
+.header-menu-nav a,
+.dx-breadcrumb a {
+  color: var(--dx-color-text, var(--color-004));
+  text-decoration: none;
+}
+
+.header-nav-item a:hover,
+.header-nav a:hover,
+.header-menu-nav a:hover,
+.dx-breadcrumb a:hover {
+  color: var(--dx-color-accent, var(--color-007));
+}
+
+.header-nav-item a,
+.header-nav a {
+  padding: var(--dx-space-xs, var(--space-002)) var(--dx-space-sm, var(--space-003));
+  border-radius: var(--dx-radius-sm, var(--radius-001));
+}
+
+.header-nav-folder-content,
+.header-menu-nav-folder-content,
+.dx-breadcrumb {
+  border: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-border, var(--color-006));
+  border-radius: var(--dx-radius-md, var(--radius-002));
+  box-shadow: var(--dx-shadow-soft, var(--shadow-001));
+}

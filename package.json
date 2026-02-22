@@ -34,6 +34,10 @@
     "phase2:states": "node scripts/style_states.mjs",
     "phase2:tokens": "node scripts/tokenize_inventory.mjs",
     "phase2:all": "npm run repo:discover && npm run phase2:inventory && npm run phase2:states && npm run phase2:tokens",
+    "ref:capture": "node scripts/reference_screenshots.mjs && node scripts/reference_style_inventory.mjs && node scripts/reference_style_states.mjs",
+    "ref:tokens": "node scripts/reference_tokens.mjs",
+    "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
+    "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
     "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run phase2:all && npm run test:net && npm run test:visual"
   },
   "bin": {

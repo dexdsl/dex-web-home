@@ -1,0 +1,54 @@
+{
+  "referenceBaseUrl": "https://dexdsl.org",
+  "capturedAt": "2026-02-22T06:18:45.849Z",
+  "pages": [
+    {
+      "route": "/",
+      "viewport": "mobile",
+      "width": 390,
+      "height": 844,
+      "url": "https://dexdsl.org/",
+      "screenshot": "artifacts/reference/screenshots/home/mobile.png"
+    },
+    {
+      "route": "/favorites",
+      "viewport": "mobile",
+      "width": 390,
+      "height": 844,
+      "url": "https://dexdsl.org/favorites",
+      "screenshot": "artifacts/reference/screenshots/favorites/mobile.png"
+    },
+    {
+      "route": "/",
+      "viewport": "tablet",
+      "width": 834,
+      "height": 1112,
+      "url": "https://dexdsl.org/",
+      "screenshot": "artifacts/reference/screenshots/home/tablet.png"
+    },
+    {
+      "route": "/favorites",
+      "viewport": "tablet",
+      "width": 834,
+      "height": 1112,
+      "url": "https://dexdsl.org/favorites",
+      "screenshot": "artifacts/reference/screenshots/favorites/tablet.png"
+    },
+    {
+      "route": "/",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "url": "https://dexdsl.org/",
+      "screenshot": "artifacts/reference/screenshots/home/desktop.png"
+    },
+    {
+      "route": "/favorites",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "url": "https://dexdsl.org/favorites",
+      "screenshot": "artifacts/reference/screenshots/favorites/desktop.png"
+    }
+  ]
+}

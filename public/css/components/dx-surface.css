@@ -1,1 +1,41 @@
-/* Local surface overrides for card and section rendering. */
+.dx-section,
+.page-section {
+  position: relative;
+  padding-block: var(--dx-space-xl, var(--space-006));
+}
+
+.dx-block,
+.sqs-block,
+.summary-item,
+.blog-item {
+  color: var(--dx-color-text, var(--color-004));
+}
+
+.dx-block-content,
+.sqs-block-content,
+.summary-content,
+.card {
+  background: color-mix(in srgb, var(--dx-color-surface, var(--color-002)) 84%, transparent);
+  border: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-border, var(--color-006));
+  border-radius: var(--dx-radius-md, var(--radius-002));
+  box-shadow: var(--dx-shadow-soft, var(--shadow-001));
+}
+
+.dx-background-enabled .dx-block-form,
+.dx-site-style-form {
+  background: color-mix(in srgb, var(--dx-color-surface-strong, var(--color-003)) 86%, transparent);
+  border: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-border, var(--color-006));
+  border-radius: var(--dx-radius-md, var(--radius-002));
+  box-shadow: var(--dx-shadow-soft, var(--shadow-001));
+}
+
+.dx-entry-layout,
+.dex-entry-layout {
+  display: grid;
+  gap: var(--dx-space-lg, var(--space-005));
+}
+
+.dx-entry-main,
+.dex-entry-main {
+  min-width: 0;
+}

@@ -1,1 +1,52 @@
-/* Local controls overrides for buttons, forms, and toggles. */
+button,
+input,
+select,
+textarea,
+.dx-button-element,
+.dx-block-button-element,
+.sqs-button-element {
+  font: inherit;
+}
+
+button,
+.dx-button-element,
+.dx-block-button-element,
+.sqs-button-element {
+  border: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-border, var(--color-006));
+  border-radius: var(--dx-radius-sm, var(--radius-001));
+  background: var(--dx-color-surface, var(--color-002));
+  color: var(--dx-color-text, var(--color-004));
+  padding: var(--dx-space-xs, var(--space-002)) var(--dx-space-md, var(--space-004));
+  text-decoration: none;
+  box-shadow: var(--dx-shadow-soft, var(--shadow-001));
+}
+
+button:hover,
+.dx-button-element:hover,
+.dx-block-button-element:hover,
+.sqs-button-element:hover {
+  border-color: var(--dx-color-accent, var(--color-007));
+  box-shadow: var(--dx-shadow-strong, var(--shadow-002));
+}
+
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  width: 100%;
+  border: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-border, var(--color-006));
+  border-radius: var(--dx-radius-sm, var(--radius-001));
+  background: var(--dx-color-surface, var(--color-002));
+  color: var(--dx-color-text, var(--color-004));
+  padding: var(--dx-space-xs, var(--space-002)) var(--dx-space-sm, var(--space-003));
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+.dx-button-element:focus-visible,
+.dx-block-button-element:focus-visible,
+.sqs-button-element:focus-visible {
+  outline: var(--dx-border-thin, var(--border-001)) solid var(--dx-color-accent, var(--color-007));
+  outline-offset: 2px;
+}

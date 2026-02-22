@@ -18,6 +18,8 @@ const sanitizeConfig = JSON.parse(fs.readFileSync(sanitizeConfigPath, 'utf8')) a
 const viewports = Array.isArray(sanitizeConfig.viewports) && sanitizeConfig.viewports.length > 0
   ? sanitizeConfig.viewports
   : [{ name: 'desktop', w: 1440, h: 900 }];
+const configuredBaseURL = process.env.BASE_URL || 'http://localhost:8080';
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 // Uses a static server on port 8080 because this repo does not define a Vite preview script.
 export default defineConfig({
@@ -33,7 +35,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: process.env.CI ? 1 : undefined,
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: configuredBaseURL,
     trace: 'on-first-retry',
   },
   projects: viewports.map((viewport) => ({
@@ -45,10 +47,12 @@ export default defineConfig({
       },
     },
   })),
-  webServer: {
-    command: 'python3 -m http.server 8080 --directory docs',
-    port: 8080,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: skipWebServer
+    ? undefined
+    : {
+      command: 'python3 -m http.server 8080 --directory docs',
+      port: 8080,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
 });
