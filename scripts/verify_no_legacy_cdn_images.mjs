@@ -25,8 +25,7 @@ const NON_IMAGE_EXTENSIONS = new Set([
   '.mp3',
   '.wav',
 ]);
-const LEGACY_IMAGE_KEY = 'legacysiteImageDomains';
-const ORIGINAL_IMAGE_KEY = ['squa', 'respace', 'ImageDomains'].join('');
+const IMAGE_DOMAINS_KEY = 'legacyImageDomains';
 
 function loadJSON(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -77,9 +76,9 @@ function collectMatches(content, domainSet) {
 function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
-  const domains = normalizeDomains(config[LEGACY_IMAGE_KEY] ?? config[ORIGINAL_IMAGE_KEY]);
+  const domains = normalizeDomains(config[IMAGE_DOMAINS_KEY]);
   if (domains.length === 0) {
-    throw new Error(`sanitize config image domains are empty (${LEGACY_IMAGE_KEY}/${ORIGINAL_IMAGE_KEY}).`);
+    throw new Error(`sanitize config image domains are empty (${IMAGE_DOMAINS_KEY}).`);
   }
   const domainSet = new Set(domains);
 
@@ -88,6 +87,8 @@ function main() {
       ...(Array.isArray(targets.htmlFiles) ? targets.htmlFiles : []),
       ...(Array.isArray(targets.cssFiles) ? targets.cssFiles : []),
       ...(Array.isArray(targets.jsFiles) ? targets.jsFiles : []),
+      ...(Array.isArray(targets.xmlFiles) ? targets.xmlFiles : []),
+      ...(Array.isArray(targets.extraTextFiles) ? targets.extraTextFiles : []),
     ]),
   ).sort((a, b) => a.localeCompare(b));
 
@@ -105,19 +106,19 @@ function main() {
   }
 
   if (findings.length > 0) {
-    console.error(`verify:no-sq-images failed. Found ${findings.length} offending URLs.`);
+    console.error(`verify:no-legacy-cdn-images failed. Found ${findings.length} offending URLs.`);
     for (const finding of findings) {
       console.error(`- ${finding.file} :: ${finding.url}`);
     }
     process.exit(1);
   }
 
-  console.log(`verify:no-sq-images passed (${files.length} files scanned).`);
+  console.log(`verify:no-legacy-cdn-images passed (${files.length} files scanned).`);
 }
 
 try {
   main();
 } catch (error) {
-  console.error(`verify:no-sq-images error: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`verify:no-legacy-cdn-images error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }

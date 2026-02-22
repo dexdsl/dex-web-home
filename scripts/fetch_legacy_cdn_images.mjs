@@ -36,8 +36,7 @@ const CONTENT_TYPE_EXT = new Map([
   ['image/vnd.microsoft.icon', '.ico'],
   ['image/gif', '.gif'],
 ]);
-const LEGACY_IMAGE_KEY = 'legacysiteImageDomains';
-const ORIGINAL_IMAGE_KEY = ['squa', 'respace', 'ImageDomains'].join('');
+const IMAGE_DOMAINS_KEY = 'legacyImageDomains';
 
 const HTML_ATTR_PATTERN = /(\b(?:src|href|content)\s*=\s*["'])([^"']+)(["'])/gi;
 const HTML_SRCSET_PATTERN = /(\bsrcset\s*=\s*["'])([^"']*)(["'])/gi;
@@ -277,6 +276,10 @@ async function rewriteJs(content, domainSet, filePath, assetDirAbs, assetDirPubl
   return { changed, updated };
 }
 
+async function rewriteText(content, domainSet, filePath, assetDirAbs, assetDirPublicPath, manifestMap) {
+  return rewriteJs(content, domainSet, filePath, assetDirAbs, assetDirPublicPath, manifestMap);
+}
+
 async function rewriteFile(relativePath, kind, domainSet, assetDirAbs, assetDirPublicPath, manifestMap) {
   const absolutePath = path.join(ROOT, relativePath);
   if (!fs.existsSync(absolutePath)) return;
@@ -287,6 +290,8 @@ async function rewriteFile(relativePath, kind, domainSet, assetDirAbs, assetDirP
     result = await rewriteHtml(content, domainSet, relativePath, assetDirAbs, assetDirPublicPath, manifestMap);
   } else if (kind === 'css') {
     result = await rewriteCss(content, domainSet, relativePath, assetDirAbs, assetDirPublicPath, manifestMap);
+  } else if (kind === 'text') {
+    result = await rewriteText(content, domainSet, relativePath, assetDirAbs, assetDirPublicPath, manifestMap);
   } else {
     result = await rewriteJs(content, domainSet, relativePath, assetDirAbs, assetDirPublicPath, manifestMap);
   }
@@ -299,9 +304,9 @@ async function rewriteFile(relativePath, kind, domainSet, assetDirAbs, assetDirP
 async function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
-  const targetDomains = normalizeDomains(config[LEGACY_IMAGE_KEY] ?? config[ORIGINAL_IMAGE_KEY]);
+  const targetDomains = normalizeDomains(config[IMAGE_DOMAINS_KEY]);
   if (targetDomains.length === 0) {
-    throw new Error(`sanitize config image domains are empty (${LEGACY_IMAGE_KEY}/${ORIGINAL_IMAGE_KEY}).`);
+    throw new Error(`sanitize config image domains are empty (${IMAGE_DOMAINS_KEY}).`);
   }
   const domainSet = new Set(targetDomains);
 
@@ -315,6 +320,10 @@ async function main() {
   const htmlFiles = Array.isArray(targets.htmlFiles) ? [...targets.htmlFiles].sort((a, b) => a.localeCompare(b)) : [];
   const cssFiles = Array.isArray(targets.cssFiles) ? [...targets.cssFiles].sort((a, b) => a.localeCompare(b)) : [];
   const jsFiles = Array.isArray(targets.jsFiles) ? [...targets.jsFiles].sort((a, b) => a.localeCompare(b)) : [];
+  const xmlFiles = Array.isArray(targets.xmlFiles) ? [...targets.xmlFiles].sort((a, b) => a.localeCompare(b)) : [];
+  const extraTextFiles = Array.isArray(targets.extraTextFiles)
+    ? [...targets.extraTextFiles].sort((a, b) => a.localeCompare(b))
+    : [];
 
   for (const filePath of htmlFiles) {
     await rewriteFile(filePath, 'html', domainSet, assetDirAbs, assetDirPublicPath, manifestMap);
@@ -325,13 +334,21 @@ async function main() {
   for (const filePath of jsFiles) {
     await rewriteFile(filePath, 'js', domainSet, assetDirAbs, assetDirPublicPath, manifestMap);
   }
+  for (const filePath of xmlFiles) {
+    await rewriteFile(filePath, 'text', domainSet, assetDirAbs, assetDirPublicPath, manifestMap);
+  }
+  for (const filePath of extraTextFiles) {
+    await rewriteFile(filePath, 'text', domainSet, assetDirAbs, assetDirPublicPath, manifestMap);
+  }
 
   fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
   fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(stableManifestObject(manifestMap), null, 2)}\n`, 'utf8');
 
   console.log('sanitize:assets report');
-  console.log(`- target files: ${htmlFiles.length + cssFiles.length + jsFiles.length}`);
-  console.log(`- candidate sq-image urls: ${summary.found}`);
+  console.log(
+    `- target files: ${htmlFiles.length + cssFiles.length + jsFiles.length + xmlFiles.length + extraTextFiles.length}`,
+  );
+  console.log(`- candidate legacy-cdn image urls: ${summary.found}`);
   console.log(`- downloaded: ${summary.downloaded}`);
   console.log(`- rewritten substrings: ${summary.rewritten}`);
   console.log(`- failed: ${summary.failed.length}`);

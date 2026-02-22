@@ -17,10 +17,10 @@
     "repo:discover": "node scripts/discover_repo_targets.mjs",
     "sanitize:purge": "npm run repo:discover && node scripts/purge_forbidden_traces.mjs",
     "sanitize:scan": "npm run repo:discover && node scripts/repo_purity_scan.mjs",
-    "sanitize:assets": "npm run repo:discover && node scripts/fetch_squarespace_images.mjs",
+    "sanitize:assets": "npm run repo:discover && node scripts/fetch_legacy_cdn_images.mjs",
     "verify:no-forbidden-domains": "npm run repo:discover && node scripts/verify_no_forbidden_domains.mjs",
-    "verify:no-sq-images": "npm run repo:discover && node scripts/verify_no_squarespace_images.mjs",
-    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-sq-images",
+    "verify:no-legacy-cdn-images": "npm run repo:discover && node scripts/verify_no_legacy_cdn_images.mjs",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images",
     "test:net": "playwright test tests/network-purity.spec.ts",
     "test:visual": "playwright test tests/visual.spec.ts",
     "sanitize:all": "npm run phase1:all && npm run test:net && npm run test:visual",
@@ -28,7 +28,7 @@
     "phase2:states": "node scripts/style_states.mjs",
     "phase2:tokens": "node scripts/tokenize_inventory.mjs",
     "phase2:all": "npm run repo:discover && npm run phase2:inventory && npm run phase2:states && npm run phase2:tokens",
-    "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-sq-images && npm run phase2:all && npm run test:net && npm run test:visual"
+    "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run phase2:all && npm run test:net && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

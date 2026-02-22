@@ -32,8 +32,8 @@ jobs:
       - name: Verify forbidden domains
         run: npm run verify:no-forbidden-domains
 
-      - name: Verify no Squarespace image URLs
-        run: npm run verify:no-sq-images
+      - name: Verify no legacy CDN image URLs
+        run: npm run verify:no-legacy-cdn-images
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

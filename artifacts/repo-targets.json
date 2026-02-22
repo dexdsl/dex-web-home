@@ -239,7 +239,7 @@
     "scripts/build-breadcrumb-motion.mjs",
     "scripts/dex.mjs",
     "scripts/discover_repo_targets.mjs",
-    "scripts/fetch_squarespace_images.mjs",
+    "scripts/fetch_legacy_cdn_images.mjs",
     "scripts/fonts_detox.mjs",
     "scripts/lib/asset-origin.mjs",
     "scripts/lib/doctor.mjs",
@@ -256,6 +256,7 @@
     "scripts/lib/tags.mjs",
     "scripts/lib/viewer-server.mjs",
     "scripts/list-missed-public-urls.mjs",
+    "scripts/purge_forbidden_traces.mjs",
     "scripts/repo_purity_scan.mjs",
     "scripts/rewrite-internal-anchors.mjs",
     "scripts/serve-entry.mjs",
@@ -279,11 +280,17 @@
     "scripts/ui/rolodex.mjs",
     "scripts/ui/update-wizard.mjs",
     "scripts/verify_no_forbidden_domains.mjs",
-    "scripts/verify_no_squarespace_images.mjs",
+    "scripts/verify_no_legacy_cdn_images.mjs",
     "scripts/verify-asset-surface.mjs",
     "scripts/verify-generated-html.mjs",
     "scripts/verify-portable-entry-html.mjs",
     "scripts/verify-sanitized-entry-html.mjs"
+  ],
+  "xmlFiles": [
+    "sitemap.xml"
+  ],
+  "extraTextFiles": [
+    "docs/dexnotes?format=rss"
   ],
   "routes": [
     "/",

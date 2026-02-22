@@ -80,12 +80,18 @@ function main() {
   const htmlFiles = tracked.filter((filePath) => hasExt(filePath, ['.html'])).sort((a, b) => a.localeCompare(b));
   const cssFiles = tracked.filter((filePath) => hasExt(filePath, ['.css'])).sort((a, b) => a.localeCompare(b));
   const jsFiles = tracked.filter((filePath) => hasExt(filePath, ['.js', '.mjs'])).sort((a, b) => a.localeCompare(b));
+  const xmlFiles = tracked.filter((filePath) => hasExt(filePath, ['.xml'])).sort((a, b) => a.localeCompare(b));
+  const extraTextFiles = tracked
+    .filter(
+      (filePath) => !hasExt(filePath, ['.html', '.css', '.js', '.mjs', '.xml']) && /\?format=rss$/i.test(filePath),
+    )
+    .sort((a, b) => a.localeCompare(b));
   const routes = deriveRoutes(htmlFiles);
 
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   fs.writeFileSync(
     OUTPUT_PATH,
-    `${JSON.stringify({ htmlFiles, cssFiles, jsFiles, routes }, null, 2)}\n`,
+    `${JSON.stringify({ htmlFiles, cssFiles, jsFiles, xmlFiles, extraTextFiles, routes }, null, 2)}\n`,
     'utf8',
   );
 
@@ -93,6 +99,8 @@ function main() {
   console.log(`- html files: ${htmlFiles.length}`);
   console.log(`- css files: ${cssFiles.length}`);
   console.log(`- js files: ${jsFiles.length}`);
+  console.log(`- xml files: ${xmlFiles.length}`);
+  console.log(`- extra text files: ${extraTextFiles.length}`);
   console.log(`- routes: ${routes.length}`);
   console.log(`- first routes: ${routes.slice(0, 10).join(', ')}`);
 }

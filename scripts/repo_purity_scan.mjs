@@ -97,6 +97,8 @@ function main() {
       ...(Array.isArray(targets.htmlFiles) ? targets.htmlFiles : []),
       ...(Array.isArray(targets.cssFiles) ? targets.cssFiles : []),
       ...(Array.isArray(targets.jsFiles) ? targets.jsFiles : []),
+      ...(Array.isArray(targets.xmlFiles) ? targets.xmlFiles : []),
+      ...(Array.isArray(targets.extraTextFiles) ? targets.extraTextFiles : []),
     ]),
   ).sort((a, b) => a.localeCompare(b));
 

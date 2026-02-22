@@ -19,7 +19,7 @@
     "typekit",
     "adobe"
   ],
-  "squarespaceImageDomains": [
+  "legacyImageDomains": [
     "images.squarespace-cdn.com",
     "static1.squarespace.com"
   ],
