@@ -36,6 +36,7 @@ files to download." />
     <link rel="stylesheet" href="/css/components/dx-surface.css">
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/assets/css/dex.css">
 <script type="application/ld+json">{"url":"https://dexdsl.org","name":"dex digital sample library","description":"","image":"/assets/img/cc33a50178c013c00896.png","@context":"http://schema.org","@type":"WebSite"}</script><script type="application/ld+json">{"address":"","image":"/assets/img/3b1476c230073f7589e3.jpg","openingHours":", , , , , , ","@context":"http://schema.org","@type":"LocalBusiness"}</script>
 
 <script>
@@ -1152,7 +1153,7 @@ body {
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate/"
                     
                   >
@@ -1276,7 +1277,7 @@ body {
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate/"
                     
                   >
@@ -1790,7 +1791,7 @@ body {
             
             <div class="header-menu-cta">
               <a
-                class="theme-btn--primary btn dx-button-element--primary"
+                class="theme-btn--primary btn dx-button-element dx-button-element--primary dx-button-size--md"
                 href="/donate/"
                 
               >
@@ -2229,14 +2230,13 @@ document.addEventListener('DOMContentLoaded', function(){
       <div style="display:flex;flex-direction:column;gap:1rem;margin-top:1.5rem;">
         <a id="heroExplore"
    href="/catalog/"
-   class="dx-button-element--primary dx-block-button-element--large"
-   style="display:inline-flex;align-items:center;justify-content:center;padding:.75em 1.6em;">
+   class="dx-button-element dx-button-element--primary dx-button-size--md dx-button-block dx-block-button-element dx-block-button-element--primary dx-block-button-element--large">
   <script>document.write(randomizeTitle("EXPLORE CATALOG"))</script>
 </a>
 
 <div class="product-block">
   <div class="productDetails center">
-    <button class="cta-btn join-button dx-button-element--secondary dx-block-button-element--large"
+    <button class="join-button dx-button-element dx-button-element--secondary dx-button-size--md dx-button-block dx-block-button-element dx-block-button-element--secondary dx-block-button-element--large"
       onclick="UserAccountApi.joinPricingPlan(
         'ee53ec15-15ad-4405-b664-143d74f2c75c','', '', false,
         'MEMBER_AREA_BLOCK',
@@ -2989,14 +2989,6 @@ border-bottom: none !important;
   }
   .cta-btn {
     grid-column: 1 / -1;
-    padding: var(--space-2) var(--space-3);
-    background: linear-gradient(130deg,#ff1910 0%,orange 100%);
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-heading);
-    text-transform: uppercase;
-    color: #fff;
-    cursor: pointer;
     width: 100%;  /* match iframe width :contentReference[oaicite:6]{index=6} */
     justify-self: center;
   }
@@ -4059,7 +4051,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     <!-- legacysite Pricing-Plan button (free tier) -->
     <div class="product-block">
       <div class="productDetails center">
-        <button class="cta-btn join-button dx-button-element--primary"
+        <button class="cta-btn join-button dx-button-element dx-button-element--primary dx-button-size--md dx-block-button-element dx-block-button-element--primary"
           onclick="UserAccountApi.joinPricingPlan(
             'ee53ec15-15ad-4405-b664-143d74f2c75c','', '', false,
             'MEMBER_AREA_BLOCK',
@@ -4362,10 +4354,10 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   <header class="hdr card-like">
     <h2 id="dex-faq-head" class="p1">FAQ</h2>
     <nav class="faq-cta">
-      <a id="btn-catalog" href="/catalog/" class="ghost" data-label="Explore Our Catalog">Explore Our Catalog</a>
+      <a id="btn-catalog" href="/catalog/" class="ghost dx-button-element dx-button-element--secondary dx-button-size--md" data-label="Explore Our Catalog">Explore Our Catalog</a>
       <!-- SQS primary button classes added; keep .cta for local styling -->
       <a id="btn-call" href="/call/"
-         class="cta dx-button-element dx-button-element--primary dx-block-button-element dx-block-button-element--primary"
+         class="cta dx-button-element dx-button-element--primary dx-button-size--md dx-block-button-element dx-block-button-element--primary"
          data-label="Submit Your Work">Submit Your Work</a>
     </nav>
   </header>
@@ -4430,84 +4422,26 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
       display:grid; gap: var(--space-2,8px);
     }
 
-    /* Buttons = Board’s .cta / .ghost
-       NOTE: SQS primary classes are also targeted to ensure theme compliance.
-       Ligatures require zero letter-spacing + font features enabled. */
-    #dex-faq .cta,
-    #dex-faq .dx-button-element--primary,
-    #dex-faq .dx-block-button-element--primary{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:.52rem .85rem; border-radius:4px !important;
-      border:1px solid rgba(0,0,0,.15);
-      background:linear-gradient(130deg,var(--dex-accent,#ff1910),orange);
-      color:#fff; text-decoration:none;
-      font:800 clamp(11px,1vw,12px) var(--font-heading,'Typefesse',sans-serif);
-      /* critical for ligatures: */
-      letter-spacing: 0;
-      font-kerning: normal;
-      font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
-      font-feature-settings: "liga" 1, "dlig" 1, "calt" 1, "ss01" 1, "salt" 1, "rlig" 1;
-      text-rendering: optimizeLegibility;
-      text-transform: none; /* rTitle handles casing; avoids breaking dlig */
-      box-shadow:0 0 0 1px rgba(255,255,255,.35) inset, 0 10px 30px rgba(255,0,80,.25);
-      cursor:pointer;
-    }
-    #dex-faq .ghost{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:.52rem .85rem; border-radius:4px !important;
-      border:1px solid var(--liquid-border);
-      background:var(--liquid-bg);
-      color:#000; text-decoration:none;
-      font:700 clamp(11px,1vw,12px) var(--font-heading,system-ui);
-      letter-spacing: 0;
-      font-kerning: normal;
-      font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
-      font-feature-settings: "liga" 1, "dlig" 1, "calt" 1, "ss01" 1, "salt" 1, "rlig" 1;
-      text-rendering: optimizeLegibility;
-      cursor:pointer;
-    }
-    @media (prefers-reduced-motion: no-preference){
-      #dex-faq .cta,
-      #dex-faq .ghost,
-      #dex-faq .dx-button-element--primary,
-      #dex-faq .dx-block-button-element--primary{
-        transition: transform .16s cubic-bezier(.2,.7,.2,1), box-shadow .22s cubic-bezier(.2,.7,.2,1), background-color .22s cubic-bezier(.2,.7,.2,1), border-color .22s cubic-bezier(.2,.7,.2,1), filter .22s cubic-bezier(.2,.7,.2,1);
-      }
-      #dex-faq .cta:hover,
-      #dex-faq .ghost:hover,
-      #dex-faq .dx-button-element--primary:hover,
-      #dex-faq .dx-block-button-element--primary:hover{ transform: translateY(-1px); }
-      /* CTA glint */
-      #dex-faq .cta,
-      #dex-faq .dx-button-element--primary,
-      #dex-faq .dx-block-button-element--primary{ position:relative; overflow:hidden; }
-      #dex-faq .cta::after,
-      #dex-faq .dx-button-element--primary::after,
-      #dex-faq .dx-block-button-element--primary::after{
-        content:""; position:absolute; inset:-2px;
-        background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.75) 50%, transparent 70%);
-        transform: translateX(-120%); pointer-events:none;
-      }
-      #dex-faq .cta:hover::after,
-      #dex-faq .dx-button-element--primary:hover::after,
-      #dex-faq .dx-block-button-element--primary:hover::after{ animation: dex-glint 1.1s cubic-bezier(.2,.7,.2,1); }
-      @keyframes dex-glint{ to{ transform: translateX(120%); } }
+    /* Buttons: use global primary/secondary primitives only */
+    #dex-faq .faq-cta .dx-button-element{
+      text-decoration:none;
     }
 
     /* Accordion = glass cards like Board facts/process lists */
     #dex-faq .spark-accordion{ display:grid; gap: var(--space-2,8px); }
     #dex-faq .spark-accordion__item{
-      background: var(--liquid-bg);
-      border: 1px solid var(--liquid-border);
+      background: transparent;
+      border: 1px solid color-mix(in oklab, #000 14%, transparent);
       border-radius: 4px;
-      box-shadow: 0 1px 0 rgba(0,0,0,.02);
-      transition: transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .22s cubic-bezier(.2,.7,.2,1);
+      box-shadow: none;
+      transition: border-color .2s ease, background-color .2s ease;
       will-change: transform;
     }
     @media (hover:hover){
       #dex-faq .spark-accordion__item:hover{
-        transform: translateY(-1px);
-        box-shadow: 0 10px 28px rgba(0,0,0,.10);
+        transform: none;
+        box-shadow: none;
+        background: color-mix(in oklab, #fff 88%, transparent);
       }
     }
     #dex-faq .spark-accordion__item > h4{ margin:0; }

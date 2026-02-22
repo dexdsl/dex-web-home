@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="/css/components/dx-surface.css">
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/assets/css/dex.css">
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
 <link rel="preconnect" href="https://p.fonthost.net" crossorigin>
 <!-- header code injection.css -->
@@ -705,7 +707,7 @@
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate"
                     
                   >
@@ -829,7 +831,7 @@
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate"
                     
                   >
@@ -1343,7 +1345,7 @@
             
             <div class="header-menu-cta">
               <a
-                class="theme-btn--primary btn dx-button-element--primary"
+                class="theme-btn--primary btn dx-button-element dx-button-element--primary dx-button-size--md"
                 href="/donate"
                 
               >
@@ -1809,29 +1811,6 @@
 
 .header-actions{display:flex;gap:var(--space-2);align-items:center;}
 /* Buttons */
-.cta-btn{
-  background:linear-gradient(130deg,#ff1910 0%,orange 100%);
-  color:#fff;border:none;border-radius:var(--radius-sm);
-  padding:var(--space-2) var(--space-3);
-  font-family:var(--font-heading);text-transform:uppercase;
-  cursor:pointer;box-shadow:var(--shadow-light);
-  transition:transform var(--ease),box-shadow var(--ease),opacity var(--ease);
-}
-.cta-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
-.cta-btn:disabled{opacity:0.5;cursor:default;transform:none;box-shadow:var(--shadow-light);}
-.cta-btn.sm{padding:0.35rem 0.65rem;font-size:0.85rem;letter-spacing:0.02em;}
-.ghost-btn{
-  background:transparent;color:var(--dex-text);
-  border:1px solid var(--liquid-border);
-  border-radius:var(--radius-sm);
-  padding:var(--space-2) var(--space-3);
-  font-family:var(--font-heading);text-transform:uppercase;
-  cursor:pointer;box-shadow:var(--shadow-light);
-  transition:transform var(--ease),box-shadow var(--ease),opacity var(--ease),background var(--ease);
-}
-.ghost-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);background:rgba(255,255,255,0.12);}
-.ghost-btn.sm{padding:0.35rem 0.65rem;font-size:0.85rem;letter-spacing:0.02em;}
-
 /* Body */
 .dex-body{flex:1;display:flex;flex-direction:column;gap:var(--space-3);overflow:hidden;}
 /* Inner card */
@@ -1961,7 +1940,7 @@ tr.clickable{cursor:pointer}
     <button class="nav-btn" aria-label="Back" title="Back" onclick="history.back()">←</button>
     <h1>Favorites</h1>
     <div class="header-actions">
-      <button class="ghost-btn sm" id="dex-clear" type="button" style="display:none;">Clear</button>
+      <button class="ghost-btn sm dx-button-element dx-button-element--secondary dx-button-size--sm" id="dex-clear" type="button" style="display:none;">Clear</button>
     </div>
   `;
   panel.append(head);
@@ -2129,7 +2108,7 @@ tr.clickable{cursor:pointer}
         <div class="empty">
           <p><strong>No favorites yet.</strong></p>
           <p class="muted">When a user likes an <strong>entry</strong> or a specific <strong>file</strong>, it will appear here under the matching tab.</p>
-          <button class="cta-btn" type="button" onclick="location.href='/catalog'">Browse Catalog</button>
+          <button class="cta-btn dx-button-element dx-button-element--primary dx-button-size--md" type="button" onclick="location.href='/catalog'">Browse Catalog</button>
         </div>
       `;
       return;
@@ -2177,8 +2156,8 @@ tr.clickable{cursor:pointer}
         <td class="muted">${esc(added)}</td>
         <td>
           <div class="row-actions">
-            <button class="cta-btn sm" type="button">Open</button>
-            <button class="ghost-btn sm" type="button">Remove</button>
+            <button class="cta-btn sm dx-button-element dx-button-element--primary dx-button-size--sm" type="button">Open</button>
+            <button class="ghost-btn sm dx-button-element dx-button-element--secondary dx-button-size--sm" type="button">Remove</button>
           </div>
         </td>
       `;

@@ -267,9 +267,10 @@ div.variant-option-title {
     color: black;
 }
 div.dx-add-to-cart-button-inner {
-  color: white!important;
-  font-family: montserrat;
-   text-transform: uppercase;
+  color: inherit !important;
+  font-family: inherit !important;
+  text-transform: inherit !important;
+  letter-spacing: inherit !important;
 }
 // Product Variant Button (Just Text Style- Ghost //
 
@@ -1775,4 +1776,165 @@ border: 0;
   to {
     transform: translateX(120%);
   }
+}
+
+/* Primitive enforcement: canonical button ownership */
+.dex-sidebar .dex-license-controls .copy-btn,
+.dex-sidebar .dex-license-controls .usage-btn,
+.dex-sidebar #downloads .btn-audio,
+.dex-sidebar #downloads .btn-video,
+#dex-submit .cta-btn,
+#dex-msg .cta-btn,
+#dex-favorites .cta-btn,
+#dex-press .cta-btn,
+.dex-btn.dx-button-element {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--dx-btn-pad-y-md, 0.72rem) var(--dx-btn-pad-x-md, 1.15rem) !important;
+  border-radius: var(--dx-btn-radius, 4px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  background: linear-gradient(130deg, var(--dex-accent, #ff1910), #ff9810) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif) !important;
+  font-size: var(--dx-btn-font-size-md, clamp(12px, 1.05vw, 13px)) !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  min-height: var(--dx-btn-min-h-md, 2.4rem) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 10px 30px rgba(255, 0, 80, 0.25) !important;
+  cursor: pointer !important;
+  filter: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+#dex-favorites .ghost-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--dx-btn-pad-y-md, 0.72rem) var(--dx-btn-pad-x-md, 1.15rem) !important;
+  border-radius: var(--dx-btn-radius, 4px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  background: var(--liquid-bg, rgba(255, 255, 255, 0.18)) !important;
+  color: #000 !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif) !important;
+  font-size: var(--dx-btn-font-size-md, clamp(12px, 1.05vw, 13px)) !important;
+  font-weight: 700 !important;
+  line-height: 1.05 !important;
+  min-height: var(--dx-btn-min-h-md, 2.4rem) !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+#dex-msg .cta-btn.sm,
+#dex-favorites .cta-btn.sm,
+#dex-favorites .ghost-btn.sm {
+  padding: var(--dx-btn-pad-y-sm, 0.46rem) var(--dx-btn-pad-x-sm, 0.8rem) !important;
+  font-size: var(--dx-btn-font-size-sm, clamp(11px, 0.95vw, 12px)) !important;
+  min-height: var(--dx-btn-min-h-sm, 2rem) !important;
+  letter-spacing: 0.02em !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dex-sidebar .dex-license-controls .copy-btn,
+  .dex-sidebar .dex-license-controls .usage-btn,
+  .dex-sidebar #downloads .btn-audio,
+  .dex-sidebar #downloads .btn-video,
+  #dex-submit .cta-btn,
+  #dex-msg .cta-btn,
+  #dex-favorites .cta-btn,
+  #dex-press .cta-btn,
+  #dex-favorites .ghost-btn,
+  .dex-btn.dx-button-element {
+    transition: transform 0.16s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .dex-sidebar .dex-license-controls .copy-btn:hover,
+  .dex-sidebar .dex-license-controls .usage-btn:hover,
+  .dex-sidebar #downloads .btn-audio:hover,
+  .dex-sidebar #downloads .btn-video:hover,
+  #dex-submit .cta-btn:hover,
+  #dex-msg .cta-btn:hover,
+  #dex-favorites .cta-btn:hover,
+  #dex-press .cta-btn:hover,
+  #dex-favorites .ghost-btn:hover,
+  .dex-btn.dx-button-element:hover {
+    transform: translateY(-1px);
+  }
+
+  .dex-sidebar .dex-license-controls .copy-btn:hover,
+  .dex-sidebar .dex-license-controls .usage-btn:hover,
+  .dex-sidebar #downloads .btn-audio:hover,
+  .dex-sidebar #downloads .btn-video:hover,
+  #dex-submit .cta-btn:hover,
+  #dex-msg .cta-btn:hover,
+  #dex-favorites .cta-btn:hover,
+  #dex-press .cta-btn:hover,
+  .dex-btn.dx-button-element:hover {
+    box-shadow: 0 12px 36px rgba(255, 0, 80, 0.28) !important;
+  }
+}
+
+@media (hover: hover) {
+  .dex-sidebar .dex-license-controls .copy-btn::after,
+  .dex-sidebar .dex-license-controls .usage-btn::after,
+  .dex-sidebar #downloads .btn-audio::after,
+  .dex-sidebar #downloads .btn-video::after,
+  #dex-submit .cta-btn::after,
+  #dex-msg .cta-btn::after,
+  #dex-favorites .cta-btn::after,
+  #dex-press .cta-btn::after,
+  .dex-btn.dx-button-element::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+
+  .dex-sidebar .dex-license-controls .copy-btn:hover::after,
+  .dex-sidebar .dex-license-controls .usage-btn:hover::after,
+  .dex-sidebar #downloads .btn-audio:hover::after,
+  .dex-sidebar #downloads .btn-video:hover::after,
+  .dex-sidebar .dex-license-controls .copy-btn:focus-visible::after,
+  .dex-sidebar .dex-license-controls .usage-btn:focus-visible::after,
+  .dex-sidebar #downloads .btn-audio:focus-visible::after,
+  .dex-sidebar #downloads .btn-video:focus-visible::after,
+  #dex-submit .cta-btn:hover::after,
+  #dex-submit .cta-btn:focus-visible::after,
+  #dex-msg .cta-btn:hover::after,
+  #dex-msg .cta-btn:focus-visible::after,
+  #dex-favorites .cta-btn:hover::after,
+  #dex-favorites .cta-btn:focus-visible::after,
+  #dex-press .cta-btn:hover::after,
+  #dex-press .cta-btn:focus-visible::after,
+  .dex-btn.dx-button-element:hover::after,
+  .dex-btn.dx-button-element:focus-visible::after {
+    animation: dex-sidebar-primary-glint 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+.dex-sidebar .dex-license-controls .copy-btn:focus-visible,
+.dex-sidebar .dex-license-controls .usage-btn:focus-visible,
+.dex-sidebar #downloads .btn-audio:focus-visible,
+.dex-sidebar #downloads .btn-video:focus-visible,
+#dex-submit .cta-btn:focus-visible,
+#dex-msg .cta-btn:focus-visible,
+#dex-favorites .cta-btn:focus-visible,
+#dex-press .cta-btn:focus-visible,
+#dex-favorites .ghost-btn:focus-visible,
+.dex-btn.dx-button-element:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) inset, 0 0 0 4px rgba(255, 25, 16, 0.25), 0 10px 30px rgba(255, 0, 80, 0.25) !important;
 }

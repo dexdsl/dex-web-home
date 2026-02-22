@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="/css/components/dx-surface.css">
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/assets/css/dex.css">
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
 <link rel="preconnect" href="https://p.fonthost.net" crossorigin>
 <!-- header code injection.css -->
@@ -320,7 +322,7 @@
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate"
                     
                   >
@@ -444,7 +446,7 @@
               
                 <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
                   <a
-                    class="btn btn--border theme-btn--primary-inverse dx-button-element--primary"
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
                     href="/donate"
                     
                   >
@@ -958,7 +960,7 @@
             
             <div class="header-menu-cta">
               <a
-                class="theme-btn--primary btn dx-button-element--primary"
+                class="theme-btn--primary btn dx-button-element dx-button-element--primary dx-button-size--md"
                 href="/donate"
                 
               >
@@ -1296,16 +1298,6 @@
   -webkit-backdrop-filter:blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06);
   border-radius:var(--radius-md);padding:var(--space-4);
 }
-.cta-btn{
-  background:linear-gradient(130deg,#ff1910 0%,orange 100%);
-  color:#fff;border:none;border-radius:var(--radius-sm);
-  padding:var(--space-2) var(--space-3);
-  font-family:var(--font-heading);text-transform:uppercase;
-  cursor:pointer;box-shadow:var(--shadow-light);
-  transition:transform var(--ease),box-shadow var(--ease);
-}
-.cta-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
-
 /* Fields */
 .field{display:flex;flex-direction:column;gap:var(--space-1);}
 .field label{
@@ -1604,7 +1596,7 @@ textarea.notes{
 
     const p=$c('p'); p.textContent='Daily uploads: You have ';
     p.append($c('span','quota-badge',`${quotaLeft} / 5 left`));
-    const btn=$c('button','cta-btn','Begin →');
+    const btn=$c('button','cta-btn dx-button-element dx-button-element--primary dx-button-size--md','Begin →');
     btn.onclick=()=>{currentSlide=1;render();};
     s.append(p,btn);
     body.append(s);
@@ -1754,7 +1746,7 @@ if ((meta.outputTypes||[]).includes(opt.v)){ // ← new
   s.append(grid);
 
   // pinned Next button
-  const btn = $c('button','cta-btn bottom','Next →');
+  const btn = $c('button','cta-btn bottom dx-button-element dx-button-element--primary dx-button-size--md','Next →');
   btn.onclick = ()=>{
     if (validateMeta()) {            // ← runs every single time
     currentSlide = 2;
@@ -1913,7 +1905,7 @@ https://creativecommons.org/publicdomain/zero/1.0/legalcode
   s.append(radios);
 
   // 7) Next button
-  const next = $c('button','cta-btn bottom','Next →');
+  const next = $c('button','cta-btn bottom dx-button-element dx-button-element--primary dx-button-size--md','Next →');
   next.disabled = true;
   s.append(next);
 
@@ -2018,7 +2010,7 @@ https://creativecommons.org/publicdomain/zero/1.0/legalcode
     const ta=document.createElement('textarea'); ta.className='notes';
     ta.oninput=e=>meta.notes=e.target.value;
     notes.append(ta); s.append(notes);
-    const btn=$c('button','cta-btn bottom','Submit'); 
+    const btn=$c('button','cta-btn bottom dx-button-element dx-button-element--primary dx-button-size--md','Submit'); 
 
 btn.onclick = () => {
    const payload = buildPayload();
@@ -2065,14 +2057,14 @@ async function buildDone(){
   btnRow.style.gap = 'var(--space-3)';
 
   // primary action
-  const checkBtn = $c('button','cta-btn','Check Submission Messages');
+  const checkBtn = $c('button','cta-btn dx-button-element dx-button-element--primary dx-button-size--md','Check Submission Messages');
   checkBtn.onclick = () => {
     window.location.href = '/entry/messages';
   };
   btnRow.append(checkBtn);
 
   // secondary action
-  const newBtn = $c('button','cta-btn','New Submission');
+  const newBtn = $c('button','cta-btn dx-button-element dx-button-element--primary dx-button-size--md','New Submission');
   newBtn.onclick = () => {
    resetMeta();        // ← clears stale data
    currentSlide = 0;

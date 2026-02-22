@@ -114,7 +114,7 @@
 
   function getAuthUiMarkup() {
     return ""
-      + '<button id="auth-ui-signin" class="dex-auth-fallback-btn" type="button">SIGN IN</button>'
+      + '<button id="auth-ui-signin" class="dx-button-element dx-button-element--secondary dx-button-size--md" type="button">SIGN IN</button>'
       + '<div id="auth-ui-profile" hidden>'
       + '  <button id="auth-ui-profile-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Profile">'
       + '    <span class="dex-avatar-wrap"><img id="auth-ui-avatar" alt="Profile avatar" src=""></span>'
@@ -325,15 +325,14 @@
       var style = document.createElement("style");
       style.id = styleId;
       style.textContent = ""
-        + "#auth-ui{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(255,255,255,.78);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.26);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(135deg,rgba(125,164,255,.94),rgba(91,134,244,.9));--dex-signin-border:rgba(160,192,255,.54);--dex-signin-shadow:0 8px 22px rgba(40,76,165,.28);--dex-radius:10px;--dex-nav-h:38px;--dex-space-2:var(--space-2,8px);--dex-space-3:var(--space-3,12px);position:relative;top:0;display:inline-flex;align-items:center;align-self:center;vertical-align:middle;line-height:1;overflow:visible;padding:0;margin:0;gap:var(--dex-space-2);font-family:inherit;color:var(--dex-text);transform:translateY(var(--dex-nav-offset-y,0px));}"
-        + "#auth-ui[data-dex-scheme='dark']{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(245,248,255,.84);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.28);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(135deg,rgba(125,164,255,.94),rgba(91,134,244,.9));--dex-signin-border:rgba(160,192,255,.54);--dex-signin-shadow:0 8px 22px rgba(40,76,165,.28);}"
-        + "#auth-ui[data-dex-scheme='light']{--dex-text:rgba(15,18,25,.92);--dex-text-muted:rgba(28,35,52,.76);--dex-panel-bg:linear-gradient(150deg,rgba(255,255,255,.82),rgba(249,252,255,.72) 46%,rgba(238,244,255,.66));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.72),rgba(246,250,255,.62));--dex-row-hover-bg:linear-gradient(145deg,rgba(255,255,255,.9),rgba(237,244,255,.75));--dex-border:rgba(15,18,25,.1);--dex-border-strong:rgba(15,18,25,.22);--dex-shadow:0 14px 36px rgba(0,0,0,.12);--dex-grain-opacity:0;--dex-text-shadow:none;--dex-signin-bg:linear-gradient(135deg,rgba(83,122,224,.96),rgba(63,97,192,.92));--dex-signin-border:rgba(39,64,130,.26);--dex-signin-shadow:0 7px 18px rgba(42,73,149,.22);}"
+        + "#auth-ui{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(255,255,255,.78);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.26);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.78),rgba(245,249,255,.54));--dex-signin-border:rgba(20,24,34,.22);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.5) inset;--dex-signin-text:rgba(18,22,33,.94);--dex-radius:10px;--dex-nav-h:38px;--dex-space-2:var(--space-2,8px);--dex-space-3:var(--space-3,12px);position:relative;top:0;display:inline-flex;align-items:center;align-self:center;vertical-align:middle;line-height:1;overflow:visible;padding:0;margin:0;gap:var(--dex-space-2);font-family:inherit;color:var(--dex-text);transform:translateY(var(--dex-nav-offset-y,0px));}"
+        + "#auth-ui[data-dex-scheme='dark']{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(245,248,255,.84);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.28);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.12));--dex-signin-border:rgba(255,255,255,.32);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.2) inset;--dex-signin-text:rgba(255,255,255,.94);}"
+        + "#auth-ui[data-dex-scheme='light']{--dex-text:rgba(15,18,25,.92);--dex-text-muted:rgba(28,35,52,.76);--dex-panel-bg:linear-gradient(150deg,rgba(255,255,255,.82),rgba(249,252,255,.72) 46%,rgba(238,244,255,.66));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.72),rgba(246,250,255,.62));--dex-row-hover-bg:linear-gradient(145deg,rgba(255,255,255,.9),rgba(237,244,255,.75));--dex-border:rgba(15,18,25,.1);--dex-border-strong:rgba(15,18,25,.22);--dex-shadow:0 14px 36px rgba(0,0,0,.12);--dex-grain-opacity:0;--dex-text-shadow:none;--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.86),rgba(244,248,255,.62));--dex-signin-border:rgba(15,18,25,.2);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.66) inset;--dex-signin-text:rgba(18,22,33,.94);}"
         + "#auth-ui,#auth-ui *,#auth-ui *::before,#auth-ui *::after{box-sizing:border-box;}"
         + "#auth-ui [hidden]{display:none!important;}"
-        + "#auth-ui-signin,#auth-ui-profile-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:34px;height:var(--dex-nav-h,38px);margin:0;line-height:1;}"
-        + "#auth-ui-signin.dex-auth-fallback-btn{padding:0 14px;border:1px solid var(--dex-signin-border);border-radius:var(--dex-radius);background:var(--dex-signin-bg);color:#fff;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;box-shadow:var(--dex-signin-shadow);transition:border-color .2s ease,box-shadow .2s ease,filter .2s ease;}"
-        + "#auth-ui-signin.dex-auth-fallback-btn:hover{transform:translateY(-1px);filter:brightness(1.03);box-shadow:0 10px 24px rgba(40,76,165,.28);}"
-        + "#auth-ui-signin.dex-auth-fallback-btn:focus-visible,#auth-ui-profile-toggle:focus-visible,#auth-ui-dropdown .dex-menu-item:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(125,170,255,.45),0 0 0 4px rgba(22,26,38,.45);}"
+        + "#auth-ui-signin{display:inline-flex;align-items:center;justify-content:center;margin:0;line-height:1;}"
+        + "#auth-ui-profile-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:34px;height:var(--dex-nav-h,38px);margin:0;line-height:1;}"
+        + "#auth-ui-profile-toggle:focus-visible,#auth-ui-dropdown .dex-menu-item:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.38),0 0 0 4px rgba(255,25,16,.25);}"
         + "#auth-ui-profile{position:relative;display:inline-flex;align-items:center;overflow:visible;}"
         + "#auth-ui-profile-toggle{position:relative;gap:0;border:1px solid var(--dex-border);background:var(--dex-row-bg);width:auto;min-width:calc(var(--dex-nav-h,38px) + 22px);border-radius:var(--dex-radius);cursor:pointer;justify-content:flex-start;padding:2px 28px 2px 2px;backdrop-filter:blur(8px) saturate(132%);-webkit-backdrop-filter:blur(8px) saturate(132%);transition:border-color .22s ease,filter .22s ease,background .22s ease;overflow:hidden;}"
         + "#auth-ui-profile-toggle::before{content:'';position:absolute;inset:-30%;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.35),rgba(255,255,255,0) 55%);opacity:0;transition:opacity .22s ease;z-index:0;}"
@@ -526,61 +525,28 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function applyPrimaryButtonStyle(btn) {
+  function applySecondaryButtonStyle(btn) {
     if (!btn) return;
 
-    btn.classList.add("dex-auth-signin");
-
-    if (document.querySelector(".dx-block-button-element--primary")) {
-      btn.classList.add("dx-block-button-element", "dx-block-button-element--primary");
-      btn.classList.remove("dex-auth-fallback-btn");
-      btn.style.border = "";
-      btn.style.background = "";
-      btn.style.color = "";
-      btn.style.padding = "";
-      return;
-    }
-
-    var matched = false;
-
-    if (document.querySelector(".btn--primary")) {
-      btn.classList.add("btn--primary");
-      if (document.querySelector(".btn")) {
-        btn.classList.add("btn");
-      }
-      matched = true;
-    }
-
-    if (document.querySelector(".button--primary")) {
-      btn.classList.add("button--primary");
-      matched = true;
-    }
-
-    if (document.querySelector("button.primary")) {
-      btn.classList.add("primary");
-      matched = true;
-    }
-
-    if (document.querySelector(".btn-primary")) {
-      btn.classList.add("btn-primary");
-      matched = true;
-    }
-
-    if (document.querySelector(".button-primary")) {
-      btn.classList.add("button-primary");
-      matched = true;
-    }
-
-    if (matched) {
-      btn.classList.remove("dex-auth-fallback-btn");
-      btn.style.border = "";
-      btn.style.background = "";
-      btn.style.color = "";
-      btn.style.padding = "";
-      return;
-    }
-
-    btn.classList.add("dex-auth-fallback-btn");
+    btn.classList.add(
+      "dex-auth-signin",
+      "dx-button-element",
+      "dx-button-element--secondary",
+      "dx-button-size--md"
+    );
+    btn.classList.remove(
+      "dex-auth-fallback-btn",
+      "dx-block-button-element",
+      "dx-block-button-element--primary",
+      "theme-btn--primary",
+      "cta-btn",
+      "cta",
+      "dex-btn"
+    );
+    btn.style.border = "";
+    btn.style.background = "";
+    btn.style.color = "";
+    btn.style.padding = "";
   }
 
   function setUiState(auth, user) {
@@ -600,7 +566,7 @@
       return;
     }
 
-    applyPrimaryButtonStyle(signInBtn);
+    applySecondaryButtonStyle(signInBtn);
     var fallbackAvatar = getDefaultAvatarDataUri(user && user.name);
     avatar.src = fallbackAvatar;
 

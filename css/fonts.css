@@ -46,8 +46,18 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Typefesse";
+  src:
+    local("Stretch Pro"),
+    url("/assets/fonts/StretchPro.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --font-body: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-display: "Stretch Pro", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  --font-heading: var(--font-display);
+  --font-display: "Stretch Pro", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+  --font-heading: var(--font-display) !important;
 }
