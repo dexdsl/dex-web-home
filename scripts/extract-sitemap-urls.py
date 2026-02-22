@@ -43,7 +43,14 @@ def main():
     parse_sitemap(start, seen, out)
 
     # Keep only your site pages (avoid stray hosts if any)
-    allowed = {"dexdsl.org", "www.dexdsl.org", "dexdsl.com", "www.dexdsl.com"}
+    allowed = {
+        "dexdsl.github.io",
+        "www.dexdsl.github.io",
+        "dexdsl.org",
+        "www.dexdsl.org",
+        "dexdsl.com",
+        "www.dexdsl.com",
+    }
     urls = []
     for u in out:
         h = urlparse(u).hostname or ""

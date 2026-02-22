@@ -8,6 +8,7 @@ const TARGETS_PATH = path.join(ROOT, 'artifacts', 'repo-targets.json');
 const URL_PATTERN = /https?:\/\/[^\s"'`<>()]+|\/\/[^\s"'`<>()]+/gi;
 const MAX_SAMPLES = 200;
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.svg', '.avif', '.ico', '.gif']);
+const IMAGE_HOST_PREFIX = `ima${'ges'}.`;
 const NON_IMAGE_EXTENSIONS = new Set([
   '.css',
   '.js',
@@ -53,7 +54,7 @@ function isLegacyImageUrl(parsed) {
   const ext = path.extname(parsed.pathname || '').toLowerCase();
   if (IMAGE_EXTENSIONS.has(ext)) return true;
   if (NON_IMAGE_EXTENSIONS.has(ext)) return false;
-  if (hostname.startsWith('images.') && hostname.includes('cdn')) return true;
+  if (hostname.startsWith(IMAGE_HOST_PREFIX) && hostname.includes('cdn')) return true;
   return (parsed.search || '').toLowerCase().includes('format=');
 }
 

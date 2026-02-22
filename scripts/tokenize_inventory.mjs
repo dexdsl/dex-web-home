@@ -7,6 +7,8 @@ const DEDUP_PATH = path.join(ROOT, 'artifacts', 'style-inventory.dedup.json');
 const TOKENS_JSON_PATH = path.join(ROOT, 'tokens.candidates.json');
 const TOKENS_ROOT_CSS_PATH = path.join(ROOT, 'tokens.css');
 const TOKENS_CSS_PATH = path.join(ROOT, 'css', 'tokens.css');
+const TOKENS_PUBLIC_CSS_PATH = path.join(ROOT, 'public', 'css', 'tokens.css');
+const TOKENS_DOCS_CSS_PATH = path.join(ROOT, 'docs', 'css', 'tokens.css');
 
 const COLOR_FIELDS = [
   'color',
@@ -64,6 +66,8 @@ function ensureFiles() {
   fs.mkdirSync(path.dirname(DEDUP_PATH), { recursive: true });
   fs.mkdirSync(path.dirname(TOKENS_ROOT_CSS_PATH), { recursive: true });
   fs.mkdirSync(path.dirname(TOKENS_CSS_PATH), { recursive: true });
+  fs.mkdirSync(path.dirname(TOKENS_PUBLIC_CSS_PATH), { recursive: true });
+  fs.mkdirSync(path.dirname(TOKENS_DOCS_CSS_PATH), { recursive: true });
 }
 
 function deduplicate(raw) {
@@ -312,6 +316,8 @@ function writeTokensCSS(tokens) {
   const css = lines.join('\n');
   fs.writeFileSync(TOKENS_ROOT_CSS_PATH, css);
   fs.writeFileSync(TOKENS_CSS_PATH, css);
+  fs.writeFileSync(TOKENS_PUBLIC_CSS_PATH, css);
+  fs.writeFileSync(TOKENS_DOCS_CSS_PATH, css);
 }
 
 function summarize(tokens) {

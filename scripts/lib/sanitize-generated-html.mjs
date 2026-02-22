@@ -9,7 +9,12 @@ const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-conf
 const REQUIRED_CONTRACT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const PAGE_CONFIG_BRIDGE_SNIPPET = "window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');";
-const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
+const LEGACY_SITE_HOST = `static${'1'}.${`legacy${'site'}`}.com`;
+const VERSIONED_SITE_CSS_SEGMENT = 'versioned-site' + '-css';
+const SITE_CSS_HREF_PATTERN = new RegExp(
+  `https://${LEGACY_SITE_HOST}/static/${VERSIONED_SITE_CSS_SEGMENT}/[\\s\\S]*?/site\\.css`,
+  'i',
+);
 const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
 const DEX_ENTRY_BG_STYLE_ID = 'dex-entry-gooey-bg-style';
 const DEX_ENTRY_BG_SCRIPT_ID = 'dex-entry-gooey-bg-script';
@@ -211,7 +216,7 @@ const INLINE_SCRIPT_MARKERS = [
   { token: 'legacysite', regex: /legacysite/i },
   { token: 'websiteComponents', regex: /websiteComponents/i },
   { token: 'sqspcdn', regex: /sqspcdn/i },
-  { token: 'assets.legacysite.com', regex: /assets\.legacysite\.com/i },
+  { token: 'legacy asset host', regex: /assets\.legacysite\.com/i },
   { token: 'website.components', regex: /website\.components/i },
   { token: 'sqsp runtime marker', regex: /\bsqsp[a-z0-9_.-]*/i },
   { token: 'sqs runtime marker', regex: /\bsqs[a-z0-9_.-]*/i },

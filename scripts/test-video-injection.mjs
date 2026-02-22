@@ -239,7 +239,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   resolveBreadcrumbBackStrategy({
-    referrer: 'https://dexdsl.org/catalog',
+    referrer: 'https://dexdsl.github.io/catalog',
     locationOrigin: 'http://localhost:4173',
     locationPath: '/view/123',
     historyLength: 2,

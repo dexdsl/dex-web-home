@@ -22,11 +22,30 @@ try {
 
 const MIME = {
   '.css': 'text/css; charset=utf-8',
+  '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.m3u8': 'application/vnd.apple.mpegurl',
+  '.mp4': 'video/mp4',
+  '.otf': 'font/otf',
+  '.png': 'image/png',
   '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf',
+  '.wav': 'audio/wav',
+  '.webm': 'video/webm',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
+const STATIC_RUNTIME_ROOTS = [
+  { prefix: '/assets/', roots: ['public/assets', 'assets', 'docs/assets'] },
+  { prefix: '/css/', roots: ['public/css', 'css', 'docs/css'] },
+  { prefix: '/static/', roots: ['public/static', 'static', 'docs/static'] },
+];
 
 function safeJoin(base, requestPath) {
   const decoded = decodeURIComponent(requestPath);
@@ -36,9 +55,43 @@ function safeJoin(base, requestPath) {
   return full;
 }
 
+async function resolveRuntimeStaticPath(requestPath) {
+  for (const candidate of STATIC_RUNTIME_ROOTS) {
+    if (!requestPath.startsWith(candidate.prefix)) continue;
+    const trailing = requestPath.slice(candidate.prefix.length);
+    for (const relativeRoot of candidate.roots) {
+      const absoluteRoot = path.resolve(relativeRoot);
+      const fullPath = safeJoin(absoluteRoot, trailing);
+      if (!fullPath) continue;
+      try {
+        const stat = await fs.stat(fullPath);
+        if (stat.isFile()) return fullPath;
+      } catch {}
+    }
+  }
+  return '';
+}
+
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const requestPath = requestUrl.pathname === '/' ? `/${targetBase}` : requestUrl.pathname;
+
+  const runtimeStaticPath = await resolveRuntimeStaticPath(requestPath);
+  if (runtimeStaticPath) {
+    try {
+      const body = await fs.readFile(runtimeStaticPath);
+      const ext = path.extname(runtimeStaticPath).toLowerCase();
+      const contentType = MIME[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(body);
+      return;
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+  }
+
   const fullPath = safeJoin(targetDir, requestPath);
 
   if (!fullPath) {

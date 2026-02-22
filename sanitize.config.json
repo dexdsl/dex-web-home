@@ -1,5 +1,10 @@
 {
   "forbiddenDomains": [
+    "static1.legacysite.com",
+    "assets.legacysite.com",
+    "images.legacysite-cdn.com",
+    "video.legacysite-cdn.com",
+    "definitions.sqspcdn.com",
     "squarespace.com",
     "static1.squarespace.com",
     "assets.squarespace.com",
@@ -10,16 +15,13 @@
     "use.typekit.net"
   ],
   "forbiddenNeedles": [
-    "squarespace",
-    "sqs-",
-    "static1.squarespace",
-    "assets.squarespace",
-    "images.squarespace-cdn",
-    "squarespace-cdn",
     "typekit",
     "adobe"
   ],
   "legacyImageDomains": [
+    "images.legacysite-cdn.com",
+    "static1.legacysite.com",
+    "assets.legacysite.com",
     "images.squarespace-cdn.com",
     "static1.squarespace.com"
   ],

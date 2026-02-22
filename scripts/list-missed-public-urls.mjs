@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Enumerate public-but-unlinked pages on dexdsl.org, focusing on:
+ * Enumerate public-but-unlinked pages on dexdsl.github.io, focusing on:
  *  - /entry/* (via RSS + legacysite JSON)
  *  - known static pages under /entry/
  *  - /polls
@@ -9,12 +9,12 @@
  *   node scripts/list-missed-public-urls.mjs > tmp/missed_public_urls.txt
  *
  * Env:
- *   ORIGIN=https://dexdsl.org   (default)
+ *   ORIGIN=https://dexdsl.github.io   (default)
  *   ENTRY_PATH=/entry          (default)
  *   MAX_PAGES=200              (pagination cap for ?format=json)
  */
 
-const ORIGIN = (process.env.ORIGIN ?? "https://dexdsl.org").replace(/\/+$/, "");
+const ORIGIN = (process.env.ORIGIN ?? "https://dexdsl.github.io").replace(/\/+$/, "");
 const ENTRY_PATH = (process.env.ENTRY_PATH ?? "/entry").replace(/\/+$/, "");
 const MAX_PAGES = Math.max(1, Number(process.env.MAX_PAGES ?? 200));
 

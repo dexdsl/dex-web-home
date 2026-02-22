@@ -5,6 +5,8 @@ import process from 'node:process';
 import { parse } from 'parse5';
 
 const TARGET_HOSTNAMES = new Set([
+  'dexdsl.github.io',
+  'www.dexdsl.github.io',
   'dexdsl.org',
   'www.dexdsl.org',
   'dexdsl.com',
@@ -67,7 +69,7 @@ function getReplacementHref(href, basePath) {
 
   let url;
   try {
-    url = new URL(href, 'https://dexdsl.org');
+    url = new URL(href, 'https://dexdsl.github.io');
   } catch {
     return null;
   }

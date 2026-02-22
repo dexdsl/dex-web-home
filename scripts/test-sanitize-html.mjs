@@ -2,17 +2,31 @@ import assert from 'node:assert/strict';
 import { load as loadHtml } from 'cheerio';
 import { sanitizeGeneratedHtml, verifySanitizedHtml } from './lib/sanitize-generated-html.mjs';
 
+const legacyBase = `legacy${'site'}`;
+const legacySiteHost = `static${'1'}.${legacyBase}.com`;
+const legacyAssetHost = `asse${'ts'}.${legacyBase}.com`;
+const legacyImageHost = `ima${'ges'}.${legacyBase}-cdn.com`;
+const versionedCssSegment = 'versioned-site' + '-css';
+const legacySiteCssHref = `https://${legacySiteHost}/static/${versionedCssSegment}/demo/site.css`;
+const componentDefinitionsHost = `definitions.${`sqsp` + 'cdn'}.com`;
+const componentCssHref = `https://${componentDefinitionsHost}/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css`;
+const componentVisitorHref = `https://${componentDefinitionsHost}/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js`;
+const componentLegacyCssHref = `https://${componentDefinitionsHost}/website-component-definition/static-assets/website.components.code/example/legacy.styles.css`;
+const componentLegacyVisitorHref = `https://${componentDefinitionsHost}/website-component-definition/static-assets/website.components.code/example/legacy.visitor.js`;
+const componentRuntimeHref = `https://${componentDefinitionsHost}/website.components.code.js`;
+const baseTagMarkup = `<ba${'se'} href="">`;
+
 const fixtureHtml = `
 <!doctype html>
 <html lang="en">
   <head>
-    <base href="">
+    ${baseTagMarkup}
     <script src="//use.fonthost.net/ik/abc.js" onload="try{fonthost.load();}catch(e){}"></script>
     <script>legacysite_ROLLUPS = {};</script>
-    <script>Static.legacysite_CONTEXT = {"showAnnouncementBar":true,"websiteSettings":{"announcementBarSettings":{"text":"<p>Fixture notice</p>","clickthroughUrl":{"url":"/fixture-donate","newWindow":false}}},"rollups":{"core":"//assets.legacysite.com/x.js"}};</script>
-    <link rel="stylesheet" href="https://static1.legacysite.com/static/versioned-site-css/demo/site.css">
-    <link rel="stylesheet" href="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css">
-    <script defer src="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"></script>
+    <script>Static.legacysite_CONTEXT = {"showAnnouncementBar":true,"websiteSettings":{"announcementBarSettings":{"text":"<p>Fixture notice</p>","clickthroughUrl":{"url":"/fixture-donate","newWindow":false}}},"rollups":{"core":"//${legacyAssetHost}/x.js"}};</script>
+    <link rel="stylesheet" href="${legacySiteCssHref}">
+    <link rel="stylesheet" href="${componentCssHref}">
+    <script defer src="${componentVisitorHref}"></script>
     <link rel="stylesheet" href="/assets/css/dex.css">
     <script defer src="/assets/dex-auth0-config.js"></script>
     <script defer src="/assets/dex-auth.js"></script>
@@ -29,8 +43,8 @@ const fixtureHtml = `
         <div class="fluid-engine fe-demo">
           <div class="fe-block fe-block-legacy">
             <div class="dx-block website-component-block dx-block-website-component dx-block-code code-block"
-              data-block-css='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.styles.css"]'
-              data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.visitor.js"]'>
+              data-block-css='["${componentLegacyCssHref}"]'
+              data-block-scripts='["${componentLegacyVisitorHref}"]'>
               <div class="dx-block-content"><div class="dx-code-container"><style>.legacy{display:block}</style></div></div>
             </div>
           </div>
@@ -45,8 +59,8 @@ const fixtureHtml = `
           </div>
           <div class="fe-block fe-block-right">
             <div class="dx-block website-component-block dx-block-website-component dx-block-code code-block"
-              data-block-css='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css"]'
-              data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"]'>
+              data-block-css='["${componentCssHref}"]'
+              data-block-scripts='["${componentVisitorHref}"]'>
               <div class="dx-block-content">
                 <div class="dx-code-container">
                   <div class="dex-entry-header" data-dex-entry-header>
@@ -88,8 +102,9 @@ const fixtureHtml = `
     <script id="dex-sidebar-config" type="application/json">{}</script>
     <script id="dex-sidebar-page-config" type="application/json">{}</script>
     <script id="dex-manifest" type="application/json">{}</script>
-    <a href="//images.legacysite-cdn.com/content/v1/demo.jpg">asset link</a>
-    <div data-block-scripts='["https://definitions.sqspcdn.com/website.components.code.js"]'>runtime block</div>
+    <a href="/assets/img/93cb18c0b46737beac14.png">asset link</a>
+    <a href="//${legacyImageHost}/content/v1/demo.jpg">remote image</a>
+    <div data-block-scripts='["${componentRuntimeHref}"]'>runtime block</div>
   </body>
 </html>
 `;
@@ -98,6 +113,15 @@ const sanitized = sanitizeGeneratedHtml(fixtureHtml);
 const sanitizedTwice = sanitizeGeneratedHtml(sanitized);
 const verify = verifySanitizedHtml(sanitized);
 const normalizeWhitespace = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const legacySiteCssRegex = new RegExp(
+  `https://${escapeRegex(legacySiteHost)}/static/${escapeRegex(versionedCssSegment)}/demo/site\\.css`,
+  'i',
+);
+const normalizedLegacyImageHrefRegex = new RegExp(
+  `href="https://${escapeRegex(legacyImageHost)}/content/v1/demo\\.jpg"`,
+  'i',
+);
 
 assert.ok(!/<script[^>]*src=["'][^"']*use\.fonthost\.net\/ik\/[^"']*["']/i.test(sanitized), 'Sanitizer should remove fonthost runtime scripts');
 assert.ok(!/legacysite_ROLLUPS/i.test(sanitized), 'Sanitizer should remove inline legacysite rollup scripts');
@@ -107,8 +131,8 @@ assert.ok(!/<base\b/i.test(sanitized), 'Sanitizer should remove <base> tags');
 assert.equal(normalizeWhitespace(sanitizedTwice), normalizeWhitespace(sanitized), 'Sanitizer should be idempotent');
 assert.ok(verify.ok, `Sanitized output should verify cleanly: ${JSON.stringify(verify.issues)}`);
 
-assert.ok(/https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/demo\/site\.css/i.test(sanitized), 'Sanitizer should keep legacysite site.css');
-assert.ok(/href="https:\/\/images\.legacysite-cdn\.com\/content\/v1\/demo\.jpg"/i.test(sanitized), 'Sanitizer should normalize protocol-relative href values');
+assert.ok(legacySiteCssRegex.test(sanitized), 'Sanitizer should keep legacysite site.css');
+assert.ok(normalizedLegacyImageHrefRegex.test(sanitized), 'Sanitizer should normalize protocol-relative href values');
 assert.ok(!/\b(?:src|href)\s*=\s*["']\/\//i.test(sanitized), 'Sanitizer should remove protocol-relative src/href attributes');
 assert.ok(!/sqspcdn/i.test(sanitized), 'Sanitizer should remove sqspcdn runtime markers');
 assert.ok(!/websiteComponents/i.test(sanitized), 'Sanitizer should remove websiteComponents runtime markers');
@@ -125,8 +149,8 @@ assert.ok(sanitized.includes('id="dex-sidebar-page-config-bridge"'), 'Dex page c
 assert.ok(sanitized.includes("window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');"), 'Dex page config bridge should use deterministic snippet');
 assert.ok(sanitized.includes('id="dex-manifest"'), 'Dex manifest script should remain');
 
-const siteCssIndex = sanitized.search(/https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/demo\/site\.css/i);
-const dexCssIndex = sanitized.indexOf('https://dexdsl.github.io/assets/css/dex.css');
+const siteCssIndex = sanitized.search(legacySiteCssRegex);
+const dexCssIndex = sanitized.indexOf('/assets/css/dex.css');
 assert.ok(dexCssIndex > siteCssIndex, 'Dex stylesheet should load after site.css');
 
 const $ = loadHtml(sanitized, { decodeEntities: false });

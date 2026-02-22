@@ -1,11 +1,6 @@
 <!-- File: footer.html (surface-aware + horizontal Candid seal, no card) -->
 
 <!-- Load Font Awesome Free for social icons -->
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-/>
-
 <style>
   /*───────────────────────────────────────────────────────────*/
   /* Dex Surface-Aware Footer (matches board glass)            */
@@ -142,13 +137,13 @@
         <!-- DARK surface → white logo -->
         <img
           class="logo--dark"
-          src="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
+          src="/assets/img/129ade86338e9c3d8b90.png"
           alt="Dex Footer Logo (white)"
           loading="lazy" decoding="async">
         <!-- LIGHT surface → black logo (update URL if needed) -->
         <img
           class="logo--light"
-          src="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
+          src="/assets/img/129ade86338e9c3d8b90.png"
           alt="Dex Footer Logo (black)"
           loading="lazy" decoding="async">
       </div>

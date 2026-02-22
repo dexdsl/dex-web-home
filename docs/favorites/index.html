@@ -4,7 +4,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- dexdsl -->
-<base href="">
 <meta charset="utf-8" />
 <title>Favorites &mdash; dex digital sample library</title>
 <meta http-equiv="Accept-CH" content="Sec-CH-UA-Platform-Version, Sec-CH-UA-Model" /><link rel="canonical" href="https://dexdsl.org/polls"/>
@@ -24,7 +23,14 @@
 <meta name="twitter:url" content="https://dexdsl.org/polls"/>
 <meta name="twitter:card" content="summary"/>
 <meta name="description" content="" />
-<script type="application/ld+json">{"url":"https://dexdsl.org","name":"dex digital sample library","description":"","image":"/assets/img/cc33a50178c013c00896.png","@context":"http://schema.org","@type":"WebSite"}</script><script type="application/ld+json">{"address":"","image":"/assets/img/3b1476c230073f7589e3.jpg","openingHours":", , , , , , ","@context":"http://schema.org","@type":"LocalBusiness"}</script><link rel="stylesheet" type="text/css" href="/static/versioned-site-css/63956a55e99f9772a8cd1742/771/5c5a519771c10ba3470d8101/63956a55e99f9772a8cd175d/1741/site.css"/><!-- header code injection.css -->
+
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/bridge.squarespace.css">
+    <link rel="stylesheet" href="/css/components/dx-layout.css">
+    <link rel="stylesheet" href="/css/components/dx-surface.css">
+    <link rel="stylesheet" href="/css/components/dx-controls.css">
+    <link rel="stylesheet" href="/css/components/dx-nav.css">
+<script type="application/ld+json">{"url":"https://dexdsl.org","name":"dex digital sample library","description":"","image":"/assets/img/cc33a50178c013c00896.png","@context":"http://schema.org","@type":"WebSite"}</script><script type="application/ld+json">{"address":"","image":"/assets/img/3b1476c230073f7589e3.jpg","openingHours":", , , , , , ","@context":"http://schema.org","@type":"LocalBusiness"}</script>
 
 <script>
 (function(){
@@ -47,7 +53,7 @@
 
 <!-- 1️⃣ Auth0 config + SDK + app auth bootstrap (load once, site-wide) -->
 <script defer src="/assets/dex-auth0-config.js"></script>
-<script defer src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
+<script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
 <script defer src="/assets/dex-auth.js"></script>
 <!-- 2️⃣ Your glassmorphic/login button styles -->
 
@@ -447,7 +453,7 @@ html, body {
     overflow: hidden !important; 
 }
 </style><script async src="https://www.googletagmanager.com/gtag/js?id=G-J5DDMNH264"></script>
-    <link rel="stylesheet" type="text/css" href="/static/vta/5c5a519771c10ba3470d8101/versioned-assets/1771441478242-2KJ6E4XSE8IDDFKSAHZS/static.css"><link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/fonts.css">
 </head>
 
   <body
@@ -1998,11 +2004,6 @@ html, body {
     <!-- File: footer.html (surface-aware + horizontal Candid seal, no card) -->
 
 <!-- Load Font Awesome Free for social icons -->
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-/>
-
 <style>
   /*───────────────────────────────────────────────────────────*/
   /* Dex Surface-Aware Footer (matches board glass)            */
@@ -2292,7 +2293,7 @@ html, body {
       
     </div>
 
-    <script defer="true" src="/static/vta/5c5a519771c10ba3470d8101/scripts/site-bundle.4048606de8bae1a858c59c5fe6cb8a21.js" type="text/javascript"></script><!-- Auth0 -->
+    <!-- Auth0 -->
 <!-- Paste this into Home → Settings → Advanced → Code Injection → Footer -->
 <!-- Auth0 Footer Injection (with profile pic support) -->
 <script>
@@ -2719,6 +2720,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   };
 
   const scan = (root = document) => {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
     root.querySelectorAll(MEDIA_SELECTOR).forEach(ensureCard);
   };
 

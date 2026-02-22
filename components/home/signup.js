@@ -8,9 +8,9 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   <!-- media loop -->
   <div class="signup-media">
     <video
-      src="https://video.legacysite-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/playlist.m3u8"
+      src="/assets/media/placeholder.m3u8"
       muted autoplay playsinline loop
-      poster="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68884a57882b5b2f1deb51e2/1753762393566/dex+sky+promo.jpg"></video>
+      poster="/assets/img/c46e4503d44b2e2e2832.jpg"></video>
   </div>
 
   <!-- copy + CTA -->

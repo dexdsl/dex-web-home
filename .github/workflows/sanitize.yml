@@ -35,6 +35,12 @@ jobs:
       - name: Verify no legacy CDN image URLs
         run: npm run verify:no-legacy-cdn-images
 
+      - name: Verify no dead /static/vta refs
+        run: npm run verify:no-dead-static-refs
+
+      - name: Verify local /css and /assets links
+        run: npm run verify:assets
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

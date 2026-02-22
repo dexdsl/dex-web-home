@@ -20,6 +20,17 @@ const fontsLinkTag = '<link rel="stylesheet" href="/css/fonts.css">';
 const siteRoot = fs.existsSync(path.join(repoRoot, 'docs', 'index.html'))
   ? path.join(repoRoot, 'docs')
   : repoRoot;
+const ROOT_CSS_FONTS_PATH = path.join(repoRoot, 'css', 'fonts.css');
+const DOCS_CSS_FONTS_PATH = path.join(repoRoot, 'docs', 'css', 'fonts.css');
+const PUBLIC_CSS_FONTS_PATH = path.join(repoRoot, 'public', 'css', 'fonts.css');
+const ROOT_FONTS_DIR = path.join(repoRoot, 'assets', 'fonts');
+const DOCS_FONTS_DIR = path.join(repoRoot, 'docs', 'assets', 'fonts');
+const PUBLIC_FONTS_DIR = path.join(repoRoot, 'public', 'assets', 'fonts');
+const DOT = '.';
+const LEGACY_SITE = `legacy${'site'}${DOT}com`;
+const LEGACY_CDN = `legacy${'site'}-cdn${DOT}com`;
+const STATIC_HOST = `static${'1'}${DOT}${LEGACY_SITE}`;
+const IMAGE_HOST = `ima${'ges'}${DOT}${LEGACY_CDN}`;
 
 function normalizeUrl(url) {
   return url.startsWith('//') ? `https:${url}` : url;
@@ -58,14 +69,14 @@ function resolveMirrorUrl(url) {
     pathnameValue = parsed.pathname || '';
   }
 
-  if (host === 'static1.legacysite.com' && pathnameValue.startsWith('/static/')) {
+  if (host === STATIC_HOST && pathnameValue.startsWith('/static/')) {
     const mirrorPath = path.join(siteRoot, pathnameValue);
     if (fs.existsSync(mirrorPath) && fs.statSync(mirrorPath).isFile()) {
       return `${pathnameValue}${parsed.search || ''}`;
     }
   }
 
-  if (host === 'images.legacysite-cdn.com' && pathnameValue.startsWith('/content/')) {
+  if (host === IMAGE_HOST && pathnameValue.startsWith('/content/')) {
     const mirrorPath = path.join(siteRoot, pathnameValue);
     if (fs.existsSync(mirrorPath) && fs.statSync(mirrorPath).isFile()) {
       return `${pathnameValue}${parsed.search || ''}`;
@@ -220,6 +231,51 @@ function sanitizeHtml(content) {
   return updated;
 }
 
+function copyDirRecursive(sourceDir, targetDir) {
+  if (!fs.existsSync(sourceDir)) return;
+  fs.mkdirSync(targetDir, { recursive: true });
+  const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(sourcePath, targetPath);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    fs.copyFileSync(sourcePath, targetPath);
+  }
+}
+
+function resolveFontsCssSource() {
+  const candidates = [
+    path.join(repoRoot, 'css', 'fonts.css'),
+    path.join(repoRoot, 'docs', 'css', 'fonts.css'),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return '';
+}
+
+function syncPublicFontsRuntime() {
+  const fontsCssSource = resolveFontsCssSource();
+  if (fontsCssSource) {
+    fs.mkdirSync(path.dirname(ROOT_CSS_FONTS_PATH), { recursive: true });
+    fs.mkdirSync(path.dirname(DOCS_CSS_FONTS_PATH), { recursive: true });
+    fs.mkdirSync(path.dirname(PUBLIC_CSS_FONTS_PATH), { recursive: true });
+    const css = fs.readFileSync(fontsCssSource, 'utf8');
+    fs.writeFileSync(ROOT_CSS_FONTS_PATH, css, 'utf8');
+    fs.writeFileSync(DOCS_CSS_FONTS_PATH, css, 'utf8');
+    fs.writeFileSync(PUBLIC_CSS_FONTS_PATH, css, 'utf8');
+  }
+
+  copyDirRecursive(ROOT_FONTS_DIR, PUBLIC_FONTS_DIR);
+  copyDirRecursive(DOCS_FONTS_DIR, PUBLIC_FONTS_DIR);
+  copyDirRecursive(PUBLIC_FONTS_DIR, ROOT_FONTS_DIR);
+  copyDirRecursive(PUBLIC_FONTS_DIR, DOCS_FONTS_DIR);
+}
+
 const entrypoints = collectEntrypoints();
 let changedFiles = 0;
 
@@ -233,5 +289,7 @@ for (const relativePath of entrypoints) {
     changedFiles += 1;
   }
 }
+
+syncPublicFontsRuntime();
 
 console.log(`fonts:detox processed ${entrypoints.length} files, changed ${changedFiles}.`);

@@ -13,20 +13,25 @@ const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.mjs': 'application/javascript; charset=utf-8',
+  '.otf': 'font/otf',
   '.mp3': 'audio/mpeg',
   '.mov': 'video/quicktime',
   '.mp4': 'video/mp4',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
+  '.ttf': 'font/ttf',
   '.wav': 'audio/wav',
   '.webm': 'video/webm',
   '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 const BASE_HEADERS = {
@@ -36,7 +41,9 @@ const BASE_HEADERS = {
 };
 
 const KNOWN_OUTPUT_DIRS = ['entries'];
-const LOCAL_ASSET_ROOTS = ['assets', path.join('docs', 'assets')];
+const LOCAL_ASSET_ROOTS = [path.join('public', 'assets'), 'assets', path.join('docs', 'assets')];
+const LOCAL_CSS_ROOTS = [path.join('public', 'css'), 'css', path.join('docs', 'css')];
+const LOCAL_STATIC_ROOTS = [path.join('public', 'static'), 'static', path.join('docs', 'static')];
 const BREADCRUMB_RUNTIME_PATH = '/assets/js/dex-breadcrumb-motion.js';
 const BREADCRUMB_RUNTIME_URLS = [
   'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js',
@@ -125,12 +132,12 @@ async function fileExists(filePath) {
   }
 }
 
-async function resolveViewerAssetPath(cwd, pathname) {
-  if (!String(pathname || '').startsWith('/assets/')) return '';
-  const trailing = String(pathname || '').slice(1);
-  for (const relativeRoot of LOCAL_ASSET_ROOTS) {
+async function resolveViewerStaticPath(cwd, pathname, { prefix, roots }) {
+  if (!String(pathname || '').startsWith(prefix)) return '';
+  const trailing = String(pathname || '').slice(prefix.length);
+  for (const relativeRoot of roots) {
     const rootPath = normalizePath(path.join(cwd, relativeRoot));
-    const candidate = resolveSafePathUnderRoot(rootPath, trailing.replace(/^assets\//, ''));
+    const candidate = resolveSafePathUnderRoot(rootPath, trailing);
     if (!candidate) continue;
     try {
       const stat = await fs.stat(candidate);
@@ -444,7 +451,10 @@ export async function startViewer({
       }
 
       if (method === 'GET' && pathname.startsWith('/assets/')) {
-        const assetPath = await resolveViewerAssetPath(cwd, pathname);
+        const assetPath = await resolveViewerStaticPath(cwd, pathname, {
+          prefix: '/assets/',
+          roots: LOCAL_ASSET_ROOTS,
+        });
         if (!assetPath) {
           send(res, 404, 'Not found');
           return;
@@ -457,6 +467,46 @@ export async function startViewer({
           return;
         }
         send(res, 200, body, contentTypeFor(assetPath));
+        return;
+      }
+
+      if (method === 'GET' && pathname.startsWith('/css/')) {
+        const cssPath = await resolveViewerStaticPath(cwd, pathname, {
+          prefix: '/css/',
+          roots: LOCAL_CSS_ROOTS,
+        });
+        if (!cssPath) {
+          send(res, 404, 'Not found');
+          return;
+        }
+        let body;
+        try {
+          body = await fs.readFile(cssPath);
+        } catch {
+          send(res, 404, 'Not found');
+          return;
+        }
+        send(res, 200, body, contentTypeFor(cssPath));
+        return;
+      }
+
+      if (method === 'GET' && pathname.startsWith('/static/')) {
+        const staticPath = await resolveViewerStaticPath(cwd, pathname, {
+          prefix: '/static/',
+          roots: LOCAL_STATIC_ROOTS,
+        });
+        if (!staticPath) {
+          send(res, 404, 'Not found');
+          return;
+        }
+        let body;
+        try {
+          body = await fs.readFile(staticPath);
+        } catch {
+          send(res, 404, 'Not found');
+          return;
+        }
+        send(res, 200, body, contentTypeFor(staticPath));
         return;
       }
 
