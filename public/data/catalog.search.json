@@ -1,0 +1,437 @@
+{
+  "generated_at": "2026-02-22T11:07:33.517Z",
+  "total": 26,
+  "entries": [
+    {
+      "id": "andrew-chanover",
+      "entry_href": "/entry/andrew-chanover/",
+      "season": "S2",
+      "title_raw": "ELECTRIC GUITAR",
+      "performer_raw": "chanover, andrew",
+      "lookup_raw": "E.Gtr. Ch AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "STRINGS"
+      ],
+      "title_norm": "electric guitar",
+      "performer_norm": "chanover, andrew",
+      "lookup_norm": "e.gtr. ch av2024 s2",
+      "instrument_norm": "electronics strings",
+      "search_blob": "electric guitar chanover, andrew e.gtr. ch av2024 s2 electronics strings electric guitar"
+    },
+    {
+      "id": "amplified-printer",
+      "entry_href": "/entry/amplified-printer/",
+      "season": "S2",
+      "title_raw": "AMPLIFIED PRINTER",
+      "performer_raw": "church, cameron",
+      "lookup_raw": "X.Prt. Ch AV2024 S2",
+      "instrument_family": [
+        "PERCUS‏‏‎‎SION",
+        "OTHER"
+      ],
+      "title_norm": "amplified printer",
+      "performer_norm": "church, cameron",
+      "lookup_norm": "x.prt. ch av2024 s2",
+      "instrument_norm": "percus‏‏‎‎sion other",
+      "search_blob": "amplified printer church, cameron x.prt. ch av2024 s2 percus‏‏‎‎sion other amplified printer"
+    },
+    {
+      "id": "bassoon-and-electronics",
+      "entry_href": "/entry/bassoon-and-electronics/",
+      "season": "S2",
+      "title_raw": "BASSOON + ELECTRONICS WITH GENERATIVE VIDEO",
+      "performer_raw": "coleman, max & tomecek, arlo",
+      "lookup_raw": "W.Bsn. CoTo AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "WINDS"
+      ],
+      "title_norm": "bassoon + electronics with generative video",
+      "performer_norm": "coleman, max & tomecek, arlo",
+      "lookup_norm": "w.bsn. coto av2024 s2",
+      "instrument_norm": "electronics winds",
+      "search_blob": "bassoon + electronics with generative video coleman, max & tomecek, arlo w.bsn. coto av2024 s2 electronics winds bassoon + electronics with generative video"
+    },
+    {
+      "id": "tim-feeney",
+      "entry_href": "/entry/tim-feeney/",
+      "season": "S2",
+      "title_raw": "PREPARED FLOOR TOM",
+      "performer_raw": "fe‏‏‎‏‏‎eney, tim",
+      "lookup_raw": "P.Pto. Fe AV2024 S2",
+      "instrument_family": [
+        "PERCUS‏‏‎‎SION"
+      ],
+      "title_norm": "prepared floor tom",
+      "performer_norm": "fe‏‏‎‏‏‎eney, tim",
+      "lookup_norm": "p.pto. fe av2024 s2",
+      "instrument_norm": "percus‏‏‎‎sion",
+      "search_blob": "prepared floor tom fe‏‏‎‏‏‎eney, tim p.pto. fe av2024 s2 percus‏‏‎‎sion prepared floor tom"
+    },
+    {
+      "id": "multiperc",
+      "entry_href": "/entry/multiperc/",
+      "season": "S2",
+      "title_raw": "MULTIPLE PERCUSSION",
+      "performer_raw": "giroux, ben",
+      "lookup_raw": "P.Mpc. Gi AV2024 S2",
+      "instrument_family": [
+        "PERCUS‏‏‎‎SION"
+      ],
+      "title_norm": "multiple percussion",
+      "performer_norm": "giroux, ben",
+      "lookup_norm": "p.mpc. gi av2024 s2",
+      "instrument_norm": "percus‏‏‎‎sion",
+      "search_blob": "multiple percussion giroux, ben p.mpc. gi av2024 s2 percus‏‏‎‎sion multiple percus‏‏‎sion"
+    },
+    {
+      "id": "jakob-heinemann",
+      "entry_href": "/entry/jakob-heinemann/",
+      "season": "S2",
+      "title_raw": "SPLINTERINGS for DOUBLE BASS",
+      "performer_raw": "jakob heinemann",
+      "lookup_raw": "S.Pdb. He AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS"
+      ],
+      "title_norm": "splinterings for double bass",
+      "performer_norm": "jakob heinemann",
+      "lookup_norm": "s.pdb. he av2024 s2",
+      "instrument_norm": "electronics",
+      "search_blob": "splinterings for double bass jakob heinemann s.pdb. he av2024 s2 electronics splinterings for double bass"
+    },
+    {
+      "id": "as-though-im-slipping",
+      "entry_href": "/entry/as-though-im-slipping/",
+      "season": "S2",
+      "title_raw": "AS THOUGH I’M SLIPPING - MIXED ENSEMBLE",
+      "performer_raw": "jáquez, sofí & yorke, paul",
+      "lookup_raw": "P.Ens. JaYo AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "PERCUS‏‏‎‎SION",
+        "OTHER"
+      ],
+      "title_norm": "as though i’m slipping - mixed ensemble",
+      "performer_norm": "jáquez, sofí & yorke, paul",
+      "lookup_norm": "p.ens. jayo av2024 s2",
+      "instrument_norm": "electronics percus‏‏‎‎sion other",
+      "search_blob": "as though i’m slipping - mixed ensemble jáquez, sofí & yorke, paul p.ens. jayo av2024 s2 electronics percus‏‏‎‎sion other as though i’m slipping"
+    },
+    {
+      "id": "this-is-a-tangible-space",
+      "entry_href": "/entry/this-is-a-tangible-space/",
+      "season": "S2",
+      "title_raw": "THIS IS A TANGIBLE SPACE - MULTIMEDIA",
+      "performer_raw": "johnson, grant",
+      "lookup_raw": "X.Mul. Jo AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "OTHER"
+      ],
+      "title_norm": "this is a tangible space - multimedia",
+      "performer_norm": "johnson, grant",
+      "lookup_norm": "x.mul. jo av2024 s2",
+      "instrument_norm": "electronics other",
+      "search_blob": "this is a tangible space - multimedia johnson, grant x.mul. jo av2024 s2 electronics other this is a tangible space for multimedia this is a tangible space"
+    },
+    {
+      "id": "prepared-oboe-sky-macklay",
+      "entry_href": "/entry/prepared-oboe-sky-macklay/",
+      "season": "S2",
+      "title_raw": "PREPARED OBOE",
+      "performer_raw": "macklay, sky",
+      "lookup_raw": "W.Ob. Ma AV2024 S2",
+      "instrument_family": [
+        "WINDS"
+      ],
+      "title_norm": "prepared oboe",
+      "performer_norm": "macklay, sky",
+      "lookup_norm": "w.ob. ma av2024 s2",
+      "instrument_norm": "winds",
+      "search_blob": "prepared oboe macklay, sky w.ob. ma av2024 s2 winds prepared oboe"
+    },
+    {
+      "id": "electric-guitar-chris-mann",
+      "entry_href": "/entry/electric-guitar-chris-mann/",
+      "season": "S2",
+      "title_raw": "ELECTRIC GUITAR",
+      "performer_raw": "man‎‏n, chris",
+      "lookup_raw": "E.Gtr. Ma A2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "STRINGS"
+      ],
+      "title_norm": "electric guitar",
+      "performer_norm": "man‎‏n, chris",
+      "lookup_norm": "e.gtr. ma a2024 s2",
+      "instrument_norm": "electronics strings",
+      "search_blob": "electric guitar man‎‏n, chris e.gtr. ma a2024 s2 electronics strings dholak and electronics electric guitar"
+    },
+    {
+      "id": "anant-shah",
+      "entry_href": "/entry/anant-shah/",
+      "season": "S2",
+      "title_raw": "DHOLAK AND ELECTRONICS",
+      "performer_raw": "shah, anant",
+      "lookup_raw": "P.Dho. Sh AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS",
+        "PERCUS‏‏‎‎SION"
+      ],
+      "title_norm": "dholak and electronics",
+      "performer_norm": "shah, anant",
+      "lookup_norm": "p.dho. sh av2024 s2",
+      "instrument_norm": "electronics percus‏‏‎‎sion",
+      "search_blob": "dholak and electronics shah, anant p.dho. sh av2024 s2 electronics percus‏‏‎‎sion ant shah dholak and electronics"
+    },
+    {
+      "id": "aidan-yeats",
+      "entry_href": "/entry/aidan-yeats/",
+      "season": "S2",
+      "title_raw": "GUITAR AND VOICE",
+      "performer_raw": "yeats, aidan",
+      "lookup_raw": "V.Sng. Ye AV2024 S2",
+      "instrument_family": [
+        "STRINGS",
+        "VOICE"
+      ],
+      "title_norm": "guitar and voice",
+      "performer_norm": "yeats, aidan",
+      "lookup_norm": "v.sng. ye av2024 s2",
+      "instrument_norm": "strings voice",
+      "search_blob": "guitar and voice yeats, aidan v.sng. ye av2024 s2 strings voice guitar and voice"
+    },
+    {
+      "id": "bojun-zhang",
+      "entry_href": "/entry/bojun-zhang/",
+      "season": "S2",
+      "title_raw": "MODULAR SYNTH",
+      "performer_raw": "zhang, bojun",
+      "lookup_raw": "E.Mod. Zh AV2024 S2",
+      "instrument_family": [
+        "ELECTRONICS"
+      ],
+      "title_norm": "modular synth",
+      "performer_norm": "zhang, bojun",
+      "lookup_norm": "e.mod. zh av2024 s2",
+      "instrument_norm": "electronics",
+      "search_blob": "modular synth zhang, bojun e.mod. zh av2024 s2 electronics modular synth"
+    },
+    {
+      "id": "2-organs-midori-ataka",
+      "entry_href": "/entry/2-organs-midori-ataka/",
+      "season": "S1",
+      "title_raw": "“2 ORGANS”: PIPE ORGAN (“GRISWOLD”), PORTATIVE ORGAN",
+      "performer_raw": "ataka, midori",
+      "lookup_raw": "K.Org. At AV2023 S1",
+      "instrument_family": [
+        "KEYBOARD"
+      ],
+      "title_norm": "“2 organs”: pipe organ (“griswold”), portative organ",
+      "performer_norm": "ataka, midori",
+      "lookup_norm": "k.org. at av2023 s1",
+      "instrument_norm": "keyboard",
+      "search_blob": "“2 organs”: pipe organ (“griswold”), portative organ ataka, midori k.org. at av2023 s1 keyboard two organs"
+    },
+    {
+      "id": "electric-guitar-pedals-ethan-bailey-gould",
+      "entry_href": "/entry/electric-guitar-pedals-ethan-bailey-gould/",
+      "season": "S1",
+      "title_raw": "ELECTRIC GUITAR + PEDALS",
+      "performer_raw": "bailey-gould, ethan",
+      "lookup_raw": "E.Gtr. Ba AV2023 S1",
+      "instrument_family": [
+        "ELECTRONICS",
+        "STRINGS"
+      ],
+      "title_norm": "electric guitar + pedals",
+      "performer_norm": "bailey-gould, ethan",
+      "lookup_norm": "e.gtr. ba av2023 s1",
+      "instrument_norm": "electronics strings",
+      "search_blob": "electric guitar + pedals bailey-gould, ethan e.gtr. ba av2023 s1 electronics strings electric guitar + pedals"
+    },
+    {
+      "id": "hammered-dulcimer-cameron-church",
+      "entry_href": "/entry/hammered-dulcimer-cameron-church/",
+      "season": "S1",
+      "title_raw": "PREPARED HAMMERED DULCIMER + DIGITAL SIGNAL PROCESSOR",
+      "performer_raw": "church, cameron",
+      "lookup_raw": "P.Hdl. Ch AV2023 S1",
+      "instrument_family": [
+        "ELECTRONICS",
+        "PERCUS‏‏‎‎SION",
+        "STRINGS"
+      ],
+      "title_norm": "prepared hammered dulcimer + digital signal processor",
+      "performer_norm": "church, cameron",
+      "lookup_norm": "p.hdl. ch av2023 s1",
+      "instrument_norm": "electronics percus‏‏‎‎sion strings",
+      "search_blob": "prepared hammered dulcimer + digital signal processor church, cameron p.hdl. ch av2023 s1 electronics percus‏‏‎‎sion strings prepared hammered dulcimer + digital signal processor prepared hammered dulcimer"
+    },
+    {
+      "id": "cybernetic-scat-paul-hermansen",
+      "entry_href": "/entry/cybernetic-scat-paul-hermansen/",
+      "season": "S1",
+      "title_raw": "CYBERNETIC SCAT",
+      "performer_raw": "hermansen, paul*",
+      "lookup_raw": "V.Sc. He A2023 S1",
+      "instrument_family": [
+        "ELECTRONICS",
+        "VOICE"
+      ],
+      "title_norm": "cybernetic scat",
+      "performer_norm": "hermansen, paul*",
+      "lookup_norm": "v.sc. he a2023 s1",
+      "instrument_norm": "electronics voice",
+      "search_blob": "cybernetic scat hermansen, paul* v.sc. he a2023 s1 electronics voice cybernetic scat"
+    },
+    {
+      "id": "amplified-knives-tyler-jordan",
+      "entry_href": "/entry/amplified-knives-tyler-jordan/",
+      "season": "S1",
+      "title_raw": "AMPLIFIED KNIVES",
+      "performer_raw": "jordan, tyler",
+      "lookup_raw": "E.Kni. Jo AV2023 S1",
+      "instrument_family": [
+        "ELECTRONICS",
+        "OTHER"
+      ],
+      "title_norm": "amplified knives",
+      "performer_norm": "jordan, tyler",
+      "lookup_norm": "e.kni. jo av2023 s1",
+      "instrument_norm": "electronics other",
+      "search_blob": "amplified knives jordan, tyler e.kni. jo av2023 s1 electronics other amplified knives"
+    },
+    {
+      "id": "cello-emmanuel-losa",
+      "entry_href": "/entry/cello-emmanuel-losa/",
+      "season": "S1",
+      "title_raw": "CELLO",
+      "performer_raw": "losa, em‎‏‏‎manuel",
+      "lookup_raw": "S.Vlc. Lo AV2023 S1",
+      "instrument_family": [
+        "STRINGS"
+      ],
+      "title_norm": "cello",
+      "performer_norm": "losa, em‎‏‏‎manuel",
+      "lookup_norm": "s.vlc. lo av2023 s1",
+      "instrument_norm": "strings",
+      "search_blob": "cello losa, em‎‏‏‎manuel s.vlc. lo av2023 s1 strings cello"
+    },
+    {
+      "id": "voice-everyday-object-manipulation-levi-lu",
+      "entry_href": "/entry/voice-everyday-object-manipulation-levi-lu/",
+      "season": "S1",
+      "title_raw": "VOICE W/ EVERYDAY OBJECT MANIPULATION",
+      "performer_raw": "lu, qiujiang levi",
+      "lookup_raw": "V.Obj. Lu A2023 S1",
+      "instrument_family": [
+        "VOICE",
+        "OTHER"
+      ],
+      "title_norm": "voice w/ everyday object manipulation",
+      "performer_norm": "lu, qiujiang levi",
+      "lookup_norm": "v.obj. lu a2023 s1",
+      "instrument_norm": "voice other",
+      "search_blob": "voice w/ everyday object manipulation lu, qiujiang levi v.obj. lu a2023 s1 voice other voice w/ everyday object manipulation"
+    },
+    {
+      "id": "no-input-mixer-jared-murphy",
+      "entry_href": "/entry/no-input-mixer-jared-murphy/",
+      "season": "S1",
+      "title_raw": "NO INPUT MIXER SET",
+      "performer_raw": "murphy, jared",
+      "lookup_raw": "E.Noi. Mu AV2023 S1",
+      "instrument_family": [
+        "ELECTRONICS"
+      ],
+      "title_norm": "no input mixer set",
+      "performer_norm": "murphy, jared",
+      "lookup_norm": "e.noi. mu av2023 s1",
+      "instrument_norm": "electronics",
+      "search_blob": "no input mixer set murphy, jared e.noi. mu av2023 s1 electronics no imput mixing board"
+    },
+    {
+      "id": "amplified-tv-sam-pluta",
+      "entry_href": "/entry/amplified-tv-sam-pluta/",
+      "season": "S1",
+      "title_raw": "AMPLIFIED TV SETS",
+      "performer_raw": "pluta, sam",
+      "lookup_raw": "X.Tlv. Pl AV2023 S1",
+      "instrument_family": [
+        "ELECTRONICS",
+        "OTHER"
+      ],
+      "title_norm": "amplified tv sets",
+      "performer_norm": "pluta, sam",
+      "lookup_norm": "x.tlv. pl av2023 s1",
+      "instrument_norm": "electronics other",
+      "search_blob": "amplified tv sets pluta, sam x.tlv. pl av2023 s1 electronics other feedback televisions"
+    },
+    {
+      "id": "prepared-bass-viol-suarez-solis",
+      "entry_href": "/entry/prepared-bass-viol-suarez-solis/",
+      "season": "S1",
+      "title_raw": "PREPARED BASS VIOL",
+      "performer_raw": "sebastian suarez-solis",
+      "lookup_raw": "S.VdG. Su AV2023 S1",
+      "instrument_family": [
+        "KEYBOARD",
+        "STRINGS"
+      ],
+      "title_norm": "prepared bass viol",
+      "performer_norm": "sebastian suarez-solis",
+      "lookup_norm": "s.vdg. su av2023 s1",
+      "instrument_norm": "keyboard strings",
+      "search_blob": "prepared bass viol sebastian suarez-solis s.vdg. su av2023 s1 keyboard strings prepared bass viol"
+    },
+    {
+      "id": "prepared-harpsichord-suarez-solis",
+      "entry_href": "/entry/prepared-harpsichord-suarez-solis/",
+      "season": "S1",
+      "title_raw": "PREPARED HARPSICHORD",
+      "performer_raw": "sebastian suarez-solis",
+      "lookup_raw": "K.Hps. Su AV2023 S1",
+      "instrument_family": [
+        "KEYBOARD"
+      ],
+      "title_norm": "prepared harpsichord",
+      "performer_norm": "sebastian suarez-solis",
+      "lookup_norm": "k.hps. su av2023 s1",
+      "instrument_norm": "keyboard",
+      "search_blob": "prepared harpsichord sebastian suarez-solis k.hps. su av2023 s1 keyboard prepared harpsichord"
+    },
+    {
+      "id": "splinterings-jakob-heinemann",
+      "entry_href": "/entry/splinterings-jakob-heinemann/",
+      "season": "",
+      "title_raw": "SPLINTERINGS - DOUBLE BASS",
+      "performer_raw": "heineman‏‏‎‏‏‎n, jakob",
+      "lookup_raw": "",
+      "instrument_family": [
+        "STRINGS"
+      ],
+      "title_norm": "splinterings - double bass",
+      "performer_norm": "heineman‏‏‎‏‏‎n, jakob",
+      "lookup_norm": "",
+      "instrument_norm": "strings",
+      "search_blob": "splinterings - double bass heineman‏‏‎‏‏‎n, jakob strings splinterings for double bass"
+    },
+    {
+      "id": "sebastian-suarez-solis",
+      "entry_href": "/entry/sebastian-suarez-solis/",
+      "season": "",
+      "title_raw": "PREPARED HARPSICHORD, PREPARED VIOLA DA GAMBA",
+      "performer_raw": "suarez-solis, sebastian",
+      "lookup_raw": "",
+      "instrument_family": [],
+      "title_norm": "prepared harpsichord, prepared viola da gamba",
+      "performer_norm": "suarez-solis, sebastian",
+      "lookup_norm": "",
+      "instrument_norm": "",
+      "search_blob": "prepared harpsichord, prepared viola da gamba suarez-solis, sebastian"
+    }
+  ]
+}

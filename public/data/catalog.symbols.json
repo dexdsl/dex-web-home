@@ -1,0 +1,117 @@
+{
+  "source": "git-head-catalog-html",
+  "generated_at": "2026-02-22T11:07:33.518Z",
+  "route": "/catalog/symbols/",
+  "anchor": "#list-of-identifiers",
+  "heading_raw": "List of Syymbols",
+  "instrument": [
+    {
+      "key_raw": "V",
+      "description_raw": "Voice + Body",
+      "key_norm": "v",
+      "description_norm": "voice + body"
+    },
+    {
+      "key_raw": "K",
+      "description_raw": "Keyboards",
+      "key_norm": "k",
+      "description_norm": "keyboards"
+    },
+    {
+      "key_raw": "B",
+      "description_raw": "Brass",
+      "key_norm": "b",
+      "description_norm": "brass"
+    },
+    {
+      "key_raw": "E",
+      "description_raw": "Electronics",
+      "key_norm": "e",
+      "description_norm": "electronics"
+    },
+    {
+      "key_raw": "S",
+      "description_raw": "Strings",
+      "key_norm": "s",
+      "description_norm": "strings"
+    },
+    {
+      "key_raw": "W",
+      "description_raw": "Winds",
+      "key_norm": "w",
+      "description_norm": "winds"
+    },
+    {
+      "key_raw": "P",
+      "description_raw": "Percussion",
+      "key_norm": "p",
+      "description_norm": "percussion"
+    },
+    {
+      "key_raw": "X",
+      "description_raw": "Other",
+      "key_norm": "x",
+      "description_norm": "other"
+    },
+    {
+      "key_raw": "V",
+      "description_raw": "Video",
+      "key_norm": "v",
+      "description_norm": "video"
+    },
+    {
+      "key_raw": "O",
+      "description_raw": "Other",
+      "key_norm": "o",
+      "description_norm": "other"
+    }
+  ],
+  "collection": [
+    {
+      "key_raw": "A",
+      "description_raw": "Audio",
+      "key_norm": "a",
+      "description_norm": "audio"
+    },
+    {
+      "key_raw": "AV",
+      "description_raw": "Audio-visual",
+      "key_norm": "av",
+      "description_norm": "audio-visual"
+    }
+  ],
+  "quality": [],
+  "qualifier": [
+    {
+      "key_raw": "1080p",
+      "description_raw": "1080p resolution video",
+      "key_norm": "1080p",
+      "description_norm": "1080p resolution video"
+    },
+    {
+      "key_raw": "4K",
+      "description_raw": "4K resolution video",
+      "key_norm": "4k",
+      "description_norm": "4k resolution video"
+    },
+    {
+      "key_raw": "ste",
+      "description_raw": "Stereo audio",
+      "key_norm": "ste",
+      "description_norm": "stereo audio"
+    },
+    {
+      "key_raw": "4ch",
+      "description_raw": "4-Channel audio",
+      "key_norm": "4ch",
+      "description_norm": "4-channel audio"
+    },
+    {
+      "key_raw": "Met",
+      "description_raw": "Metered; Fre - Free; Perc - Percussive; Sus - Sustained; Cle - Clean audio; Dis - Distorted audio; Mono - Monophonic; Poly - Polyphonic; Lou - Loud; Qui - Quiet; Med - Medium Loud; Bra - Brassy; Exc - Exciting; Sta - Static; Sho - Short; Lon - Long; Oth - Other; Ow - Low range; Mid - Medium high range; Hi - High range; Spa - Spatial Audio",
+      "key_norm": "met",
+      "description_norm": "metered; fre - free; perc - percussive; sus - sustained; cle - clean audio; dis - distorted audio; mono - monophonic; poly - polyphonic; lou - loud; qui - quiet; med - medium loud; bra - brassy; exc - exciting; sta - static; sho - short; lon - long; oth - other; ow - low range; mid - medium high range; hi - high range; spa - spatial audio"
+    }
+  ],
+  "protected_char_count": 0
+}

@@ -1,0 +1,41 @@
+{
+  "source": "git-head-catalog-html",
+  "generated_at": "2026-02-22T11:07:33.518Z",
+  "route": "/catalog/how/",
+  "anchor": "#dex-how",
+  "heading_raw": "How to Read Our Lookup Numbers",
+  "intro_raw": "Our lookup numbers, like the ones above, have four parts. They look complex but they’re easy to read after this intro. Let’s go part by part.",
+  "parts": [
+    {
+      "heading_raw": "Part 1: Instr.ument. Performer (Ex: K.Hps. Su)",
+      "body_raw": "The first part of the label tells us the type of instrument (K for keyboard, Hps for harpsichord; see List of Symbols) followed by the last name of the performer."
+    },
+    {
+      "heading_raw": "Part 2: TypeYear Season (Ex: AV2023 S1)",
+      "body_raw": "The next section tells us two things. It’s an audio-visual sample and that it was produced in 2023. If the label read A2024, then the collection is audio only, produced in 2024. S1 is season 1. We usually have one or two seasons a year, and we’re on season 2 now (woohoo!)"
+    },
+    {
+      "heading_raw": "Part 3: Bucket.Number (Ex: B.13)",
+      "body_raw": "This is all about ordering, telling us first sample type and then number of the sample (or the order of the sample in the collection). More info below:"
+    },
+    {
+      "heading_raw": "Part 4: [Quality] [Qualifiers] (Ex: [4K] [Met Perc Cle Lou Poly Exc])",
+      "body_raw": "The last section has one or two sets of brackets, each holding valuable information. The first set of brackets tells us the type and quality of the sample such as 4K, 1080p, stereo, 4-channel, etc. Some samples may have a second set of brackets containing a list of signifiers providing details about the sound in that file, whether they are short, percussive sounds, whether it is in time or free of meter, etc."
+    }
+  ],
+  "examples": [
+    "Example:",
+    "K.Hps. Su AV2023 S1 B.13 [4K] [Met Perc Cle Lou Poly Exc]",
+    "So our label of K.Hps. Su AV2023 S1 B.13 [4K] [Met Perc Cle Lou Poly Exc] is referencing an audio-visual collection of harpsichord samples produced in season 1 of 2023 by Sebastian Suarez-Solis (this set, actually); specifically it is referencing the 13th sample of group B, which is a 4K video file, the sound of which is metered, percussive, clean audio that is loud, polyphonic, and exciting.",
+    "K.Hps. Su AV2023 S1",
+    "K.Hps. Su AV2023 S1 A",
+    "K.Hps.2 Su AV2023 S1"
+  ],
+  "anchors": [
+    "part1",
+    "part2",
+    "part3",
+    "part4"
+  ],
+  "protected_char_count": 9
+}

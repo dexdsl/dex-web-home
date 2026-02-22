@@ -4809,17 +4809,17 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     --seal-height: 4.5rem;
 
     /* Footer text color (set per-surface below) */
-    --dex-footer-text: #fff;
+    --dex-footer-text: #232323;
   }
 
   /* Footer shell */
   .dex-footer{
-    background: var(--liquid-bg);
-    border: 1px solid var(--liquid-border);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    backdrop-filter: saturate(1.8) blur(18px);
+    -webkit-backdrop-filter: saturate(1.8) blur(18px);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
     padding: var(--space-4) var(--space-3);
     color: var(--dex-footer-text);
     font-family: var(--font-body);
@@ -4870,7 +4870,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     color:#fff; transition: transform var(--ease), background var(--ease);
   }
   .footer-social a:hover{ transform:scale(1.1); }
-  .footer-social i{ font-size:1.25rem; }
+  .footer-social svg{ width:1.1rem; height:1.1rem; display:block; fill:currentColor; }
   .footer-social a.youtube   { background:#FF0000; }
   .footer-social a.instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%); }
   .footer-social a.tiktok    { background:#000; }
@@ -4883,18 +4883,18 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 
   /*──────── Surface control (choose one): data-surface or prefers-color-scheme ───────*/
   /* 1) Explicit (script sets this): data-surface="dark" | "light" */
-  .dex-footer[data-surface="dark"]  { --dex-footer-text:#fff; }
+  .dex-footer[data-surface="dark"]  { --dex-footer-text:#232323; }
   .dex-footer[data-surface="dark"]  .footer-logo .logo--dark { display:block; }
-  .dex-footer[data-surface="light"] { --dex-footer-text:#fff; }
+  .dex-footer[data-surface="light"] { --dex-footer-text:#232323; }
   .dex-footer[data-surface="light"] .footer-logo .logo--light{ display:block; }
 
   /* 2) Fallback: if no data-surface, follow OS theme */
   @media (prefers-color-scheme: dark){
-    .dex-footer:not([data-surface]){ --dex-footer-text:#fff; }
+    .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
     .dex-footer:not([data-surface]) .footer-logo .logo--dark{ display:block; }
   }
   @media (prefers-color-scheme: light){
-    .dex-footer:not([data-surface]){ --dex-footer-text:#fff; }
+    .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
     .dex-footer:not([data-surface]) .footer-logo .logo--light{ display:block; }
   }
 
@@ -4955,17 +4955,17 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     <!-- Social badges + nav links -->
     <div class="footer-links-column">
       <div class="footer-social">
-        <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube">
-          <i class="fab fa-youtube"></i>
+        <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube" target="_blank" rel="noopener noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
         </a>
-        <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram">
-          <i class="fab fa-instagram"></i>
+        <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram" target="_blank" rel="noopener noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
         </a>
-        <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok">
-          <i class="fab fa-tiktok"></i>
+        <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok" target="_blank" rel="noopener noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
         </a>
-        <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter">
-          <i class="fab fa-twitter"></i>
+        <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter" target="_blank" rel="noopener noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
         </a>
       </div>
       <nav class="footer-nav">

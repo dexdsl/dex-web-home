@@ -272,6 +272,74 @@ div.dx-add-to-cart-button-inner {
   text-transform: inherit !important;
   letter-spacing: inherit !important;
 }
+
+/* Footer parity early-parse block: keeps footer aligned with header glass even when later CSS is skipped */
+.dex-footer {
+  --dex-footer-text: #232323 !important;
+  background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  -webkit-backdrop-filter: saturate(1.8) blur(18px) !important;
+  backdrop-filter: saturate(1.8) blur(18px) !important;
+  color: #232323 !important;
+}
+
+.dex-footer[data-surface="dark"],
+.dex-footer[data-surface="light"],
+.dex-footer:not([data-surface]) {
+  --dex-footer-text: #232323 !important;
+}
+
+.dex-footer .footer-attribution,
+.dex-footer .footer-nav a,
+.dex-footer .footer-links-column,
+.dex-footer .footer-seal-column {
+  color: #232323 !important;
+}
+
+.dex-footer .footer-nav a:hover {
+  color: var(--dex-accent, #ff1910) !important;
+}
+
+.dex-footer .footer-social a {
+  pointer-events: auto !important;
+}
+
+.dex-footer .footer-social a i {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  font-style: normal !important;
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.dex-footer .footer-social a i::before {
+  display: block;
+  font-family: var(--font-body, "Courier Prime", monospace) !important;
+}
+
+.dex-footer .footer-social a i.fa-youtube::before {
+  content: "▶" !important;
+  transform: translateX(0.04em);
+}
+
+.dex-footer .footer-social a i.fa-instagram::before {
+  content: "◎" !important;
+}
+
+.dex-footer .footer-social a i.fa-tiktok::before {
+  content: "♪" !important;
+}
+
+.dex-footer .footer-social a i.fa-twitter::before {
+  content: "X" !important;
+}
 // Product Variant Button (Just Text Style- Ghost //
 
 .ProductItem-details .variant-radiobtn-wrapper label {

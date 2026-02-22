@@ -1,0 +1,360 @@
+:root {
+  --dx-catalog-index-gutter: clamp(1rem, 2.4vw, 2rem);
+  --dx-catalog-index-radius: 18px;
+  --dx-catalog-index-rim: rgba(255, 255, 255, 0.48);
+  --dx-catalog-index-surface: linear-gradient(132deg, rgba(255, 255, 255, 0.7), rgba(234, 240, 249, 0.44));
+  --dx-catalog-index-shadow: 0 18px 54px rgba(18, 25, 38, 0.16), 0 1px 0 rgba(255, 255, 255, 0.52) inset;
+  --dx-catalog-index-ink: #1f2028;
+  --dx-catalog-index-muted: #535865;
+}
+
+.dx-catalog-page {
+  position: relative;
+  margin: 0 auto;
+  width: min(1280px, calc(100vw - (var(--dx-catalog-index-gutter) * 2)));
+  padding-top: clamp(7.2rem, 8vw, 8.6rem);
+  padding-bottom: clamp(2rem, 3vw, 3rem);
+}
+
+.dx-catalog-index-app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.dx-catalog-index-blobfield {
+  position: absolute;
+  inset: clamp(0.6rem, 1vw, 1.2rem) clamp(0.4rem, 1.2vw, 1.4rem) auto;
+  height: clamp(280px, 42vw, 470px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dx-catalog-index-blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(56px);
+  opacity: 0.26;
+}
+
+.dx-catalog-index-blob--1 {
+  width: clamp(220px, 24vw, 340px);
+  height: clamp(220px, 24vw, 340px);
+  left: clamp(0px, 3.4vw, 54px);
+  top: clamp(18px, 4vw, 72px);
+  background: radial-gradient(circle at 32% 34%, rgba(255, 41, 18, 0.8), rgba(255, 145, 18, 0.1) 72%);
+}
+
+.dx-catalog-index-blob--2 {
+  width: clamp(190px, 20vw, 290px);
+  height: clamp(190px, 20vw, 290px);
+  right: clamp(8px, 3vw, 52px);
+  top: clamp(22px, 5vw, 76px);
+  background: radial-gradient(circle at 38% 34%, rgba(73, 165, 255, 0.64), rgba(180, 118, 255, 0.06) 74%);
+}
+
+.dx-catalog-index-blob--3 {
+  width: clamp(170px, 18vw, 250px);
+  height: clamp(170px, 18vw, 250px);
+  left: 50%;
+  bottom: clamp(-44px, -2vw, -16px);
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 52% 34%, rgba(84, 233, 215, 0.52), rgba(42, 134, 255, 0.1) 78%);
+}
+
+.dx-catalog-index-app {
+  position: relative;
+  z-index: 1;
+}
+
+.dx-catalog-index-shell {
+  display: grid;
+  gap: clamp(0.85rem, 1.5vw, 1.25rem);
+}
+
+.dx-catalog-index-surface {
+  border: 1px solid var(--dx-catalog-index-rim);
+  border-radius: var(--dx-catalog-index-radius);
+  background: var(--dx-catalog-index-surface);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  box-shadow: var(--dx-catalog-index-shadow);
+}
+
+.dx-catalog-index-kicker {
+  margin: 0;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: clamp(11px, 1.1vw, 12px);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dx-catalog-index-muted);
+}
+
+.dx-catalog-index-title,
+.dx-catalog-index-hero-title,
+.dx-catalog-index-spotlight-title,
+.dx-catalog-index-browse-title {
+  margin: 0;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  color: var(--dx-catalog-index-ink);
+  line-height: 1.05;
+}
+
+.dx-catalog-index-copy,
+.dx-catalog-index-mode-label,
+.dx-catalog-index-whats-new,
+.dx-catalog-index-row-code,
+.dx-catalog-index-row-performer,
+.dx-catalog-index-row-meta,
+.dx-catalog-index-field-label {
+  margin: 0;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  color: var(--dx-catalog-index-muted);
+}
+
+.dx-catalog-index-hero,
+.dx-catalog-index-controls,
+.dx-catalog-index-browse,
+.dx-catalog-index-error {
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.dx-catalog-index-spotlight {
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+  display: grid;
+  gap: 1rem;
+}
+
+.dx-catalog-index-hero {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.dx-catalog-index-hero-title {
+  font-size: clamp(1.48rem, 2.7vw, 2.26rem);
+}
+
+.dx-catalog-index-copy,
+.dx-catalog-index-whats-new {
+  font-size: clamp(13px, 1.02vw, 15px);
+  line-height: 1.52;
+}
+
+.dx-catalog-index-spotlight-copy {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.dx-catalog-index-spotlight-title {
+  font-size: clamp(1.16rem, 2vw, 1.58rem);
+}
+
+.dx-catalog-index-spotlight-media {
+  display: block;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+}
+
+.dx-catalog-index-spotlight-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dx-catalog-index-heading {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.dx-catalog-index-title {
+  font-size: clamp(1.36rem, 2.4vw, 1.92rem);
+}
+
+.dx-catalog-index-toolbar {
+  margin-top: 0.86rem;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+.dx-catalog-index-mode-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dx-catalog-index-search-wrap {
+  display: block;
+}
+
+.dx-catalog-index-search,
+.dx-catalog-index-select {
+  width: 100%;
+  min-height: 2.58rem;
+  border-radius: 12px;
+  border: 1px solid rgba(28, 30, 42, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--dx-catalog-index-ink);
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 14px;
+  padding: 0.54rem 0.78rem;
+}
+
+.dx-catalog-index-search:focus,
+.dx-catalog-index-select:focus,
+.dx-catalog-index-filters-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.2);
+}
+
+.dx-catalog-index-filters-toggle {
+  justify-self: start;
+}
+
+.dx-catalog-index-drawer {
+  margin-top: 0.86rem;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.48);
+  padding: 0.74rem;
+  display: grid;
+  gap: 0.78rem;
+}
+
+.dx-catalog-index-drawer-grid {
+  display: grid;
+  gap: 0.56rem;
+  grid-template-columns: 1fr;
+}
+
+.dx-catalog-index-field {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.dx-catalog-index-field-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dx-catalog-index-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.dx-catalog-index-browse-head {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.dx-catalog-index-browse-title {
+  font-size: clamp(1.16rem, 2vw, 1.5rem);
+}
+
+.dx-catalog-index-list {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.dx-catalog-index-group {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.dx-catalog-index-group + .dx-catalog-index-group {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(24, 30, 42, 0.1);
+}
+
+.dx-catalog-index-group-title {
+  margin: 0;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  color: var(--dx-catalog-index-ink);
+  font-size: clamp(0.9rem, 1.35vw, 1.06rem);
+  line-height: 1.1;
+}
+
+.dx-catalog-index-group-rows {
+  display: grid;
+}
+
+.dx-catalog-index-row {
+  display: grid;
+  gap: 0.56rem;
+  grid-template-columns: 1fr;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(25, 31, 43, 0.08);
+}
+
+.dx-catalog-index-row:last-child {
+  border-bottom: 0;
+}
+
+.dx-catalog-index-row-code {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: #343b4c;
+}
+
+.dx-catalog-index-row-text {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dx-catalog-index-row-title {
+  margin: 0;
+  color: var(--dx-catalog-index-ink);
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  line-height: 1.08;
+}
+
+.dx-catalog-index-row-performer,
+.dx-catalog-index-row-meta {
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.dx-catalog-index-row-open {
+  justify-self: start;
+}
+
+@media (min-width: 860px) {
+  .dx-catalog-index-toolbar {
+    grid-template-columns: auto minmax(280px, 1fr) auto;
+  }
+
+  .dx-catalog-index-drawer-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .dx-catalog-index-spotlight {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: center;
+  }
+
+  .dx-catalog-index-row {
+    grid-template-columns: minmax(132px, 170px) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.8rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .dx-catalog-page {
+    width: min(1280px, calc(100vw - 1rem));
+    padding-top: clamp(6.8rem, 12vw, 7.8rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dx-catalog-index-blob {
+    opacity: 0.2;
+  }
+}
