@@ -18,7 +18,11 @@
     "sanitize:assets": "node scripts/fetch_remote_images.mjs",
     "test:net": "playwright test tests/network-purity.spec.ts",
     "test:visual": "playwright test tests/visual.spec.ts",
-    "sanitize:all": "npm run sanitize:scan && npm run sanitize:assets && npm run test:net && npm run test:visual"
+    "sanitize:all": "npm run sanitize:scan && npm run sanitize:assets && npm run test:net && npm run test:visual",
+    "phase2:inventory": "node scripts/style_inventory.mjs",
+    "phase2:states": "node scripts/style_states.mjs",
+    "phase2:tokens": "node scripts/tokenize_inventory.mjs",
+    "phase2:all": "npm run phase2:inventory && npm run phase2:states && npm run phase2:tokens"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

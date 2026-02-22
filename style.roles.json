@@ -1,0 +1,51 @@
+{
+  "typography": [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "blockquote",
+    "small",
+    "strong",
+    "em",
+    "a",
+    "code",
+    "pre",
+    "li",
+    "label"
+  ],
+  "buttons": [
+    "button",
+    "[role='button']",
+    "a[href].buttonlike",
+    ".sqs-button-element",
+    ".sqs-button-element--primary",
+    ".sqs-button-element--secondary"
+  ],
+  "inputs": [
+    "input",
+    "textarea",
+    "select"
+  ],
+  "layout": [
+    "main",
+    "header",
+    "nav",
+    "footer",
+    "section",
+    ".content",
+    ".container",
+    ".sqs-block"
+  ],
+  "cards_chips": [
+    ".card",
+    ".chip",
+    ".pill",
+    ".tag",
+    ".sqs-block-content",
+    ".sqs-block-summary-v2"
+  ]
+}
