@@ -1,0 +1,39 @@
+name: sanitize
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Repo purity scan
+        run: npm run sanitize:scan
+
+      - name: Verify remote image references (no mutation in CI)
+        run: npm run sanitize:assets -- --verify
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Network purity test
+        run: npm run test:net
+
+      - name: Visual snapshot test
+        run: npm run test:visual

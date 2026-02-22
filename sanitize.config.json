@@ -1,0 +1,38 @@
+{
+  "forbiddenDomains": [
+    "squarespace.com",
+    "squarespace-cdn.com",
+    "static1.squarespace.com",
+    "assets.squarespace.com",
+    "images.squarespace-cdn.com",
+    "typekit.net",
+    "p.typekit.net",
+    "use.typekit.net"
+  ],
+  "forbiddenNeedles": [
+    "squarespace",
+    "sqs-",
+    "squarespace-cdn",
+    "static1.squarespace",
+    "assets.squarespace",
+    "images.squarespace-cdn",
+    "typekit",
+    "adobe"
+  ],
+  "pages": [
+    "/",
+    "/favorites"
+  ],
+  "viewports": [
+    { "name": "mobile", "w": 390, "h": 844 },
+    { "name": "tablet", "w": 834, "h": 1112 },
+    { "name": "desktop", "w": 1440, "h": 900 }
+  ],
+  "assetOutDir": "assets/img",
+  "htmlGlobs": [
+    "**/*.html"
+  ],
+  "cssGlobs": [
+    "**/*.css"
+  ]
+}

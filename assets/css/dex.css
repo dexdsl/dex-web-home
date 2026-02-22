@@ -21,16 +21,16 @@ scroll-behavior: smooth;
 }
 
 .sqs-donation-block-container .button{
- font-family: 'Typefesse' !important;
+ font-family: "Stretch Pro" !important;
 }
 //blog comment section font//
 h3.comment-count span {
-    font-family: Courier New;
+    font-family: "Courier Prime";
   text-transform: uppercase;
   font-weight: lighter;
 }
 h3.comment-count span:before {
-    font-family: Courier New;
+    font-family: "Courier Prime";
 }
 //blog title styling mobile//
 @media screen and (max-width: 640px) {
@@ -119,46 +119,46 @@ iframe[src*="youtube-nocookie.com"] {
 scale: 2.1;
 }
 .sqs-add-to-cart-button-inner {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
   margin-top: 2px !important;
 }
 
 //Type
 @font-face {
-font-family: Typefesse;
-src: url(https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/63b777aeb5e9dc74c6bf1f50/1672968110903/StretchPro.otf);}
+font-family: "Stretch Pro";
+src: url("/assets/fonts/StretchPro.otf") format("opentype");}
   h4 {
-font-family: 'Typefesse';
+font-family: "Stretch Pro";
 }
   h3 {
-font-family: 'Typefesse';
+font-family: "Stretch Pro";
 }
 h2 {
-font-family: 'Typefesse';
+font-family: "Stretch Pro";
 }
 h1 {
-font-family: 'Typefesse';
+font-family: "Stretch Pro";
 }
 .sqsrte-large {
-font-family: 'Typefesse';
+font-family: "Stretch Pro";
 }
 .sqs-block-button-element {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
 }
 .header-actions-action--cta .sqs-button-element--primary {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
   text-transform: none !important;
 }
 #siteWrapper.site-wrapper .gdpr-cookie-banner.full-styling button {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
 }
 /* change newsletter title font size and color */
 .newsletter-form-header-title {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
 }
 //change newsletter button font size and color//
 span.newsletter-form-button-label {
-	font-family: 'Typefesse' !important;
+	font-family: "Stretch Pro" !important;
   color: white;
 }
 //more space for dropdown nav (bottom of folder)//
@@ -174,29 +174,29 @@ span.newsletter-form-button-label {
 /*blog post page styles*/
 // Blog Post Entry Titles //
  .blog-item-title h1.entry-title {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
         font-size: 60px !important;
    color: black !important;
 }
 // Blog Page Read More Link //
 .blog-more-link {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
 }
 // Blog Page Post Title //
 .blog-title {
-  font-family: 'Typefesse' !important;
+  font-family: "Stretch Pro" !important;
 
   
 }
 // Blog Page Post Descriptions //
 .blog-excerpt p {
-  font-family: 'Courier New' !important;
+  font-family: "Courier Prime" !important;
      font-size: 16px !important;
     line-height: 1.2em;
 
 }
 .BlogItem-meta p {
-  font-family: 'Courier New'!important;
+  font-family: "Courier Prime"!important;
   line-height: 1em!important;
    font-size: 14px !important;
 }
@@ -205,13 +205,13 @@ h3.comment-count {
 }
 //Blog Title//
 .blog-masonry .blog-title {
-  font-family: 'Typefesse'!important;
+  font-family: "Stretch Pro"!important;
   font-size: 30px !important;
   line-height: 1em;
 }
 // blog meta data//
 .blog-author,.blog-date, .light .blog-masonry p {
-  font-family: 'Courier New' !important;
+  font-family: "Courier Prime" !important;
    text-transform: uppercase;
    font-size: 12px !important;
 }
@@ -224,19 +224,19 @@ button.ProductItem-gallery-thumbnails-item {
 //store title//
 h1.ProductItem-details-title {
 
-font-family: 'Typefesse'!important;
+font-family: "Stretch Pro"!important;
 font-size: 50px!important;
 margin-top: -70px!important;
 }
 h3.ProductItem-details-title {
 
-font-family: 'Typefesse'!important;
+font-family: "Stretch Pro"!important;
 font-size: 50px!important;
 margin-top: -70px!important;
 }
 /* Product Block Titles */
 .grid-title {
-font-family: 'Typefesse'!important;
+font-family: "Stretch Pro"!important;
   font-size: 20px!important;
 }
 //Product Breadcrumb Margins//
@@ -246,20 +246,20 @@ font-family: 'Typefesse'!important;
 }
 /* Product Block Prices */
 .grid-price {
-font-family: 'Courier New'!important;
+font-family: "Courier Prime"!important;
   font-size: 10px!important;
 }
 .ProductList .product-price,
 .ProductItem-details .product-price {
-  font-family: 'Courier New'!important;
+  font-family: "Courier Prime"!important;
   font-size: 15px!important;
 }
 div.variant-option-title {
-  font-family: 'Courier New'!important;
+  font-family: "Courier Prime"!important;
   font-size: 15px!important;
 }
 .product-variants, .variant-option {
-  font-family: 'Typefesse'!important;
+  font-family: "Stretch Pro"!important;
   font-size: 20px!important;
 }
 /* Quickview lightbox content color */
@@ -275,7 +275,7 @@ div.sqs-add-to-cart-button-inner {
 
 .ProductItem-details .variant-radiobtn-wrapper label {
   color: black !important;
-  font-family: 'Typefesse'!important;
+  font-family: "Stretch Pro"!important;
   padding: 10px !important;
 }
   .ProductItem-details .variant-radiobtn-wrapper label:hover {
@@ -361,7 +361,7 @@ position: relative;
 display: inline-grid;
 grid-template-areas: "stack";
 margin: 0;
-font-family: "Typefesse", sans-serif;
+font-family: "Stretch Pro", sans-serif;
 font-size: clamp(0.92rem, 1.25vw, 1.12rem);
 line-height: 0.94;
 letter-spacing: 0.04em;
@@ -428,7 +428,7 @@ gap: 6px;
 width: 100%;
 max-width: none;
 margin: 0;
-font-family: "Typefesse", sans-serif;
+font-family: "Stretch Pro", sans-serif;
 font-size: clamp(2.2rem, 5.2vw, 4.8rem);
 line-height: 0.92;
 letter-spacing: 0.01em;
@@ -463,7 +463,7 @@ margin-right: 6px;
 }
 
 .dex-entry-subtitle-label {
-font-family: "Courier New", monospace;
+font-family: "Courier Prime", monospace;
 font-size: 0.66rem;
 letter-spacing: 0.09em;
 text-transform: uppercase;
@@ -471,7 +471,7 @@ color: rgba(40, 40, 40, 0.5);
 }
 
 .dex-entry-subtitle-value {
-font-family: "Courier New", monospace;
+font-family: "Courier Prime", monospace;
 font-size: 0.78rem;
 letter-spacing: 0.04em;
 line-height: 1.2;
@@ -513,7 +513,7 @@ display: inline-flex;
 align-items: center;
 gap: 10px;
 padding: 0;
-font-family: "Courier New", monospace;
+font-family: "Courier Prime", monospace;
 font-size: 0.78rem;
 letter-spacing: 0.08em;
 text-transform: lowercase;
@@ -626,8 +626,9 @@ border: 0;
   --shadow-md:    0 8px 24px rgba(0,0,0,0.12);
 
   /* TYPOGRAPHY */
-  --font-heading:  'Typefesse', sans-serif;
-  --font-body:     'Courier New', monospace;
+  --font-display: "Stretch Pro", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --font-heading: "Stretch Pro", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --font-body: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --line-height-body: 1.6;
   --line-height-heading: 1.3;
 
@@ -665,7 +666,7 @@ border: 0;
 .dex-sidebar::before {
   content: "";
   position: absolute; inset: 0;
-  background-image: url('https://www.transparenttextures.com/patterns/45-degree-fabric-light.png');
+  background-image: url('/assets/img/45-degree-fabric-light.png');
   opacity: 0.15; pointer-events: none;
   border-radius: inherit; z-index: -1;
 }
@@ -1229,7 +1230,7 @@ border: 0;
 /* ── Credits & popup links: Courier New ── */
 .dex-credits [data-person],
 .person-popup a {
-  font-family: 'Courier New', monospace !important;
+  font-family: "Courier Prime", monospace !important;
 }
 
 
@@ -1680,7 +1681,7 @@ border: 0;
   text-decoration: none !important;
   text-transform: uppercase !important;
   letter-spacing: 0.02em !important;
-  font: 800 clamp(18px, 1.5vw, 36px) var(--font-heading, "Typefesse", sans-serif) !important;
+  font: 800 clamp(18px, 1.5vw, 36px) var(--font-heading, "Stretch Pro", sans-serif) !important;
   line-height: 1 !important;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 10px 30px rgba(255, 0, 80, 0.25) !important;
   cursor: pointer !important;
