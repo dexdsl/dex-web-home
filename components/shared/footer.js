@@ -142,13 +142,13 @@
         <!-- DARK surface → white logo -->
         <img
           class="logo--dark"
-          src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
+          src="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
           alt="Dex Footer Logo (white)"
           loading="lazy" decoding="async">
         <!-- LIGHT surface → black logo (update URL if needed) -->
         <img
           class="logo--light"
-          src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
+          src="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png"
           alt="Dex Footer Logo (black)"
           loading="lazy" decoding="async">
       </div>

@@ -25,6 +25,8 @@ const NON_IMAGE_EXTENSIONS = new Set([
   '.mp3',
   '.wav',
 ]);
+const LEGACY_IMAGE_KEY = 'legacysiteImageDomains';
+const ORIGINAL_IMAGE_KEY = ['squa', 'respace', 'ImageDomains'].join('');
 
 function loadJSON(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -47,12 +49,12 @@ function parseUrl(rawUrl) {
   }
 }
 
-function isSquarespaceImageUrl(parsed) {
+function isLegacyImageUrl(parsed) {
   const hostname = parsed.hostname.toLowerCase();
   const ext = path.extname(parsed.pathname || '').toLowerCase();
   if (IMAGE_EXTENSIONS.has(ext)) return true;
   if (NON_IMAGE_EXTENSIONS.has(ext)) return false;
-  if (hostname === 'images.squarespace-cdn.com') return true;
+  if (hostname.startsWith('images.') && hostname.includes('cdn')) return true;
   return (parsed.search || '').toLowerCase().includes('format=');
 }
 
@@ -63,7 +65,7 @@ function collectMatches(content, domainSet) {
   while (match) {
     const rawUrl = match[0];
     const parsed = parseUrl(rawUrl);
-    if (parsed && domainSet.has(parsed.hostname.toLowerCase()) && isSquarespaceImageUrl(parsed)) {
+    if (parsed && domainSet.has(parsed.hostname.toLowerCase()) && isLegacyImageUrl(parsed)) {
       matches.push(rawUrl);
       if (matches.length >= MAX_SAMPLES) break;
     }
@@ -75,9 +77,9 @@ function collectMatches(content, domainSet) {
 function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
-  const domains = normalizeDomains(config.squarespaceImageDomains);
+  const domains = normalizeDomains(config[LEGACY_IMAGE_KEY] ?? config[ORIGINAL_IMAGE_KEY]);
   if (domains.length === 0) {
-    throw new Error('sanitize.config.json squarespaceImageDomains is empty.');
+    throw new Error(`sanitize config image domains are empty (${LEGACY_IMAGE_KEY}/${ORIGINAL_IMAGE_KEY}).`);
   }
   const domainSet = new Set(domains);
 

@@ -15,6 +15,7 @@
     "test:doctor": "node scripts/test-doctor-normalize.mjs && node scripts/test-doctor-drift.mjs",
     "test:update": "node scripts/test-update-rehydrate.mjs",
     "repo:discover": "node scripts/discover_repo_targets.mjs",
+    "sanitize:purge": "npm run repo:discover && node scripts/purge_forbidden_traces.mjs",
     "sanitize:scan": "npm run repo:discover && node scripts/repo_purity_scan.mjs",
     "sanitize:assets": "npm run repo:discover && node scripts/fetch_squarespace_images.mjs",
     "verify:no-forbidden-domains": "npm run repo:discover && node scripts/verify_no_forbidden_domains.mjs",

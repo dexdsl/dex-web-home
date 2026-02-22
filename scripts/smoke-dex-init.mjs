@@ -163,12 +163,12 @@ for (const needle of [
 }
 for (const needle of [
   'announcement-bar-reserved-space',
-  'class="sqs-announcement-bar-custom-location"',
-  'class="yui3-widget sqs-widget sqs-announcement-bar"',
+  'class="dx-announcement-bar-custom-location"',
+  'class="yui3-widget dx-widget dx-announcement-bar"',
 ]) {
   if (!portableHtml.includes(needle)) throw new Error(`portable output missing announcement bar contract: ${needle}`);
 }
-if (!/class="sqs-announcement-bar-dropzone"[\s\S]*?class="sqs-announcement-bar-custom-location"[\s\S]*?class="yui3-widget sqs-widget sqs-announcement-bar"/.test(portableHtml)) {
+if (!/class="dx-announcement-bar-dropzone"[\s\S]*?class="dx-announcement-bar-custom-location"[\s\S]*?class="yui3-widget dx-widget dx-announcement-bar"/.test(portableHtml)) {
   throw new Error('portable output should place announcement bar inside announcement dropzone');
 }
 for (const needle of [

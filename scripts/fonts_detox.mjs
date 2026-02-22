@@ -58,14 +58,14 @@ function resolveMirrorUrl(url) {
     pathnameValue = parsed.pathname || '';
   }
 
-  if (host === 'static1.squarespace.com' && pathnameValue.startsWith('/static/')) {
+  if (host === 'static1.legacysite.com' && pathnameValue.startsWith('/static/')) {
     const mirrorPath = path.join(siteRoot, pathnameValue);
     if (fs.existsSync(mirrorPath) && fs.statSync(mirrorPath).isFile()) {
       return `${pathnameValue}${parsed.search || ''}`;
     }
   }
 
-  if (host === 'images.squarespace-cdn.com' && pathnameValue.startsWith('/content/')) {
+  if (host === 'images.legacysite-cdn.com' && pathnameValue.startsWith('/content/')) {
     const mirrorPath = path.join(siteRoot, pathnameValue);
     if (fs.existsSync(mirrorPath) && fs.statSync(mirrorPath).isFile()) {
       return `${pathnameValue}${parsed.search || ''}`;
@@ -114,37 +114,37 @@ function collectEntrypoints() {
   return Array.from(files).sort();
 }
 
-function stripTypekitLoadingBlocks(content) {
+function stripfonthostLoadingBlocks(content) {
   let updated = content;
   updated = updated.replace(/<script>\s*document\.documentElement\.classList\.add\('wf-loading'\)\s*<\/script>\s*/gi, '');
   updated = updated.replace(/<style>@keyframes fonts-loading[\s\S]*?<\/style>\s*/gi, '');
   return updated;
 }
 
-function stripSquarespaceBootstrap(content) {
+function striplegacysiteBootstrap(content) {
   let updated = content;
-  updated = updated.replace(/<!--\s*This is Squarespace\.\s*-->/gi, '');
-  updated = updated.replace(/<script\b[^>]*>\s*SQUARESPACE_ROLLUPS\s*=\s*\{\}\s*;?\s*<\/script>\s*/gi, '');
+  updated = updated.replace(/<!--\s*This is legacysite\.\s*-->/gi, '');
+  updated = updated.replace(/<script\b[^>]*>\s*legacysite_ROLLUPS\s*=\s*\{\}\s*;?\s*<\/script>\s*/gi, '');
   updated = updated.replace(/<script\b[^>]*data-name=["']static-context["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
   updated = updated.replace(
-    /<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?(?:SQUARESPACE_ROLLUPS|Static\.SQUARESPACE_CONTEXT|window\.Static\.SQUARESPACE_CONTEXT|getSquarespaceCookies)(?:(?!<\/script>)[\s\S])*?<\/script>\s*/gi,
+    /<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?(?:legacysite_ROLLUPS|Static\.legacysite_CONTEXT|window\.Static\.legacysite_CONTEXT|getlegacysiteCookies)(?:(?!<\/script>)[\s\S])*?<\/script>\s*/gi,
     '',
   );
-  updated = updated.replace(/<!--\s*End of Squarespace Headers\s*-->/gi, '');
+  updated = updated.replace(/<!--\s*End of legacysite Headers\s*-->/gi, '');
   updated = updated.replace(/<script\b[^>]*>\s*Static\.COOKIE_BANNER_CAPABLE\s*=\s*true;?\s*<\/script>\s*/gi, '');
   updated = updated.replace(/\sdata-block-css=(["'])[^"']*\1/gi, '');
   updated = updated.replace(/\sdata-block-scripts=(["'])[^"']*\1/gi, '');
   return updated;
 }
 
-function rewriteVideoSquarespaceSources(content) {
+function rewriteVideolegacysiteSources(content) {
   let updated = content;
   updated = updated.replace(
-    /(\bsrc=["'])https?:\/\/video\.squarespace-cdn\.com\/[^"']+(["'])/gi,
+    /(\bsrc=["'])https?:\/\/video\.legacysite-cdn\.com\/[^"']+(["'])/gi,
     '$1/assets/media/placeholder.m3u8$2',
   );
   updated = updated.replace(
-    /(\bsrc=["'])\/\/video\.squarespace-cdn\.com\/[^"']+(["'])/gi,
+    /(\bsrc=["'])\/\/video\.legacysite-cdn\.com\/[^"']+(["'])/gi,
     '$1/assets/media/placeholder.m3u8$2',
   );
   return updated;
@@ -197,7 +197,7 @@ function ensureFontsLink(content) {
     return content.replace(/<\/head>/i, `${fontsLinkTag}\n</head>`);
   }
 
-  const dropzonePattern = /<div class="sqs-announcement-bar-dropzone"><\/div>/i;
+  const dropzonePattern = /<div class="dx-announcement-bar-dropzone"><\/div>/i;
   if (dropzonePattern.test(content)) {
     if (/<body\b/i.test(content)) {
       return content.replace(dropzonePattern, `${fontsLinkTag}\n</head>\n$&`);
@@ -211,9 +211,9 @@ function ensureFontsLink(content) {
 
 function sanitizeHtml(content) {
   let updated = content;
-  updated = stripSquarespaceBootstrap(updated);
-  updated = stripTypekitLoadingBlocks(updated);
-  updated = rewriteVideoSquarespaceSources(updated);
+  updated = striplegacysiteBootstrap(updated);
+  updated = stripfonthostLoadingBlocks(updated);
+  updated = rewriteVideolegacysiteSources(updated);
   updated = sanitizeScriptTags(updated);
   updated = sanitizeLinkTags(updated);
   updated = ensureFontsLink(updated);

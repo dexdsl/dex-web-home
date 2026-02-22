@@ -239,7 +239,7 @@
   border-color: transparent !important; /* keep layout without a visible border */
   background-clip: padding-box;    /* belt & suspenders: fill stays inside */
 }
-/* === Auto-resize vertical-centering shim (Squarespace Code Block) === */
+/* === Auto-resize vertical-centering shim (legacysite Code Block) === */
 #dex-board-promo{ height:100% !important; }                                    /* fill the reserved wrapper height */
 #dex-board-promo > .promo-surface{ min-height:100%; display:flex; align-items:center; } /* center the card vertically */
 #dex-board-promo .promo-grid{ width:100%; }                                     /* keep width stable inside the flex box */
@@ -252,7 +252,7 @@
   if(!root) return;
 // Center inside the auto-resize wrapper when there's extra reserved height
 (function(){
-  const wrapper = root.closest('.sqs-block-content') || root.parentElement; // wrapper that owns the reserved height
+  const wrapper = root.closest('.dx-block-content') || root.parentElement; // wrapper that owns the reserved height
   const promo   = root.querySelector('.promo-surface');
   if (!wrapper || !promo || !('ResizeObserver' in window)) return;
 

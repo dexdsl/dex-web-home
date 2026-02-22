@@ -115,7 +115,7 @@ assert.match(descRegion, /data-dex-scroll-dot="y"/);
 assert.match(descRegion, /class="dex-entry-desc-content"/);
 assert.match(descRegion, /id="dex-entry-desc-sync"/);
 
-assert.doesNotMatch(videoRegion, /sqs-video-wrapper/i);
+assert.doesNotMatch(videoRegion, /dx-video-wrapper/i);
 assert.doesNotMatch(videoRegion, /data-html="&lt;iframe/i);
 
 const injectedSchemeless = injectEntryHtml(templateHtml, {

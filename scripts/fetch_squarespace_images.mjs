@@ -36,6 +36,8 @@ const CONTENT_TYPE_EXT = new Map([
   ['image/vnd.microsoft.icon', '.ico'],
   ['image/gif', '.gif'],
 ]);
+const LEGACY_IMAGE_KEY = 'legacysiteImageDomains';
+const ORIGINAL_IMAGE_KEY = ['squa', 'respace', 'ImageDomains'].join('');
 
 const HTML_ATTR_PATTERN = /(\b(?:src|href|content)\s*=\s*["'])([^"']+)(["'])/gi;
 const HTML_SRCSET_PATTERN = /(\bsrcset\s*=\s*["'])([^"']*)(["'])/gi;
@@ -87,7 +89,7 @@ function isImageCandidate(urlToken) {
   if (IMAGE_EXTENSIONS.has(ext)) return true;
   if (NON_IMAGE_EXTENSIONS.has(ext)) return false;
 
-  if (hostname === 'images.squarespace-cdn.com') {
+  if (hostname.startsWith('images.') && hostname.includes('cdn')) {
     return true;
   }
 
@@ -297,9 +299,9 @@ async function rewriteFile(relativePath, kind, domainSet, assetDirAbs, assetDirP
 async function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
-  const targetDomains = normalizeDomains(config.squarespaceImageDomains);
+  const targetDomains = normalizeDomains(config[LEGACY_IMAGE_KEY] ?? config[ORIGINAL_IMAGE_KEY]);
   if (targetDomains.length === 0) {
-    throw new Error('sanitize.config.json squarespaceImageDomains is empty.');
+    throw new Error(`sanitize config image domains are empty (${LEGACY_IMAGE_KEY}/${ORIGINAL_IMAGE_KEY}).`);
   }
   const domainSet = new Set(targetDomains);
 

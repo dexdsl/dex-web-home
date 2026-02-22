@@ -1,9 +1,9 @@
 <!-- ────────────────────────────────────────────────────────────────
- Dex 2.0 ▸ FAQ + CTA Block  ⤷ single Squarespace Code Block
+ Dex 2.0 ▸ FAQ + CTA Block  ⤷ single legacysite Code Block
    (updated to match Board block visual language)
    Changes:
    • Header uses glassmorphic "card" styling (like accordion items)
-   • CTA uses Squarespace primary button classes + ligature-friendly typography
+   • CTA uses legacysite primary button classes + ligature-friendly typography
    • Consistent 4px border-radius everywhere
 ────────────────────────────────────────────────────────────────── -->
 <section id="dex-faq">
@@ -14,7 +14,7 @@
       <a id="btn-catalog" href="/catalog" class="ghost" data-label="Explore Our Catalog">Explore Our Catalog</a>
       <!-- SQS primary button classes added; keep .cta for local styling -->
       <a id="btn-call" href="/call"
-         class="cta sqs-button-element sqs-button-element--primary sqs-block-button-element sqs-block-button-element--primary"
+         class="cta dx-button-element dx-button-element--primary dx-block-button-element dx-block-button-element--primary"
          data-label="Submit Your Work">Submit Your Work</a>
     </nav>
   </header>
@@ -83,8 +83,8 @@
        NOTE: SQS primary classes are also targeted to ensure theme compliance.
        Ligatures require zero letter-spacing + font features enabled. */
     #dex-faq .cta,
-    #dex-faq .sqs-button-element--primary,
-    #dex-faq .sqs-block-button-element--primary{
+    #dex-faq .dx-button-element--primary,
+    #dex-faq .dx-block-button-element--primary{
       display:inline-flex; align-items:center; justify-content:center;
       padding:.52rem .85rem; border-radius:4px !important;
       border:1px solid rgba(0,0,0,.15);
@@ -118,28 +118,28 @@
     @media (prefers-reduced-motion: no-preference){
       #dex-faq .cta,
       #dex-faq .ghost,
-      #dex-faq .sqs-button-element--primary,
-      #dex-faq .sqs-block-button-element--primary{
+      #dex-faq .dx-button-element--primary,
+      #dex-faq .dx-block-button-element--primary{
         transition: transform .16s cubic-bezier(.2,.7,.2,1), box-shadow .22s cubic-bezier(.2,.7,.2,1), background-color .22s cubic-bezier(.2,.7,.2,1), border-color .22s cubic-bezier(.2,.7,.2,1), filter .22s cubic-bezier(.2,.7,.2,1);
       }
       #dex-faq .cta:hover,
       #dex-faq .ghost:hover,
-      #dex-faq .sqs-button-element--primary:hover,
-      #dex-faq .sqs-block-button-element--primary:hover{ transform: translateY(-1px); }
+      #dex-faq .dx-button-element--primary:hover,
+      #dex-faq .dx-block-button-element--primary:hover{ transform: translateY(-1px); }
       /* CTA glint */
       #dex-faq .cta,
-      #dex-faq .sqs-button-element--primary,
-      #dex-faq .sqs-block-button-element--primary{ position:relative; overflow:hidden; }
+      #dex-faq .dx-button-element--primary,
+      #dex-faq .dx-block-button-element--primary{ position:relative; overflow:hidden; }
       #dex-faq .cta::after,
-      #dex-faq .sqs-button-element--primary::after,
-      #dex-faq .sqs-block-button-element--primary::after{
+      #dex-faq .dx-button-element--primary::after,
+      #dex-faq .dx-block-button-element--primary::after{
         content:""; position:absolute; inset:-2px;
         background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.75) 50%, transparent 70%);
         transform: translateX(-120%); pointer-events:none;
       }
       #dex-faq .cta:hover::after,
-      #dex-faq .sqs-button-element--primary:hover::after,
-      #dex-faq .sqs-block-button-element--primary:hover::after{ animation: dex-glint 1.1s cubic-bezier(.2,.7,.2,1); }
+      #dex-faq .dx-button-element--primary:hover::after,
+      #dex-faq .dx-block-button-element--primary:hover::after{ animation: dex-glint 1.1s cubic-bezier(.2,.7,.2,1); }
       @keyframes dex-glint{ to{ transform: translateX(120%); } }
     }
 
@@ -221,7 +221,7 @@
     document.querySelectorAll('#dex-faq .faq-cta [data-label]').forEach(btn => {
       const label = rTitle(btn.dataset.label);
       btn.textContent = label;
-      // If Squarespace injects inner spans later, ensure aria-label matches too:
+      // If legacysite injects inner spans later, ensure aria-label matches too:
       btn.setAttribute('aria-label', label);
     });
 

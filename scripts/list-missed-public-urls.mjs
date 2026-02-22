@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Enumerate public-but-unlinked pages on dexdsl.org, focusing on:
- *  - /entry/* (via RSS + Squarespace JSON)
+ *  - /entry/* (via RSS + legacysite JSON)
  *  - known static pages under /entry/
  *  - /polls
  *
@@ -57,7 +57,7 @@ function extractLinksFromRss(xml) {
 }
 
 function pickItemUrl(item) {
-  // Squarespace JSON shapes vary; try common keys.
+  // legacysite JSON shapes vary; try common keys.
   const candidates = [
     item.fullUrl,
     item.url,
@@ -110,10 +110,10 @@ async function listEntryViaRss() {
   return urls;
 }
 
-async function listEntryViaSquarespaceJson() {
+async function listEntryVialegacysiteJson() {
   const urls = new Set();
 
-  // Typical Squarespace pattern: /entry?format=json&page=1 (or page=2 ...)
+  // Typical legacysite pattern: /entry?format=json&page=1 (or page=2 ...)
   // We’ll page until items are empty OR we hit MAX_PAGES OR results stop changing.
   let lastCount = -1;
 
@@ -126,7 +126,7 @@ async function listEntryViaSquarespaceJson() {
     try {
       data = JSON.parse(txt);
     } catch {
-      // Sometimes Squarespace returns HTML for gated/blocked formats; stop.
+      // Sometimes legacysite returns HTML for gated/blocked formats; stop.
       break;
     }
 
@@ -167,7 +167,7 @@ async function main() {
   const rss = await listEntryViaRss();
   for (const u of rss) out.add(u);
 
-  const js = await listEntryViaSquarespaceJson();
+  const js = await listEntryVialegacysiteJson();
   for (const u of js) out.add(u);
 
   // Print stable order

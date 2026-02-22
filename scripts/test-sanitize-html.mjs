@@ -7,10 +7,10 @@ const fixtureHtml = `
 <html lang="en">
   <head>
     <base href="">
-    <script src="//use.typekit.net/ik/abc.js" onload="try{Typekit.load();}catch(e){}"></script>
-    <script>SQUARESPACE_ROLLUPS = {};</script>
-    <script>Static.SQUARESPACE_CONTEXT = {"showAnnouncementBar":true,"websiteSettings":{"announcementBarSettings":{"text":"<p>Fixture notice</p>","clickthroughUrl":{"url":"/fixture-donate","newWindow":false}}},"rollups":{"core":"//assets.squarespace.com/x.js"}};</script>
-    <link rel="stylesheet" href="https://static1.squarespace.com/static/versioned-site-css/demo/site.css">
+    <script src="//use.fonthost.net/ik/abc.js" onload="try{fonthost.load();}catch(e){}"></script>
+    <script>legacysite_ROLLUPS = {};</script>
+    <script>Static.legacysite_CONTEXT = {"showAnnouncementBar":true,"websiteSettings":{"announcementBarSettings":{"text":"<p>Fixture notice</p>","clickthroughUrl":{"url":"/fixture-donate","newWindow":false}}},"rollups":{"core":"//assets.legacysite.com/x.js"}};</script>
+    <link rel="stylesheet" href="https://static1.legacysite.com/static/versioned-site-css/demo/site.css">
     <link rel="stylesheet" href="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css">
     <script defer src="https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"></script>
     <link rel="stylesheet" href="/assets/css/dex.css">
@@ -20,35 +20,35 @@ const fixtureHtml = `
     <script defer src="/assets/js/dex-breadcrumb-motion.js"></script>
   </head>
   <body>
-    <div class="sqs-announcement-bar-dropzone"></div>
+    <div class="dx-announcement-bar-dropzone"></div>
     <div class="header-announcement-bar-wrapper">
-      <a href="#page" class="header-skip-link sqs-button-element--primary">Skip to Content</a>
+      <a href="#page" class="header-skip-link dx-button-element--primary">Skip to Content</a>
     </div>
     <section class="page-section has-section-divider">
       <div class="content-wrapper" style="padding-bottom: 10px;">
         <div class="fluid-engine fe-demo">
           <div class="fe-block fe-block-legacy">
-            <div class="sqs-block website-component-block sqs-block-website-component sqs-block-code code-block"
+            <div class="dx-block website-component-block dx-block-website-component dx-block-code code-block"
               data-block-css='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.styles.css"]'
               data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/legacy.visitor.js"]'>
-              <div class="sqs-block-content"><div class="sqs-code-container"><style>.legacy{display:block}</style></div></div>
+              <div class="dx-block-content"><div class="dx-code-container"><style>.legacy{display:block}</style></div></div>
             </div>
           </div>
           <div class="fe-block fe-block-breadcrumb">
-            <div class="sqs-block html-block sqs-block-html">
-              <div class="sqs-block-content">
-                <div class="sqs-html-content" data-sqsp-text-block-content>
+            <div class="dx-block html-block dx-block-html">
+              <div class="dx-block-content">
+                <div class="dx-html-content" data-sqsp-text-block-content>
                   <p><a href="/catalog">catalog</a> &gt; guitar and voice, aidan yeats</p>
                 </div>
               </div>
             </div>
           </div>
           <div class="fe-block fe-block-right">
-            <div class="sqs-block website-component-block sqs-block-website-component sqs-block-code code-block"
+            <div class="dx-block website-component-block dx-block-website-component dx-block-code code-block"
               data-block-css='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.styles.css"]'
               data-block-scripts='["https://definitions.sqspcdn.com/website-component-definition/static-assets/website.components.code/example/website.components.code.visitor.js"]'>
-              <div class="sqs-block-content">
-                <div class="sqs-code-container">
+              <div class="dx-block-content">
+                <div class="dx-code-container">
                   <div class="dex-entry-header" data-dex-entry-header>
                     <div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay>
                       <div class="dex-breadcrumb" data-dex-breadcrumb>
@@ -88,7 +88,7 @@ const fixtureHtml = `
     <script id="dex-sidebar-config" type="application/json">{}</script>
     <script id="dex-sidebar-page-config" type="application/json">{}</script>
     <script id="dex-manifest" type="application/json">{}</script>
-    <a href="//images.squarespace-cdn.com/content/v1/demo.jpg">asset link</a>
+    <a href="//images.legacysite-cdn.com/content/v1/demo.jpg">asset link</a>
     <div data-block-scripts='["https://definitions.sqspcdn.com/website.components.code.js"]'>runtime block</div>
   </body>
 </html>
@@ -99,16 +99,16 @@ const sanitizedTwice = sanitizeGeneratedHtml(sanitized);
 const verify = verifySanitizedHtml(sanitized);
 const normalizeWhitespace = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
-assert.ok(!/<script[^>]*src=["'][^"']*use\.typekit\.net\/ik\/[^"']*["']/i.test(sanitized), 'Sanitizer should remove Typekit runtime scripts');
-assert.ok(!/SQUARESPACE_ROLLUPS/i.test(sanitized), 'Sanitizer should remove inline Squarespace rollup scripts');
-assert.ok(!/Static\.SQUARESPACE_CONTEXT/i.test(sanitized), 'Sanitizer should remove inline Static bootstrap scripts');
+assert.ok(!/<script[^>]*src=["'][^"']*use\.fonthost\.net\/ik\/[^"']*["']/i.test(sanitized), 'Sanitizer should remove fonthost runtime scripts');
+assert.ok(!/legacysite_ROLLUPS/i.test(sanitized), 'Sanitizer should remove inline legacysite rollup scripts');
+assert.ok(!/Static\.legacysite_CONTEXT/i.test(sanitized), 'Sanitizer should remove inline Static bootstrap scripts');
 assert.ok(!/website\.components\.code\.visitor/i.test(sanitized), 'Sanitizer should remove website component runtime scripts');
 assert.ok(!/<base\b/i.test(sanitized), 'Sanitizer should remove <base> tags');
 assert.equal(normalizeWhitespace(sanitizedTwice), normalizeWhitespace(sanitized), 'Sanitizer should be idempotent');
 assert.ok(verify.ok, `Sanitized output should verify cleanly: ${JSON.stringify(verify.issues)}`);
 
-assert.ok(/https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/demo\/site\.css/i.test(sanitized), 'Sanitizer should keep Squarespace site.css');
-assert.ok(/href="https:\/\/images\.squarespace-cdn\.com\/content\/v1\/demo\.jpg"/i.test(sanitized), 'Sanitizer should normalize protocol-relative href values');
+assert.ok(/https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/demo\/site\.css/i.test(sanitized), 'Sanitizer should keep legacysite site.css');
+assert.ok(/href="https:\/\/images\.legacysite-cdn\.com\/content\/v1\/demo\.jpg"/i.test(sanitized), 'Sanitizer should normalize protocol-relative href values');
 assert.ok(!/\b(?:src|href)\s*=\s*["']\/\//i.test(sanitized), 'Sanitizer should remove protocol-relative src/href attributes');
 assert.ok(!/sqspcdn/i.test(sanitized), 'Sanitizer should remove sqspcdn runtime markers');
 assert.ok(!/websiteComponents/i.test(sanitized), 'Sanitizer should remove websiteComponents runtime markers');
@@ -125,7 +125,7 @@ assert.ok(sanitized.includes('id="dex-sidebar-page-config-bridge"'), 'Dex page c
 assert.ok(sanitized.includes("window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');"), 'Dex page config bridge should use deterministic snippet');
 assert.ok(sanitized.includes('id="dex-manifest"'), 'Dex manifest script should remain');
 
-const siteCssIndex = sanitized.search(/https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/demo\/site\.css/i);
+const siteCssIndex = sanitized.search(/https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/demo\/site\.css/i);
 const dexCssIndex = sanitized.indexOf('https://dexdsl.github.io/assets/css/dex.css');
 assert.ok(dexCssIndex > siteCssIndex, 'Dex stylesheet should load after site.css');
 
@@ -149,12 +149,12 @@ assert.equal($('style#dex-entry-gooey-bg-style[data-managed="1"]').length, 1, 'S
 assert.equal($('script#dex-entry-gooey-bg-script[data-managed="1"]').length, 1, 'Sanitizer should inject managed entry background runtime');
 assert.ok(!/id=["']noise["']/i.test(sanitized), 'Sanitizer should remove legacy grain filter definitions');
 assert.ok(!/url\((["'])#noise\1\)/i.test(sanitized), 'Sanitizer should remove legacy grain filter usage');
-assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar, .sqs-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure announcement bar markup exists in announcement dropzone');
-assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-custom-location').length, 1, 'Sanitizer should include Squarespace announcement custom location wrapper');
-assert.equal($('.sqs-announcement-bar-dropzone .sqs-widget.sqs-announcement-bar').length, 1, 'Sanitizer should include Squarespace announcement widget structure');
-assert.equal($('.header-announcement-bar-wrapper .sqs-announcement-bar, .header-announcement-bar-wrapper .announcement-bar').length, 0, 'Announcement bar should not be injected inside header wrapper');
-assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-url').first().attr('href'), '/fixture-donate', 'Announcement bar link should be preserved from template context');
-assert.match($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-content').first().text(), /fixture notice/i, 'Announcement bar text should be preserved from template context');
+assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar, .dx-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure announcement bar markup exists in announcement dropzone');
+assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar-custom-location').length, 1, 'Sanitizer should include legacysite announcement custom location wrapper');
+assert.equal($('.dx-announcement-bar-dropzone .dx-widget.dx-announcement-bar').length, 1, 'Sanitizer should include legacysite announcement widget structure');
+assert.equal($('.header-announcement-bar-wrapper .dx-announcement-bar, .header-announcement-bar-wrapper .announcement-bar').length, 0, 'Announcement bar should not be injected inside header wrapper');
+assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('href'), '/fixture-donate', 'Announcement bar link should be preserved from template context');
+assert.match($('.dx-announcement-bar-dropzone .dx-announcement-bar-content').first().text(), /fixture notice/i, 'Announcement bar text should be preserved from template context');
 assert.equal($('style#dex-layout-patch[data-managed="1"]').length, 1, 'Dex layout patch style should be injected');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-header'), 'Dex layout patch should include entry header rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-subtitle'), 'Dex layout patch should include entry subtitle rules');

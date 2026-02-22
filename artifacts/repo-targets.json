@@ -218,7 +218,8 @@
     "docs/assets/css/dex.css",
     "docs/css/fonts.css",
     "docs/static/versioned-site-css/63956a55e99f9772a8cd1742/771/5c5a519771c10ba3470d8101/63956a55e99f9772a8cd175d/1741/site.css",
-    "docs/static/vta/5c5a519771c10ba3470d8101/versioned-assets/1771441478242-2KJ6E4XSE8IDDFKSAHZS/static.css"
+    "docs/static/vta/5c5a519771c10ba3470d8101/versioned-assets/1771441478242-2KJ6E4XSE8IDDFKSAHZS/static.css",
+    "tokens.css"
   ],
   "jsFiles": [
     "assets/js/dex-breadcrumb-motion.js",
@@ -237,7 +238,8 @@
     "docs/static/vta/5c5a519771c10ba3470d8101/scripts/site-bundle.4048606de8bae1a858c59c5fe6cb8a21.js",
     "scripts/build-breadcrumb-motion.mjs",
     "scripts/dex.mjs",
-    "scripts/fetch_remote_images.mjs",
+    "scripts/discover_repo_targets.mjs",
+    "scripts/fetch_squarespace_images.mjs",
     "scripts/fonts_detox.mjs",
     "scripts/lib/asset-origin.mjs",
     "scripts/lib/doctor.mjs",
@@ -276,6 +278,8 @@
     "scripts/ui/init-wizard.mjs",
     "scripts/ui/rolodex.mjs",
     "scripts/ui/update-wizard.mjs",
+    "scripts/verify_no_forbidden_domains.mjs",
+    "scripts/verify_no_squarespace_images.mjs",
     "scripts/verify-asset-surface.mjs",
     "scripts/verify-generated-html.mjs",
     "scripts/verify-portable-entry-html.mjs",

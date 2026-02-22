@@ -1,16 +1,16 @@
 <!-- ────────────────────────────────────────────────────────────────
-Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (Squarespace code-block)
+Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 • Glassmorphic liquid-card + holo glow (uses your global tokens)
-• CTA uses Squarespace’s Pricing-Plan join button provided
+• CTA uses legacysite’s Pricing-Plan join button provided
 ────────────────────────────────────────────────────────────────── -->
 <section id="dex-signup" class="dex-signup-card">
 
   <!-- media loop -->
   <div class="signup-media">
     <video
-      src="https://video.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/playlist.m3u8"
+      src="https://video.legacysite-cdn.com/content/v1/63956a55e99f9772a8cd1742/a157f35d-b252-448e-80dd-233e3c3cf26b/playlist.m3u8"
       muted autoplay playsinline loop
-      poster="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68884a57882b5b2f1deb51e2/1753762393566/dex+sky+promo.jpg"></video>
+      poster="https://static1.legacysite.com/static/63956a55e99f9772a8cd1742/t/68884a57882b5b2f1deb51e2/1753762393566/dex+sky+promo.jpg"></video>
   </div>
 
   <!-- copy + CTA -->
@@ -23,17 +23,17 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (Squarespace code-block)
       700+ CC-BY artist loops in one click – join Dex &amp; start sampling now.
     </p>
 
-    <!-- Squarespace Pricing-Plan button (free tier) -->
+    <!-- legacysite Pricing-Plan button (free tier) -->
     <div class="product-block">
       <div class="productDetails center">
-        <button class="cta-btn join-button sqs-button-element--primary"
+        <button class="cta-btn join-button dx-button-element--primary"
           onclick="UserAccountApi.joinPricingPlan(
             'ee53ec15-15ad-4405-b664-143d74f2c75c','', '', false,
             'MEMBER_AREA_BLOCK',
             {&quot;pricingPlanId&quot;:&quot;ee53ec15-15ad-4405-b664-143d74f2c75c&quot;,
              &quot;showJoinButton&quot;:true,&quot;joinButtonText&quot;:&quot;JOIN DEX&quot;,
              &quot;pricingType&quot;:&quot;FREE&quot;})">
-          <div class="sqs-add-to-cart-button-inner">
+          <div class="dx-add-to-cart-button-inner">
             JOIN&nbsp;DEX
           </div>
         </button>

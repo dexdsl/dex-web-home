@@ -531,8 +531,8 @@
 
     btn.classList.add("dex-auth-signin");
 
-    if (document.querySelector(".sqs-block-button-element--primary")) {
-      btn.classList.add("sqs-block-button-element", "sqs-block-button-element--primary");
+    if (document.querySelector(".dx-block-button-element--primary")) {
+      btn.classList.add("dx-block-button-element", "dx-block-button-element--primary");
       btn.classList.remove("dex-auth-fallback-btn");
       btn.style.border = "";
       btn.style.background = "";

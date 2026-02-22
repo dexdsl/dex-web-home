@@ -211,8 +211,8 @@
       <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
       <p class="dex-attrib">This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}</p>
       <div class="dex-license-controls">
-        <button type="button" class="license-btn copy-btn sqs-button-element--primary" title="Copy attribution"><span class="copy-text">Copy</span></button>
-        <button type="button" class="license-btn usage-btn sqs-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">Usage Notes</button>
+        <button type="button" class="license-btn copy-btn dx-button-element--primary" title="Copy attribution"><span class="copy-text">Copy</span></button>
+        <button type="button" class="license-btn usage-btn dx-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">Usage Notes</button>
       </div>
     `);
 
@@ -244,7 +244,7 @@
       </div>
     `);
 
-    render('#downloads', 'Download', `<p>Please choose the asset you’d like to download:</p><button type="button" class="btn-audio sqs-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video sqs-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button>`, true);
+    render('#downloads', 'Download', `<p>Please choose the asset you’d like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button>`, true);
     render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
     render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
 

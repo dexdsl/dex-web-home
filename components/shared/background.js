@@ -1,7 +1,7 @@
 <style>
   /* 0 ▸ make *content* sections transparent – skip anything with “footer”
      (case-insensitive so it also matches 'Footer', 'site-footer', etc.) */
-  .Index-page .sqs-section:not([class*="footer" i]) {
+  .Index-page .dx-section:not([class*="footer" i]) {
     background: transparent !important;
   }
  /* 1 ▸ fixed gradient layer behind everything */
@@ -70,11 +70,11 @@
 /* A) Make content sections transparent, but NEVER the footer section
    - Case-insensitive "footer" match
    - Also guard the section that actually contains a <footer> element */
-.Index-page .sqs-section:not([class*="footer" i]) {
+.Index-page .dx-section:not([class*="footer" i]) {
   background: transparent !important;
 }
-@supports selector(.sqs-section:has(footer)) {
-  .Index-page .sqs-section:has(footer) {
+@supports selector(.dx-section:has(footer)) {
+  .Index-page .dx-section:has(footer) {
     background: initial !important;
   }
 }
@@ -89,7 +89,7 @@ footer.dex-footer:not([data-surface]) .footer-logo .logo--light { display:block 
 footer.dex-footer:not([data-surface]) .footer-logo .logo--dark  { display:none  !important; }
 
 /* C) Belt & suspenders in case the editor (or a reset) hides nested <footer> */
-.sqs-section footer.dex-footer {
+.dx-section footer.dex-footer {
   display:block !important;
   visibility:visible !important;
   opacity:1 !important;

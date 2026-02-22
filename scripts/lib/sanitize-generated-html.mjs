@@ -9,7 +9,7 @@ const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-conf
 const REQUIRED_CONTRACT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const PAGE_CONFIG_BRIDGE_SNIPPET = "window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');";
-const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.squarespace\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
+const SITE_CSS_HREF_PATTERN = /https:\/\/static1\.legacysite\.com\/static\/versioned-site-css\/[\s\S]*?\/site\.css/i;
 const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
 const DEX_ENTRY_BG_STYLE_ID = 'dex-entry-gooey-bg-style';
 const DEX_ENTRY_BG_SCRIPT_ID = 'dex-entry-gooey-bg-script';
@@ -19,7 +19,7 @@ const DEX_ENTRY_BG_STYLE = `
 body.dex-entry-page {
   background: transparent !important;
 }
-body.dex-entry-page .sqs-announcement-bar-dropzone,
+body.dex-entry-page .dx-announcement-bar-dropzone,
 body.dex-entry-page .header-announcement-bar-wrapper,
 body.dex-entry-page #siteWrapper {
   position: relative;
@@ -194,31 +194,31 @@ const DEX_ENTRY_BG_SCRIPT = `
 })();`;
 
 const BLOCKED_SCRIPT_SRC_PATTERNS = [
-  /squarespace\.com/i,
+  /legacysite\.com/i,
   /sqspcdn\.com/i,
-  /assets\.squarespace\.com/i,
+  /assets\.legacysite\.com/i,
   /definitions\.sqspcdn\.com/i,
-  /static1\.squarespace\.com\/static\/vta\//i,
+  /static1\.legacysite\.com\/static\/vta\//i,
   /website\.components\./i,
   /website-component-definition/i,
-  /use\.typekit\.net\/ik\//i,
+  /use\.fonthost\.net\/ik\//i,
 ];
 
 const INLINE_SCRIPT_MARKERS = [
   { token: 'Static.', regex: /\bStatic\./i },
   { token: 'Static =', regex: /\bStatic\s*=/i },
-  { token: 'SQUARESPACE_', regex: /SQUARESPACE_/i },
-  { token: 'Squarespace', regex: /Squarespace/i },
+  { token: 'legacysite_', regex: /legacysite_/i },
+  { token: 'legacysite', regex: /legacysite/i },
   { token: 'websiteComponents', regex: /websiteComponents/i },
   { token: 'sqspcdn', regex: /sqspcdn/i },
-  { token: 'assets.squarespace.com', regex: /assets\.squarespace\.com/i },
+  { token: 'assets.legacysite.com', regex: /assets\.legacysite\.com/i },
   { token: 'website.components', regex: /website\.components/i },
   { token: 'sqsp runtime marker', regex: /\bsqsp[a-z0-9_.-]*/i },
   { token: 'sqs runtime marker', regex: /\bsqs[a-z0-9_.-]*/i },
 ];
 
 const FORBIDDEN_REMAINING_MARKERS = [
-  { token: 'SQUARESPACE_', regex: /SQUARESPACE_/i },
+  { token: 'legacysite_', regex: /legacysite_/i },
   { token: 'Static.', regex: /Static\./ },
   { token: 'websiteComponents', regex: /websiteComponents/i },
   { token: 'sqspcdn', regex: /sqspcdn/i },
@@ -234,9 +234,9 @@ export const REQUIRED_SANITIZED_SNIPPETS = [
 ];
 
 export const VERIFY_TOKEN_CHECKS = [
-  { token: 'blocked squarespace script src', regex: /<script[^>]*src=["'][^"']*(?:squarespace\.com|sqspcdn\.com)[^"']*["']/i },
+  { token: 'blocked legacysite script src', regex: /<script[^>]*src=["'][^"']*(?:legacysite\.com|sqspcdn\.com)[^"']*["']/i },
   { token: 'Static runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\bStatic(?:\.|\s*=)/ },
-  { token: 'SQUARESPACE_ runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?SQUARESPACE_/i },
+  { token: 'legacysite_ runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?legacysite_/i },
   { token: 'protocol-relative src/href', regex: /\b(?:src|href)\s*=\s*["']\/\//i },
   { token: 'grain filter id', regex: /<filter[^>]*id=["']noise["']/i },
   { token: 'grain filter usage', regex: /url\((["'])#noise\1\)/i },
@@ -272,12 +272,12 @@ function isExecutableInlineScriptType(typeValue) {
   ].includes(value);
 }
 
-function hasSquarespaceRuntimeDataAttrs(element) {
+function haslegacysiteRuntimeDataAttrs(element) {
   const attrs = element?.attribs || {};
   return Object.entries(attrs).some(([name, value]) => {
     const attr = String(name || '').toLowerCase();
     const text = String(value || '').toLowerCase();
-    if (attr.startsWith('data-sqs-')) return true;
+    if (attr.startsWith('data-dx-')) return true;
     if (attr === 'data-name' && text.includes('static-context')) return true;
     if (attr === 'data-block-scripts' || attr === 'data-block-css') return true;
     if (attr === 'data-definition-name' && text.includes('website.components')) return true;
@@ -285,19 +285,19 @@ function hasSquarespaceRuntimeDataAttrs(element) {
   });
 }
 
-function stripSquarespaceRuntimeDataAttrs($) {
+function striplegacysiteRuntimeDataAttrs($) {
   $('*').each((_, element) => {
     const attrs = element?.attribs || {};
     for (const [name, rawValue] of Object.entries(attrs)) {
       const attr = String(name || '').toLowerCase();
       const value = String(rawValue || '');
       const shouldStrip =
-        attr.startsWith('data-sqs-')
+        attr.startsWith('data-dx-')
         || attr === 'data-block-scripts'
         || attr === 'data-block-css'
         || attr === 'data-definition-name'
         || (attr === 'data-name' && /static-context/i.test(value))
-        || (attr.startsWith('data-') && /(sqspcdn|website\.components|websitecomponents|assets\.squarespace\.com)/i.test(value));
+        || (attr.startsWith('data-') && /(sqspcdn|website\.components|websitecomponents|assets\.legacysite\.com)/i.test(value));
       if (shouldStrip) $(element).removeAttr(name);
     }
   });
@@ -364,12 +364,12 @@ function extractJsonObjectLiteral(text, startIndex) {
   return '';
 }
 
-function extractSquarespaceContext($) {
+function extractlegacysiteContext($) {
   let context = null;
   $('script:not([src])').each((_, element) => {
     if (context) return;
     const body = String($(element).html() || '');
-    const markerIndex = body.indexOf('Static.SQUARESPACE_CONTEXT');
+    const markerIndex = body.indexOf('Static.legacysite_CONTEXT');
     if (markerIndex < 0) return;
 
     const equalsIndex = body.indexOf('=', markerIndex);
@@ -399,13 +399,13 @@ function normalizeAnnouncementHref(value) {
 }
 
 function resolveAnnouncementBarConfig($) {
-  const context = extractSquarespaceContext($);
+  const context = extractlegacysiteContext($);
   const settings = context?.websiteSettings?.announcementBarSettings || {};
-  const existingTextHtml = String($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-text-inner').first().html() || '').trim();
-  const existingHref = normalizeAnnouncementHref($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-url').first().attr('href'));
+  const existingTextHtml = String($('.dx-announcement-bar-dropzone .dx-announcement-bar-text-inner').first().html() || '').trim();
+  const existingHref = normalizeAnnouncementHref($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('href'));
   const textHtml = String(settings.text || '').trim() || existingTextHtml || DEFAULT_ANNOUNCEMENT_HTML;
   const href = normalizeAnnouncementHref(settings?.clickthroughUrl?.url) || existingHref || DEFAULT_ANNOUNCEMENT_HREF;
-  const existingTarget = String($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-url').first().attr('target') || '').trim().toLowerCase();
+  const existingTarget = String($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('target') || '').trim().toLowerCase();
   const newWindow = Boolean(settings?.clickthroughUrl?.newWindow) || existingTarget === '_blank';
   const enabled = context?.showAnnouncementBar !== false;
   return {
@@ -425,9 +425,9 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
 
   const header = $('header#header, header.header, .Header').first();
 
-  let dropzone = $('.sqs-announcement-bar-dropzone').first();
+  let dropzone = $('.dx-announcement-bar-dropzone').first();
   if (!dropzone.length) {
-    dropzone = $('<div class="sqs-announcement-bar-dropzone"></div>');
+    dropzone = $('<div class="dx-announcement-bar-dropzone"></div>');
     if (header.length) {
       header.before('\n');
       header.before(dropzone);
@@ -454,17 +454,17 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
     }
   }
 
-  wrapper.find('.sqs-announcement-bar, .announcement-bar').remove();
-  dropzone.find('.sqs-announcement-bar-custom-location, .sqs-announcement-bar, .announcement-bar').remove();
+  wrapper.find('.dx-announcement-bar, .announcement-bar').remove();
+  dropzone.find('.dx-announcement-bar-custom-location, .dx-announcement-bar, .announcement-bar').remove();
 
   const textHtml = String(announcementConfig?.textHtml || DEFAULT_ANNOUNCEMENT_HTML);
   const href = normalizeAnnouncementHref(announcementConfig?.href) || DEFAULT_ANNOUNCEMENT_HREF;
   const textId = 'dex-announcement-bar-text-inner-id';
 
-  const location = $('<div class="sqs-announcement-bar-custom-location" data-dex-announcement-bar="1"></div>');
-  const widget = $('<div class="yui3-widget sqs-widget sqs-announcement-bar"></div>');
-  const content = $('<div class="sqs-announcement-bar-content"></div>');
-  const link = $('<a class="sqs-announcement-bar-url"></a>');
+  const location = $('<div class="dx-announcement-bar-custom-location" data-dex-announcement-bar="1"></div>');
+  const widget = $('<div class="yui3-widget dx-widget dx-announcement-bar"></div>');
+  const content = $('<div class="dx-announcement-bar-content"></div>');
+  const link = $('<a class="dx-announcement-bar-url"></a>');
   if (href) {
     link.attr('href', href);
     if (announcementConfig?.newWindow) {
@@ -473,9 +473,9 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
     }
   }
   link.attr('aria-labelledby', textId);
-  const text = $('<div class="sqs-announcement-bar-text"></div>');
-  const close = $('<span class="sqs-announcement-bar-close" tabindex="0" role="button" aria-label="Close Announcement"></span>');
-  const inner = $(`<div id="${textId}" class="sqs-announcement-bar-text-inner"></div>`);
+  const text = $('<div class="dx-announcement-bar-text"></div>');
+  const close = $('<span class="dx-announcement-bar-close" tabindex="0" role="button" aria-label="Close Announcement"></span>');
+  const inner = $(`<div id="${textId}" class="dx-announcement-bar-text-inner"></div>`);
   inner.html(textHtml);
 
   text.append('\n  ');
@@ -578,7 +578,7 @@ function markDexEntryHosts($) {
         sibling.remove();
         return;
       }
-      const htmlContent = sibling.find('.sqs-html-content').first();
+      const htmlContent = sibling.find('.dx-html-content').first();
       if (!htmlContent.length) return;
       if (isLegacyCatalogBreadcrumbBlock(htmlContent)) {
         sibling.remove();
@@ -646,20 +646,20 @@ function normalizeDexSectionSpacing($) {
 function ensureDexLayoutPatchStyle($, head) {
   const css = `
 #${DEX_LAYOUT_PATCH_STYLE_ID}[data-managed="1"] { display: block; }
-.dex-entry-host .sqs-code-container {
+.dex-entry-host .dx-code-container {
   --dex-entry-outer-gap: clamp(12px, 1.6vw, 20px);
   padding-top: var(--dex-entry-outer-gap) !important;
   padding-bottom: var(--dex-entry-outer-gap) !important;
-  padding-left: var(--sqs-site-gutter, 4vw) !important;
-  padding-right: var(--sqs-site-gutter, 4vw) !important;
+  padding-left: var(--dx-site-gutter, 4vw) !important;
+  padding-right: var(--dx-site-gutter, 4vw) !important;
 }
 @media (max-width: 767px) {
-  .dex-entry-host .sqs-code-container {
+  .dex-entry-host .dx-code-container {
     --dex-entry-outer-gap: clamp(8px, 2.6vw, 12px);
     padding-top: var(--dex-entry-outer-gap) !important;
     padding-bottom: var(--dex-entry-outer-gap) !important;
-    padding-left: var(--sqs-mobile-site-gutter, 6vw) !important;
-    padding-right: var(--sqs-mobile-site-gutter, 6vw) !important;
+    padding-left: var(--dx-mobile-site-gutter, 6vw) !important;
+    padding-right: var(--dx-mobile-site-gutter, 6vw) !important;
   }
 }
 .dex-entry-section .section-divider-display { display: none !important; }
@@ -1212,7 +1212,7 @@ function collectSanitizationIssues($) {
     if (startsProtocolRelative(src)) {
       issues.push({ type: 'protocol-relative', token: src });
     }
-    if (isBlockedScriptSrc(src) || hasSquarespaceRuntimeDataAttrs(element)) {
+    if (isBlockedScriptSrc(src) || haslegacysiteRuntimeDataAttrs(element)) {
       issues.push({ type: 'forbidden-script', token: src });
     }
   });
@@ -1266,7 +1266,7 @@ export function sanitizeGeneratedHtml(html) {
   const $ = loadHtml(input, { decodeEntities: false });
 
   $('base').remove();
-  stripSquarespaceRuntimeDataAttrs($);
+  striplegacysiteRuntimeDataAttrs($);
   markDexEntryHosts($);
   normalizeDexSectionSpacing($);
   const announcementConfig = resolveAnnouncementBarConfig($);
@@ -1280,7 +1280,7 @@ export function sanitizeGeneratedHtml(html) {
     const src = normalizeProtocolRelativeUrl(rawSrc);
     if (src) {
       if (src !== rawSrc) node.attr('src', src);
-      if (!protectedScript && (isBlockedScriptSrc(src) || hasSquarespaceRuntimeDataAttrs(element))) {
+      if (!protectedScript && (isBlockedScriptSrc(src) || haslegacysiteRuntimeDataAttrs(element))) {
         node.remove();
         return;
       }
@@ -1289,7 +1289,7 @@ export function sanitizeGeneratedHtml(html) {
       return;
     }
 
-    if (!protectedScript && hasSquarespaceRuntimeDataAttrs(element)) {
+    if (!protectedScript && haslegacysiteRuntimeDataAttrs(element)) {
       node.remove();
       return;
     }

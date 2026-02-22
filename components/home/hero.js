@@ -332,14 +332,14 @@ document.addEventListener('DOMContentLoaded', function(){
       <div style="display:flex;flex-direction:column;gap:1rem;margin-top:1.5rem;">
         <a id="heroExplore"
    href="/catalog"
-   class="sqs-button-element--primary sqs-block-button-element--large"
+   class="dx-button-element--primary dx-block-button-element--large"
    style="display:inline-flex;align-items:center;justify-content:center;padding:.75em 1.6em;">
   <script>document.write(randomizeTitle("EXPLORE CATALOG"))</script>
 </a>
 
 <div class="product-block">
   <div class="productDetails center">
-    <button class="cta-btn join-button sqs-button-element--secondary sqs-block-button-element--large"
+    <button class="cta-btn join-button dx-button-element--secondary dx-block-button-element--large"
       onclick="UserAccountApi.joinPricingPlan(
         'ee53ec15-15ad-4405-b664-143d74f2c75c','', '', false,
         'MEMBER_AREA_BLOCK',
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function(){
          &quot;showJoinButton&quot;:true,
          &quot;joinButtonText&quot;:&quot;SIGN UP FREE →&quot;,
          &quot;pricingType&quot;:&quot;FREE&quot;})">
-      <div class="sqs-add-to-cart-button-inner">
+      <div class="dx-add-to-cart-button-inner">
         SIGN&nbsp;UP&nbsp;FREE&nbsp;→
       </div>
     </button>
@@ -424,14 +424,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <style>
 
-.sqs-block-code > .sqs-block-content {
+.dx-block-code > .dx-block-content {
   margin:0!important;
   padding:0!important;
   display:flex!important;
   flex-direction:column!important;
   height:100%!important;
 }
-.sqs-block-code + .sqs-block-overlay {
+.dx-block-code + .dx-block-overlay {
   display:none!important;
 }
 /* base state: fully opaque */
@@ -440,11 +440,11 @@ document.addEventListener('DOMContentLoaded', function(){
   transition: opacity 0.2s ease-in-out;
 }
 /* hero primary: remove any theme hover overlay */
-#heroExplore.sqs-button-element--primary,
-#heroExplore.sqs-button-element--primary:hover{
+#heroExplore.dx-button-element--primary,
+#heroExplore.dx-button-element--primary:hover{
   filter: none !important;
 }
-#heroExplore.sqs-button-element--primary:hover::before{
+#heroExplore.dx-button-element--primary:hover::before{
   content: none !important;      /* kill transparent overlay */
 }
 
@@ -878,8 +878,8 @@ document.addEventListener('DOMContentLoaded', function(){
     min-height: 0 !important;
   }
 
-  /* Force Squarespace's wrapper to shrink as well */
-  .sqs-block-code > .sqs-block-content {
+  /* Force legacysite's wrapper to shrink as well */
+  .dx-block-code > .dx-block-content {
     height: auto !important;
     min-height: 0 !important;
   }
