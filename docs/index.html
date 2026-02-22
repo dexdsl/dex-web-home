@@ -2237,15 +2237,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <div class="product-block">
   <div class="productDetails center">
     <button class="join-button dx-button-element dx-button-element--secondary dx-button-size--md dx-button-block dx-block-button-element dx-block-button-element--secondary dx-block-button-element--large"
-      onclick="UserAccountApi.joinPricingPlan(
-        'ee53ec15-15ad-4405-b664-143d74f2c75c','', '', false,
-        'MEMBER_AREA_BLOCK',
-        {&quot;pricingPlanId&quot;:&quot;ee53ec15-15ad-4405-b664-143d74f2c75c&quot;,
-         &quot;showJoinButton&quot;:true,
-         &quot;joinButtonText&quot;:&quot;SIGN UP FREE →&quot;,
-         &quot;pricingType&quot;:&quot;FREE&quot;})">
+      onclick="if(window.DEX_AUTH&amp;&amp;typeof window.DEX_AUTH.signUp==='function'){window.DEX_AUTH.signUp();}else{var authBtn=document.getElementById('auth-ui-signin');if(authBtn){authBtn.click();}}">
       <div class="dx-add-to-cart-button-inner">
-        SIGN&nbsp;UP&nbsp;FREE&nbsp;→
+        SIGN&nbsp;UP&nbsp;FREE&nbsp;↗
       </div>
     </button>
   </div>
@@ -3480,9 +3474,8 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
 
       <!-- 5) CTA focus row -->
       <div class="cta-row">
-        <div class="cta-primary">
-          <span class="cta-label">Nominate or Apply</span>
-          <svg class="cta-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="cta-primary dx-button-element dx-button-element--secondary dx-button-size--md">
+          <span class="cta-label">NOMINATE OR AP&#8204;PLY</span>
         </div>
         <span class="cta-aside">~6 hrs/mo · Remote OK · Builders, not gatekeepers</span>
       </div>
@@ -3580,15 +3573,13 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
   /* ===== CTA row ===== */
   #dex-board-promo .cta-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   #dex-board-promo .cta-primary{
-    display:inline-flex; align-items:center; gap:10px;
-    padding:10px 12px; border-radius:4px;
-    background: #111; color:rgba(255,255,255,.62);
+    display:inline-flex; align-items:center;
   }
   #dex-board-promo .cta-label{
-    font:700 12px/1 var(--font-heading, system-ui);
-    text-transform:uppercase; letter-spacing:.08em;
+    font:inherit;
+    text-transform:inherit;
+    letter-spacing:inherit;
   }
-  #dex-board-promo .cta-arrow{ width:18px; height:18px; color:#fff; }
   #dex-board-promo .cta-aside{ font:400 12px/1.25 var(--font-body, system-ui); color:#333; }
 
   /* ===== Motion prefs ===== */
@@ -4450,12 +4441,13 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     #dex-faq .spark-accordion__header{
       display:flex; align-items:center; width:100%;
       padding: 10px 12px;
-      background: none; border: 0; cursor:pointer; text-align:left;
+      background: none; border: 0; cursor:pointer; text-align:left !important; justify-content:flex-start !important;
       color:#000; font-weight:400;
       font-family: var(--font-body,'Courier New',monospace);
       font-size: clamp(13px,1.2vw,15px);
       position:relative;
     }
+    #dex-faq .spark-accordion__item > h4{ text-align:left !important; }
     #dex-faq .spark-accordion__header::after{
       content:"+";
       font-family: var(--font-body,'Courier New',monospace);

@@ -617,19 +617,7 @@
           evt.stopPropagation();
 
           var returnTo = window.location.pathname + window.location.search + window.location.hash;
-
-            ensureAuthClient()
-              .then(function (client) {
-                var cfgNow = getCfg();
-                if (!cfgNow) throw new Error("Missing Auth0 config at click-time");
-                return client.loginWithRedirect({
-                  appState: { returnTo: returnTo },
-                  authorizationParams: { redirect_uri: cfgNow.redirectUri }
-                });
-              })
-            .catch(function (err) {
-              logError("SIGN IN failed:", err);
-            });
+          triggerSignIn(returnTo);
         });
       }
 
@@ -713,18 +701,8 @@
     return null;
   }
 
-    function handleGuardedNavIntent(returnTo) {
-      ensureAuthClient()
-        .then(function (client) {
-          var cfgNow = getCfg();
-          return client.loginWithRedirect({
-            appState: { returnTo: returnTo },
-            authorizationParams: cfgNow ? { redirect_uri: cfgNow.redirectUri } : undefined
-          });
-        })
-        .catch(function (err) {
-          logError("loginWithRedirect failed:", err);
-        });
+  function handleGuardedNavIntent(returnTo) {
+      triggerSignIn(returnTo);
     }
 
   function bindClickGuard() {
@@ -777,10 +755,44 @@
     return window.location.pathname + window.location.search + window.location.hash;
   }
 
+  function openAuthFlow(returnTo, screenHint) {
+    return ensureAuthClient()
+      .then(function (client) {
+        var cfgNow = getCfg();
+        if (!cfgNow) throw new Error("Missing Auth0 config at click-time");
+        var authorizationParams = { redirect_uri: cfgNow.redirectUri };
+        if (screenHint) authorizationParams.screen_hint = screenHint;
+        return client.loginWithRedirect({
+          appState: { returnTo: returnTo || getCurrentReturnTo() },
+          authorizationParams: authorizationParams
+        });
+      });
+  }
+
+  function triggerSignIn(returnTo) {
+    return openAuthFlow(returnTo || getCurrentReturnTo(), null)
+      .catch(function (err) {
+        logError("SIGN IN failed:", err);
+      });
+  }
+
+  function triggerSignUp(returnTo) {
+    return openAuthFlow(returnTo || getCurrentReturnTo(), "signup")
+      .catch(function (err) {
+        logError("SIGN UP failed:", err);
+      });
+  }
+
   window.DEX_AUTH = {
     ready: authReady.then(function () { return authReadyState; }),
     isAuthenticated: function () {
       return authReady.then(function () { return !!authReadyState.isAuthenticated; });
+    },
+    signIn: function (returnTo) {
+      return triggerSignIn(returnTo || getCurrentReturnTo());
+    },
+    signUp: function (returnTo) {
+      return triggerSignUp(returnTo || getCurrentReturnTo());
     },
     getUser: function () {
       return authReady.then(function () { return authReadyState.user || null; });
