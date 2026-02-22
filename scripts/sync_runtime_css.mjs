@@ -26,6 +26,10 @@ const SYNC_MAP = [
     targets: ['data/catalog.search.json', 'docs/data/catalog.search.json'],
   },
   {
+    source: 'public/data/call.data.json',
+    targets: ['data/call.data.json', 'docs/data/call.data.json'],
+  },
+  {
     source: 'public/css/base.css',
     targets: ['css/base.css', 'docs/css/base.css'],
   },
@@ -42,6 +46,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-catalog-symbols.css', 'docs/css/components/dx-catalog-symbols.css'],
   },
   {
+    source: 'public/css/components/dx-call-editorial.css',
+    targets: ['css/components/dx-call-editorial.css', 'docs/css/components/dx-call-editorial.css'],
+  },
+  {
     source: 'public/css/components/dx-controls.css',
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },
@@ -56,6 +64,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/catalog.symbols.js',
     targets: ['assets/js/catalog.symbols.js', 'docs/assets/js/catalog.symbols.js'],
+  },
+  {
+    source: 'public/assets/js/call.editorial.js',
+    targets: ['assets/js/call.editorial.js', 'docs/assets/js/call.editorial.js'],
   },
   {
     source: 'public/assets/css/dex.css',

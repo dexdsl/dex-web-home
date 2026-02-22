@@ -1,0 +1,150 @@
+{
+  "source": "git-head-call-html",
+  "generated_at": "2026-02-22T12:43:46.600Z",
+  "hero": {
+    "heading_raw": "in dex series",
+    "subtitle_raw": "your way to join the library collection",
+    "credit_raw": "submission from Arlo Tomecek",
+    "framing_raw": "what it is: throughout the year, we will host calls for several needs.",
+    "categories_intro_raw": "they are sorted into four categories:",
+    "image_src": "/assets/img/b67920ca9214ffb7e1e2.png"
+  },
+  "lanes": [
+    {
+      "code_raw": "IN DEX A",
+      "body_raw": "This category includes commissioned recordings or performances. A commissioned recording or performance might be for a library entry, event, or special programming."
+    },
+    {
+      "code_raw": "IN DEX B",
+      "body_raw": "This category is for when we need someone to cull, composite, and splice a performance recording into samples. We love to handle this kind of stuff in-house, but sometimes we want someone else's point of view; think of it as a performance commission where your performance is the composition of a culled performance recording."
+    },
+    {
+      "code_raw": "IN DEX C",
+      "body_raw": "This is for community feedback! Through polls and forums."
+    },
+    {
+      "code_raw": "MINI-DEX",
+      "body_raw": "Mini-dex calls are quick one-off volunteer calls for collaborations. These require minimal time, labor, and skill."
+    }
+  ],
+  "active_call": {
+    "status_label_raw": "ACTIVEE CAL‏‏‎‎L:",
+    "cycle_raw": "IN DEX A2024.4",
+    "title_raw": "deexFest General Artist",
+    "deadline_label_raw": "09/30 DEADLINE",
+    "notification_label_raw": "NOTIFICATION BY 10/2",
+    "deadline_iso": "2024-09-30",
+    "structure_raw": "this call is structured into three separate subcalls, enumerated below:",
+    "summary_raw": "a quick call for collaboration with quick turnaround during dexFest 2024. adjudicators include Paul Yorke, Sebastian Suarez-Solis, Cameron Church.",
+    "submit_cta": {
+      "label_raw": "SUUBMIT",
+      "href": "https://docs.google.com/forms/d/e/1FAIpQLSdXhqlm6TvMzumJGAW1j2FOIB8Ym_xXdkl_S7dL8oZwc7koeA/viewform?usp=sf_link"
+    },
+    "image_src": "/assets/img/75d55e8281c246f6bc0f.png",
+    "related_heading_raw": "RELATED LINKS",
+    "subcalls": [
+      {
+        "heading_raw": "IN DEX A2024.4a: ttalks & discus‏‏‎sionss",
+        "body_raw": [
+          "In search of 60-minute talk proposals, whether self-directed or group presentation/panel. In search of guest speakers and panel members for discussions with artists and conversations surrounding copyright and copyleft environments."
+        ]
+      },
+      {
+        "heading_raw": "IN DEX A2024.4b: accts",
+        "body_raw": [
+          "In search of artistic acts that would work well for recording into a sample library (visuals accepted and encouraged).",
+          "Acceptable proposed media include but are not limited to: live music acts, plays, dance performances, visual screenings, live foley, poetry recital, action painting, or any otherwise material that can be documented on video with synchronized sound."
+        ]
+      },
+      {
+        "heading_raw": "IN DEX A2024.4c: venddors",
+        "body_raw": [
+          "In search of artist vendors to display and sell their works; you keep 100% commission by default. Visual and physical media preferred. Physical space is extremely limited, subject to change; e-shop space is unlimited."
+        ]
+      }
+    ],
+    "related_links": [
+      {
+        "label_raw": "dexFest LINEEUP",
+        "href": "https://docs.google.com/spreadsheets/d/1BVEYrS5dnQ60WAmH_5ha_4E4y70MqQdNqQjFXfoDbQ0/edit?usp=sharing"
+      },
+      {
+        "label_raw": "MOREE INFO",
+        "href": "https://dexdsl.com/dexnotes/announcing-dexfest-2024"
+      },
+      {
+        "label_raw": "TICKETS",
+        "href": "https://www.zeffy.com/ticketing/773558be-e669-4555-a700-faed730ecee3"
+      }
+    ],
+    "related_note_raw": "battaglia trelia duo (oct. 10 7PM)",
+    "subcalls_image_src": "/assets/img/2ab65fd32bccf390072d.jpg"
+  },
+  "mini_call": {
+    "status_label_raw": "ACTIVEE CAL‏‏‎‎L:",
+    "cycle_raw": "MINI-DEX 2023.2",
+    "body_raw": [
+      "our first mini-call; a quick call for donated field recordings from cellphone or audio-recorder captures within the US. open indefinitely, will close once it reaches 60 submissions. current submissions: 5.",
+      "WE’RE LOOKING FOR volunteer sound recording submissions around 60 seconds in length. these samples will be grouped together and distributed in a free (approx. 1-hour) set of samples of US recordings called US Mix. ideally, these are field recordings you already have on your phone, something personal, throwaway, or something in between. we're looking for realness, captured in situ; produced recordings are not really what we are after here, curated personal depictions of daily life are more our aim.",
+      "it could be a recording of a conversation, a recording of a flock or birds, of ice thawing, etc... whatever captivates you."
+    ],
+    "submit_cta": {
+      "label_raw": "SUBMIT",
+      "href": "https://docs.google.com/forms/d/e/1FAIpQLScXQlaNkess4O4jGZUeZ7YzVmW-joLy15zYPyt0VNtt59SLOQ/viewform?usp=sf_link"
+    },
+    "image_src": "/assets/img/89c74dc1cfdbcc3aa425.jpg"
+  },
+  "requirements": {
+    "heading_raw": "THE ONLY REQUIREEMENTS are that it be:",
+    "items_raw": [
+      "recorded within the United States,",
+      "your recording; we cannot accept copyrighted material that is not yours, and we do not want public domain material for this release (if you have questions about copyright, just ask!),",
+      "a non-musical recording (i.e. please do not send us a piano sonata, we want sounds of people doing things, animals, city life, foley, you reading a manifesto, sounds of power tools, etc...),",
+      "around a minute in length (excerpts welcome).",
+      "licensed under Creative Commons CC-BY 4.0 (more information here about Creative Commons licenses)"
+    ],
+    "cc_link": {
+      "label_raw": "here",
+      "href": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "contact_raw": "if you have any questions about this submission, please reach out to us at info@dexdsl.com",
+    "contact_link": {
+      "label_raw": "info@dexdsl.com",
+      "href": "mailto:info@dexdsl.com"
+    }
+  },
+  "past_calls": {
+    "heading_lines_raw": [
+      "PASST IN DEX",
+      "CALL‏‏‎‎LS FOR",
+      "CCOL‎‏‏‎LABORATION"
+    ],
+    "entries": [
+      {
+        "cycle_raw": "IN DEX A2024.3",
+        "prompt_raw": "call for generative video animations (generative coding only, no AI)",
+        "outcome_raw": "selected animation: Arlo Tomecek",
+        "date_raw": "MAR 2024 - APR 2024"
+      },
+      {
+        "cycle_raw": "IN DEX A2023.1",
+        "prompt_raw": "call for proposals for a commissioned audiovisual recording",
+        "outcome_raw": "selected proposals: paul* hermansen",
+        "date_raw": "DEC 2022 - JAN 31 2023"
+      }
+    ],
+    "spotlight_link": {
+      "label_raw": "Arlo Tomecek",
+      "href": "/entry/bassoon-and-electronics/"
+    },
+    "image_src": "/assets/img/8e67c54d3d6f5ead2a79.jpg"
+  },
+  "newsletter": {
+    "prompt_raw": "sign up for our newsletter so you never miss out on a call for collaboration!",
+    "privacy_link": {
+      "label_raw": "we respect your privacy.",
+      "href": "/privacy/"
+    },
+    "thanks_raw": "thank you!"
+  }
+}
