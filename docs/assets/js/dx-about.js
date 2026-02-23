@@ -38,6 +38,13 @@
       node.style.setProperty(property, value, 'important');
     };
 
+    // Legacy About fragments may still ship variant-only CTA classes.
+    // Normalize CTAs to full button primitives so style parity is preserved.
+    root.querySelectorAll('.bottom-ctas > a').forEach((link) => {
+      if (!(link.classList.contains('dx-button-element--primary') || link.classList.contains('dx-button-element--secondary'))) return;
+      link.classList.add('dx-button-element', 'dx-button-size--md');
+    });
+
     function enforceFrameWidth() {
       const codeContainer = root.parentElement;
       const blockContent = codeContainer?.parentElement || null;

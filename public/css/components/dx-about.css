@@ -117,8 +117,10 @@ body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-cod
   --gap: var(--space-2, 8px);
   --foot-h: 28px;
   --cta-clear: 64px;
+  --card-inset: clamp(8px, 1vw, 14px);
   color: #000;
   font-family: var(--font-body, 'Courier New', monospace);
+  padding-inline: var(--card-inset);
   contain: layout paint;
 }
 
@@ -348,6 +350,23 @@ body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-cod
 #dex-about .bottom-ctas > a {
   flex: 1 1 0;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 0.5rem);
+  border: var(--dx-border-thin, var(--border-001)) solid transparent;
+  border-radius: var(--dx-btn-radius, 4px) !important;
+  padding: var(--dx-btn-pad-y-md, 0.72rem) var(--dx-btn-pad-x-md, 1.15rem);
+  text-decoration: none;
+  line-height: 1.05;
+  min-height: var(--dx-btn-min-h-md, 2.4rem);
+  cursor: pointer;
+  letter-spacing: 0;
+  text-transform: none !important;
+  white-space: nowrap;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+  font-feature-settings: "liga" 1, "dlig" 1, "calt" 1, "ss01" 1, "salt" 1, "rlig" 1;
 }
 
 #dex-about .nav {
