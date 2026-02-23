@@ -6,6 +6,18 @@ const ROOT = process.cwd();
 
 const SYNC_MAP = [
   {
+    source: 'public/data/dexnotes.index.json',
+    targets: ['data/dexnotes.index.json', 'docs/data/dexnotes.index.json'],
+  },
+  {
+    source: 'public/data/dexnotes.entries.json',
+    targets: ['data/dexnotes.entries.json', 'docs/data/dexnotes.entries.json'],
+  },
+  {
+    source: 'public/data/dexnotes.comments.json',
+    targets: ['data/dexnotes.comments.json', 'docs/data/dexnotes.comments.json'],
+  },
+  {
     source: 'public/data/catalog.data.json',
     targets: ['data/catalog.data.json', 'docs/data/catalog.data.json'],
   },
@@ -54,6 +66,14 @@ const SYNC_MAP = [
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },
   {
+    source: 'public/css/components/dx-dexnotes-index.css',
+    targets: ['css/components/dx-dexnotes-index.css', 'docs/css/components/dx-dexnotes-index.css'],
+  },
+  {
+    source: 'public/css/components/dx-dexnotes-entry.css',
+    targets: ['css/components/dx-dexnotes-entry.css', 'docs/css/components/dx-dexnotes-entry.css'],
+  },
+  {
     source: 'public/assets/js/catalog.index.js',
     targets: ['assets/js/catalog.index.js', 'docs/assets/js/catalog.index.js'],
   },
@@ -70,12 +90,24 @@ const SYNC_MAP = [
     targets: ['assets/js/call.editorial.js', 'docs/assets/js/call.editorial.js'],
   },
   {
+    source: 'public/assets/js/dexnotes.index.js',
+    targets: ['assets/js/dexnotes.index.js', 'docs/assets/js/dexnotes.index.js'],
+  },
+  {
+    source: 'public/assets/js/dexnotes.entry.js',
+    targets: ['assets/js/dexnotes.entry.js', 'docs/assets/js/dexnotes.entry.js'],
+  },
+  {
     source: 'public/assets/css/dex.css',
     targets: ['assets/css/dex.css', 'docs/assets/css/dex.css'],
   },
   {
     source: 'public/assets/dex-auth.js',
     targets: ['assets/dex-auth.js', 'docs/assets/dex-auth.js'],
+  },
+  {
+    source: 'public/dexnotes/rss.xml',
+    targets: ['dexnotes/rss.xml'],
   },
 ];
 
