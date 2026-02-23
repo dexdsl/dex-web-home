@@ -31,6 +31,7 @@ import Fuse from 'fuse.js';
   let blobRaf = 0;
   let blobResizeHandler = null;
   let drawerOpen = false;
+  let seasonCarouselSeason = '';
 
   function redirectLegacyHashes() {
     const target = REDIRECT_HASHES[window.location.hash || ''];
@@ -230,6 +231,29 @@ import Fuse from 'fuse.js';
     return Array.isArray(model?.entries) ? model.entries : [];
   }
 
+  function canonicalEntryHref(hrefValue) {
+    const href = text(hrefValue).trim();
+    if (!/^\/entry\/[^?#]+\/?$/i.test(href)) return '';
+    return href.endsWith('/') ? href : `${href}/`;
+  }
+
+  function randomEntryHref() {
+    const pool = allEntries()
+      .map((entry) => canonicalEntryHref(entry.entry_href))
+      .filter(Boolean);
+    if (!pool.length) return '/catalog/';
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function seasonLabel(seasonRaw) {
+    const season = text(seasonRaw).toUpperCase();
+    if (season === 'S2') return "season 2 ('24-)";
+    if (season === 'S1') return "season 1 ('22-'24)";
+    const match = season.match(/^S(\d+)$/);
+    if (match) return `season ${match[1]}`;
+    return 'season';
+  }
+
   function buildFuse() {
     if (!Array.isArray(searchModel?.entries)) return null;
     return new Fuse(searchModel.entries, {
@@ -364,8 +388,8 @@ import Fuse from 'fuse.js';
 
     const heading = create('div', 'dx-catalog-index-heading');
     heading.appendChild(create('p', 'dx-catalog-index-kicker', 'Catalog Index'));
-    heading.appendChild(create('h1', 'dx-catalog-index-title', 'Browse the archive with an editorial reading flow.'));
-    const delta = create('p', 'dx-catalog-index-whats-new', 'Guide and symbol references now live in dedicated reading pages.');
+    heading.appendChild(create('h1', 'dx-catalog-index-title', 'Browse by performer, instrument, or lookup code.'));
+    const delta = create('p', 'dx-catalog-index-whats-new', 'Lookup guide and symbol key now live on separate pages.');
     heading.appendChild(delta);
     controls.appendChild(heading);
 
@@ -508,12 +532,168 @@ import Fuse from 'fuse.js';
   function renderHero(target) {
     const section = create('section', 'dx-catalog-index-hero dx-catalog-index-surface');
 
-    const kicker = create('p', 'dx-catalog-index-kicker', 'DEX CATALOG');
-    const title = create('h2', 'dx-catalog-index-hero-title', 'An open editorial index for performer, instrument, and lookup browsing.');
-    const body = create('p', 'dx-catalog-index-copy', 'Use one list architecture across modes, then branch into deep reading pages for lookup syntax and symbol definitions.');
-    const cta = openCta('/catalog/how/#dex-how', 'Read lookup guide', 'primary');
+    const title = create('h1', 'dx-catalog-index-hero-title', 'CATALOG');
+    const subtitle = create('div', 'dx-catalog-index-hero-subtitle');
 
-    section.append(kicker, title, body, cta);
+    const guide = openCta('/catalog/how/#dex-how', 'Lookup guide', 'secondary');
+    const random = create('button', 'dx-button-element dx-button-size--sm dx-button-element--secondary', 'Random entry');
+    random.type = 'button';
+    random.addEventListener('click', () => {
+      window.location.assign(randomEntryHref());
+    });
+
+    subtitle.append(guide, random);
+    section.append(title, subtitle);
+    target.appendChild(section);
+  }
+
+  function createSeasonCarouselArrow(direction) {
+    const button = create('button', `dx-catalog-index-season-arrow dx-catalog-index-season-arrow--${direction}`);
+    button.type = 'button';
+    button.setAttribute('aria-label', direction === 'left' ? 'Previous' : 'Next');
+    if (direction === 'left') {
+      button.innerHTML = `
+        <span class="dx-catalog-index-season-arrow-bg" aria-hidden="true"></span>
+        <svg class="dx-catalog-index-season-arrow-icon" viewBox="0 0 24 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="dx-catalog-index-season-arrow-icon-path" d="M7.87012 13L2.00021 7L7.87012 1"/>
+          <path class="dx-catalog-index-season-arrow-icon-path" d="M22.9653 7L3.03948 7"/>
+        </svg>
+      `;
+    } else {
+      button.innerHTML = `
+        <span class="dx-catalog-index-season-arrow-bg" aria-hidden="true"></span>
+        <svg class="dx-catalog-index-season-arrow-icon" viewBox="0 0 24 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="dx-catalog-index-season-arrow-icon-path" d="M16.1299 1L21.9998 7L16.1299 13"/>
+          <path class="dx-catalog-index-season-arrow-icon-path" d="M1.03472 7H20.9605"/>
+        </svg>
+      `;
+    }
+    return button;
+  }
+
+  function renderSeasonSlide(entry) {
+    const href = canonicalEntryHref(entry.entry_href) || '/catalog/';
+    const slide = create('li', 'dx-catalog-index-season-slide');
+
+    const media = create('a', 'dx-catalog-index-season-media');
+    media.href = href;
+    const image = create('img', 'dx-catalog-index-season-img');
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.src = text(entry.image_src);
+    image.alt = text(entry.image_alt_raw || entry.title_raw || entry.performer_raw || 'Catalog entry');
+    media.appendChild(image);
+
+    const copy = create('div', 'dx-catalog-index-season-copy');
+    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', text(entry.performer_raw || 'Unknown performer')));
+    copy.appendChild(create('p', 'dx-catalog-index-season-title', text(entry.title_raw || 'Untitled')));
+
+    const open = openCta(href, 'View collection', 'primary');
+    open.classList.add('dx-catalog-index-season-open');
+    copy.appendChild(open);
+
+    slide.append(media, copy);
+    return slide;
+  }
+
+  function renderSeasonCarousel(target) {
+    const imageEntries = allEntries().filter((entry) => {
+      return !!canonicalEntryHref(entry.entry_href) && !!text(entry.image_src).trim() && !!text(entry.season).trim();
+    });
+    if (!imageEntries.length) return;
+
+    const seasonBuckets = new Map();
+    imageEntries.forEach((entry) => {
+      const season = text(entry.season).trim();
+      if (!season) return;
+      if (!seasonBuckets.has(season)) seasonBuckets.set(season, []);
+      seasonBuckets.get(season).push(entry);
+    });
+
+    const preferred = Array.isArray(model?.stats?.seasons)
+      ? model.stats.seasons.map((value) => text(value).trim()).filter(Boolean)
+      : [];
+    const seasons = [];
+    for (const season of [...preferred, ...seasonBuckets.keys()]) {
+      if (!season || !seasonBuckets.has(season)) continue;
+      if (seasons.includes(season)) continue;
+      seasons.push(season);
+    }
+    if (!seasons.length) return;
+    if (!seasons.includes(seasonCarouselSeason)) seasonCarouselSeason = seasons[0];
+
+    const section = create('section', 'dx-catalog-index-season-carousel dx-catalog-index-surface');
+
+    const tabs = create('div', 'dx-catalog-index-season-tabs');
+    const seasonMeta = create('p', 'dx-catalog-index-season-meta', seasonLabel(seasonCarouselSeason));
+
+    const gutter = create('div', 'dx-catalog-index-season-gutter');
+    gutter.setAttribute('role', 'region');
+    gutter.setAttribute('aria-label', 'Carousel');
+    const revealer = create('div', 'dx-catalog-index-season-revealer');
+    const track = create('ul', 'dx-catalog-index-season-track');
+    track.setAttribute('aria-live', 'polite');
+    revealer.appendChild(track);
+    gutter.appendChild(revealer);
+
+    const desktopArrows = create('div', 'dx-catalog-index-season-desktop-arrows');
+    const desktopLeftWrap = create('div', 'dx-catalog-index-season-arrow-wrap dx-catalog-index-season-arrow-wrap--left');
+    const desktopRightWrap = create('div', 'dx-catalog-index-season-arrow-wrap dx-catalog-index-season-arrow-wrap--right');
+    const desktopLeft = createSeasonCarouselArrow('left');
+    const desktopRight = createSeasonCarouselArrow('right');
+    desktopLeftWrap.appendChild(desktopLeft);
+    desktopRightWrap.appendChild(desktopRight);
+    desktopArrows.append(desktopLeftWrap, desktopRightWrap);
+
+    const mobileArrows = create('div', 'dx-catalog-index-season-mobile-arrows');
+    const mobileLeft = createSeasonCarouselArrow('left');
+    const mobileRight = createSeasonCarouselArrow('right');
+    mobileArrows.append(mobileLeft, mobileRight);
+
+    const scrollTrack = (direction) => {
+      const firstCard = track.querySelector('.dx-catalog-index-season-slide');
+      const gap = parseFloat(window.getComputedStyle(track).columnGap || '0') || 0;
+      const step = firstCard ? firstCard.getBoundingClientRect().width + gap : Math.max(track.clientWidth * 0.8, 240);
+      track.scrollBy({ left: direction * step, behavior: 'smooth' });
+    };
+
+    [desktopLeft, mobileLeft].forEach((button) => {
+      button.addEventListener('click', () => scrollTrack(-1));
+    });
+    [desktopRight, mobileRight].forEach((button) => {
+      button.addEventListener('click', () => scrollTrack(1));
+    });
+
+    const renderTabs = () => {
+      clearNode(tabs);
+      seasons.forEach((season) => {
+        const tab = create('button', 'dx-catalog-index-season-tab', seasonLabel(season));
+        tab.type = 'button';
+        const active = season === seasonCarouselSeason;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-pressed', active ? 'true' : 'false');
+        tab.addEventListener('click', () => {
+          if (seasonCarouselSeason === season) return;
+          seasonCarouselSeason = season;
+          renderTabs();
+          renderTrack();
+        });
+        tabs.appendChild(tab);
+      });
+    };
+
+    const renderTrack = () => {
+      clearNode(track);
+      seasonMeta.textContent = seasonLabel(seasonCarouselSeason);
+      const seasonEntries = seasonBuckets.get(seasonCarouselSeason) || [];
+      seasonEntries.forEach((entry) => track.appendChild(renderSeasonSlide(entry)));
+      track.scrollLeft = 0;
+    };
+
+    renderTabs();
+    renderTrack();
+
+    section.append(tabs, seasonMeta, gutter, desktopArrows, mobileArrows);
     target.appendChild(section);
   }
 
@@ -644,6 +824,7 @@ import Fuse from 'fuse.js';
 
     const shell = create('div', 'dx-catalog-index-shell');
     renderHero(shell);
+    renderSeasonCarousel(shell);
     renderSpotlight(shell);
     renderControls(shell);
 
