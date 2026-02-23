@@ -26,6 +26,7 @@
     "verify:assets": "node scripts/linkcheck_local_assets.mjs",
     "verify:header-slot": "node scripts/verify_header_slot_contract.mjs",
     "verify:scroll-dot": "node scripts/verify_scroll_dot_contract.mjs",
+    "verify:about": "node scripts/verify_about_integrity.mjs",
     "verify:catalog": "node scripts/verify_catalog_integrity.mjs",
     "verify:call": "node scripts/verify_call_integrity.mjs",
     "verify:buttons": "node scripts/verify_button_primitives.mjs",

@@ -35,7 +35,8 @@
   ],
   "pages": [
     "/",
-    "/favorites"
+    "/favorites",
+    "/about"
   ],
   "viewports": [
     { "name": "mobile", "w": 390, "h": 844 },

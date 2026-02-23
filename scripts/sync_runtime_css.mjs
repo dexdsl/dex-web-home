@@ -66,6 +66,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },
   {
+    source: 'public/css/components/dx-about.css',
+    targets: ['css/components/dx-about.css', 'docs/css/components/dx-about.css'],
+  },
+  {
     source: 'public/css/components/dx-dexnotes-index.css',
     targets: ['css/components/dx-dexnotes-index.css', 'docs/css/components/dx-dexnotes-index.css'],
   },
@@ -104,6 +108,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/dx-scroll-dot.js',
     targets: ['assets/js/dx-scroll-dot.js', 'docs/assets/js/dx-scroll-dot.js'],
+  },
+  {
+    source: 'public/assets/js/dx-about.js',
+    targets: ['assets/js/dx-about.js', 'docs/assets/js/dx-about.js'],
   },
   {
     source: 'public/assets/css/dex.css',
