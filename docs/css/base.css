@@ -42,7 +42,8 @@
   --dex-scroll-header-gap: 8px;
   --dex-scroll-footer-gap: 0px;
   --dex-scroll-clearance-x: 10px;
-  --dex-scroll-right-padding: 3px;
+  --dex-scroll-right-padding: 8px;
+  --dex-scroll-viewport-pad: 8px;
 }
 
 *,

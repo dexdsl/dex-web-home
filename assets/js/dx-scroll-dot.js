@@ -3,12 +3,25 @@
   if (window.__dxScrollDotLoaded) return;
   window.__dxScrollDotLoaded = true;
 
+  function isMobileDevice() {
+    const uaDataMobile = typeof navigator !== 'undefined' && navigator.userAgentData
+      ? navigator.userAgentData.mobile
+      : undefined;
+    if (uaDataMobile === true) return true;
+
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
+    if (/(Android|webOS|iPhone|iPad|iPod|Windows Phone|Opera Mini|IEMobile|Mobile)/i.test(ua)) return true;
+
+    return false;
+  }
+
   if (document.documentElement.hasAttribute('data-no-dex-scroll')) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (isMobileDevice()) return;
 
   const RAIL_ID = 'dex-scroll-rail-windowY';
   const DOT_ID = 'dex-scroll-dot-windowY';
-  const SHOW_TIMEOUT_MS = 0;
+  const SHOW_TIMEOUT_MS = 2000;
 
   let rail = null;
   let dot = null;
@@ -118,8 +131,9 @@
   }
 
   function getHorizontalPlacement(railWidth, dotSize) {
-    const rightPadding = readVarNumber('--dex-scroll-right-padding', 3);
+    const rightPadding = readVarNumber('--dex-scroll-right-padding', 8);
     const clearance = readVarNumber('--dex-scroll-clearance-x', 10);
+    const viewportPad = readVarNumber('--dex-scroll-viewport-pad', 8);
     const shiftX = readVarNumber('--dex-scroll-shift-x', -10);
     const safeRight = getHorizontalSafeRight();
     const railMaxRight = window.innerWidth - rightPadding;
@@ -130,13 +144,16 @@
       left = Math.max(left, minLeft);
     }
 
-    const minLeftViewport = 0;
-    const maxLeftViewport = window.innerWidth - railWidth - 2;
+    const dotOffset = (dotSize - railWidth) / 2;
+    const minLeftViewport = viewportPad + dotOffset;
+    const maxLeftViewport = window.innerWidth - viewportPad - railWidth - dotOffset;
     left = Math.max(minLeftViewport, Math.min(maxLeftViewport, left));
+
+    const hasViewportRoom = maxLeftViewport >= minLeftViewport;
 
     return {
       left,
-      visible: true,
+      visible: hasViewportRoom,
     };
   }
 
@@ -215,17 +232,14 @@
 
   function hideIndicator() {
     if (!rail || !dot) return;
-    if (SHOW_TIMEOUT_MS > 0) {
-      rail.classList.remove('is-visible');
-      dot.classList.remove('is-visible');
-    }
+    rail.classList.remove('is-visible');
+    dot.classList.remove('is-visible');
   }
 
   function showIndicator() {
     if (!rail || !dot) return;
     rail.classList.add('is-visible');
     dot.classList.add('is-visible');
-    if (SHOW_TIMEOUT_MS <= 0) return;
     if (hideTimer) {
       clearTimeout(hideTimer);
     }
@@ -241,8 +255,6 @@
       dot.classList.remove('is-visible');
       return;
     }
-    rail.classList.add('is-visible');
-    dot.classList.add('is-visible');
 
     const progress = metrics.maxScroll > 0 ? Math.min(1, Math.max(0, metrics.scrollTop / metrics.maxScroll)) : 0;
     const nextTop = metrics.insetTop + progress * metrics.trackHeight;
