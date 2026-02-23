@@ -14,6 +14,13 @@
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);
   const PRESERVED_TAGS = new Set(['SCRIPT', 'STYLE', 'LINK', 'META']);
   const SKIPPED_ROUTE_SCRIPTS = new Set(['/assets/js/header-slot.js', '/assets/js/dx-scroll-dot.js']);
+  const HOME_STACK_BLOCK_IDS = [
+    'block-448bd8f915f4abba552b',
+    'block-ee939fa7ed636a261fd7',
+    'block-7ccf390e6577e4e9f69e',
+    'block-5976018fa8f9e1213243',
+    'block-9f43a906d54ed3a7b492',
+  ];
   const ROUTE_SCRIPT_GUARDS = new Map([
     ['/assets/js/call.editorial.js', '__dxCallEditorialLoaded'],
     ['/assets/js/catalog.how.js', '__dxCatalogHowLoaded'],
@@ -359,15 +366,7 @@
 
   function clearHomeStackSpacingOverrides() {
     if (!document.body.classList.contains('homepage')) return;
-    const targetIds = [
-      'block-448bd8f915f4abba552b',
-      'block-ee939fa7ed636a261fd7',
-      'block-7ccf390e6577e4e9f69e',
-      'block-5976018fa8f9e1213243',
-      'block-9f43a906d54ed3a7b492',
-    ];
-
-    for (const id of targetIds) {
+    for (const id of HOME_STACK_BLOCK_IDS) {
       const block = document.getElementById(id);
       if (!block) continue;
       const section = block.closest('section.page-section');

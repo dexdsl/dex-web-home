@@ -149,18 +149,6 @@ html body #gooey-mesh-wrapper .gooey-stage {
   height: 100% !important;
 }
 
-html body #gooey-mesh-wrapper::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  pointer-events: none !important;
-  background:
-    radial-gradient(120% 95% at 8% 16%, rgba(255, 200, 94, 0.23) 0%, rgba(255, 200, 94, 0) 62%),
-    radial-gradient(112% 92% at 92% 22%, rgba(117, 190, 255, 0.2) 0%, rgba(117, 190, 255, 0) 64%),
-    radial-gradient(118% 96% at 48% 102%, rgba(255, 118, 126, 0.18) 0%, rgba(255, 118, 126, 0) 66%);
-  opacity: 0.88 !important;
-}
-
 .dex-scroll-rail {
   position: fixed;
   top: 0;
