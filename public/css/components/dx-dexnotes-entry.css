@@ -1,6 +1,6 @@
 :root {
   --dx-dexnotes-entry-gutter: clamp(1rem, 2.4vw, 2rem);
-  --dx-dexnotes-entry-radius: 18px;
+  --dx-dexnotes-entry-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
   --dx-dexnotes-entry-rim: rgba(255, 255, 255, 0.48);
   --dx-dexnotes-entry-surface: linear-gradient(132deg, rgba(255, 255, 255, 0.7), rgba(234, 240, 249, 0.44));
   --dx-dexnotes-entry-shadow: 0 18px 54px rgba(18, 25, 38, 0.16), 0 1px 0 rgba(255, 255, 255, 0.52) inset;
@@ -177,7 +177,7 @@
 .dx-dexnotes-entry-cover-link {
   margin-top: 0.82rem;
   display: block;
-  border-radius: 14px;
+  border-radius: var(--dx-dexnotes-entry-radius);
   border: 1px solid rgba(255, 255, 255, 0.62);
   overflow: hidden;
   aspect-ratio: 16 / 9;
@@ -245,7 +245,7 @@
   width: 100%;
   max-width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: var(--dx-dexnotes-entry-radius);
   margin-top: 0.72rem;
   border: 1px solid rgba(255, 255, 255, 0.58);
 }
@@ -330,7 +330,7 @@
 
 .dx-dexnotes-entry-rail {
   border: 1px solid rgba(255, 255, 255, 0.64);
-  border-radius: 14px;
+  border-radius: var(--dx-dexnotes-entry-radius);
   background: rgba(255, 255, 255, 0.58);
   padding: 0.88rem;
   display: grid;
@@ -348,7 +348,7 @@
 
 .dx-dexnotes-entry-related-item {
   border: 1px solid rgba(26, 33, 46, 0.12);
-  border-radius: 10px;
+  border-radius: var(--dx-dexnotes-entry-radius);
   background: rgba(255, 255, 255, 0.58);
   padding: 0.62rem;
   transition: border-color 200ms ease, background-color 200ms ease;
@@ -391,7 +391,7 @@
 .dx-dexnotes-comments-fallback {
   margin-top: 0.7rem;
   border: 1px dashed rgba(24, 30, 42, 0.2);
-  border-radius: 12px;
+  border-radius: var(--dx-dexnotes-entry-radius);
   padding: 0.76rem;
   background: rgba(255, 255, 255, 0.56);
 }

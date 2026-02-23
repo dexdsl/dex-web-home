@@ -3263,20 +3263,93 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
   }
 
   /* Socials */
-  .footer-social{ display:flex; gap:var(--space-3); }
+  .footer-social{ display:flex; align-items:center; gap:var(--space-3); }
+  .footer-social:hover a:not(:hover):not(:focus-visible){ opacity:.72; }
   .footer-social a{
+    position:relative;
     width:var(--badge-size); height:var(--badge-size);
     display:inline-flex; align-items:center; justify-content:center;
-    border-radius:var(--badge-radius);
-    box-shadow:0 2px 6px rgba(0,0,0,.2);
-    color:#fff; transition: transform var(--ease), background var(--ease);
+    border-radius:var(--dx-radius-md, 10px);
+    border:1px solid rgba(255,255,255,.42);
+    background:linear-gradient(120deg, rgba(221,230,240,.34) 0%, rgba(191,208,224,.25) 55%, rgba(232,210,203,.22) 100%);
+    box-shadow:0 10px 22px rgba(18,22,30,.20), inset 0 1px 0 rgba(255,255,255,.30);
+    color:#191b20;
+    overflow:hidden;
+    isolation:isolate;
+    backdrop-filter:saturate(180%) blur(12px);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    transition:transform .24s cubic-bezier(.22,.8,.24,1), box-shadow .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1), color .24s cubic-bezier(.22,.8,.24,1);
   }
-  .footer-social a:hover{ transform:scale(1.1); }
-  .footer-social i{ font-size:1.25rem; }
-  .footer-social a.youtube   { background:#FF0000; }
-  .footer-social a.instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%); }
-  .footer-social a.tiktok    { background:#000; }
-  .footer-social a.twitter   { background:#1DA1F2; }
+  .footer-social a::before{
+    content:"";
+    position:absolute;
+    inset:-44% -120%;
+    background:linear-gradient(110deg, rgba(255,255,255,0) 35%, rgba(255,255,255,.56) 50%, rgba(255,255,255,0) 65%);
+    transform:translateX(-130%) skewX(-18deg);
+    opacity:0;
+    pointer-events:none;
+    z-index:0;
+  }
+  .footer-social a::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    pointer-events:none;
+    opacity:0;
+    z-index:2;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.72), 0 0 0 2px rgba(255,108,42,.52);
+    transition:opacity .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .footer-social a svg{
+    width:1.52rem;
+    height:1.52rem;
+    fill:currentColor;
+    position:relative;
+    z-index:1;
+    transition:transform .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .footer-social a:hover,
+  .footer-social a:focus-visible{
+    transform:translateY(-2px);
+    box-shadow:0 14px 28px rgba(18,22,30,.26), inset 0 1px 0 rgba(255,255,255,.42);
+    color:#101218;
+  }
+  .footer-social a:hover::before,
+  .footer-social a:focus-visible::before{
+    opacity:1;
+    animation:dx-social-sheen 700ms cubic-bezier(.22,.8,.24,1) 1 both;
+  }
+  .footer-social a:hover::after,
+  .footer-social a:focus-visible::after{ opacity:1; }
+  .footer-social a:hover svg,
+  .footer-social a:focus-visible svg{ transform:scale(1.08); }
+  .footer-social a:active{ transform:translateY(0) scale(.98); }
+  .footer-social a:focus{ outline:none; }
+
+  @keyframes dx-social-sheen {
+    from { transform:translateX(-130%) skewX(-18deg); }
+    to { transform:translateX(130%) skewX(-18deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .footer-social a,
+    .footer-social a svg{
+      transition:color .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1);
+    }
+    .footer-social a:hover,
+    .footer-social a:focus-visible,
+    .footer-social a:active,
+    .footer-social a:hover svg,
+    .footer-social a:focus-visible svg{
+      transform:none;
+    }
+    .footer-social a:hover::before,
+    .footer-social a:focus-visible::before{
+      opacity:0;
+      animation:none;
+    }
+  }
 
   /* Nav */
   .footer-nav{ display:flex; gap:var(--space-3); font-size:.85rem; flex-wrap:wrap; justify-content:center; }
@@ -3344,16 +3417,16 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
     <div class="footer-links-column">
       <div class="footer-social">
         <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube">
-          <i class="fab fa-youtube"></i>
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
         </a>
         <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram">
-          <i class="fab fa-instagram"></i>
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
         </a>
         <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok">
-          <i class="fab fa-tiktok"></i>
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
         </a>
         <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter">
-          <i class="fab fa-twitter"></i>
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
         </a>
       </div>
       <nav class="footer-nav">
