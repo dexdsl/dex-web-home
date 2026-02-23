@@ -79,7 +79,7 @@ export function canonicalizeInternalHref(hrefValue) {
   if (/^https?:\/\//i.test(raw)) {
     try {
       const url = new URL(raw);
-      if (url.hostname === 'dexdsl.com' || url.hostname === 'dexdsl.org') {
+      if (url.hostname === 'dexdsl.com' || url.hostname === 'dexdsl.org' || url.hostname === 'dexdsl.squarespace.com') {
         const rewrittenPath = rewriteCatalogLookup(url.pathname);
         if (/^\/entry\//.test(rewrittenPath)) {
           return canonicalizeEntryPath(rewrittenPath);
@@ -116,7 +116,7 @@ function entryIdFromHref(hrefValue, fallbackIndex) {
 function getImageSrc($element) {
   if (!$element || !$element.length) return '';
   const src = $element.attr('data-image') || $element.attr('data-src') || $element.attr('src') || '';
-  return cleanText(src);
+  return normalizeImageSrc(src);
 }
 
 function countProtectedInValue(value) {
@@ -132,6 +132,31 @@ function sumProtectedChars(value) {
     return Object.values(value).reduce((sum, item) => sum + sumProtectedChars(item), 0);
   }
   return 0;
+}
+
+function normalizeImageSrc(value) {
+  const raw = cleanText(value);
+  if (!raw) return '';
+  const stripQueryHash = (input) => String(input || '').split('#')[0].split('?')[0];
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      const pathname = stripQueryHash(parsed.pathname);
+      const fileName = pathname.split('/').filter(Boolean).pop() || '';
+      if (/\.(?:jpe?g|png|webp|gif|avif)$/i.test(fileName)) {
+        return `${parsed.origin}${pathname}`;
+      }
+      if (parsed.hostname.endsWith('dexdsl.com') || parsed.hostname.endsWith('dexdsl.org')) {
+        return pathname || raw;
+      }
+      return `${parsed.origin}${pathname}`;
+    } catch {
+      return stripQueryHash(raw);
+    }
+  }
+
+  return stripQueryHash(raw);
 }
 
 function ensureEntry(entriesByHref, hrefValue, fallbackIndex = 0) {
@@ -238,7 +263,22 @@ function buildSpotlight($, entries) {
   const ctaAnchor = section.find('a.dx-block-button-element, a.dx-button-element--primary, a[href*="/entry/"]').first();
   const ctaHref = canonicalizeInternalHref(ctaAnchor.attr('href') || '');
   const ctaLabelRaw = cleanText(ctaAnchor.text()) || 'VIEW COLLECTION';
-  const imageSrc = getImageSrc(section.find('img').first());
+
+  const linkedImage = ctaHref
+    ? section
+      .find('a[href]')
+      .filter((_, anchor) => canonicalizeInternalHref($(anchor).attr('href') || '') === ctaHref)
+      .find('img[data-image], img[data-src], img[src]')
+      .filter((_, image) => !/nbf-background/i.test(String($(image).attr('elementtiming') || '')))
+      .first()
+    : null;
+
+  const fallbackImage = section
+    .find('.dx-block-image img, .image-block img, .image-block-wrapper img, img[data-image], img[data-src], img[src]')
+    .filter((_, image) => !/nbf-background/i.test(String($(image).attr('elementtiming') || '')))
+    .first();
+
+  const imageSrc = getImageSrc(linkedImage && linkedImage.length ? linkedImage : fallbackImage);
 
   return {
     entry_id: entryIdFromHref(ctaHref, 0),
@@ -249,6 +289,41 @@ function buildSpotlight($, entries) {
     cta_href: ctaHref || '/catalog/#dex-performer',
     image_src: imageSrc,
   };
+}
+
+function normalizeSpotlight(spotlightRaw, entries) {
+  const spotlight = {
+    entry_id: cleanText(spotlightRaw?.entry_id || ''),
+    headline_raw: cleanText(spotlightRaw?.headline_raw || 'ARTIST SPOTLIGHT'),
+    subhead_raw: cleanText(spotlightRaw?.subhead_raw || ''),
+    body_raw: cleanText(spotlightRaw?.body_raw || ''),
+    cta_label_raw: cleanText(spotlightRaw?.cta_label_raw || 'VIEW COLLECTION'),
+    cta_href: canonicalizeInternalHref(spotlightRaw?.cta_href || '/catalog/#dex-performer'),
+    image_src: normalizeImageSrc(spotlightRaw?.image_src || ''),
+  };
+
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const byHref = new Map(entries.map((entry) => [canonicalizeInternalHref(entry.entry_href), entry]));
+
+  let entry = null;
+  if (spotlight.cta_href) entry = byHref.get(canonicalizeInternalHref(spotlight.cta_href)) || null;
+  if (!entry && spotlight.entry_id) entry = byId.get(spotlight.entry_id) || null;
+  if (!entry && spotlight.subhead_raw) {
+    entry = entries.find((candidate) => normalizeSearch(candidate.title_raw) === normalizeSearch(spotlight.subhead_raw)) || null;
+  }
+
+  if (entry) {
+    spotlight.entry_id = entry.id;
+    spotlight.cta_href = entry.entry_href;
+    spotlight.subhead_raw = entry.title_raw || spotlight.subhead_raw;
+    if (!spotlight.body_raw) spotlight.body_raw = entry.performer_raw;
+    const entryImage = normalizeImageSrc(entry.image_src);
+    if (!spotlight.image_src && entryImage) {
+      spotlight.image_src = entryImage;
+    }
+  }
+
+  return spotlight;
 }
 
 function buildGuide($) {
@@ -331,6 +406,7 @@ function finalizeEntries(entriesByHref, lookupMap) {
     entry.lookup_norm = normalizeSearch(entry.lookup_raw);
     entry.instrument_norm = normalizeSearch(entry.instrument_labels.join(' ') || entry.instrument_family.join(' '));
     entry.sort_key = [entry.season || 'S0', entry.lookup_raw || entry.title_raw || entry.id].join('::');
+    entry.image_src = normalizeImageSrc(entry.image_src);
   }
 
   entries.sort((a, b) => {
@@ -340,6 +416,7 @@ function finalizeEntries(entriesByHref, lookupMap) {
   });
 
   if (entries.length > 0) entries[0].featured = true;
+
   return entries;
 }
 
@@ -357,7 +434,9 @@ export function buildCatalogModelFromHtml(html, sourceLabel = 'local') {
 
     const performerRaw = cleanText($slide.find('.list-item-content__title').first().text());
     const titleRaw = cleanText($slide.find('.list-item-content__description').first().text());
-    const image = $slide.find('img').first();
+    const image = $slide
+      .find('.list-item-media img, .list-item-content__media img, .image-block img, img[data-image], img[data-src], img[src]')
+      .first();
 
     entry.performer_raw = entry.performer_raw || performerRaw;
     entry.title_raw = entry.title_raw || titleRaw;
@@ -397,6 +476,13 @@ export function buildCatalogModelFromHtml(html, sourceLabel = 'local') {
     new Set(entries.flatMap((entry) => entry.instrument_family.map((family) => cleanText(family)).filter(Boolean))),
   ).sort((a, b) => a.localeCompare(b));
 
+  const spotlight = normalizeSpotlight(buildSpotlight($, entries), entries);
+
+  const spotlightEntry = entries.find((entry) => entry.id === spotlight.entry_id || canonicalizeInternalHref(entry.entry_href) === canonicalizeInternalHref(spotlight.cta_href));
+  if (spotlightEntry && !spotlightEntry.image_src && spotlight.image_src) {
+    spotlightEntry.image_src = spotlight.image_src;
+  }
+
   const model = {
     source: sourceLabel,
     generated_at: new Date().toISOString(),
@@ -415,7 +501,7 @@ export function buildCatalogModelFromHtml(html, sourceLabel = 'local') {
       protected_char_count: 0,
     },
     entries,
-    spotlight: buildSpotlight($, entries),
+    spotlight,
     guide: buildGuide($),
     symbols: buildSymbols($),
   };

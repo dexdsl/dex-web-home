@@ -616,7 +616,7 @@ function injectVideoRegion(regionHtml, video) {
   }
   const iframeHtml = buildVideoIframe(parsed.embedUrl || originalUrl);
 
-  const videoTagRx = /<div[^>]*class=["'][^"']*\bdex-video\b[^"']*["'][^>]*>/i;
+  const videoTagRx = /<div[^>]*class=["'](?:[^"']*\s)?dex-video(?:\s[^"']*)?["'][^>]*>/i;
   const videoTagMatch = regionHtml.match(videoTagRx);
   if (!videoTagMatch) throw new Error('Template video anchor region missing .dex-video container.');
   const videoTag = videoTagMatch[0];

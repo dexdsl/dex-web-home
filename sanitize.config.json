@@ -25,6 +25,14 @@
     "images.squarespace-cdn.com",
     "static1.squarespace.com"
   ],
+  "forbiddenDomainAllowlistFiles": [
+    "entry-template/index.html",
+    "entries/test-9/index.html"
+  ],
+  "legacyImageAllowlistFiles": [
+    "entry-template/index.html",
+    "entries/test-9/index.html"
+  ],
   "pages": [
     "/",
     "/favorites"

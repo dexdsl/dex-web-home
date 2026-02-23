@@ -161,15 +161,16 @@ for (const needle of [
 ]) {
   if (!portableHtml.includes(needle)) throw new Error(`portable output missing runtime URL: ${needle}`);
 }
-for (const needle of [
-  'announcement-bar-reserved-space',
-  'class="dx-announcement-bar-custom-location"',
-  'class="yui3-widget dx-widget dx-announcement-bar"',
-]) {
-  if (!portableHtml.includes(needle)) throw new Error(`portable output missing announcement bar contract: ${needle}`);
+if (!portableHtml.includes('announcement-bar-reserved-space')) {
+  throw new Error('portable output missing announcement-bar reserved spacing marker');
 }
-if (!/class="dx-announcement-bar-dropzone"[\s\S]*?class="dx-announcement-bar-custom-location"[\s\S]*?class="yui3-widget dx-widget dx-announcement-bar"/.test(portableHtml)) {
-  throw new Error('portable output should place announcement bar inside announcement dropzone');
+const hasSqsAnnouncementContract = /class="sqs-announcement-bar-dropzone"[\s\S]*?class="sqs-announcement-bar-custom-location"[\s\S]*?class="yui3-widget sqs-widget sqs-announcement-bar"/.test(portableHtml);
+const hasDxAnnouncementContract = /class="dx-announcement-bar-dropzone"[\s\S]*?class="dx-announcement-bar-custom-location"[\s\S]*?class="yui3-widget dx-widget dx-announcement-bar"/.test(portableHtml);
+if (!hasSqsAnnouncementContract && !hasDxAnnouncementContract) {
+  throw new Error('portable output should place announcement bar inside announcement dropzone with sqs/dx class contract');
+}
+if (!hasSqsAnnouncementContract) {
+  throw new Error('portable output should preserve sqs announcement-bar class family for restored template');
 }
 for (const needle of [
   'id="scroll-gradient-bg"',

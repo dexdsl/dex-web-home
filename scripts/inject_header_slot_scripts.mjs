@@ -60,8 +60,9 @@ function injectSingleTag(html, tag, anchors = []) {
     return `${html.slice(0, headCloseIndex)}${tag}\n${html.slice(headCloseIndex)}`;
   }
 
-  const dropzoneMarker = '<div class="dx-announcement-bar-dropzone">';
-  if (html.includes(dropzoneMarker)) {
+  const dropzoneMatch = html.match(/<div class="(?:dx|sqs)-announcement-bar-dropzone">/i);
+  if (dropzoneMatch) {
+    const dropzoneMarker = dropzoneMatch[0];
     return html.replace(dropzoneMarker, `${tag}\n${dropzoneMarker}`);
   }
 

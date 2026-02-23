@@ -34,7 +34,7 @@ const fixtureHtml = `
     <script defer src="/assets/js/dex-breadcrumb-motion.js"></script>
   </head>
   <body>
-    <div class="dx-announcement-bar-dropzone"></div>
+    <div class="sqs-announcement-bar-dropzone"></div>
     <div class="header-announcement-bar-wrapper">
       <a href="#page" class="header-skip-link dx-button-element--primary">Skip to Content</a>
     </div>
@@ -173,12 +173,12 @@ assert.equal($('style#dex-entry-gooey-bg-style[data-managed="1"]').length, 1, 'S
 assert.equal($('script#dex-entry-gooey-bg-script[data-managed="1"]').length, 1, 'Sanitizer should inject managed entry background runtime');
 assert.ok(!/id=["']noise["']/i.test(sanitized), 'Sanitizer should remove legacy grain filter definitions');
 assert.ok(!/url\((["'])#noise\1\)/i.test(sanitized), 'Sanitizer should remove legacy grain filter usage');
-assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar, .dx-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure announcement bar markup exists in announcement dropzone');
-assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar-custom-location').length, 1, 'Sanitizer should include legacysite announcement custom location wrapper');
-assert.equal($('.dx-announcement-bar-dropzone .dx-widget.dx-announcement-bar').length, 1, 'Sanitizer should include legacysite announcement widget structure');
-assert.equal($('.header-announcement-bar-wrapper .dx-announcement-bar, .header-announcement-bar-wrapper .announcement-bar').length, 0, 'Announcement bar should not be injected inside header wrapper');
-assert.equal($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('href'), '/fixture-donate', 'Announcement bar link should be preserved from template context');
-assert.match($('.dx-announcement-bar-dropzone .dx-announcement-bar-content').first().text(), /fixture notice/i, 'Announcement bar text should be preserved from template context');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar, .sqs-announcement-bar-dropzone .announcement-bar').length, 1, 'Sanitizer should ensure sqs announcement bar markup exists in announcement dropzone');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-custom-location').length, 1, 'Sanitizer should include sqs announcement custom location wrapper');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-widget.sqs-announcement-bar').length, 1, 'Sanitizer should include sqs announcement widget structure');
+assert.equal($('.header-announcement-bar-wrapper .dx-announcement-bar, .header-announcement-bar-wrapper .sqs-announcement-bar, .header-announcement-bar-wrapper .announcement-bar').length, 0, 'Announcement bar should not be injected inside header wrapper');
+assert.equal($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-url').first().attr('href'), '/fixture-donate', 'Announcement bar link should be preserved from template context');
+assert.match($('.sqs-announcement-bar-dropzone .sqs-announcement-bar-content').first().text(), /fixture notice/i, 'Announcement bar text should be preserved from template context');
 assert.equal($('style#dex-layout-patch[data-managed="1"]').length, 1, 'Dex layout patch style should be injected');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-header'), 'Dex layout patch should include entry header rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-subtitle'), 'Dex layout patch should include entry subtitle rules');
@@ -188,6 +188,7 @@ assert.ok($('#dex-layout-patch').text().includes('[data-dex-breadcrumb-path]'), 
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-page-title'), 'Dex layout patch should include entry page title rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-scroll'), 'Dex layout patch should include entry description scroll rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-heading'), 'Dex layout patch should include description heading rules');
+assert.ok($('#dex-layout-patch').text().includes('.sqs-code-container'), 'Dex layout patch should include sqs code-container support');
 assert.equal($('.dex-entry-header').length, 1, 'Sanitizer should preserve entry header wrapper');
 assert.equal($('.dex-entry-page-title').length, 1, 'Sanitizer should preserve entry page title');
 assert.equal($('.dex-entry-subtitle').length, 1, 'Sanitizer should preserve entry subtitle');

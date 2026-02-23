@@ -299,7 +299,8 @@
 
 .dx-catalog-index-season-copy {
   min-width: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.45rem;
   align-content: start;
   padding: 0.72rem;
@@ -319,10 +320,17 @@
   font-size: 12px;
   line-height: 1.42;
   color: #41495a;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dx-catalog-index-season-open {
-  justify-self: start;
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 .dx-catalog-index-season-desktop-arrows {

@@ -25,6 +25,7 @@ body.dex-entry-page {
   background: transparent !important;
 }
 body.dex-entry-page .dx-announcement-bar-dropzone,
+body.dex-entry-page .sqs-announcement-bar-dropzone,
 body.dex-entry-page .header-announcement-bar-wrapper,
 body.dex-entry-page #siteWrapper {
   position: relative;
@@ -218,8 +219,6 @@ const INLINE_SCRIPT_MARKERS = [
   { token: 'sqspcdn', regex: /sqspcdn/i },
   { token: 'legacy asset host', regex: /assets\.legacysite\.com/i },
   { token: 'website.components', regex: /website\.components/i },
-  { token: 'sqsp runtime marker', regex: /\bsqsp[a-z0-9_.-]*/i },
-  { token: 'sqs runtime marker', regex: /\bsqs[a-z0-9_.-]*/i },
 ];
 
 const FORBIDDEN_REMAINING_MARKERS = [
@@ -403,14 +402,40 @@ function normalizeAnnouncementHref(value) {
   return '';
 }
 
-function resolveAnnouncementBarConfig($) {
+function resolveLegacyClassFamily($) {
+  if ($('.sqs-announcement-bar-dropzone, .sqs-block, .sqs-code-container').length > 0) return 'sqs';
+  if ($('.dx-announcement-bar-dropzone, .dx-block, .dx-code-container').length > 0) return 'dx';
+  return 'dx';
+}
+
+function announcementClassMap(classFamily = 'dx') {
+  const prefix = classFamily === 'sqs' ? 'sqs' : 'dx';
+  return {
+    dropzone: `${prefix}-announcement-bar-dropzone`,
+    customLocation: `${prefix}-announcement-bar-custom-location`,
+    widget: `${prefix}-widget`,
+    announcementBar: `${prefix}-announcement-bar`,
+    content: `${prefix}-announcement-bar-content`,
+    url: `${prefix}-announcement-bar-url`,
+    text: `${prefix}-announcement-bar-text`,
+    close: `${prefix}-announcement-bar-close`,
+    textInner: `${prefix}-announcement-bar-text-inner`,
+  };
+}
+
+function resolveAnnouncementBarConfig($, classFamily = 'dx') {
   const context = extractlegacysiteContext($);
   const settings = context?.websiteSettings?.announcementBarSettings || {};
-  const existingTextHtml = String($('.dx-announcement-bar-dropzone .dx-announcement-bar-text-inner').first().html() || '').trim();
-  const existingHref = normalizeAnnouncementHref($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('href'));
+  const classes = announcementClassMap(classFamily);
+  const scopedTextSelector = `.${classes.dropzone} .${classes.textInner}`;
+  const scopedUrlSelector = `.${classes.dropzone} .${classes.url}`;
+  const fallbackTextSelector = '.sqs-announcement-bar-dropzone .sqs-announcement-bar-text-inner, .dx-announcement-bar-dropzone .dx-announcement-bar-text-inner';
+  const fallbackUrlSelector = '.sqs-announcement-bar-dropzone .sqs-announcement-bar-url, .dx-announcement-bar-dropzone .dx-announcement-bar-url';
+  const existingTextHtml = String($(scopedTextSelector).first().html() || $(fallbackTextSelector).first().html() || '').trim();
+  const existingHref = normalizeAnnouncementHref($(scopedUrlSelector).first().attr('href') || $(fallbackUrlSelector).first().attr('href'));
   const textHtml = String(settings.text || '').trim() || existingTextHtml || DEFAULT_ANNOUNCEMENT_HTML;
   const href = normalizeAnnouncementHref(settings?.clickthroughUrl?.url) || existingHref || DEFAULT_ANNOUNCEMENT_HREF;
-  const existingTarget = String($('.dx-announcement-bar-dropzone .dx-announcement-bar-url').first().attr('target') || '').trim().toLowerCase();
+  const existingTarget = String($(scopedUrlSelector).first().attr('target') || $(fallbackUrlSelector).first().attr('target') || '').trim().toLowerCase();
   const newWindow = Boolean(settings?.clickthroughUrl?.newWindow) || existingTarget === '_blank';
   const enabled = context?.showAnnouncementBar !== false;
   return {
@@ -421,18 +446,19 @@ function resolveAnnouncementBarConfig($) {
   };
 }
 
-function ensureAnnouncementBarPresence($, announcementConfig) {
+function ensureAnnouncementBarPresence($, announcementConfig, classFamily = 'dx') {
   const body = $('body').first();
   if (!body.length || !body.hasClass('dex-entry-page')) return;
 
   body.addClass('announcement-bar-reserved-space');
   if (announcementConfig?.enabled === false) return;
 
+  const classes = announcementClassMap(classFamily);
   const header = $('header#header, header.header, .Header').first();
 
-  let dropzone = $('.dx-announcement-bar-dropzone').first();
+  let dropzone = $(`.${classes.dropzone}`).first();
   if (!dropzone.length) {
-    dropzone = $('<div class="dx-announcement-bar-dropzone"></div>');
+    dropzone = $(`<div class="${classes.dropzone}"></div>`);
     if (header.length) {
       header.before('\n');
       header.before(dropzone);
@@ -459,17 +485,17 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
     }
   }
 
-  wrapper.find('.dx-announcement-bar, .announcement-bar').remove();
-  dropzone.find('.dx-announcement-bar-custom-location, .dx-announcement-bar, .announcement-bar').remove();
+  wrapper.find('.dx-announcement-bar, .sqs-announcement-bar, .announcement-bar').remove();
+  dropzone.find('.dx-announcement-bar-custom-location, .sqs-announcement-bar-custom-location, .dx-announcement-bar, .sqs-announcement-bar, .announcement-bar').remove();
 
   const textHtml = String(announcementConfig?.textHtml || DEFAULT_ANNOUNCEMENT_HTML);
   const href = normalizeAnnouncementHref(announcementConfig?.href) || DEFAULT_ANNOUNCEMENT_HREF;
   const textId = 'dex-announcement-bar-text-inner-id';
 
-  const location = $('<div class="dx-announcement-bar-custom-location" data-dex-announcement-bar="1"></div>');
-  const widget = $('<div class="yui3-widget dx-widget dx-announcement-bar"></div>');
-  const content = $('<div class="dx-announcement-bar-content"></div>');
-  const link = $('<a class="dx-announcement-bar-url"></a>');
+  const location = $(`<div class="${classes.customLocation}" data-dex-announcement-bar="1"></div>`);
+  const widget = $(`<div class="yui3-widget ${classes.widget} ${classes.announcementBar}"></div>`);
+  const content = $(`<div class="${classes.content}"></div>`);
+  const link = $(`<a class="${classes.url}"></a>`);
   if (href) {
     link.attr('href', href);
     if (announcementConfig?.newWindow) {
@@ -478,9 +504,9 @@ function ensureAnnouncementBarPresence($, announcementConfig) {
     }
   }
   link.attr('aria-labelledby', textId);
-  const text = $('<div class="dx-announcement-bar-text"></div>');
-  const close = $('<span class="dx-announcement-bar-close" tabindex="0" role="button" aria-label="Close Announcement"></span>');
-  const inner = $(`<div id="${textId}" class="dx-announcement-bar-text-inner"></div>`);
+  const text = $(`<div class="${classes.text}"></div>`);
+  const close = $(`<span class="${classes.close}" tabindex="0" role="button" aria-label="Close Announcement"></span>`);
+  const inner = $(`<div id="${textId}" class="${classes.textInner}"></div>`);
   inner.html(textHtml);
 
   text.append('\n  ');
@@ -583,7 +609,7 @@ function markDexEntryHosts($) {
         sibling.remove();
         return;
       }
-      const htmlContent = sibling.find('.dx-html-content').first();
+      const htmlContent = sibling.find('.dx-html-content, .sqs-html-content').first();
       if (!htmlContent.length) return;
       if (isLegacyCatalogBreadcrumbBlock(htmlContent)) {
         sibling.remove();
@@ -651,20 +677,22 @@ function normalizeDexSectionSpacing($) {
 function ensureDexLayoutPatchStyle($, head) {
   const css = `
 #${DEX_LAYOUT_PATCH_STYLE_ID}[data-managed="1"] { display: block; }
-.dex-entry-host .dx-code-container {
+.dex-entry-host .dx-code-container,
+.dex-entry-host .sqs-code-container {
   --dex-entry-outer-gap: clamp(12px, 1.6vw, 20px);
   padding-top: var(--dex-entry-outer-gap) !important;
   padding-bottom: var(--dex-entry-outer-gap) !important;
-  padding-left: var(--dx-site-gutter, 4vw) !important;
-  padding-right: var(--dx-site-gutter, 4vw) !important;
+  padding-left: var(--sqs-site-gutter, var(--dx-site-gutter, 4vw)) !important;
+  padding-right: var(--sqs-site-gutter, var(--dx-site-gutter, 4vw)) !important;
 }
 @media (max-width: 767px) {
-  .dex-entry-host .dx-code-container {
+  .dex-entry-host .dx-code-container,
+  .dex-entry-host .sqs-code-container {
     --dex-entry-outer-gap: clamp(8px, 2.6vw, 12px);
     padding-top: var(--dex-entry-outer-gap) !important;
     padding-bottom: var(--dex-entry-outer-gap) !important;
-    padding-left: var(--dx-mobile-site-gutter, 6vw) !important;
-    padding-right: var(--dx-mobile-site-gutter, 6vw) !important;
+    padding-left: var(--sqs-mobile-site-gutter, var(--dx-mobile-site-gutter, 6vw)) !important;
+    padding-right: var(--sqs-mobile-site-gutter, var(--dx-mobile-site-gutter, 6vw)) !important;
   }
 }
 .dex-entry-section .section-divider-display { display: none !important; }
@@ -673,12 +701,46 @@ function ensureDexLayoutPatchStyle($, head) {
 .dex-entry-fluid-engine { grid-template-rows: auto !important; }
 #footer-sections.sections { margin-top: 0 !important; padding-top: 0 !important; }
 #footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
-.dex-entry-layout { align-items: stretch; }
-@media (max-width: 960px) {
-  .dex-entry-layout { align-items: start; }
+.dex-entry-layout {
+  --dex-entry-frame-radius: var(--radius-md, 8px);
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: clamp(16px, 2vw, 24px) !important;
+  align-items: stretch !important;
 }
-.dex-entry-main { overflow: visible !important; }
-.dex-entry-main { min-height: 0; }
+@media (max-width: 960px) {
+  .dex-entry-layout {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+}
+.dex-entry-main,
+.dex-sidebar {
+  min-width: 0;
+}
+.dex-entry-main {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vw, 24px);
+  overflow: visible !important;
+  min-height: 0;
+}
+.dex-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+}
+@media (max-width: 960px) {
+  .dex-entry-main,
+  .dex-sidebar {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
 .dex-entry-desc-scroll {
   position: relative;
   min-height: 0;
@@ -808,7 +870,39 @@ function ensureDexLayoutPatchStyle($, head) {
     margin-right: 4px;
   }
 }
-.dex-video-shell { position: relative; overflow: visible; }
+.dex-video-shell {
+  position: relative;
+  overflow: visible;
+}
+.dex-video {
+  position: relative;
+  border-radius: var(--dex-entry-frame-radius);
+  overflow: hidden;
+}
+.dex-video-aspect {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+@supports (aspect-ratio: 16 / 9) {
+  .dex-video-aspect {
+    height: auto;
+    padding-bottom: 0;
+    aspect-ratio: 16 / 9;
+  }
+}
+.dex-video-aspect iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+}
 .dex-breadcrumb-overlay {
   position: static;
   max-width: 100%;
@@ -1274,8 +1368,9 @@ export function sanitizeGeneratedHtml(html) {
   striplegacysiteRuntimeDataAttrs($);
   markDexEntryHosts($);
   normalizeDexSectionSpacing($);
-  const announcementConfig = resolveAnnouncementBarConfig($);
-  ensureAnnouncementBarPresence($, announcementConfig);
+  const classFamily = resolveLegacyClassFamily($);
+  const announcementConfig = resolveAnnouncementBarConfig($, classFamily);
+  ensureAnnouncementBarPresence($, announcementConfig, classFamily);
 
   $('script').each((_, element) => {
     const node = $(element);

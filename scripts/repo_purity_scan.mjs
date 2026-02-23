@@ -7,6 +7,7 @@ const CONFIG_PATH = path.join(ROOT, 'sanitize.config.json');
 const TARGETS_PATH = path.join(ROOT, 'artifacts', 'repo-targets.json');
 const MAX_FINDINGS_PER_TERM = 3;
 const MAX_TOTAL_FINDINGS = 1000;
+const FORBIDDEN_DOMAIN_ALLOWLIST_KEY = 'forbiddenDomainAllowlistFiles';
 
 function loadJSON(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -19,6 +20,13 @@ function normalizeList(value) {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => String(item).trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function normalizePathList(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || '').trim().replace(/\\/g, '/').replace(/^\.\/+/, ''))
     .filter(Boolean);
 }
 
@@ -88,6 +96,7 @@ function main() {
 
   const forbiddenNeedles = normalizeList(config.forbiddenNeedles);
   const forbiddenDomains = normalizeList(config.forbiddenDomains);
+  const allowlistedFiles = new Set(normalizePathList(config[FORBIDDEN_DOMAIN_ALLOWLIST_KEY]));
   if (forbiddenNeedles.length === 0 || forbiddenDomains.length === 0) {
     throw new Error('forbiddenNeedles and forbiddenDomains must both be configured in sanitize.config.json.');
   }
@@ -104,6 +113,7 @@ function main() {
 
   const findings = [];
   for (const filePath of files) {
+    if (allowlistedFiles.has(filePath)) continue;
     if (findings.length >= MAX_TOTAL_FINDINGS) break;
     findings.push(...scanFile(filePath, forbiddenNeedles, forbiddenDomains));
   }

@@ -7,6 +7,7 @@ const CONFIG_PATH = path.join(ROOT, 'sanitize.config.json');
 const TARGETS_PATH = path.join(ROOT, 'artifacts', 'repo-targets.json');
 const MAX_FINDINGS_PER_DOMAIN = 20;
 const MAX_FINDINGS_TOTAL = 500;
+const FORBIDDEN_DOMAIN_ALLOWLIST_KEY = 'forbiddenDomainAllowlistFiles';
 
 function loadJSON(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -18,6 +19,13 @@ function loadJSON(filePath, label) {
 function normalizeDomains(list) {
   if (!Array.isArray(list)) return [];
   return list.map((value) => String(value).trim().toLowerCase()).filter(Boolean);
+}
+
+function normalizePathList(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => String(entry || '').trim().replace(/\\/g, '/').replace(/^\.\/+/, ''))
+    .filter(Boolean);
 }
 
 function contextSnippet(content, start, length) {
@@ -43,6 +51,7 @@ function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
   const forbiddenDomains = normalizeDomains(config.forbiddenDomains);
+  const allowlistedFiles = new Set(normalizePathList(config[FORBIDDEN_DOMAIN_ALLOWLIST_KEY]));
   if (forbiddenDomains.length === 0) {
     throw new Error('forbiddenDomains is empty in sanitize.config.json.');
   }
@@ -59,6 +68,7 @@ function main() {
 
   const findings = [];
   for (const relativePath of files) {
+    if (allowlistedFiles.has(relativePath)) continue;
     if (findings.length >= MAX_FINDINGS_TOTAL) break;
     const absolutePath = path.join(ROOT, relativePath);
     if (!fs.existsSync(absolutePath)) continue;

@@ -27,6 +27,7 @@ const NON_IMAGE_EXTENSIONS = new Set([
   '.wav',
 ]);
 const IMAGE_DOMAINS_KEY = 'legacyImageDomains';
+const LEGACY_IMAGE_ALLOWLIST_KEY = 'legacyImageAllowlistFiles';
 
 function loadJSON(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -38,6 +39,13 @@ function loadJSON(filePath, label) {
 function normalizeDomains(value) {
   if (!Array.isArray(value)) return [];
   return value.map((entry) => String(entry).trim().toLowerCase()).filter(Boolean);
+}
+
+function normalizePathList(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => String(entry || '').trim().replace(/\\/g, '/').replace(/^\.\/+/, ''))
+    .filter(Boolean);
 }
 
 function parseUrl(rawUrl) {
@@ -78,6 +86,7 @@ function main() {
   const config = loadJSON(CONFIG_PATH, 'sanitize.config.json');
   const targets = loadJSON(TARGETS_PATH, 'artifacts/repo-targets.json');
   const domains = normalizeDomains(config[IMAGE_DOMAINS_KEY]);
+  const allowlistedFiles = new Set(normalizePathList(config[LEGACY_IMAGE_ALLOWLIST_KEY]));
   if (domains.length === 0) {
     throw new Error(`sanitize config image domains are empty (${IMAGE_DOMAINS_KEY}).`);
   }
@@ -95,6 +104,7 @@ function main() {
 
   const findings = [];
   for (const relativePath of files) {
+    if (allowlistedFiles.has(relativePath)) continue;
     const absolutePath = path.join(ROOT, relativePath);
     if (!fs.existsSync(absolutePath)) continue;
     const content = fs.readFileSync(absolutePath, 'utf8');

@@ -208,7 +208,7 @@ function ensureFontsLink(content) {
     return content.replace(/<\/head>/i, `${fontsLinkTag}\n</head>`);
   }
 
-  const dropzonePattern = /<div class="dx-announcement-bar-dropzone"><\/div>/i;
+  const dropzonePattern = /<div class="(?:dx|sqs)-announcement-bar-dropzone"><\/div>/i;
   if (dropzonePattern.test(content)) {
     if (/<body\b/i.test(content)) {
       return content.replace(dropzonePattern, `${fontsLinkTag}\n</head>\n$&`);

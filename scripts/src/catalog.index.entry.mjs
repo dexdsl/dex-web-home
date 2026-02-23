@@ -32,6 +32,7 @@ import Fuse from 'fuse.js';
   let blobResizeHandler = null;
   let drawerOpen = false;
   let seasonCarouselSeason = '';
+  const ZWNJ = '\u200C';
 
   function redirectLegacyHashes() {
     const target = REDIRECT_HASHES[window.location.hash || ''];
@@ -237,6 +238,35 @@ import Fuse from 'fuse.js';
     return href.endsWith('/') ? href : `${href}/`;
   }
 
+  function normalizeImageSrc(rawValue) {
+    const raw = text(rawValue).trim();
+    if (!raw || raw.startsWith('data:')) return '';
+    const stripQueryHash = (value) => value.split('#')[0].split('?')[0];
+
+    if (/^https?:\/\//i.test(raw)) {
+      try {
+        const parsed = new URL(raw);
+        const pathname = stripQueryHash(parsed.pathname);
+        const file = pathname.split('/').filter(Boolean).pop() || '';
+        if (/\.(?:jpe?g|png|webp|gif|avif)$/i.test(file)) {
+          return `${parsed.origin}${pathname}`;
+        }
+        if (parsed.hostname.endsWith('dexdsl.com') || parsed.hostname.endsWith('dexdsl.org')) {
+          return pathname || raw;
+        }
+        return `${parsed.origin}${pathname}`;
+      } catch {
+        return stripQueryHash(raw);
+      }
+    }
+
+    return stripQueryHash(raw);
+  }
+
+  function imageCandidateForEntry(entry) {
+    return normalizeImageSrc(entry?.image_src);
+  }
+
   function randomEntryHref() {
     const pool = allEntries()
       .map((entry) => canonicalEntryHref(entry.entry_href))
@@ -252,6 +282,12 @@ import Fuse from 'fuse.js';
     const match = season.match(/^S(\d+)$/);
     if (match) return `season ${match[1]}`;
     return 'season';
+  }
+
+  function protectedAllCaps(value) {
+    // Prevent ligature-like collapsing in double letters while preserving existing protection semantics.
+    const normalized = text(value).replace(/\u200C/g, '').toUpperCase();
+    return normalized.replace(/([A-Z])\1/g, `$1${ZWNJ}$1`);
   }
 
   function buildFuse() {
@@ -573,6 +609,7 @@ import Fuse from 'fuse.js';
 
   function renderSeasonSlide(entry) {
     const href = canonicalEntryHref(entry.entry_href) || '/catalog/';
+    const imageSrc = imageCandidateForEntry(entry);
     const slide = create('li', 'dx-catalog-index-season-slide');
 
     const media = create('a', 'dx-catalog-index-season-media');
@@ -580,15 +617,15 @@ import Fuse from 'fuse.js';
     const image = create('img', 'dx-catalog-index-season-img');
     image.loading = 'lazy';
     image.decoding = 'async';
-    image.src = text(entry.image_src);
     image.alt = text(entry.image_alt_raw || entry.title_raw || entry.performer_raw || 'Catalog entry');
+    if (imageSrc) image.src = imageSrc;
     media.appendChild(image);
 
     const copy = create('div', 'dx-catalog-index-season-copy');
     copy.appendChild(create('h3', 'dx-catalog-index-season-performer', text(entry.performer_raw || 'Unknown performer')));
     copy.appendChild(create('p', 'dx-catalog-index-season-title', text(entry.title_raw || 'Untitled')));
 
-    const open = openCta(href, 'View collection', 'primary');
+    const open = openCta(href, protectedAllCaps('View collection'), 'primary');
     open.classList.add('dx-catalog-index-season-open');
     copy.appendChild(open);
 
@@ -598,7 +635,7 @@ import Fuse from 'fuse.js';
 
   function renderSeasonCarousel(target) {
     const imageEntries = allEntries().filter((entry) => {
-      return !!canonicalEntryHref(entry.entry_href) && !!text(entry.image_src).trim() && !!text(entry.season).trim();
+      return !!canonicalEntryHref(entry.entry_href) && !!text(entry.season).trim() && !!imageCandidateForEntry(entry);
     });
     if (!imageEntries.length) return;
 
@@ -699,24 +736,35 @@ import Fuse from 'fuse.js';
 
   function renderSpotlight(target) {
     const spotlight = model?.spotlight || {};
+    const spotlightHref = canonicalEntryHref(spotlight.cta_href);
+    const spotlightEntry = allEntries().find((entry) => {
+      const entryHref = canonicalEntryHref(entry.entry_href);
+      if (spotlightHref && entryHref === spotlightHref) return true;
+      if (text(spotlight.entry_id) && text(entry.id) === text(spotlight.entry_id)) return true;
+      return false;
+    }) || null;
+    const resolvedHref = canonicalEntryHref(spotlightEntry?.entry_href || spotlight.cta_href) || text(spotlight.cta_href || '/catalog/');
+    const resolvedTitle = text(spotlightEntry?.title_raw || spotlight.subhead_raw || 'Featured entry');
+    const resolvedBody = text(spotlight.body_raw || spotlightEntry?.performer_raw || '');
+    const resolvedImage = normalizeImageSrc(text(spotlight.image_src || spotlightEntry?.image_src || ''));
     const section = create('section', 'dx-catalog-index-spotlight dx-catalog-index-surface');
 
     const copy = create('div', 'dx-catalog-index-spotlight-copy');
     copy.appendChild(create('p', 'dx-catalog-index-kicker', text(spotlight.headline_raw || 'ARTIST SPOTLIGHT')));
-    copy.appendChild(create('h2', 'dx-catalog-index-spotlight-title', text(spotlight.subhead_raw || 'Featured entry')));
-    if (spotlight.body_raw) copy.appendChild(create('p', 'dx-catalog-index-copy', text(spotlight.body_raw)));
-    copy.appendChild(openCta(text(spotlight.cta_href || '/catalog/'), text(spotlight.cta_label_raw || 'View entry'), 'primary'));
+    copy.appendChild(create('h2', 'dx-catalog-index-spotlight-title', resolvedTitle));
+    if (resolvedBody) copy.appendChild(create('p', 'dx-catalog-index-copy', resolvedBody));
+    copy.appendChild(openCta(resolvedHref, text(spotlight.cta_label_raw || 'View entry'), 'primary'));
 
     section.appendChild(copy);
 
-    if (spotlight.image_src) {
+    if (resolvedImage) {
       const media = create('a', 'dx-catalog-index-spotlight-media');
-      media.href = text(spotlight.cta_href || '/catalog/');
+      media.href = resolvedHref;
       const image = create('img', 'dx-catalog-index-spotlight-img');
       image.loading = 'lazy';
       image.decoding = 'async';
-      image.src = spotlight.image_src;
-      image.alt = text(spotlight.subhead_raw || spotlight.headline_raw || 'Artist spotlight');
+      image.alt = text(resolvedTitle || spotlight.headline_raw || 'Artist spotlight');
+      image.src = resolvedImage;
       media.appendChild(image);
       section.appendChild(media);
     }
