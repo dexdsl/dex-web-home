@@ -65,6 +65,37 @@
     return `${normalizePathname(url.pathname)}${url.search || ''}`;
   }
 
+  function isHeaderWordmarkAnchor(anchor) {
+    if (!(anchor instanceof Element)) return false;
+    return !!anchor.closest('.header-title-logo');
+  }
+
+  function normalizeHeaderWordmarkLinks(root = document) {
+    const links = Array.from(root.querySelectorAll('.header-title-logo a[href]'));
+    for (const link of links) {
+      const rawHref = String(link.getAttribute('href') || '').trim();
+      const lowerHref = rawHref.toLowerCase();
+      if (
+        lowerHref === '/' ||
+        lowerHref === 'index.html' ||
+        lowerHref === './index.html' ||
+        lowerHref === 'index.htm' ||
+        lowerHref === './'
+      ) {
+        link.setAttribute('href', '/');
+        link.setAttribute('data-dx-home-link', 'true');
+        continue;
+      }
+
+      const absoluteHref = toAbsoluteUrl(rawHref);
+      if (!absoluteHref) continue;
+      if (normalizePathname(absoluteHref.pathname) === '/index.html') {
+        link.setAttribute('href', '/');
+        link.setAttribute('data-dx-home-link', 'true');
+      }
+    }
+  }
+
   function shouldPreserveOutsideSlot(node, headerElement) {
     if (!(node instanceof HTMLElement)) return true;
     if (node === headerElement) return true;
@@ -145,6 +176,7 @@
   function buildForegroundFragment(sourceDocument) {
     const fragment = document.createDocumentFragment();
     const nodes = extractForegroundNodes(sourceDocument);
+    const inlineScripts = [];
 
     for (const node of nodes) {
       fragment.appendChild(document.importNode(node, true));
@@ -152,10 +184,97 @@
 
     const scripts = Array.from(fragment.querySelectorAll('script'));
     for (const script of scripts) {
+      if (script.getAttribute('src')) {
+        script.remove();
+        continue;
+      }
+      const writeOutput = resolveDocumentWriteScriptOutput(script.textContent || '');
+      if (writeOutput !== null) {
+        script.replaceWith(document.createTextNode(writeOutput));
+        continue;
+      }
+      if (!isExecutableInlineScript(script)) continue;
+      inlineScripts.push({
+        code: script.textContent || '',
+        type: String(script.getAttribute('type') || '').trim(),
+        noModule: script.hasAttribute('nomodule'),
+      });
       script.remove();
     }
 
-    return fragment;
+    return { fragment, inlineScripts };
+  }
+
+  function isExecutableInlineScript(script) {
+    if (!(script instanceof HTMLScriptElement)) return false;
+    if (script.getAttribute('src')) return false;
+
+    const type = String(script.getAttribute('type') || '').trim().toLowerCase();
+    if (!type) return true;
+    if (type === 'text/javascript' || type === 'application/javascript') return true;
+    if (type === 'application/ecmascript' || type === 'text/ecmascript') return true;
+    return false;
+  }
+
+  function resolveDocumentWriteScriptOutput(sourceCode) {
+    const code = String(sourceCode || '').trim();
+    if (!code) return '';
+
+    const match = code.match(/^document\.write\(([\s\S]*)\);?$/);
+    if (!match) return null;
+
+    const expression = String(match[1] || '').trim();
+    if (!expression) return '';
+
+    const randomizeCallMatch = expression.match(/^randomizeTitle\(([\s\S]*)\)$/);
+    if (randomizeCallMatch) {
+      const value = parseSingleJsStringLiteral(randomizeCallMatch[1]);
+      return randomizeTitleText(value || '');
+    }
+
+    const literal = parseSingleJsStringLiteral(expression);
+    if (literal !== null) return literal;
+
+    return '';
+  }
+
+  function parseSingleJsStringLiteral(expression) {
+    const raw = String(expression || '').trim();
+    if (!raw) return '';
+    const first = raw[0];
+    const last = raw[raw.length - 1];
+    if (!first || first !== last) return null;
+    if (first !== '\'' && first !== '"' && first !== '`') return null;
+
+    const inner = raw.slice(1, -1);
+    if (first === '\'') return inner.replace(/\\'/g, '\'').replace(/\\\\/g, '\\');
+    if (first === '`') return inner.replace(/\\`/g, '`').replace(/\\\\/g, '\\');
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return inner.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+  }
+
+  function randomizeTitleText(input) {
+    const source = String(input || '').toUpperCase();
+    const roll = Math.random();
+    const duplicateCount = roll < 0.4 ? 0 : (roll < 0.8 ? 1 : 2);
+    if (!duplicateCount) return source;
+
+    const excluded = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
+    const letters = [];
+    for (let index = 0; index < source.length; index += 1) {
+      const char = source[index];
+      if (!/\S/.test(char)) continue;
+      if (excluded.has(char)) continue;
+      letters.push({ char, index });
+    }
+    if (!letters.length) return source;
+
+    const selected = letters[Math.floor(Math.random() * letters.length)];
+    const repeatChar = selected.char.repeat(duplicateCount);
+    return `${source.slice(0, selected.index + 1)}${repeatChar}${source.slice(selected.index + 1)}`;
   }
 
   function dispatchSlotReady(scrollRoot, foregroundRoot) {
@@ -447,6 +566,54 @@
     }
   }
 
+  function digestInlineScript(definition) {
+    const type = String((definition && definition.type) || '').trim().toLowerCase();
+    const code = String((definition && definition.code) || '').trim();
+    if (!code) return '';
+
+    let hash = 2166136261;
+    const payload = `${type}::${code}`;
+    for (let index = 0; index < payload.length; index += 1) {
+      hash ^= payload.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `dx-inline-${(hash >>> 0).toString(16)}`;
+  }
+
+  function buildInlineRouteScriptBundle(definitions) {
+    const seen = new Set();
+    const chunks = [];
+    for (const definition of definitions) {
+      const code = String((definition && definition.code) || '').trim();
+      if (!code) continue;
+      const digest = digestInlineScript(definition);
+      if (digest && seen.has(digest)) continue;
+      if (digest) seen.add(digest);
+      chunks.push(code);
+    }
+    if (!chunks.length) return '';
+
+    return `\n(function(){\n  const __dxOriginalAddEventListener = document.addEventListener.bind(document);\n  const __dxDomReadyEvent = (() => {\n    try {\n      return new Event('DOMContentLoaded', { bubbles: true, cancelable: true });\n    } catch {\n      const fallback = document.createEvent('Event');\n      fallback.initEvent('DOMContentLoaded', true, true);\n      return fallback;\n    }\n  })();\n  const __dxDispatchDomReady = (listener) => {\n    if (!listener) return;\n    if (typeof listener === 'function') {\n      listener.call(document, __dxDomReadyEvent);\n      return;\n    }\n    if (listener && typeof listener.handleEvent === 'function') {\n      listener.handleEvent(__dxDomReadyEvent);\n    }\n  };\n  document.addEventListener = function(type, listener, options) {\n    if (String(type || '').toLowerCase() === 'domcontentloaded') {\n      try {\n        __dxDispatchDomReady(listener);\n      } catch (error) {\n        try { console.error(error); } catch {}\n      }\n      return;\n    }\n    return __dxOriginalAddEventListener(type, listener, options);\n  };\n  try {\n${chunks.join('\n;\n')}\n  } finally {\n    document.addEventListener = __dxOriginalAddEventListener;\n  }\n})();\n`;
+  }
+
+  function loadInlineRouteScripts(definitions) {
+    const bundledCode = buildInlineRouteScriptBundle(definitions);
+    if (!bundledCode) return false;
+
+    try {
+      const script = document.createElement('script');
+      script.setAttribute(ROUTE_SCRIPT_ATTR, 'true');
+      script.text = bundledCode;
+      document.body.appendChild(script);
+      return true;
+    } catch (error) {
+      try {
+        console.warn('[dx-slot] inline route bundle skipped due to execution error.', error);
+      } catch {}
+      return false;
+    }
+  }
+
   function captureGooeyMeshState() {
     const wrapper = document.getElementById('gooey-mesh-wrapper');
     if (!wrapper) return null;
@@ -581,7 +748,7 @@
     syncRouteStyles(sourceDocument, targetUrl.href);
     syncDocumentFromRoute(sourceDocument, targetUrl);
 
-    const nextFragment = buildForegroundFragment(sourceDocument);
+    const { fragment: nextFragment, inlineScripts } = buildForegroundFragment(sourceDocument);
     clearChildren(foregroundRoot);
     foregroundRoot.appendChild(nextFragment);
 
@@ -590,6 +757,7 @@
 
     clearRouteScripts();
     await loadRouteScripts(scripts);
+    loadInlineRouteScripts(inlineScripts);
 
     if (meshState) {
       restoreGooeyMeshState(meshState);
@@ -710,9 +878,16 @@
       const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
       if (!anchor) return;
 
-      const targetUrl = toAbsoluteUrl(anchor.getAttribute('href'));
+      const targetUrl = isHeaderWordmarkAnchor(anchor)
+        ? new URL('/', window.location.origin)
+        : toAbsoluteUrl(anchor.getAttribute('href'));
       if (!targetUrl) return;
       if (!shouldHandleSoftNavigation(targetUrl, anchor)) return;
+
+      if (isHeaderWordmarkAnchor(anchor)) {
+        anchor.setAttribute('href', '/');
+        anchor.setAttribute('data-dx-home-link', 'true');
+      }
 
       event.preventDefault();
       void softNavigate(targetUrl, { pushHistory: true, anchor });
@@ -742,6 +917,7 @@
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
 
     document.body.classList.add(BODY_CLASS);
+    normalizeHeaderWordmarkLinks();
 
     window.dxGetSlotScrollRoot = () => document.getElementById(SLOT_SCROLL_ID);
     window.dxGetSlotForegroundRoot = () => document.getElementById(SLOT_FOREGROUND_ID);
