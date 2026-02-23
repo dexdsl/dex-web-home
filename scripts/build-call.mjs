@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { build } from 'esbuild';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,17 @@ async function copyFile(source, target) {
   await fs.copyFile(source, target);
 }
 
+function runNodeScript(relativePath) {
+  const absolutePath = path.join(ROOT, relativePath);
+  const result = spawnSync(process.execPath, [absolutePath], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    throw new Error(`Failed step: ${relativePath}`);
+  }
+}
+
 async function main() {
   await ensureDir(publicOut);
 
@@ -41,6 +53,8 @@ async function main() {
   for (const mirror of mirrors) {
     await copyFile(publicOut, mirror);
   }
+
+  runNodeScript('scripts/inject_header_slot_scripts.mjs');
 
   console.log(`call:build wrote ${path.relative(ROOT, publicOut)}`);
   for (const mirror of mirrors) {

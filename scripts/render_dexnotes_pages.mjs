@@ -147,6 +147,7 @@ function buildHead({
 <script src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
 <script defer src="/assets/dex-auth0-config.js"></script>
 <script defer src="/assets/dex-auth.js"></script>
+<script defer src="/assets/js/header-slot.js"></script>
 <script defer src="${escapeAttr(runtimeScript)}"></script>
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
 <link rel="preconnect" href="https://p.fonthost.net" crossorigin>
@@ -229,6 +230,7 @@ function redirectDoc(target) {
 <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
 <script defer src="/assets/dex-auth0-config.js"></script>
 <script defer src="/assets/dex-auth.js"></script>
+<script defer src="/assets/js/header-slot.js"></script>
 `;
 }
 

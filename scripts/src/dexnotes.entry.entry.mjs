@@ -14,6 +14,8 @@ import { animate } from 'framer-motion/dom';
   let blobResizeHandler = null;
   let progressRaf = 0;
   let progressBound = false;
+  let progressScrollTarget = null;
+  let progressSlotListenerBound = false;
 
   function text(value) {
     return String(value ?? '');
@@ -71,29 +73,60 @@ import { animate } from 'framer-motion/dom';
       const progress = ensureProgressBar();
       const fill = progress.querySelector('.dx-dexnotes-reading-progress-fill');
       if (!fill) return;
-      const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-      const ratio = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+      let top = 0;
+      let maxScroll = 1;
+      if (progressScrollTarget && progressScrollTarget !== window) {
+        const host = progressScrollTarget;
+        top = Number(host.scrollTop || 0);
+        maxScroll = Math.max(Number(host.scrollHeight || 0) - Number(host.clientHeight || 0), 1);
+      } else {
+        const docEl = document.documentElement;
+        top = Number(window.scrollY || docEl.scrollTop || 0);
+        maxScroll = Math.max(Number(docEl.scrollHeight || 0) - Number(window.innerHeight || 0), 1);
+      }
+      const ratio = Math.max(0, Math.min(1, top / maxScroll));
       fill.style.transform = `scaleX(${ratio})`;
     });
   }
 
+  function resolveProgressScrollTarget() {
+    if (typeof window.dxGetSlotScrollRoot === 'function') {
+      const slotRoot = window.dxGetSlotScrollRoot();
+      if (slotRoot && typeof slotRoot.addEventListener === 'function') return slotRoot;
+    }
+    return window;
+  }
+
   function bindProgress() {
-    if (progressBound) return;
+    const nextTarget = resolveProgressScrollTarget();
+    if (progressBound && progressScrollTarget === nextTarget) {
+      scheduleProgressUpdate();
+      return;
+    }
+    if (progressBound) unbindProgress();
     progressBound = true;
+    progressScrollTarget = nextTarget;
     scheduleProgressUpdate();
-    window.addEventListener('scroll', scheduleProgressUpdate, { passive: true });
+    progressScrollTarget.addEventListener('scroll', scheduleProgressUpdate, { passive: true });
     window.addEventListener('resize', scheduleProgressUpdate);
+    if (!progressSlotListenerBound) {
+      progressSlotListenerBound = true;
+      window.addEventListener('dx:slotready', bindProgress);
+    }
   }
 
   function unbindProgress() {
     if (!progressBound) return;
     progressBound = false;
-    window.removeEventListener('scroll', scheduleProgressUpdate);
+    if (progressScrollTarget) {
+      progressScrollTarget.removeEventListener('scroll', scheduleProgressUpdate);
+    }
     window.removeEventListener('resize', scheduleProgressUpdate);
     if (progressRaf) {
       cancelAnimationFrame(progressRaf);
       progressRaf = 0;
     }
+    progressScrollTarget = null;
   }
 
   function startBlobMotion() {

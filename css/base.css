@@ -28,6 +28,21 @@
   --dx-fixed-header-height: 90px;
   --dx-fixed-header-gap: 12px;
   --dx-fixed-header-space: calc(var(--dx-fixed-header-top) + var(--dx-fixed-header-height) + var(--dx-fixed-header-gap));
+  --dx-slot-top: var(--dx-fixed-header-top);
+  --dx-slot-content-offset: calc(var(--dx-fixed-header-height) + var(--dx-fixed-header-gap));
+  --dx-layer-gooey: 200;
+  --dx-layer-foreground: 400;
+  --dx-layer-header: 1300;
+  --dex-scroll-dot-size: 12px;
+  --dex-scroll-rail-w: 4px;
+  --dex-scroll-shift-x: -10px;
+  --dex-scroll-dot-z: 1200;
+  --dex-scroll-inset-top: calc(var(--dx-fixed-header-top) + var(--dx-fixed-header-height) + 8px);
+  --dex-scroll-inset-bottom: 20px;
+  --dex-scroll-header-gap: 8px;
+  --dex-scroll-footer-gap: 0px;
+  --dex-scroll-clearance-x: 10px;
+  --dex-scroll-right-padding: 3px;
 }
 
 *,
@@ -56,6 +71,115 @@ body {
   font-weight: var(--dx-font-weight-body);
   line-height: var(--dx-line-height-body);
   padding-top: var(--dx-fixed-header-space);
+}
+
+body.dx-slot-enabled {
+  overflow: hidden !important;
+  padding-top: 0 !important;
+}
+
+#dx-slot-scroll-root {
+  display: none;
+}
+
+body.dx-slot-enabled #dx-slot-scroll-root {
+  display: block;
+  position: fixed;
+  inset: var(--dx-slot-top) 0 0 0;
+  overflow-y: auto;
+  overflow-x: clip;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  z-index: var(--dx-layer-foreground);
+  scroll-padding-top: calc(var(--dx-slot-content-offset) + var(--dx-space-xs));
+}
+
+body.dx-slot-enabled #dx-slot-scroll-root::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+body.dx-slot-enabled #dx-slot-foreground-root {
+  min-height: 100%;
+  padding-top: var(--dx-slot-content-offset);
+}
+
+body.dx-slot-enabled #scroll-gradient-bg,
+body.dx-slot-enabled #gooey-mesh-wrapper {
+  z-index: var(--dx-layer-gooey) !important;
+}
+
+.dex-scroll-rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 0;
+  width: var(--dex-scroll-rail-w);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.22));
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.09) inset,
+    0 6px 18px rgba(14, 18, 28, 0.2);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  pointer-events: none;
+  opacity: 0.46;
+  transition: opacity 0.3s ease;
+  z-index: var(--dex-scroll-dot-z);
+}
+
+.dex-scroll-rail.is-visible {
+  opacity: 0.72;
+}
+
+.dex-scroll-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--dex-scroll-dot-size);
+  height: var(--dex-scroll-dot-size);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--dx-color-accent, #ff1910) 0%, #ff6a00 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.12) inset,
+    0 4px 12px rgba(0, 0, 0, 0.18),
+    0 0 10px rgba(255, 96, 64, 0.2);
+  backdrop-filter: blur(12px) saturate(160%) contrast(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(160%) contrast(1.05);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  z-index: var(--dex-scroll-dot-z);
+}
+
+.dex-scroll-dot.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dex-scroll-dot.dragging {
+  opacity: 1;
+  cursor: grabbing;
+}
+
+html.dx-hide-native-scrollbar,
+body.dx-hide-native-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.dx-hide-native-scrollbar::-webkit-scrollbar,
+body.dx-hide-native-scrollbar::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }
 
 @media (max-width: 980px) {
@@ -176,7 +300,7 @@ hr {
   top: 12px !important;
   left: 50% !important;
   transform: translateX(-50%);
-  z-index: 1300 !important;
+  z-index: var(--dx-layer-header) !important;
   width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px) !important;
   margin: 0 !important;
   padding: 0 clamp(12px, 1.8vw, 24px) !important;

@@ -173,6 +173,10 @@
     top: calc(var(--dx-header-safe-height, 96px) + 10px);
     flex-direction: column;
   }
+
+  body.dx-slot-enabled .dx-catalog-symbols-rail {
+    top: calc(var(--dx-fixed-header-space, 114px) - var(--dx-fixed-header-top, 12px) + 10px);
+  }
 }
 
 @media (max-width: 760px) {

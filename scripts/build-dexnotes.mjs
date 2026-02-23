@@ -29,7 +29,7 @@ const BUILD_TARGETS = [
   },
 ];
 
-const POST_STEPS = ['scripts/build_dexnotes_feed.mjs'];
+const POST_STEPS = ['scripts/build_dexnotes_feed.mjs', 'scripts/inject_header_slot_scripts.mjs'];
 
 function runNodeScript(relativePath) {
   const absolutePath = path.join(ROOT, relativePath);
