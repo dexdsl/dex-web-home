@@ -38,6 +38,7 @@
   let softRouterInstalled = false;
   let scrollStateInstalled = false;
   let scrollStateRafId = 0;
+  let slotLayoutStabilizerInstalled = false;
 
   function getHeaderElement(root = document) {
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
@@ -328,7 +329,9 @@
     blockEl.style.setProperty('transform', 'none', 'important');
 
     const blockRect = blockEl.getBoundingClientRect();
-    const shiftX = Math.round(headerRect.left - blockRect.left);
+    const headerCenterX = headerRect.left + (headerRect.width / 2);
+    const blockCenterX = blockRect.left + (blockRect.width / 2);
+    const shiftX = Math.round((headerCenterX - blockCenterX) * 1000) / 1000;
     blockEl.style.setProperty('transform', `translateX(${shiftX}px)`, 'important');
   }
 
@@ -721,6 +724,43 @@
     persistScrollState(scrollRoot);
   }
 
+  function installSlotLayoutStabilizer(scrollRoot, foregroundRoot) {
+    if (slotLayoutStabilizerInstalled || !scrollRoot || !foregroundRoot) return;
+    slotLayoutStabilizerInstalled = true;
+
+    let lastHeight = foregroundRoot.getBoundingClientRect().height;
+    let rafId = 0;
+
+    const schedule = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        const nextHeight = foregroundRoot.getBoundingClientRect().height;
+        const delta = nextHeight - lastHeight;
+        lastHeight = nextHeight;
+        if (!Number.isFinite(delta) || Math.abs(delta) < 0.5) return;
+
+        const maxScroll = Math.max(0, scrollRoot.scrollHeight - scrollRoot.clientHeight);
+        const isNearBottom = (maxScroll - scrollRoot.scrollTop) <= 120;
+        if (isNearBottom && delta > 0) {
+          scrollRoot.scrollTop = maxScroll;
+        }
+      });
+    };
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(schedule);
+      observer.observe(foregroundRoot);
+    }
+
+    window.addEventListener('resize', schedule, { passive: true });
+    window.addEventListener('load', schedule);
+    window.addEventListener('dx:slotready', () => {
+      lastHeight = foregroundRoot.getBoundingClientRect().height;
+      schedule();
+    });
+  }
+
   function syncDocumentFromRoute(sourceDocument, targetUrl) {
     if (sourceDocument.title) {
       document.title = sourceDocument.title;
@@ -949,6 +989,7 @@
 
     installSoftRouter();
     installScrollStateTracker(scrollRoot);
+    installSlotLayoutStabilizer(scrollRoot, foregroundRoot);
 
     requestAnimationFrame(() => {
       if (initialScroll > 0) {
