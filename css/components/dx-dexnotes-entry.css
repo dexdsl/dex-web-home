@@ -1,5 +1,6 @@
 :root {
   --dx-dexnotes-entry-gutter: clamp(1rem, 2.4vw, 2rem);
+  --dx-dexnotes-entry-frame-width: var(--dx-header-frame-width, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px));
   --dx-dexnotes-entry-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
   --dx-dexnotes-entry-rim: rgba(255, 255, 255, 0.48);
   --dx-dexnotes-entry-surface: linear-gradient(132deg, rgba(255, 255, 255, 0.7), rgba(234, 240, 249, 0.44));
@@ -12,7 +13,8 @@
   position: relative;
   z-index: 1;
   margin: 0 auto;
-  width: min(1240px, calc(100vw - (var(--dx-dexnotes-entry-gutter) * 2)));
+  width: var(--dx-dexnotes-entry-frame-width);
+  max-width: var(--dx-dexnotes-entry-frame-width);
   padding-top: 0.96rem;
   padding-bottom: clamp(2rem, 3vw, 3rem);
 }

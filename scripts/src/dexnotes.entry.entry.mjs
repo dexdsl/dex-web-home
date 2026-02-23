@@ -9,6 +9,8 @@ import { animate } from 'framer-motion/dom';
   const ENTRIES_URL = '/data/dexnotes.entries.json';
   const COMMENTS_URL = '/data/dexnotes.comments.json';
   const PROGRESS_ID = 'dx-dexnotes-reading-progress';
+  const BLOB_RUNTIME_KEY = '__dxDexnotesBlobRuntime';
+  const blobRuntimeHandle = {};
 
   let blobRaf = 0;
   let blobResizeHandler = null;
@@ -130,6 +132,15 @@ import { animate } from 'framer-motion/dom';
   }
 
   function startBlobMotion() {
+    const activeRuntime = window[BLOB_RUNTIME_KEY];
+    if (activeRuntime && activeRuntime.handle !== blobRuntimeHandle && typeof activeRuntime.stop === 'function') {
+      try {
+        activeRuntime.stop();
+      } catch {
+        // Ignore stale blob runtime failures.
+      }
+    }
+
     const wrapper = document.getElementById('gooey-mesh-wrapper');
     if (!wrapper || prefersReducedMotion()) return;
 
@@ -140,13 +151,17 @@ import { animate } from 'framer-motion/dom';
     const height = () => window.innerHeight;
 
     blobs.forEach((blob) => {
-      const speed = 60 + Math.random() * 60;
-      const angle = Math.random() * Math.PI * 2;
       blob._rad = blob.offsetWidth / 2;
-      blob._x = width() / 2;
-      blob._y = height() / 2;
-      blob._vx = Math.cos(angle) * speed * 0.24;
-      blob._vy = Math.sin(angle) * speed * 0.24;
+      if (!Number.isFinite(blob._x)) blob._x = width() / 2;
+      if (!Number.isFinite(blob._y)) blob._y = height() / 2;
+      if (!Number.isFinite(blob._vx) || !Number.isFinite(blob._vy)) {
+        const speed = 60 + Math.random() * 60;
+        const angle = Math.random() * Math.PI * 2;
+        blob._vx = Math.cos(angle) * speed * 0.24;
+        blob._vy = Math.sin(angle) * speed * 0.24;
+      }
+      blob._x = Math.min(Math.max(blob._rad, blob._x), width() - blob._rad);
+      blob._y = Math.min(Math.max(blob._rad, blob._y), height() - blob._rad);
     });
 
     if (blobRaf) cancelAnimationFrame(blobRaf);
@@ -180,6 +195,7 @@ import { animate } from 'framer-motion/dom';
       });
     };
     window.addEventListener('resize', blobResizeHandler);
+    window[BLOB_RUNTIME_KEY] = { handle: blobRuntimeHandle, stop: stopBlobMotion };
   }
 
   function stopBlobMotion() {
@@ -190,6 +206,14 @@ import { animate } from 'framer-motion/dom';
     if (blobResizeHandler) {
       window.removeEventListener('resize', blobResizeHandler);
       blobResizeHandler = null;
+    }
+    const activeRuntime = window[BLOB_RUNTIME_KEY];
+    if (activeRuntime && activeRuntime.handle === blobRuntimeHandle) {
+      try {
+        delete window[BLOB_RUNTIME_KEY];
+      } catch {
+        window[BLOB_RUNTIME_KEY] = undefined;
+      }
     }
   }
 
