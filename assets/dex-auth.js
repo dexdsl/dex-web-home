@@ -112,6 +112,41 @@
     return parseCssColorToRgb(window.getComputedStyle(document.body).backgroundColor) || { r: 16, g: 18, b: 24 };
   }
 
+  function getMenuIcon(iconName) {
+    var icons = {
+      catalog: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5Z"></path><path d="M4 6v15"></path><path d="M8 8h8"></path><path d="M8 12h8"></path></svg>',
+      favorites: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20.2 4.9 13.7a4.5 4.5 0 0 1 6.3-6.4L12 8l.8-.7a4.5 4.5 0 1 1 6.3 6.4L12 20.2Z"></path></svg>',
+      polls: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h16"></path><path d="M7 16V9"></path><path d="M12 16V5"></path><path d="M17 16v-3"></path></svg>',
+      submit: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4"></path><path d="M7.5 8.5 12 4l4.5 4.5"></path><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg>',
+      messages: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 4V6.5Z"></path><path d="M8 9h8"></path><path d="M8 12h5"></path></svg>',
+      press: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h3l7-4v8l-7-4H4Z"></path><path d="M14 10.5a3 3 0 0 1 0 3"></path><path d="M6 15v2a2 2 0 0 0 2 2h1"></path></svg>',
+      settings: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.1 2.2 2.4.3 1.5 1.9-.6 2.3L18 12l-1.6 2.3.6 2.3-1.5 1.9-2.4.3L12 21l-1.1-2.2-2.4-.3-1.5-1.9.6-2.3L6 12l1.6-2.3-.6-2.3 1.5-1.9 2.4-.3L12 3Z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+      achievements: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5h8v3a4 4 0 1 1-8 0V5Z"></path><path d="M10 15h4"></path><path d="M9 19h6"></path><path d="M8 8H6a2 2 0 0 1-2-2V5h4"></path><path d="M16 8h2a2 2 0 0 0 2-2V5h-4"></path></svg>',
+      logout: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"></path><path d="M15 16l5-4-5-4"></path><path d="M20 12H9"></path></svg>',
+    };
+    return icons[iconName] || "";
+  }
+
+  function getMenuLinkMarkup(href, label, iconName) {
+    return ''
+      + '<a class="dex-menu-item" href="' + href + '" role="menuitem">'
+      + '  <span class="dex-menu-icon-wrap" aria-hidden="true">' + getMenuIcon(iconName) + '</span>'
+      + '  <span class="dex-menu-label">' + label + '</span>'
+      + '</a>';
+  }
+
+  function getMenuButtonMarkup(id, label, iconName, extraClass) {
+    var cls = "dex-menu-item";
+    if (extraClass) {
+      cls += " " + extraClass;
+    }
+    return ''
+      + '<button id="' + id + '" class="' + cls + '" type="button" role="menuitem">'
+      + '  <span class="dex-menu-icon-wrap" aria-hidden="true">' + getMenuIcon(iconName) + '</span>'
+      + '  <span class="dex-menu-label">' + label + '</span>'
+      + '</button>';
+  }
+
   function getAuthUiMarkup() {
     return ""
       + '<button id="auth-ui-signin" class="dx-button-element dx-button-element--secondary dx-button-size--md" type="button">SIGN IN</button>'
@@ -121,18 +156,18 @@
       + '    <span class="dex-profile-chevron" aria-hidden="true"></span>'
       + "  </button>"
       + '  <div id="auth-ui-dropdown" role="menu" aria-label="Account menu">'
-      + '    <a class="dex-menu-item" href="/catalog" role="menuitem">Catalog</a>'
-      + '    <a class="dex-menu-item" href="/entry/favorites/" role="menuitem">Favorites</a>'
-      + '    <a class="dex-menu-item" href="/polls" role="menuitem">Polls</a>'
+      + getMenuLinkMarkup("/catalog", "Catalog", "catalog")
+      + getMenuLinkMarkup("/entry/favorites/", "Favorites", "favorites")
+      + getMenuLinkMarkup("/polls", "Polls", "polls")
       + '    <div class="dex-menu-sep" role="separator"></div>'
-      + '    <a class="dex-menu-item" href="/entry/submit/" role="menuitem">Submit Samples</a>'
-      + '    <a class="dex-menu-item" href="/entry/messages/" role="menuitem">Messages</a>'
-      + '    <a class="dex-menu-item" href="/entry/pressroom/" role="menuitem">Press Room</a>'
+      + getMenuLinkMarkup("/entry/submit/", "Submit Samples", "submit")
+      + getMenuLinkMarkup("/entry/messages/", "Messages", "messages")
+      + getMenuLinkMarkup("/entry/pressroom/", "Press Room", "press")
       + '    <div class="dex-menu-sep" role="separator"></div>'
-      + '    <a class="dex-menu-item" href="/entry/settings/" role="menuitem">Settings</a>'
-      + '    <a class="dex-menu-item" href="/entry/achievements/" role="menuitem">Achievements</a>'
+      + getMenuLinkMarkup("/entry/settings/", "Settings", "settings")
+      + getMenuLinkMarkup("/entry/achievements/", "Achievements", "achievements")
       + '    <div class="dex-menu-sep" role="separator"></div>'
-      + '    <button id="auth-ui-logout" class="dex-menu-item is-logout" type="button" role="menuitem">Log out</button>'
+      + getMenuButtonMarkup("auth-ui-logout", "Log out", "logout", "is-logout")
       + "  </div>"
       + "</div>";
   }
@@ -152,9 +187,9 @@
     var svg = ""
       + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Avatar">'
       + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8cb4ff"/><stop offset="100%" stop-color="#5a78d8"/></linearGradient></defs>'
-      + '<rect width="64" height="64" rx="32" fill="url(#g)"/>'
-      + '<circle cx="32" cy="24" r="12" fill="rgba(255,255,255,0.22)"/>'
-      + '<text x="32" y="42" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-size="22" font-weight="700">' + safeInitials + "</text>"
+      + '<rect width="64" height="64" rx="8" fill="url(#g)"/>'
+      + '<rect x="8" y="8" width="48" height="48" rx="8" fill="rgba(255,255,255,0.16)"/>'
+      + '<text x="32" y="40" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-size="21" font-weight="700">' + safeInitials + "</text>"
       + "</svg>";
     return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
   }
@@ -325,9 +360,9 @@
       var style = document.createElement("style");
       style.id = styleId;
       style.textContent = ""
-        + "#auth-ui{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(255,255,255,.78);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.26);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.78),rgba(245,249,255,.54));--dex-signin-border:rgba(20,24,34,.22);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.5) inset;--dex-signin-text:rgba(18,22,33,.94);--dex-radius:10px;--dex-nav-h:38px;--dex-space-2:var(--space-2,8px);--dex-space-3:var(--space-3,12px);position:relative;top:0;display:inline-flex;align-items:center;align-self:center;vertical-align:middle;line-height:1;overflow:visible;padding:0;margin:0;gap:var(--dex-space-2);font-family:inherit;color:var(--dex-text);transform:translateY(var(--dex-nav-offset-y,0px));}"
-        + "#auth-ui[data-dex-scheme='dark']{--dex-text:rgba(255,255,255,.92);--dex-text-muted:rgba(245,248,255,.84);--dex-panel-bg:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.1) 42%,rgba(20,24,34,.62));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));--dex-row-hover-bg:linear-gradient(140deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--dex-border:rgba(255,255,255,.14);--dex-border-strong:rgba(255,255,255,.28);--dex-shadow:0 16px 44px rgba(0,0,0,.22);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.22);--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.12));--dex-signin-border:rgba(255,255,255,.32);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.2) inset;--dex-signin-text:rgba(255,255,255,.94);}"
-        + "#auth-ui[data-dex-scheme='light']{--dex-text:rgba(15,18,25,.92);--dex-text-muted:rgba(28,35,52,.76);--dex-panel-bg:linear-gradient(150deg,rgba(255,255,255,.82),rgba(249,252,255,.72) 46%,rgba(238,244,255,.66));--dex-row-bg:linear-gradient(145deg,rgba(255,255,255,.72),rgba(246,250,255,.62));--dex-row-hover-bg:linear-gradient(145deg,rgba(255,255,255,.9),rgba(237,244,255,.75));--dex-border:rgba(15,18,25,.1);--dex-border-strong:rgba(15,18,25,.22);--dex-shadow:0 14px 36px rgba(0,0,0,.12);--dex-grain-opacity:0;--dex-text-shadow:none;--dex-signin-bg:linear-gradient(145deg,rgba(255,255,255,.86),rgba(244,248,255,.62));--dex-signin-border:rgba(15,18,25,.2);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.66) inset;--dex-signin-text:rgba(18,22,33,.94);}"
+        + "#auth-ui{--dex-text:rgba(245,248,255,.94);--dex-text-muted:rgba(225,232,246,.82);--dex-panel-bg:linear-gradient(155deg,rgba(29,39,56,.64),rgba(22,30,44,.72) 42%,rgba(14,20,30,.78));--dex-row-bg:linear-gradient(145deg,rgba(48,60,82,.46),rgba(34,44,62,.52));--dex-row-hover-bg:linear-gradient(140deg,rgba(66,82,108,.54),rgba(42,54,76,.58));--dex-border:rgba(255,255,255,.2);--dex-border-strong:rgba(255,255,255,.34);--dex-shadow:0 16px 44px rgba(0,0,0,.3);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.24);--dex-signin-bg:linear-gradient(145deg,rgba(58,74,102,.42),rgba(36,48,72,.5));--dex-signin-border:rgba(255,255,255,.28);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.16) inset;--dex-signin-text:rgba(245,248,255,.95);--dex-radius:10px;--dex-avatar-radius:4px;--dex-nav-h:38px;--dex-space-2:var(--space-2,8px);--dex-space-3:var(--space-3,12px);position:relative;top:0;display:inline-flex;align-items:center;align-self:center;vertical-align:middle;line-height:1;overflow:visible;padding:0;margin:0;gap:var(--dex-space-2);font-family:inherit;color:var(--dex-text);transform:translateY(var(--dex-nav-offset-y,0px));}"
+        + "#auth-ui[data-dex-scheme='dark']{--dex-text:rgba(245,248,255,.94);--dex-text-muted:rgba(228,234,248,.82);--dex-panel-bg:linear-gradient(155deg,rgba(29,39,56,.64),rgba(22,30,44,.72) 42%,rgba(14,20,30,.78));--dex-row-bg:linear-gradient(145deg,rgba(48,60,82,.46),rgba(34,44,62,.52));--dex-row-hover-bg:linear-gradient(140deg,rgba(66,82,108,.54),rgba(42,54,76,.58));--dex-border:rgba(255,255,255,.2);--dex-border-strong:rgba(255,255,255,.34);--dex-shadow:0 16px 44px rgba(0,0,0,.3);--dex-grain-opacity:.08;--dex-text-shadow:0 1px 1px rgba(0,0,0,.24);--dex-signin-bg:linear-gradient(145deg,rgba(58,74,102,.42),rgba(36,48,72,.5));--dex-signin-border:rgba(255,255,255,.28);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.16) inset;--dex-signin-text:rgba(245,248,255,.95);}"
+        + "#auth-ui[data-dex-scheme='light']{--dex-text:rgba(9,16,29,.92);--dex-text-muted:rgba(24,34,52,.74);--dex-panel-bg:linear-gradient(154deg,rgba(180,197,224,.34),rgba(150,171,204,.28) 46%,rgba(119,139,176,.34));--dex-row-bg:linear-gradient(145deg,rgba(218,229,247,.36),rgba(187,205,232,.3));--dex-row-hover-bg:linear-gradient(145deg,rgba(236,244,255,.42),rgba(202,220,244,.36));--dex-border:rgba(255,255,255,.42);--dex-border-strong:rgba(255,255,255,.62);--dex-shadow:0 14px 36px rgba(8,16,28,.18);--dex-grain-opacity:0;--dex-text-shadow:none;--dex-signin-bg:linear-gradient(145deg,rgba(214,226,246,.42),rgba(182,201,229,.34));--dex-signin-border:rgba(255,255,255,.54);--dex-signin-shadow:0 1px 0 rgba(255,255,255,.3) inset;--dex-signin-text:rgba(8,14,26,.92);}"
         + "#auth-ui,#auth-ui *,#auth-ui *::before,#auth-ui *::after{box-sizing:border-box;}"
         + "#auth-ui [hidden]{display:none!important;}"
         + "#auth-ui-signin{display:inline-flex;align-items:center;justify-content:center;margin:0;line-height:1;}"
@@ -338,22 +373,26 @@
         + "#auth-ui-profile-toggle::before{content:'';position:absolute;inset:-30%;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.35),rgba(255,255,255,0) 55%);opacity:0;transition:opacity .22s ease;z-index:0;}"
         + "#auth-ui-profile-toggle:hover{border-color:var(--dex-border-strong);filter:brightness(1.02);background:var(--dex-row-hover-bg);}"
         + "#auth-ui-profile-toggle:hover::before{opacity:1;}"
-        + ".dex-avatar-wrap{position:relative;z-index:1;flex:0 0 auto;flex-shrink:0;width:calc(var(--dex-nav-h,38px) - 6px);height:calc(var(--dex-nav-h,38px) - 6px);min-width:calc(var(--dex-nav-h,38px) - 6px);border-radius:999px;overflow:hidden;}"
+        + ".dex-avatar-wrap{position:relative;z-index:1;flex:0 0 auto;flex-shrink:0;width:calc(var(--dex-nav-h,38px) - 6px);height:calc(var(--dex-nav-h,38px) - 6px);min-width:calc(var(--dex-nav-h,38px) - 6px);border-radius:var(--dex-avatar-radius);overflow:hidden;}"
         + "#auth-ui-avatar{width:100%;height:100%;display:block;object-fit:cover;}"
         + "#auth-ui .dex-profile-chevron{position:absolute;right:10px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--dex-text-muted);border-bottom:1.5px solid var(--dex-text-muted);transform:translateY(-50%) rotate(45deg);opacity:.95;transition:transform .2s ease,border-color .2s ease;pointer-events:none;z-index:2;}"
-        + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:min(280px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(70vh,420px);overflow:auto;border:1px solid var(--dex-border);border-top-color:var(--dex-border-strong);border-radius:calc(var(--dex-radius) + 2px);background:var(--dex-panel-bg);box-shadow:var(--dex-shadow);padding:var(--dex-space-2);z-index:1200;opacity:0;transform:translateY(-6px) scale(.985);pointer-events:none;backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);transition:opacity .2s ease,transform .2s ease;}"
+        + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:min(292px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(70vh,420px);overflow:auto;border:1px solid var(--dex-border);border-top-color:var(--dex-border-strong);border-radius:calc(var(--dex-radius) + 2px);background:var(--dex-panel-bg);box-shadow:var(--dex-shadow);padding:var(--dex-space-2);z-index:1200;opacity:0;transform:translateY(-6px) scale(.985);pointer-events:none;backdrop-filter:blur(14px) saturate(162%);-webkit-backdrop-filter:blur(14px) saturate(162%);transition:opacity .2s ease,transform .2s ease;}"
         + "#auth-ui-dropdown::after{content:'';position:absolute;inset:0;border-radius:inherit;background-image:radial-gradient(rgba(255,255,255,.05) 0.7px,transparent .7px);background-size:3px 3px;opacity:var(--dex-grain-opacity);pointer-events:none;}"
         + "#auth-ui-dropdown." + DROPDOWN_OPEN_CLASS + "{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}"
-        + "#auth-ui .dex-menu-item{position:relative;display:flex;align-items:center;width:100%;max-width:100%;border:1px solid var(--dex-border);border-radius:max(6px,calc(var(--dex-radius) - 2px));background:var(--dex-row-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,.2);padding:9px 11px;margin:0 0 6px;color:var(--dex-text);text-shadow:var(--dex-text-shadow);text-decoration:none;font-size:13px;line-height:1.25;cursor:pointer;overflow:hidden;transition:transform .18s ease,border-color .18s ease,background .18s ease;}"
+        + "#auth-ui .dex-menu-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:9px;width:100%;max-width:100%;border:1px solid var(--dex-border);border-radius:max(6px,calc(var(--dex-radius) - 2px));background:var(--dex-row-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:9px 11px;margin:0 0 6px;color:var(--dex-text);text-shadow:var(--dex-text-shadow);text-decoration:none;font-size:13px;line-height:1.25;cursor:pointer;overflow:hidden;backdrop-filter:blur(9px) saturate(150%);-webkit-backdrop-filter:blur(9px) saturate(150%);transition:transform .18s ease,border-color .18s ease,background .18s ease;}"
+        + "#auth-ui .dex-menu-icon-wrap{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;opacity:.92;}"
+        + "#auth-ui .dex-menu-icon{width:16px;height:16px;display:block;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;fill:none;}"
+        + "#auth-ui .dex-menu-label{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
         + "#auth-ui .dex-menu-item::before{content:'';position:absolute;inset:0;transform:translateX(-130%);background:linear-gradient(100deg,transparent,rgba(255,255,255,.27),transparent);transition:transform .46s ease;pointer-events:none;}"
         + "#auth-ui .dex-menu-item:hover{transform:translateY(-1px);border-color:var(--dex-border-strong);background:var(--dex-row-hover-bg);}"
         + "#auth-ui .dex-menu-item:hover::before{transform:translateX(130%);}"
         + "#auth-ui .dex-menu-sep{height:1px;background:linear-gradient(90deg,transparent,var(--dex-border-strong),transparent);margin:8px 2px 10px;}"
-        + "#auth-ui .dex-menu-item.is-logout,#auth-ui #auth-ui-logout{margin-bottom:0;color:rgba(255,255,255,0.92);background:linear-gradient(180deg,rgba(0,0,0,0.78),rgba(0,0,0,0.62));border-color:rgba(255,255,255,0.16);}"
-        + "#auth-ui .dex-menu-item.is-logout:hover,#auth-ui #auth-ui-logout:hover{background:linear-gradient(180deg,rgba(0,0,0,0.86),rgba(0,0,0,0.70));border-color:rgba(255,255,255,0.24);}"
+        + "#auth-ui .dex-menu-item.is-logout,#auth-ui #auth-ui-logout{margin-bottom:0;color:rgba(255,255,255,0.92);background:linear-gradient(180deg,rgba(18,21,29,.86),rgba(11,14,20,.76));border-color:rgba(255,255,255,0.26);}"
+        + "#auth-ui[data-dex-scheme='light'] .dex-menu-item.is-logout,#auth-ui[data-dex-scheme='light'] #auth-ui-logout{color:rgba(10,16,28,.92);background:linear-gradient(180deg,rgba(231,239,252,.46),rgba(205,221,245,.42));border-color:rgba(255,255,255,.62);}"
+        + "#auth-ui .dex-menu-item.is-logout:hover,#auth-ui #auth-ui-logout:hover{background:linear-gradient(180deg,rgba(28,34,48,.9),rgba(14,18,26,.82));border-color:rgba(255,255,255,0.36);}"
         + "#auth-ui-profile-toggle[aria-expanded='true'] .dex-profile-chevron{transform:translateY(-45%) rotate(225deg);border-color:var(--dex-text);}"
         + "#auth-ui-profile-toggle[aria-expanded='true']{border-color:var(--dex-border-strong);filter:brightness(1.03);}"
-        + "@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){#auth-ui-profile-toggle,#auth-ui-dropdown{background:rgba(28,32,45,.9);}#auth-ui[data-dex-scheme='light'] #auth-ui-profile-toggle,#auth-ui[data-dex-scheme='light'] #auth-ui-dropdown{background:rgba(252,252,255,.95);}}"
+        + "@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){#auth-ui-profile-toggle,#auth-ui-dropdown{background:rgba(28,32,45,.9);}#auth-ui[data-dex-scheme='light'] #auth-ui-profile-toggle,#auth-ui[data-dex-scheme='light'] #auth-ui-dropdown{background:rgba(158,176,208,.72);}}"
         + "@media (prefers-reduced-motion:reduce){#auth-ui *,#auth-ui *::before,#auth-ui *::after{transition:none!important;animation:none!important;transform:none!important;}#auth-ui .dex-menu-item::before{display:none;}}";
       document.head.appendChild(style);
     }
@@ -401,36 +440,58 @@
     if (!el || el === ui || (ui && ui.contains(el)) || el.disabled) {
       return false;
     }
+    if (el.classList && el.classList.contains("icon")) {
+      return false;
+    }
+    if (el.closest && (el.closest(".header-actions-action--social") || el.closest(".showOnMobile"))) {
+      return false;
+    }
     var cs = window.getComputedStyle(el);
     if (cs.display === "none" || cs.visibility === "hidden") {
       return false;
     }
     var rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false;
+    }
+    if (rect.height < 24 || rect.height > 72) {
+      return false;
+    }
+    if (rect.width < 36) {
+      return false;
+    }
+    return true;
   }
 
   function syncAuthUiMetrics(ui, mount) {
     if (!ui) {
       return;
     }
-    var scope = mount && mount.querySelectorAll ? mount : document;
+    var scope = mount && mount.querySelectorAll ? mount : null;
     var ref = null;
+    if (scope && scope.querySelectorAll) {
+      var scopeReferences = scope.querySelectorAll("a,button");
+      for (var s = 0; s < scopeReferences.length; s += 1) {
+        if (!isVisibleNavReference(scopeReferences[s], ui)) {
+          continue;
+        }
+        ref = scopeReferences[s];
+        break;
+      }
+    }
     var header = (mount && mount.closest) ? mount.closest("header") : document.querySelector("header");
-    if (header && header.querySelectorAll) {
+    if (!ref && header && header.querySelectorAll) {
       var headerReferences = header.querySelectorAll("a,button");
       for (var i = 0; i < headerReferences.length; i += 1) {
         if (!isVisibleNavReference(headerReferences[i], ui)) {
           continue;
         }
-        var headerRect = headerReferences[i].getBoundingClientRect();
-        if (headerRect.height >= 26 && headerRect.height <= 64) {
-          ref = headerReferences[i];
-          break;
-        }
+        ref = headerReferences[i];
+        break;
       }
     }
     if (!ref) {
-      var references = scope.querySelectorAll("a,button");
+      var references = document.querySelectorAll("a,button");
       for (var j = 0; j < references.length; j += 1) {
         if (isVisibleNavReference(references[j], ui)) {
           ref = references[j];
@@ -441,14 +502,17 @@
     if (ref) {
       var cs = window.getComputedStyle(ref);
       var radius = cs.borderRadius;
-      if (radius && radius !== "0px") {
-        ui.style.setProperty("--dex-radius", radius);
+      var parsedRadius = parseFloat(radius);
+      if (isFinite(parsedRadius) && parsedRadius > 0) {
+        var clampedRadius = Math.max(4, Math.min(12, parsedRadius));
+        ui.style.setProperty("--dex-radius", clampedRadius + "px");
       }
       var height = parseFloat(cs.height) || ref.getBoundingClientRect().height;
       var lineHeight = parseFloat(cs.lineHeight);
       var navHeight = Math.max(height || 0, isFinite(lineHeight) ? lineHeight : 0);
       if (navHeight > 0) {
-        ui.style.setProperty("--dex-nav-h", Math.round(navHeight) + "px");
+        var clampedNavHeight = Math.max(32, Math.min(44, Math.round(navHeight)));
+        ui.style.setProperty("--dex-nav-h", clampedNavHeight + "px");
       }
       var refRect = ref.getBoundingClientRect();
       var uiRect = ui.getBoundingClientRect();
