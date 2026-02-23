@@ -40,6 +40,7 @@
   --dx-layer-gooey: 200;
   --dx-layer-foreground: 400;
   --dx-layer-header: 1300;
+  --dx-gooey-overscan: 72px;
   --dex-scroll-dot-size: 12px;
   --dex-scroll-rail-w: 4px;
   --dex-scroll-shift-x: -10px;
@@ -117,6 +118,47 @@ body.dx-slot-enabled #dx-slot-foreground-root {
 body.dx-slot-enabled #scroll-gradient-bg,
 body.dx-slot-enabled #gooey-mesh-wrapper {
   z-index: var(--dx-layer-gooey) !important;
+}
+
+/* Chrome can expose thin viewport seams on fixed backdrop layers without overscan. */
+html body #scroll-gradient-bg,
+html body #gooey-mesh-wrapper {
+  position: fixed !important;
+  top: calc(var(--dx-gooey-overscan) * -1) !important;
+  left: calc(var(--dx-gooey-overscan) * -1) !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: calc(100vw + (var(--dx-gooey-overscan) * 2)) !important;
+  height: calc(100vh + (var(--dx-gooey-overscan) * 2)) !important;
+  -webkit-clip-path: none !important;
+  clip-path: none !important;
+}
+
+@supports (height: 100dvh) {
+  html body #scroll-gradient-bg,
+  html body #gooey-mesh-wrapper {
+    height: calc(100dvh + (var(--dx-gooey-overscan) * 2)) !important;
+  }
+}
+
+html body #gooey-mesh-wrapper::before,
+html body #gooey-mesh-wrapper .gooey-stage {
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html body #gooey-mesh-wrapper::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  background:
+    radial-gradient(120% 95% at 8% 16%, rgba(255, 200, 94, 0.23) 0%, rgba(255, 200, 94, 0) 62%),
+    radial-gradient(112% 92% at 92% 22%, rgba(117, 190, 255, 0.2) 0%, rgba(117, 190, 255, 0) 64%),
+    radial-gradient(118% 96% at 48% 102%, rgba(255, 118, 126, 0.18) 0%, rgba(255, 118, 126, 0) 66%);
+  opacity: 0.88 !important;
 }
 
 .dex-scroll-rail {

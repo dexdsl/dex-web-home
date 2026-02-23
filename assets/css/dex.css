@@ -302,6 +302,51 @@ body.homepage :is(
   overflow-y: visible !important;
 }
 
+/* Chrome-safe: flatten these FE wrappers so section spacing follows card content, not grid track math. */
+body.homepage :is(
+  .fluid-engine.fe-688a7ae091737e2d36ef55c8,
+  .fluid-engine.fe-68b3e8c63403a7561accfc93,
+  .fluid-engine.fe-688841bf6c535d6f5dca29bd,
+  .fluid-engine.fe-68883dd3c03b5805a3c0e4d7
+) {
+  display: block !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  row-gap: 0 !important;
+  column-gap: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+body.homepage :is(
+  .fluid-engine.fe-688a7ae091737e2d36ef55c8 > .fe-block.fe-block-448bd8f915f4abba552b,
+  .fluid-engine.fe-68b3e8c63403a7561accfc93 > .fe-block.fe-block-ee939fa7ed636a261fd7,
+  .fluid-engine.fe-688841bf6c535d6f5dca29bd > .fe-block.fe-block-7ccf390e6577e4e9f69e,
+  .fluid-engine.fe-68883dd3c03b5805a3c0e4d7 > .fe-block.fe-block-5976018fa8f9e1213243
+) {
+  display: block !important;
+  width: 100% !important;
+  grid-area: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+/* Keep helper code blocks rendered (gooey mesh, utility scripts) without contributing to page flow. */
+body.homepage :is(
+  .fluid-engine.fe-688a7ae091737e2d36ef55c8 > .fe-block.fe-block-22f4e234192109a5d76c,
+  .fluid-engine.fe-688a7ae091737e2d36ef55c8 > .fe-block.fe-block-yui_3_17_2_1_1756613895661_13758
+) {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
 /* Hero FE block must span the full FE grid before inner frame centering */
 body.homepage .fluid-engine.fe-688a7ae091737e2d36ef55c8 > .fe-block.fe-block-448bd8f915f4abba552b {
   grid-column: 1 / -1 !important;

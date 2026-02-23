@@ -357,16 +357,41 @@
     alignBlockToHeaderFrame(heroBlock, headerRect);
   }
 
+  function clearHomeStackSpacingOverrides() {
+    if (!document.body.classList.contains('homepage')) return;
+    const targetIds = [
+      'block-448bd8f915f4abba552b',
+      'block-ee939fa7ed636a261fd7',
+      'block-7ccf390e6577e4e9f69e',
+      'block-5976018fa8f9e1213243',
+      'block-9f43a906d54ed3a7b492',
+    ];
+
+    for (const id of targetIds) {
+      const block = document.getElementById(id);
+      if (!block) continue;
+      const section = block.closest('section.page-section');
+      if (!section) continue;
+      section.style.removeProperty('margin-top');
+    }
+  }
+
   function installHomeHeroAligner() {
     if (homeHeroAlignerInstalled) return;
     homeHeroAlignerInstalled = true;
 
     let rafId = 0;
+    const run = () => {
+      alignHomeHeroToHeader();
+      clearHomeStackSpacingOverrides();
+    };
+
     const schedule = () => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         rafId = 0;
-        alignHomeHeroToHeader();
+        run();
+        requestAnimationFrame(run);
       });
     };
 
