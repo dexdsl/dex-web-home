@@ -32,6 +32,59 @@
     };
     const order = Object.keys(panes);
     let current = 'mission';
+    const frameWidthExpr = 'var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px))';
+    const setImportant = (node, property, value) => {
+      if (!node) return;
+      node.style.setProperty(property, value, 'important');
+    };
+
+    function enforceFrameWidth() {
+      const codeContainer = root.parentElement;
+      const blockContent = codeContainer?.parentElement || null;
+      const block = blockContent?.parentElement || null;
+      const feBlock = block?.closest?.('.fe-block') || null;
+      const fluidEngine = block?.closest?.('.fluid-engine') || null;
+      const content = fluidEngine?.closest?.('.content') || null;
+
+      if (fluidEngine) {
+        setImportant(fluidEngine, 'width', frameWidthExpr);
+        setImportant(fluidEngine, 'max-width', frameWidthExpr);
+        setImportant(fluidEngine, 'margin-left', 'auto');
+        setImportant(fluidEngine, 'margin-right', 'auto');
+        setImportant(fluidEngine, 'overflow-x', 'visible');
+        setImportant(fluidEngine, 'overflow-y', 'visible');
+      }
+      if (feBlock) {
+        setImportant(feBlock, 'grid-column', '1 / -1');
+        setImportant(feBlock, 'width', '100%');
+        setImportant(feBlock, 'max-width', 'none');
+        setImportant(feBlock, 'overflow-x', 'visible');
+        setImportant(feBlock, 'overflow-y', 'visible');
+      }
+      if (block) {
+        setImportant(block, 'width', '100%');
+        setImportant(block, 'max-width', 'none');
+        setImportant(block, 'margin-left', '0');
+        setImportant(block, 'margin-right', '0');
+        setImportant(block, 'justify-self', 'stretch');
+        setImportant(block, 'box-sizing', 'border-box');
+      }
+      [blockContent, codeContainer].forEach((node) => {
+        if (!node) return;
+        setImportant(node, 'width', '100%');
+        setImportant(node, 'max-width', 'none');
+        setImportant(node, 'margin', '0');
+        setImportant(node, 'padding-left', '0');
+        setImportant(node, 'padding-right', '0');
+        setImportant(node, 'box-sizing', 'border-box');
+      });
+      if (content) {
+        setImportant(content, 'width', frameWidthExpr);
+        setImportant(content, 'max-width', frameWidthExpr);
+        setImportant(content, 'margin-left', 'auto');
+        setImportant(content, 'margin-right', 'auto');
+      }
+    }
 
     function selectTab(name) {
       tabs.forEach((button) => {
@@ -117,6 +170,7 @@
     });
 
     function fit() {
+      enforceFrameWidth();
       const viewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
       const top = root.getBoundingClientRect().top + (window.scrollY || 0);
       const height = Math.max(360, Math.floor(viewportHeight - top - 4));

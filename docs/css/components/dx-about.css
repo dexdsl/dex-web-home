@@ -23,6 +23,81 @@ body[data-dx-route="about"] #footer-sections {
   display: none !important;
 }
 
+body[data-dx-route="about"] {
+  --dx-about-frame-width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px));
+}
+
+body[data-dx-route="about"] #page.container,
+body[data-dx-route="about"] main#page.container {
+  width: var(--dx-about-frame-width) !important;
+  max-width: var(--dx-about-frame-width) !important;
+  margin-inline: auto !important;
+}
+
+/* About route fallback (no :has dependency): make all About host wrappers frame-width */
+body[data-dx-route="about"] main#page .content {
+  width: var(--dx-about-frame-width) !important;
+  max-width: var(--dx-about-frame-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+body[data-dx-route="about"] main#page .content .fluid-engine {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-block,
+body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-block-content,
+body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-code-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* About host block width parity with header/footer frame */
+@supports selector(.dx-block:has(> .dx-block-content > .dx-code-container > #dex-about)) {
+  body[data-dx-route="about"] .fluid-engine:has(#dex-about),
+  body[data-dx-route="about"] .fluid-engine:has(#dex-about) .fe-block,
+  body[data-dx-route="about"] .fluid-engine:has(#dex-about) .dx-block,
+  body[data-dx-route="about"] .fluid-engine:has(#dex-about) .dx-block-content,
+  body[data-dx-route="about"] .fluid-engine:has(#dex-about) .dx-code-container {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  body[data-dx-route="about"] .dx-block:has(> .dx-block-content > .dx-code-container > #dex-about) {
+    width: var(--dx-about-frame-width) !important;
+    max-width: var(--dx-about-frame-width) !important;
+    margin-inline: auto !important;
+    justify-self: center !important;
+    box-sizing: border-box !important;
+  }
+
+  body[data-dx-route="about"] .dx-block:has(> .dx-block-content > .dx-code-container > #dex-about) > .dx-block-content,
+  body[data-dx-route="about"] .dx-block:has(> .dx-block-content > .dx-code-container > #dex-about) > .dx-block-content > .dx-code-container,
+  body[data-dx-route="about"] .dx-code-container:has(> #dex-about) {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────
    Scope + tokens (inherits global variables & fonts)
    ───────────────────────────────────────────────────────── */
@@ -123,6 +198,10 @@ body[data-dx-route="about"] #footer-sections {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  justify-self: stretch;
 }
 
 #dex-about .pane {
@@ -257,8 +336,8 @@ body[data-dx-route="about"] #footer-sections {
 
 #dex-about .bottom-ctas {
   position: absolute;
-  left: var(--pad);
-  right: var(--pad);
+  left: 0;
+  right: 0;
   bottom: calc(var(--foot-h) + 8px);
   display: flex;
   gap: 12px;
