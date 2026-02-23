@@ -273,15 +273,55 @@ div.dx-add-to-cart-button-inner {
   letter-spacing: inherit !important;
 }
 
-/* Footer parity early-parse block: keeps footer aligned with header glass even when later CSS is skipped */
+/* Header-aligned glass tokens reused by homepage cards + global footer */
+:root {
+  --dx-header-frame-width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px);
+  --dx-header-glass-radius: var(--dx-radius-md, 4px);
+  --dx-header-glass-bg: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%);
+  --dx-header-glass-rim: rgba(255, 255, 255, 0.42);
+  --dx-header-glass-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  --dx-header-glass-backdrop: saturate(180%) blur(18px);
+}
+
+/* Homepage cards: match catalog/header frame width */
+body.homepage #dexCombined,
+body.homepage #dex-board-promo,
+body.homepage #dex-signup,
+body.homepage #dex-faq {
+  width: min(100%, var(--dx-header-frame-width)) !important;
+  max-width: var(--dx-header-frame-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Homepage cards: lock corner radius to header radius */
+body.homepage #dexCombined .dex-sidebar,
+body.homepage #dexCombined .carousel-card,
+body.homepage #dexCombined .carousel-video,
+body.homepage #dex-board-promo,
+body.homepage #dex-board-promo .promo-surface,
+body.homepage #dex-signup.dex-signup-card,
+body.homepage #dex-signup.dex-signup-card::before,
+body.homepage #dex-signup .signup-media video,
+body.homepage #dex-faq .hdr,
+body.homepage #dex-faq .card,
+body.homepage #dex-faq .spark-accordion__item {
+  border-radius: var(--dx-header-glass-radius) !important;
+}
+
+/* Footer parity: same width, rim, radius, glass material as header */
 .dex-footer {
   --dex-footer-text: #232323 !important;
-  background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.42) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
-  -webkit-backdrop-filter: saturate(1.8) blur(18px) !important;
-  backdrop-filter: saturate(1.8) blur(18px) !important;
+  width: min(100%, var(--dx-header-frame-width)) !important;
+  max-width: var(--dx-header-frame-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  background: var(--dx-header-glass-bg) !important;
+  border: 1px solid var(--dx-header-glass-rim) !important;
+  border-radius: var(--dx-header-glass-radius) !important;
+  box-shadow: var(--dx-header-glass-shadow) !important;
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop) !important;
+  backdrop-filter: var(--dx-header-glass-backdrop) !important;
   color: #232323 !important;
 }
 
@@ -302,26 +342,44 @@ div.dx-add-to-cart-button-inner {
   color: var(--dex-accent, #ff1910) !important;
 }
 
+.dex-footer .footer-social {
+  gap: clamp(0.75rem, 1.25vw, 1rem) !important;
+}
+
 .dex-footer .footer-social a {
+  width: clamp(2.75rem, 3vw, 3.15rem) !important;
+  height: clamp(2.75rem, 3vw, 3.15rem) !important;
+  border-radius: clamp(0.68rem, 1vw, 0.88rem) !important;
+  box-shadow: 0 10px 22px rgba(18, 22, 30, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   pointer-events: auto !important;
 }
 
+.dex-footer .footer-social a svg,
 .dex-footer .footer-social a i {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 1.1rem !important;
-  height: 1.1rem !important;
+  width: clamp(1.22rem, 1.6vw, 1.5rem) !important;
+  height: clamp(1.22rem, 1.6vw, 1.5rem) !important;
+  color: #fff !important;
+}
+
+.dex-footer .footer-social a svg {
+  fill: currentColor !important;
+}
+
+.dex-footer .footer-social a i {
   font-style: normal !important;
-  font-size: 0.78rem !important;
+  font-size: clamp(1.08rem, 1.4vw, 1.32rem) !important;
   line-height: 1 !important;
   font-weight: 700 !important;
-  color: #fff !important;
 }
 
 .dex-footer .footer-social a i::before {
   display: block;
   font-family: var(--font-body, "Courier Prime", monospace) !important;
+  font-size: inherit !important;
+  line-height: 1 !important;
 }
 
 .dex-footer .footer-social a i.fa-youtube::before {
