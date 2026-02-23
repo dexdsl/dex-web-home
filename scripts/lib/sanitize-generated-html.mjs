@@ -944,8 +944,12 @@ function ensureDexLayoutPatchStyle($, head) {
   place-items: center;
   width: 0.9rem;
   height: 0.9rem;
+  padding: 0.08rem;
+  margin: -0.08rem;
   line-height: 0;
   flex: 0 0 auto;
+  cursor: pointer;
+  touch-action: manipulation;
   transform-origin: center center;
   will-change: transform, color, opacity;
 }

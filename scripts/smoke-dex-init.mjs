@@ -92,7 +92,10 @@ if (!titleRegion[1].includes('class="dex-entry-subtitle"')) throw new Error('DEX
 if (!titleRegion[1].includes('class="dex-entry-subtitle-label">published')) throw new Error('DEX:TITLE region missing published subtitle item');
 if (!titleRegion[1].includes('class="dex-entry-subtitle-label">updated')) throw new Error('DEX:TITLE region missing updated subtitle item');
 if (!titleRegion[1].includes('class="dex-entry-subtitle-label">location')) throw new Error('DEX:TITLE region missing location subtitle item');
-if (!titleRegion[1].includes('https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:TITLE region missing breadcrumb motion runtime');
+if (!titleRegion[1].includes('id="dex-breadcrumb-motion-runtime"')) throw new Error('DEX:TITLE region missing breadcrumb motion runtime loader');
+if (!titleRegion[1].includes('__dexBreadcrumbMotionRuntimeRequested')) throw new Error('DEX:TITLE region missing breadcrumb motion runtime loader guard');
+if (!titleRegion[1].includes('https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:TITLE region missing breadcrumb motion runtime fallback URL');
+if (!titleRegion[1].includes('/assets/js/dex-breadcrumb-motion.js')) throw new Error('DEX:TITLE region missing breadcrumb motion local runtime path');
 const descRegion = outHtml.match(/<!-- DEX:DESC_START -->([\s\S]*?)<!-- DEX:DESC_END -->/);
 if (!descRegion) throw new Error('missing DEX:DESC region');
 if (!descRegion[1].includes('class="dex-entry-desc-scroll"')) throw new Error('DEX:DESC region missing scroll wrapper');

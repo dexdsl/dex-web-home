@@ -809,8 +809,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   place-items: center;
   width: 0.9rem;
   height: 0.9rem;
+  padding: 0.08rem;
+  margin: -0.08rem;
   line-height: 0;
   flex: 0 0 auto;
+  cursor: pointer;
+  touch-action: manipulation;
   transform-origin: center center;
   will-change: transform, color, opacity;
 }
@@ -2861,7 +2865,42 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
     <span class="dex-breadcrumb-current">test, t</span>
   </div>
 </div>
-<script id="dex-breadcrumb-motion-runtime" defer="" src="https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js"></script>
+<script id="dex-breadcrumb-motion-runtime">
+(function(){
+  if (window.__dexBreadcrumbMotionRuntimeRequested) return;
+  window.__dexBreadcrumbMotionRuntimeRequested = true;
+  var fallbackSrc = 'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js';
+  var localPath = '/assets/js/dex-breadcrumb-motion.js';
+  var preferredSrc = (function(){
+    try {
+      var pathname = window.location && typeof window.location.pathname === 'string'
+        ? window.location.pathname
+        : '';
+      var marker = '/entries/';
+      var markerIndex = pathname.lastIndexOf(marker);
+      if (markerIndex !== -1) {
+        var basePath = pathname.slice(0, markerIndex);
+        return (basePath || '') + localPath;
+      }
+    } catch (error) {}
+    return localPath;
+  })();
+  var loadScript = function(src, onError){
+    var script = document.createElement('script');
+    script.defer = true;
+    script.src = src;
+    if (typeof onError === 'function') script.onerror = onError;
+    document.head.appendChild(script);
+  };
+  if (preferredSrc === fallbackSrc) {
+    loadScript(fallbackSrc);
+    return;
+  }
+  loadScript(preferredSrc, function(){
+    loadScript(fallbackSrc);
+  });
+})();
+</script>
 <script id="dex-breadcrumb-motion-bootstrap">
 (function(){
   if (window.__dexBreadcrumbMotionBootstrapped) return;

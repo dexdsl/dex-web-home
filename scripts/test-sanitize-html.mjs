@@ -185,6 +185,9 @@ assert.ok($('#dex-layout-patch').text().includes('.dex-entry-subtitle'), 'Dex la
 assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-overlay'), 'Dex layout patch should include breadcrumb overlay rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-icon'), 'Dex layout patch should include breadcrumb SVG icon rules');
 assert.ok($('#dex-layout-patch').text().includes('[data-dex-breadcrumb-path]'), 'Dex layout patch should include breadcrumb SVG path rules');
+assert.ok($('#dex-layout-patch').text().includes('.dex-breadcrumb-delimiter'), 'Dex layout patch should include breadcrumb delimiter rules');
+assert.ok($('#dex-layout-patch').text().includes('cursor: pointer'), 'Dex layout patch should make breadcrumb delimiter clickable');
+assert.ok($('#dex-layout-patch').text().includes('touch-action: manipulation'), 'Dex layout patch should optimize breadcrumb delimiter tap handling');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-page-title'), 'Dex layout patch should include entry page title rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-scroll'), 'Dex layout patch should include entry description scroll rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-heading'), 'Dex layout patch should include description heading rules');

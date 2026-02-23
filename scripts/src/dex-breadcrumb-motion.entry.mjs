@@ -1,5 +1,6 @@
 import { animate } from 'framer-motion/dom';
 import { interpolate } from 'flubber';
+import { createSpinPlan, normalizeDeg } from '../lib/breadcrumb-spin.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -14,6 +15,7 @@ import { interpolate } from 'flubber';
   const SELECTOR = '[data-dex-breadcrumb-delimiter]';
   const PATH_SELECTOR = '[data-dex-breadcrumb-path]';
   const MORPH_EASE = [0.22, 1, 0.36, 1];
+  const SPIN_EASE = [0.22, 0.61, 0.36, 1];
   const IDLE_INTERVAL_MS = 2800;
   const INITIAL_DELAY_MS = 900;
 
@@ -55,10 +57,21 @@ import { interpolate } from 'flubber';
     } catch {}
   }
 
+  function applyRotation(node, deg) {
+    node.style.transform = `rotate(${deg}deg)`;
+  }
+
   function clearTimer(state) {
     if (!state || !state.timer) return;
     clearTimeout(state.timer);
     state.timer = null;
+  }
+
+  function stopSpinControl(state) {
+    if (!state) return;
+    stopControl(state.spinControl);
+    state.spinControl = null;
+    state.spinning = false;
   }
 
   function stopNode(node, { reset = false } = {}) {
@@ -66,9 +79,14 @@ import { interpolate } from 'flubber';
     if (!state) return;
     clearTimer(state);
     stopControl(state.control);
+    stopSpinControl(state);
     state.control = null;
     state.morphing = false;
     state.started = false;
+    if (reset) {
+      state.rotationDeg = 0;
+      applyRotation(node, 0);
+    }
     if (reset && state.pathNode) {
       state.pathIndex = 0;
       state.colorIndex = 0;
@@ -91,11 +109,15 @@ import { interpolate } from 'flubber';
       colorIndex: 0,
       timer: null,
       control: null,
+      spinControl: null,
       morphing: false,
+      spinning: false,
       started: false,
+      rotationDeg: 0,
     };
     pathNode.setAttribute('d', ICON_PATHS[0]);
     node.style.color = COLORS[0];
+    applyRotation(node, 0);
     states.set(node, state);
     return state;
   }
@@ -176,12 +198,37 @@ import { interpolate } from 'flubber';
     morphNext(node, state, { duration: 0.46 });
   }
 
+  function triggerSpin(node) {
+    const state = ensureState(node);
+    if (!state || prefersReducedMotion()) return;
+
+    stopSpinControl(state);
+    const plan = createSpinPlan(state.rotationDeg, Math.random);
+    state.spinning = true;
+
+    state.spinControl = animate(plan.startDeg, plan.targetDeg, {
+      duration: plan.duration,
+      ease: SPIN_EASE,
+      onUpdate: (latest) => {
+        state.rotationDeg = latest;
+        applyRotation(node, latest);
+      },
+      onComplete: () => {
+        state.rotationDeg = normalizeDeg(plan.targetDeg);
+        applyRotation(node, state.rotationDeg);
+        state.spinning = false;
+        state.spinControl = null;
+      },
+    });
+  }
+
   function bindInteraction(node) {
     if (!node || bound.has(node)) return;
     bound.add(node);
     const breadcrumb = node.closest('[data-dex-breadcrumb]') || node;
     node.addEventListener('pointerenter', () => triggerBoost(node), { passive: true });
     breadcrumb.addEventListener('focusin', () => triggerBoost(node), { passive: true });
+    node.addEventListener('click', () => triggerSpin(node));
   }
 
   function mount() {

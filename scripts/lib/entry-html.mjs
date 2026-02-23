@@ -12,6 +12,7 @@ const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-co
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
 const BREADCRUMB_BACK_HREF = '/catalog';
 const BREADCRUMB_MOTION_RUNTIME_SRC = 'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js';
+const BREADCRUMB_MOTION_RUNTIME_LOCAL_PATH = '/assets/js/dex-breadcrumb-motion.js';
 const BREADCRUMB_ICON_INITIAL_PATH = 'M12 1.75L19.85 12L12 22.25L4.15 12Z';
 const DESC_SYNC_SCRIPT_ID = 'dex-entry-desc-sync';
 const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -479,7 +480,42 @@ function buildBreadcrumbMarkup(currentLabel = 'entry') {
     <span class="dex-breadcrumb-current">${current}</span>
   </div>
 </div>
-<script id="dex-breadcrumb-motion-runtime" defer src="${BREADCRUMB_MOTION_RUNTIME_SRC}"></script>
+<script id="dex-breadcrumb-motion-runtime">
+(function(){
+  if (window.__dexBreadcrumbMotionRuntimeRequested) return;
+  window.__dexBreadcrumbMotionRuntimeRequested = true;
+  var fallbackSrc = '${BREADCRUMB_MOTION_RUNTIME_SRC}';
+  var localPath = '${BREADCRUMB_MOTION_RUNTIME_LOCAL_PATH}';
+  var preferredSrc = (function(){
+    try {
+      var pathname = window.location && typeof window.location.pathname === 'string'
+        ? window.location.pathname
+        : '';
+      var marker = '/entries/';
+      var markerIndex = pathname.lastIndexOf(marker);
+      if (markerIndex !== -1) {
+        var basePath = pathname.slice(0, markerIndex);
+        return (basePath || '') + localPath;
+      }
+    } catch (error) {}
+    return localPath;
+  })();
+  var loadScript = function(src, onError){
+    var script = document.createElement('script');
+    script.defer = true;
+    script.src = src;
+    if (typeof onError === 'function') script.onerror = onError;
+    document.head.appendChild(script);
+  };
+  if (preferredSrc === fallbackSrc) {
+    loadScript(fallbackSrc);
+    return;
+  }
+  loadScript(preferredSrc, function(){
+    loadScript(fallbackSrc);
+  });
+})();
+</script>
 <script id="dex-breadcrumb-motion-bootstrap">
 (function(){
   if (window.__dexBreadcrumbMotionBootstrapped) return;
