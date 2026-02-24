@@ -947,6 +947,101 @@ body.homepage #dex-faq .spark-accordion__item {
 }
 
 /* Profile-protected routes: use global mesh/background and header-aligned card system */
+/* Route-root safety net: force profile route glass tokens even before route class hydration. */
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) {
+  --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
+  --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
+  --liquid-bg: var(--dx-header-glass-bg) !important;
+  --liquid-border: var(--dx-header-glass-rim) !important;
+  --liquid-blur: 18px !important;
+  --shadow-light: 0 10px 22px rgba(18, 22, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+  --shadow-md: var(--dx-header-glass-shadow) !important;
+}
+
+/* Route-root safety net: normalize core surfaces to header glass and strip chromatic filters. */
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) :is(
+  .dex-sidebar,
+  .dex-sidebar section,
+  .panel,
+  .details,
+  .slide,
+  .slide-inner,
+  .open-card,
+  .detail-card,
+  .modal,
+  .dex-modal,
+  .dex-modal-content,
+  .dex-overview,
+  .dex-license,
+  .dex-credits,
+  .license-btn.usage-btn,
+  .hdr,
+  .tabsbar,
+  .card,
+  .savebar
+) {
+  border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
+  border: 1px solid var(--dx-header-glass-rim) !important;
+  background: var(--dx-header-glass-bg) !important;
+  box-shadow: var(--dx-header-glass-shadow) !important;
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop) !important;
+  backdrop-filter: var(--dx-header-glass-backdrop) !important;
+  filter: none !important;
+}
+
+/* Kill legacy chromatic/texture overlays that made profile routes diverge from header glass. */
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) :is(.dex-sidebar, .dex-modal-content, .badge)::after,
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) .dex-sidebar::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  animation: none !important;
+}
+
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) :is(.badge, .license-btn.usage-btn) {
+  filter: none !important;
+}
+
 body.dx-route-profile-protected {
   --space-1: var(--dx-space-xxs) !important;
   --space-2: var(--dx-space-xs) !important;
