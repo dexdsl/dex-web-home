@@ -138,7 +138,7 @@ function verifyGlassParityContract(failures) {
     'background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);',
     '#auth-ui .dex-menu-item{position:relative;display:grid;',
     'background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);',
-    'var headerFilter = filter || webkitFilter || "saturate(180%) blur(18px)";',
+    'var headerFilter = filter || webkitFilter || cssHeaderFilter || "saturate(180%) blur(18px)";',
     'ui.style.setProperty("--dex-header-glass-filter", headerFilter);',
     'ui.style.setProperty("--dex-header-glass-webkit-filter", headerFilter);',
   ];

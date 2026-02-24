@@ -136,7 +136,12 @@
     var shadow = normalizeCssValue(cs.boxShadow);
     var filter = normalizeCssValue(cs.backdropFilter || cs.getPropertyValue("backdrop-filter"));
     var webkitFilter = normalizeCssValue(cs.webkitBackdropFilter || cs.getPropertyValue("-webkit-backdrop-filter"));
-    var headerFilter = filter || webkitFilter || "saturate(180%) blur(18px)";
+    var cssHeaderFilter = normalizeCssValue(cs.getPropertyValue("--dx-header-glass-backdrop"));
+    if (!cssHeaderFilter) {
+      var rootCs = window.getComputedStyle(document.documentElement);
+      cssHeaderFilter = normalizeCssValue(rootCs.getPropertyValue("--dx-header-glass-backdrop"));
+    }
+    var headerFilter = filter || webkitFilter || cssHeaderFilter || "saturate(180%) blur(18px)";
 
     if (bg) ui.style.setProperty("--dex-header-glass-bg", bg);
     if (border) ui.style.setProperty("--dex-header-glass-border", border);
