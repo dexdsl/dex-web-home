@@ -1806,6 +1806,22 @@
     #dex-settings .plan-chooser{ display:grid; grid-template-rows:0fr; overflow:hidden; opacity:0; transition: grid-template-rows .35s cubic-bezier(.2,.8,.2,1), opacity .35s ease; margin-top:10px; }
     #dex-settings .plan-chooser[data-open="true"]{ grid-template-rows:1fr; opacity:1; }
     #dex-settings .plan-chooser > .inner{ min-height:0; }
+    #dex-settings .billing-status{ margin-top:12px; border:1px solid var(--glass-brd); border-radius:var(--radius-sm); background:var(--glass-bg); }
+    #dex-settings .billing-status .item{ padding:10px 12px; }
+    #dex-settings .billing-status .item:last-child{ border-bottom:0; }
+    #dex-settings .mem-inline-error{
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,25,16,.4);
+      background: rgba(255,25,16,.08);
+      color: #63140f;
+      font-weight: 600;
+    }
+    #dex-settings .actions [data-billing-busy="true"]{
+      opacity: .62;
+      pointer-events: none;
+    }
 /* Elements that appear ONLY while choosing a plan */
 #dex-settings .choosing-only{
   opacity:0; pointer-events:none; transform: translateY(-2px);
@@ -2246,7 +2262,7 @@
 
       <!-- MEMBERSHIP (gated chooser; portal button lives here only) -->
       <section id="pane-membership" class="pane" role="tabpanel" aria-labelledby="tab-membership" hidden>
-        <div class="card">
+        <div class="card" id="membershipCard">
           <div class="card-head-row">
             <h2>Membership &amp; billing</h2>
             <div class="interval" aria-label="Billing interval">
@@ -2255,6 +2271,13 @@
             </div>
           </div>
           <p class="note">Change or cancel anytime in the Customer Portal.</p>
+          <div id="membershipStatus" class="billing-status" aria-live="polite">
+            <div class="item"><span>Plan</span><span id="memStatusPlan" class="note">Loading…</span></div>
+            <div class="item"><span>Renews</span><span id="memStatusRenewal" class="note">—</span></div>
+            <div class="item"><span>Payment method</span><span id="memStatusPayment" class="note">—</span></div>
+            <div class="item"><span>Cancellation</span><span id="memStatusCancel" class="note">None scheduled</span></div>
+          </div>
+          <p id="memInlineError" class="mem-inline-error" role="status" aria-live="polite" hidden></p>
 
           <div class="actions actions-tight">
             <button id="planToggle" class="cta">Choose a plan</button>
@@ -2264,6 +2287,7 @@
     <path d="M5 12h14M13 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </button>
+            <button id="pauseResume" class="btn" hidden>Pause at period end</button>
 
             <label id="coverWrap" class="choosing-only" aria-hidden="true" style="display:inline-flex; align-items:center; gap:8px; margin-left:auto;">
 
@@ -2278,19 +2302,19 @@
                 <label class="tier" data-tier="S" aria-checked="true">
                   <input type="radio" name="tier" value="S" checked>
                   <div class="name">Steward</div>
-                  <div><span class="price" data-month="6.99" data-year="69.90">$6.99</span> / <span class="per">month</span></div>
+                  <div><span class="price" data-month="6.99" data-year="69.99">$6.99</span> / <span class="per">month</span></div>
                   <div class="note">Keep the library online and open.</div>
                 </label>
                 <label class="tier" data-tier="M" aria-checked="false">
                   <input type="radio" name="tier" value="M">
                   <div class="name">Archivist</div>
-                  <div><span class="price" data-month="14.99" data-year="149.90">$14.99</span> / <span class="per">month</span></div>
+                  <div><span class="price" data-month="14.99" data-year="149.99">$14.99</span> / <span class="per">month</span></div>
                   <div class="note">Fund recording sessions &amp; storage.</div>
                 </label>
                 <label class="tier" data-tier="L" aria-checked="false">
                   <input type="radio" name="tier" value="L">
                   <div class="name">Producer</div>
-                  <div><span class="price" data-month="24.99" data-year="249.90">$24.99</span> / <span class="per">month</span></div>
+                  <div><span class="price" data-month="24.99" data-year="249.99">$24.99</span> / <span class="per">month</span></div>
                   <div class="note">Underwrite new commissions.</div>
                 </label>
               </div>
@@ -2302,11 +2326,11 @@
             </div>
           </div>
 
-          <p id="memFoot" class="note choosing-only" aria-hidden="true">
+          <p id="memFoot" class="note choosing-only" aria-hidden="true">You can update billing interval or cancel at period end at any time in Customer Portal.</p>
 
         </div>
 
-        <div class="card" style="margin-top:var(--gap);">
+        <div class="card" id="billingHistoryCard" style="margin-top:var(--gap);">
           <h2>Billing history (preview)</h2>
           <div id="invoices" class="list">
             <div class="item"><span class="skeleton" style="width:40%; height:16px;"></span><span class="skeleton" style="width:20%; height:16px;"></span></div>
@@ -2375,9 +2399,23 @@
       const dxFetchStartTs = performance.now();
       const dxSettingsShell = document.getElementById('dx-settings-loading-shell');
       const api  = root.dataset.api || '/api';
+      const BILLING_ENDPOINTS = {
+        plans: '/me/billing/plans',
+        plansLegacy: '/prices',
+        summary: '/me/billing/summary',
+        summaryLegacy: '/me/subscription',
+        checkout: '/me/billing/checkout-session',
+        checkoutLegacy: '/stripe/create-checkout-session',
+        portal: '/me/billing/portal-session',
+        invoices: '/me/invoices?limit=5',
+        pause: '/me/billing/subscription/pause',
+        resume: '/me/billing/subscription/resume'
+      };
+      const RETURN_PATH = '/entry/settings#membership';
+      const SUCCESS_PATH = '/entry/settings?thanks=1#membership';
       const $  = (s,el=document)=>el.querySelector(s);
       const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-      const settingsFetchCards = ['idCard', 'creditsCard', 'asideBilling', 'notCard']
+      const settingsFetchCards = ['idCard', 'creditsCard', 'asideBilling', 'notCard', 'membershipCard', 'billingHistoryCard']
         .map((id) => document.getElementById(id))
         .filter(Boolean);
       settingsFetchCards.forEach((card) => {
@@ -2412,8 +2450,24 @@
         const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
         if (t) headers.Authorization = 'Bearer ' + t;
         const res = await fetch(url, Object.assign({}, opts, {headers}));
-        if (!res.ok) throw new Error(await res.text().catch(()=>res.statusText));
+        if (!res.ok) {
+          const err = new Error(await res.text().catch(()=>res.statusText));
+          err.status = res.status;
+          throw err;
+        }
         return res.json().catch(()=> ({}));
+      }
+      function statusCodeOf(error){
+        const status = Number(error && error.status);
+        return Number.isFinite(status) ? status : 0;
+      }
+      function isCompatFallbackStatus(error){
+        const status = statusCodeOf(error);
+        return status === 404 || status === 405 || status === 501;
+      }
+      function safeText(value, fallback = '—'){
+        const v = String(value || '').trim();
+        return v || fallback;
       }
 
       // === Auth bridge (single source of truth) ===
@@ -2660,8 +2714,7 @@ const padB = (parseFloat(csFrame.paddingBottom) || 0) + (parseFloat(csFrame.bord
 
         // Lazy-load Membership resources on first open
         if (name === 'membership' && !showPane._loadedMembership){
-          loadPrices().then(()=>{}); 
-          loadInvoices().then(()=>{});
+          loadMembershipPane().then(()=>{});
           showPane._loadedMembership = true;
         }
       }
@@ -2978,205 +3031,456 @@ function hydrateProfile(me){
 }
 
 
-      /* Membership wiring (no header chips; portal lives here only) */
-      let prices=null, interval='month', selected='S';
-      const perEls = $$('.per'), priceEls = $$('.price');
-
-      function setIntervalMode(mode){
-        interval = mode;
-        $('#int-month').setAttribute('aria-pressed', String(mode==='month'));
-        $('#int-year').setAttribute('aria-pressed',  String(mode==='year'));
-        perEls.forEach(el => el.textContent = (mode==='month'?'month':'year'));
-        priceEls.forEach(el => el.textContent = '$' + Number(el.dataset[mode]).toFixed(2));
-      }
-      $('#int-month').addEventListener('click', ()=> setIntervalMode('month'));
-      $('#int-year').addEventListener('click',  ()=> setIntervalMode('year'));
-
-      $$('.tier').forEach(t => t.addEventListener('click', ()=>{
-        $$('.tier').forEach(x=>x.setAttribute('aria-checked','false'));
-        t.setAttribute('aria-checked','true');
-        $('input', t).checked = true;
-        selected = t.dataset.tier;
-      }));
-
-      const planToggle = $('#planToggle'), planChooser = $('#planChooser'), closeChooser = $('#closeChooser');
-      const memCard = document.querySelector('#pane-membership .card');     // first card (membership)
+      /* Membership wiring (authenticated Stripe + portal-first) */
+      let prices = null;
+      let billingSummary = null;
+      let interval = 'month';
+      let selected = 'S';
+      const perEls = $$('.per');
+      const priceEls = $$('.price');
+      const planToggle = document.getElementById('planToggle');
+      const manageBtn = document.getElementById('manage');
+      const pauseResumeBtn = document.getElementById('pauseResume');
+      const planChooser = document.getElementById('planChooser');
+      const closeChooser = document.getElementById('closeChooser');
+      const startBtn = document.getElementById('start');
+      const memCard = document.getElementById('membershipCard');
       const intervalWrap = document.querySelector('#pane-membership .interval');
-const coverWrap = document.getElementById('coverWrap');
-const memFoot   = document.getElementById('memFoot');
+      const coverWrap = document.getElementById('coverWrap');
+      const memFoot = document.getElementById('memFoot');
+      const memInlineError = document.getElementById('memInlineError');
+      const portalHistoryBtn = document.getElementById('portalHistory');
+      const statusPlan = document.getElementById('memStatusPlan');
+      const statusRenewal = document.getElementById('memStatusRenewal');
+      const statusPayment = document.getElementById('memStatusPayment');
+      const statusCancel = document.getElementById('memStatusCancel');
+      const tierName = { S: 'Steward', M: 'Archivist', L: 'Producer' };
 
-      planToggle.addEventListener('click', ()=>{
-  const open = planChooser.dataset.open === 'true';
-  planChooser.dataset.open = String(!open);
-  planChooser.setAttribute('aria-hidden', String(open));
+      function setMembershipError(message){
+        if (!memInlineError) return;
+        const hasMessage = !!String(message || '').trim();
+        memInlineError.hidden = !hasMessage;
+        memInlineError.textContent = hasMessage ? String(message).trim() : '';
+      }
+      function setButtonBusy(btn, busy){
+        if (!btn) return;
+        btn.disabled = !!busy;
+        btn.setAttribute('data-billing-busy', busy ? 'true' : 'false');
+      }
+      function formatMoney(amount, currency){
+        if (typeof amount !== 'number' || !Number.isFinite(amount)) return '—';
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: String(currency || 'USD').toUpperCase(),
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      }
+      function formatDate(ts){
+        const sec = Number(ts);
+        if (!Number.isFinite(sec) || sec <= 0) return '—';
+        return new Date(sec * 1000).toLocaleDateString();
+      }
+      function normalizeSummary(raw){
+        const summary = raw && typeof raw === 'object' ? raw : {};
+        const status = String(summary.status || summary.subscription_status || 'none').toLowerCase();
+        const tier = String(summary.tier || summary.plan_tier || '').toUpperCase();
+        const intervalValue = String(summary.interval || summary.plan_interval || '').toLowerCase();
+        const paymentLast4 = summary.default_payment_method_last4 || summary.payment_last4 || null;
+        const cancellation = Boolean(summary.cancel_at_period_end || status === 'canceled_at_period_end');
+        return {
+          status: status || 'none',
+          tier: ['S', 'M', 'L'].includes(tier) ? tier : null,
+          interval: ['month', 'year'].includes(intervalValue) ? intervalValue : null,
+          cancel_at_period_end: cancellation,
+          current_period_end: Number(summary.current_period_end || summary.renewTs || 0) || null,
+          customer_portal_enabled: summary.customer_portal_enabled !== false,
+          default_payment_method_last4: paymentLast4,
+          invoice_preview: summary.invoice_preview || null
+        };
+      }
+      function normalizePlans(raw){
+        const fallback = {
+          currency: 'USD',
+          defaultTier: 'S',
+          coverFeesEnabled: true,
+          plans: [
+            { tier: 'S', name: 'Steward', month: { amount: 6.99, currency: 'USD' }, year: { amount: 69.99, currency: 'USD' } },
+            { tier: 'M', name: 'Archivist', month: { amount: 14.99, currency: 'USD' }, year: { amount: 149.99, currency: 'USD' } },
+            { tier: 'L', name: 'Producer', month: { amount: 24.99, currency: 'USD' }, year: { amount: 249.99, currency: 'USD' } }
+          ]
+        };
+        if (!raw || typeof raw !== 'object') return fallback;
 
-  /* Show/hide choosing-only elements with gentle fade */
-  if (!open){
-    memCard?.classList.add('is-choosing');
-    intervalWrap?.setAttribute('aria-hidden','false');
-    coverWrap?.setAttribute('aria-hidden','false');   // NEW
-    memFoot?.setAttribute('aria-hidden','false');     // NEW
-  }else{
-    memCard?.classList.remove('is-choosing');
-    intervalWrap?.setAttribute('aria-hidden','true');
-    coverWrap?.setAttribute('aria-hidden','true');    // NEW
-    memFoot?.setAttribute('aria-hidden','true');      // NEW
-  }
+        if (Array.isArray(raw.plans) && raw.plans.length) {
+          return {
+            currency: String(raw.currency || 'USD').toUpperCase(),
+            defaultTier: String(raw.defaultTier || 'S').toUpperCase(),
+            coverFeesEnabled: raw.coverFeesEnabled !== false,
+            plans: raw.plans
+              .map((plan) => ({
+                tier: String(plan?.tier || '').toUpperCase(),
+                name: safeText(plan?.name, ''),
+                month: {
+                  amount: Number(plan?.month?.amount),
+                  currency: String(plan?.month?.currency || raw.currency || 'USD').toUpperCase()
+                },
+                year: {
+                  amount: Number(plan?.year?.amount),
+                  currency: String(plan?.year?.currency || raw.currency || 'USD').toUpperCase()
+                }
+              }))
+              .filter((plan) => ['S', 'M', 'L'].includes(plan.tier))
+          };
+        }
 
-  if (window.gsap){
-    gsap.to(planChooser, { opacity: open?0:1, duration:.28, ease:'power2.out' });
-  }
-  if (!open){ setTimeout(()=> { $('input[name="tier"]')?.focus(); }, 120); }
-});
+        if (raw.month && raw.year) {
+          return {
+            currency: 'USD',
+            defaultTier: 'S',
+            coverFeesEnabled: true,
+            plans: ['S', 'M', 'L'].map((tier) => ({
+              tier,
+              name: tierName[tier],
+              month: { amount: Number(raw.month[tier]), currency: 'USD' },
+              year: { amount: Number(raw.year[tier]), currency: 'USD' }
+            }))
+          };
+        }
 
+        return fallback;
+      }
+      function closePlanPicker(){
+        if (!planChooser) return;
+        planChooser.dataset.open = 'false';
+        planChooser.setAttribute('aria-hidden', 'true');
+        memCard?.classList.remove('is-choosing');
+        intervalWrap?.setAttribute('aria-hidden', 'true');
+        coverWrap?.setAttribute('aria-hidden', 'true');
+        memFoot?.setAttribute('aria-hidden', 'true');
+      }
+      function openPlanPicker(){
+        if (!planChooser) return;
+        planChooser.dataset.open = 'true';
+        planChooser.setAttribute('aria-hidden', 'false');
+        memCard?.classList.add('is-choosing');
+        intervalWrap?.setAttribute('aria-hidden', 'false');
+        coverWrap?.setAttribute('aria-hidden', 'false');
+        memFoot?.setAttribute('aria-hidden', 'false');
+        setTimeout(() => { $('input[name="tier"]')?.focus(); }, 120);
+      }
+      function applyPlansToUi(model){
+        prices = model;
+        const plansByTier = new Map(model.plans.map((plan) => [plan.tier, plan]));
+        $$('.tier').forEach((tierEl) => {
+          const tier = String(tierEl.dataset.tier || '').toUpperCase();
+          const plan = plansByTier.get(tier);
+          if (!plan) return;
+          const amountMonth = Number(plan.month?.amount);
+          const amountYear = Number(plan.year?.amount);
+          const priceEl = tierEl.querySelector('.price');
+          const perEl = tierEl.querySelector('.per');
+          const nameEl = tierEl.querySelector('.name');
+          if (nameEl && plan.name) nameEl.textContent = plan.name;
+          if (priceEl) {
+            if (Number.isFinite(amountMonth)) priceEl.dataset.month = String(amountMonth);
+            if (Number.isFinite(amountYear)) priceEl.dataset.year = String(amountYear);
+          }
+          if (perEl) perEl.textContent = interval === 'year' ? 'year' : 'month';
+        });
+        selected = ['S', 'M', 'L'].includes(model.defaultTier) ? model.defaultTier : selected;
+        const selectedTier = document.querySelector(`.tier[data-tier="${selected}"]`);
+        if (selectedTier) {
+          $$('.tier').forEach((el) => el.setAttribute('aria-checked', 'false'));
+          selectedTier.setAttribute('aria-checked', 'true');
+          $('input', selectedTier).checked = true;
+        }
+        if (coverWrap) coverWrap.hidden = model.coverFeesEnabled === false;
+        setIntervalMode(interval);
+      }
+      function setIntervalMode(mode){
+        interval = mode === 'year' ? 'year' : 'month';
+        document.getElementById('int-month')?.setAttribute('aria-pressed', String(interval === 'month'));
+        document.getElementById('int-year')?.setAttribute('aria-pressed', String(interval === 'year'));
+        perEls.forEach((el) => { el.textContent = interval === 'year' ? 'year' : 'month'; });
+        priceEls.forEach((el) => {
+          const raw = Number(el.dataset[interval]);
+          const currency = prices?.currency || 'USD';
+          el.textContent = Number.isFinite(raw) ? formatMoney(raw, currency) : '—';
+        });
+      }
+      function renderMembershipStatus(summary){
+        if (!summary) return;
+        const planName = summary.tier ? `${tierName[summary.tier] || summary.tier} ${summary.interval === 'year' ? '(Annual)' : '(Monthly)'}` : 'No active plan';
+        if (statusPlan) statusPlan.textContent = planName;
+        if (statusRenewal) statusRenewal.textContent = formatDate(summary.current_period_end);
+        if (statusPayment) statusPayment.textContent = summary.default_payment_method_last4 ? `•••• ${summary.default_payment_method_last4}` : 'On file in Customer Portal';
+        if (statusCancel) statusCancel.textContent = summary.cancel_at_period_end ? `Ends ${formatDate(summary.current_period_end)}` : 'None scheduled';
+      }
+      function applySubUI(rawSummary){
+        if (!planToggle || !manageBtn || !pauseResumeBtn) return;
+        const summary = normalizeSummary(rawSummary);
+        billingSummary = summary;
+        renderMembershipStatus(summary);
 
-      closeChooser.addEventListener('click', ()=>{
-  planChooser.dataset.open='false';
-  planChooser.setAttribute('aria-hidden','true');
-  memCard?.classList.remove('is-choosing');
-  intervalWrap?.setAttribute('aria-hidden','true');
-  coverWrap?.setAttribute('aria-hidden','true');   // NEW
-  memFoot?.setAttribute('aria-hidden','true');     // NEW
-});
+        const status = summary.status;
+        const canManagePortal = summary.customer_portal_enabled !== false;
+        const canPauseResume = ['active', 'trialing', 'canceled_at_period_end'].includes(status) || summary.cancel_at_period_end;
 
+        planToggle.hidden = false;
+        planToggle.disabled = false;
+        planToggle.classList.remove('ghost');
+        planToggle.classList.add('cta');
+        planToggle.textContent = status === 'none' || status === 'canceled' || status === 'incomplete' || status === 'incomplete_expired'
+          ? 'Choose a plan'
+          : 'Change plan';
 
+        manageBtn.hidden = !canManagePortal;
+        if (!manageBtn.hidden) {
+          const manageLabel = ['past_due', 'unpaid'].includes(status) ? 'Fix payment method' : 'Open Customer Portal';
+          const labelNode = manageBtn.querySelector('.cta-label');
+          if (labelNode) labelNode.textContent = manageLabel;
+        }
+
+        pauseResumeBtn.hidden = !canPauseResume;
+        if (!pauseResumeBtn.hidden) {
+          const shouldResume = summary.cancel_at_period_end || status === 'canceled_at_period_end';
+          pauseResumeBtn.dataset.action = shouldResume ? 'resume' : 'pause';
+          pauseResumeBtn.textContent = shouldResume ? 'Resume membership' : 'Pause at period end';
+        } else {
+          pauseResumeBtn.dataset.action = '';
+        }
+
+        closePlanPicker();
+      }
 
       async function loadPrices(){
-        try { prices = await jfetch(api + '/prices'); }
-        catch { prices = { month:{S:'',M:'',L:''}, year:{S:'',M:'',L:''} }; }
+        setMembershipError('');
+        try {
+          const response = await jfetch(api + BILLING_ENDPOINTS.plans);
+          const model = normalizePlans(response);
+          applyPlansToUi(model);
+          return model;
+        } catch (error) {
+          if (!isCompatFallbackStatus(error)) {
+            setMembershipError('Could not load plans. Try again.');
+            throw error;
+          }
+        }
+        const legacyResponse = await jfetch(api + BILLING_ENDPOINTS.plansLegacy);
+        const legacyModel = normalizePlans(legacyResponse);
+        applyPlansToUi(legacyModel);
+        return legacyModel;
       }
 
-     $('#start').addEventListener('click', async () => {
-  const btn = $('#start');
-  btn.disabled = true;
-  try {
-    const payload = {
-      interval,
-      tier: selected,
-      coverFees: !!$('#cover')?.checked,
-      success_url: location.origin + '/entry/settings?thanks=1#membership',
-      cancel_url: location.href
-    };
+      async function loadBillingSummary(){
+        setMembershipError('');
+        try {
+          const summary = await jfetch(api + BILLING_ENDPOINTS.summary);
+          applySubUI(summary);
+          markSettingsCardReady('membershipCard');
+          return billingSummary;
+        } catch (error) {
+          if (!isCompatFallbackStatus(error)) {
+            throw error;
+          }
+        }
+        const legacySummary = await jfetch(api + BILLING_ENDPOINTS.summaryLegacy);
+        applySubUI(legacySummary);
+        markSettingsCardReady('membershipCard');
+        return billingSummary;
+      }
 
-    // Use jfetch if you like, but be sure to display the server error if it throws.
-    const r = await fetch(api + '/stripe/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+      async function createCheckoutSession(){
+        const payload = {
+          tier: selected,
+          interval,
+          coverFees: !!document.getElementById('cover')?.checked,
+          returnPath: RETURN_PATH
+        };
+        try {
+          return await jfetch(api + BILLING_ENDPOINTS.checkout, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+        } catch (error) {
+          if (!isCompatFallbackStatus(error)) throw error;
+        }
+        return jfetch(api + BILLING_ENDPOINTS.checkoutLegacy, {
+          method: 'POST',
+          body: JSON.stringify({
+            tier: selected,
+            interval,
+            coverFees: !!document.getElementById('cover')?.checked,
+            success_url: location.origin + SUCCESS_PATH,
+            cancel_url: location.href
+          })
+        });
+      }
 
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || r.statusText || `HTTP ${r.status}`);
+      async function openPortalSession(flow){
+        const payload = { flow, returnPath: RETURN_PATH };
+        return jfetch(api + BILLING_ENDPOINTS.portal, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      }
 
-    if (data.url) {
-      location.href = data.url;
-      return;
-    }
-    throw new Error('No URL in response');
-  } catch (e) {
-    console.error('Checkout start failed:', e);
-    alert('Could not start checkout: ' + (e.message || e));
-  } finally {
-    btn.disabled = false;
-  }
-});
+      async function mutatePauseResume(action){
+        if (action !== 'pause' && action !== 'resume') return null;
+        const endpoint = action === 'pause' ? BILLING_ENDPOINTS.pause : BILLING_ENDPOINTS.resume;
+        return jfetch(api + endpoint, {
+          method: 'POST',
+          body: JSON.stringify({ returnPath: RETURN_PATH })
+        });
+      }
 
       async function loadInvoices(){
         try{
-          const inv = await jfetch(api + '/me/invoices?limit=5');
-          const wrap = $('#invoices'); wrap.innerHTML = '';
-          (inv?.data||[]).forEach(i=>{
-            const row = document.createElement('div'); row.className='item';
-            row.innerHTML = `<span>${new Date(i.created*1000).toLocaleDateString()}</span><span>$${(i.amount_paid/100).toFixed(2)}</span>`;
+          const inv = await jfetch(api + BILLING_ENDPOINTS.invoices);
+          const wrap = document.getElementById('invoices');
+          wrap.innerHTML = '';
+          (inv?.data || []).forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'item';
+            const created = Number(item?.created || 0);
+            const amountPaid = Number(item?.amount_paid || 0) / 100;
+            row.innerHTML = `<span>${created ? new Date(created * 1000).toLocaleDateString() : '—'}</span><span>${Number.isFinite(amountPaid) ? formatMoney(amountPaid, 'USD') : '—'}</span>`;
             wrap.appendChild(row);
           });
-          if (!inv?.data?.length) $('#invoices').innerHTML = '<p class="note">No invoices yet.</p>';
-        }catch{}
-        finally { markSettingsCardReady('asideBilling'); }
+          if (!inv?.data?.length) {
+            wrap.innerHTML = '<p class="note">No invoices yet.</p>';
+          }
+        } catch (_error) {
+          const wrap = document.getElementById('invoices');
+          if (wrap) wrap.innerHTML = '<p class="note">Invoices unavailable right now.</p>';
+        } finally {
+          markSettingsCardReady('billingHistoryCard');
+          markSettingsCardReady('asideBilling');
+        }
       }
 
-function applySubUI(status, renewTs){
-  // elements
-  const planBtn   = document.getElementById('planToggle'); // opens chooser
-  const manageBtn = document.getElementById('manage');     // Portal (class="cta-primary")
-  const planChooser = document.getElementById('planChooser');
-  const memCard     = document.querySelector('#pane-membership .card');           // already added earlier
-const intervalWrap= document.querySelector('#pane-membership .interval');       // already added earlier
-const coverWrap   = document.getElementById('coverWrap');                       // NEW
-const memFoot     = document.getElementById('memFoot');                         // NEW
+      document.getElementById('int-month')?.addEventListener('click', () => setIntervalMode('month'));
+      document.getElementById('int-year')?.addEventListener('click', () => setIntervalMode('year'));
 
+      $$('.tier').forEach((tierEl) => tierEl.addEventListener('click', () => {
+        $$('.tier').forEach((el) => el.setAttribute('aria-checked', 'false'));
+        tierEl.setAttribute('aria-checked', 'true');
+        const radio = $('input', tierEl);
+        if (radio) radio.checked = true;
+        selected = String(tierEl.dataset.tier || 'S').toUpperCase();
+      }));
 
-  // helpers
-  const setPlan = (label, isGhost=false) => {
-    planBtn.hidden = false;
-    planBtn.textContent = label;
-    planBtn.classList.toggle('cta', !isGhost);     // primary when NOT ghost
-    planBtn.classList.toggle('ghost', !!isGhost);  // secondary ghost style
-  };
+      planToggle?.addEventListener('click', () => {
+        const open = planChooser?.dataset.open === 'true';
+        if (open) closePlanPicker();
+        else openPlanPicker();
+        if (window.gsap && planChooser) {
+          gsap.to(planChooser, { opacity: open ? 0 : 1, duration: .28, ease: 'power2.out' });
+        }
+      });
 
-  // GSAP hover/press for Monthly/Annual pills (board-like micro-lift)
+      closeChooser?.addEventListener('click', closePlanPicker);
+
+      startBtn?.addEventListener('click', async () => {
+        setButtonBusy(startBtn, true);
+        setMembershipError('');
+        try {
+          const session = await createCheckoutSession();
+          if (session?.url) {
+            location.href = session.url;
+            return;
+          }
+          throw new Error('No checkout URL returned.');
+        } catch (error) {
+          console.error('Checkout start failed:', error);
+          setMembershipError('Could not start checkout. Please try again.');
+        } finally {
+          setButtonBusy(startBtn, false);
+        }
+      });
+
+      manageBtn?.addEventListener('click', async () => {
+        setButtonBusy(manageBtn, true);
+        setMembershipError('');
+        try {
+          const flow = ['past_due', 'unpaid'].includes(billingSummary?.status) ? 'payment_method_update' : 'manage';
+          const portal = await openPortalSession(flow);
+          if (portal?.url) {
+            location.href = portal.url;
+            return;
+          }
+          throw new Error('No portal URL returned.');
+        } catch (error) {
+          console.error('Portal open failed:', error);
+          setMembershipError('Could not open Customer Portal right now.');
+        } finally {
+          setButtonBusy(manageBtn, false);
+        }
+      });
+
+      portalHistoryBtn?.addEventListener('click', async () => {
+        setButtonBusy(portalHistoryBtn, true);
+        setMembershipError('');
+        try {
+          const portal = await openPortalSession('invoice_history');
+          if (portal?.url) {
+            location.href = portal.url;
+            return;
+          }
+          throw new Error('No portal URL returned.');
+        } catch (error) {
+          console.error('Portal invoice history open failed:', error);
+          setMembershipError('Could not open invoice history right now.');
+        } finally {
+          setButtonBusy(portalHistoryBtn, false);
+        }
+      });
+
+      pauseResumeBtn?.addEventListener('click', async () => {
+        const action = pauseResumeBtn.dataset.action === 'resume' ? 'resume' : 'pause';
+        setButtonBusy(pauseResumeBtn, true);
+        setMembershipError('');
+        try {
+          await mutatePauseResume(action);
+          await loadBillingSummary();
+        } catch (error) {
+          console.error('Pause/resume failed:', error);
+          setMembershipError(action === 'pause'
+            ? 'Could not pause membership at period end.'
+            : 'Could not resume membership.');
+        } finally {
+          setButtonBusy(pauseResumeBtn, false);
+        }
+      });
+
+      // GSAP hover/press for Monthly/Annual pills (board-like micro-lift)
 (() => {
-  const btns = ['#int-month', '#int-year'].map(s => document.querySelector(s)).filter(Boolean);
+  const btns = ['#int-month', '#int-year'].map((selector) => document.querySelector(selector)).filter(Boolean);
   if (!btns.length) return;
-  btns.forEach(b => {
-    b.style.willChange = 'transform, box-shadow';
-    b.addEventListener('mouseenter', () => window.gsap && gsap.to(b, { y:-1, duration:.18, ease:'power2.out', boxShadow:'0 10px 28px rgba(0,0,0,.10)' }));
-    b.addEventListener('mouseleave', () => window.gsap && gsap.to(b, { y: 0, duration:.22, ease:'power2.out', boxShadow:'none' }));
-    b.addEventListener('mousedown',  () => window.gsap && gsap.to(b, { scale:.98, duration:.08, ease:'power1.out' }));
-    b.addEventListener('mouseup',    () => window.gsap && gsap.to(b, { scale:1,    duration:.12, ease:'power2.out' }));
-    b.addEventListener('focus',      () => window.gsap && gsap.to(b, { y:-1, duration:.18, ease:'power2.out' }));
-    b.addEventListener('blur',       () => window.gsap && gsap.to(b, { y: 0, duration:.22, ease:'power2.out' }));
+  btns.forEach((btn) => {
+    btn.style.willChange = 'transform, box-shadow';
+    btn.addEventListener('mouseenter', () => window.gsap && gsap.to(btn, { y:-1, duration:.18, ease:'power2.out', boxShadow:'0 10px 28px rgba(0,0,0,.10)' }));
+    btn.addEventListener('mouseleave', () => window.gsap && gsap.to(btn, { y: 0, duration:.22, ease:'power2.out', boxShadow:'none' }));
+    btn.addEventListener('mousedown',  () => window.gsap && gsap.to(btn, { scale:.98, duration:.08, ease:'power1.out' }));
+    btn.addEventListener('mouseup',    () => window.gsap && gsap.to(btn, { scale:1, duration:.12, ease:'power2.out' }));
+    btn.addEventListener('focus',      () => window.gsap && gsap.to(btn, { y:-1, duration:.18, ease:'power2.out' }));
+    btn.addEventListener('blur',       () => window.gsap && gsap.to(btn, { y: 0, duration:.22, ease:'power2.out' }));
   });
 })();
 
-  const setManage = (label) => {
-    manageBtn.hidden = false;
-    const lab = manageBtn.querySelector('.cta-label');
-    if (lab) lab.textContent = label;
-    else manageBtn.textContent = label; // fallback if markup differs
-  };
-  const hideBoth = () => { planBtn.hidden = true; manageBtn.hidden = true; };
+      async function loadMembershipPane(){
+        try {
+          await Promise.all([loadPrices(), loadInvoices()]);
+          if (!billingSummary) await loadBillingSummary();
+        } catch (_error) {
+          // Errors are surfaced inline; keep page usable.
+        } finally {
+          markSettingsCardReady('membershipCard');
+          markSettingsCardReady('billingHistoryCard');
+        }
+      }
 
-  // normalize
-  const s = (status||'none').toLowerCase();
-
-  // default
-  planBtn.hidden = true;
-  manageBtn.hidden = true;
-
-  // routing
-  if (['active','trialing'].includes(s)){
-  setManage('Open Customer Portal');            // primary only
-  planBtn.hidden = true;                        // hide “Change plan”
-  if (planChooser) { planChooser.dataset.open='false'; planChooser.setAttribute('aria-hidden','true'); }
-  memCard?.classList.remove('is-choosing');
-intervalWrap?.setAttribute('aria-hidden','true');
-coverWrap?.setAttribute('aria-hidden','true');   // NEW
-memFoot?.setAttribute('aria-hidden','true');     // NEW
-
-}
-  else if (['past_due','unpaid'].includes(s)){
-    setManage('Fix payment method');              // primary → Portal
-    setPlan('Change plan', true);                 // optional secondary
-  }
-  else if (s === 'canceled' || s === 'incomplete' || s === 'incomplete_expired' || s === 'none'){
-    setPlan('Choose a plan', false);              // primary
-    // Hide portal (no account context needed yet)
-  }
-  else if (s === 'canceled_at_period_end'){       // still active until end
-    setManage('Resume membership');               // primary → Portal
-    setPlan('Change plan', true);
-  }
-  else if (s === 'paused'){
-    setManage('Resume in Portal');
-    setPlan('Change plan', true);
-    planBtn.disabled = true;                      // can’t change while paused
-  }
-  else {
-    // Unknown / API hiccup — fail safe
-    setPlan('Choose a plan', false);
-  }
-}
 /* Notifications — isolated (no globals, no chips) */
 (() => {
   const pane = document.getElementById('pane-notifs');
@@ -3267,11 +3571,18 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
       (async function boot(){
         let routeState = 'ready';
         try{
-          // Defer membership network until user opens that tab (see showPane)
-          let sub = null;
-
-          try { sub = await jfetch(api + '/me/subscription'); } catch {}
-          applySubUI(sub?.status, sub?.current_period_end);
+          setIntervalMode('month');
+          try {
+            await loadBillingSummary();
+          } catch (_error) {
+            applySubUI({ status: 'none' });
+            setMembershipError('Membership status is unavailable right now.');
+          }
+          try {
+            await loadPrices();
+          } catch (_error) {
+            setMembershipError('Plan pricing is unavailable right now.');
+          }
 
           // Profile hydrate (identity from API + claims)
           try{
@@ -3293,7 +3604,6 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
           window.addEventListener('resize', scheduleFit, { passive:true });
           new ResizeObserver(scheduleFit).observe(document.body);
 
-          setIntervalMode('month');
           // Micro-lift on chips/tokens (parity with /board)
           (() => {
             if (!window.gsap) return;
@@ -3313,7 +3623,12 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
 
           // Deep link “thanks”
           if (new URLSearchParams(location.search).get('thanks') === '1'){
-            alert('Thanks — membership active.');
+            try {
+              await loadBillingSummary();
+              await loadInvoices();
+            } catch (_error) {
+              setMembershipError('Membership update is still processing. Refresh in a moment.');
+            }
           }
         }catch(_){
           routeState = 'error';
@@ -3322,6 +3637,8 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
           markSettingsCardReady('creditsCard');
           markSettingsCardReady('asideBilling');
           markSettingsCardReady('notCard');
+          markSettingsCardReady('membershipCard');
+          markSettingsCardReady('billingHistoryCard');
           await finalizeFetchState(routeState);
         }
       })();
@@ -3997,76 +4314,6 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
 
       
     </div>
-
-    <!-- Auth0 -->
-<!-- Paste this into Home → Settings → Advanced → Code Injection → Footer -->
-<!-- Auth0 Footer Injection (with profile pic support) -->
-<script>
-if (window.DEX_AUTH && window.DEX_AUTH.ready) {
-  // Using canonical /assets/dex-auth.js
-} else {
-(async () => {
-  // 1️⃣ Initialize Auth0 client (incl. profile scope)
-  const auth0 = await createAuth0Client({
-    domain:    'dexdsl.us.auth0.com',
-    client_id: 'M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc',
-    authorizationParams: {
-      redirect_uri: window.location.origin,
-      scope:         'openid profile email'
-    },
-    cacheLocation:   'localstorage',
-   useRefreshTokens: true,
-  });
-window.auth0 = auth0;
-  // 2️⃣ Handle callback
-  if (location.search.includes('code=') && location.search.includes('state=')) {
-    await auth0.handleRedirectCallback();
-    history.replaceState({}, document.title, location.pathname);
-  }
-
-  // 3️⃣ Cache elements
-  const btnLogin       = document.getElementById('btn-login');
-  const profContainer  = document.getElementById('btn-profile-container');
-  const avatarEl       = document.getElementById('user-avatar');
-
-  // 4️⃣ UI sync
-  const updateUI = async () => {
-    const isAuthenticated = await auth0.isAuthenticated();
-
-    // Show SIGN IN or Profile avatar
-    if (btnLogin) {
-      btnLogin.style.display = isAuthenticated ? 'none' : 'inline-flex';
-    }
-    if (profContainer) {
-      profContainer.style.display = isAuthenticated ? 'inline-block' : 'none';
-    }
-
-    // Protected pages/content
-    document.querySelectorAll('.protected')
-      .forEach(el => el.style.display = isAuthenticated ? 'block' : 'none');
-
-    // Load avatar
-    if (isAuthenticated) {
-      const user = await auth0.getUser() || {};
-      if (avatarEl && user.picture) {
-        avatarEl.src           = user.picture;
-        avatarEl.style.display = 'block';
-      }
-    }
-  };
-  await updateUI();
-
-  // 5️⃣ Protect /entry/*
-  const path = window.location.pathname;
-  if (path.startsWith('/entry/') && !(await auth0.isAuthenticated())) {
-    await auth0.loginWithRedirect({ redirect_uri: window.location.href });
-  }
-})();
-}
-</script>
-
-
-<!-- end Auth0 -->
 
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K3G8LQPX"

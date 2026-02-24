@@ -16,31 +16,31 @@
     "dexdsl.github.io": {
       domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
-      audience: "",
+      audience: "https://dex-api.spring-fog-8edd.workers.dev",
       redirectUri: "https://dexdsl.github.io/auth/callback/"
     },
     "dexdsl.org": {
       domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
-      audience: "",
+      audience: "https://dex-api.spring-fog-8edd.workers.dev",
       redirectUri: "https://dexdsl.org/auth/callback/"
     },
     "dexdsl.com": {
       domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
-      audience: "",
+      audience: "https://dex-api.spring-fog-8edd.workers.dev",
       redirectUri: "https://dexdsl.com/auth/callback/"
     },
     "localhost": {
       domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
-      audience: "",
+      audience: "https://dex-api.spring-fog-8edd.workers.dev",
       redirectUri: localRedirectUri
     },
     "127.0.0.1": {
       domain: "dexdsl.us.auth0.com",
       clientId: "M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc",
-      audience: "",
+      audience: "https://dex-api.spring-fog-8edd.workers.dev",
       redirectUri: localRedirectUri
     }
   };
