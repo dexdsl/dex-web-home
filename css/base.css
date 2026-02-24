@@ -954,6 +954,22 @@ hr {
     cursor: pointer;
   }
 
+  .dx-mobile-menu-scope-blur {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-radius: var(--dx-radius-md, 10px);
+    background: rgba(255, 255, 255, 0.02);
+    -webkit-backdrop-filter: var(--dx-header-glass-backdrop);
+    backdrop-filter: var(--dx-header-glass-backdrop);
+    opacity: 0;
+    transition: opacity 220ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
   .dx-mobile-menu-sheet {
     position: absolute;
     left: 50%;
@@ -969,6 +985,7 @@ hr {
     transition: transform 220ms ease, opacity 220ms ease;
     will-change: transform, opacity;
     padding: clamp(10px, 2.8vw, 16px);
+    z-index: 1;
   }
 
   .dx-mobile-menu-utility {
@@ -1134,6 +1151,10 @@ hr {
 
   body.dx-mobile-menu-open .dx-mobile-menu-backdrop {
     pointer-events: auto;
+    opacity: 1;
+  }
+
+  body.dx-mobile-menu-open .dx-mobile-menu-scope-blur {
     opacity: 1;
   }
 

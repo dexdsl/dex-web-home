@@ -614,6 +614,25 @@
     root.setAttribute('data-dx-mobile-utility-stacked', shouldStack ? 'true' : 'false');
   }
 
+  function syncMobileMenuBlurScope(root) {
+    if (!(root instanceof HTMLElement)) return;
+    const scope = root.querySelector('.dx-mobile-menu-scope-blur');
+    const sheet = root.querySelector('.dx-mobile-menu-sheet');
+    if (!(scope instanceof HTMLElement) || !(sheet instanceof HTMLElement)) return;
+
+    const rect = sheet.getBoundingClientRect();
+    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    const sheetStyles = window.getComputedStyle(sheet);
+    scope.style.left = `${Math.round(rect.left)}px`;
+    scope.style.top = `${Math.round(rect.top)}px`;
+    scope.style.width = `${Math.round(rect.width)}px`;
+    scope.style.height = `${Math.round(rect.height)}px`;
+    scope.style.borderRadius = sheetStyles.borderRadius || '';
+  }
+
   function closeMobileMenu({ restoreFocus = true } = {}) {
     const root = document.getElementById(MOBILE_MENU_ROOT_ID);
     if (!root) return;
@@ -798,6 +817,7 @@
 
     markMobileMenuActiveForPath(window.location.pathname);
     syncMobileUtilityLayout(root);
+    syncMobileMenuBlurScope(root);
   }
 
   function openMobileMenu(root, triggerButton = null) {
@@ -810,11 +830,14 @@
     }
     void buildMobileMenuContent(root, { forceAuthRefresh: true });
     syncMobileUtilityLayout(root);
+    syncMobileMenuBlurScope(root);
     root.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => {
       document.body.classList.add(MOBILE_MENU_OPEN_CLASS);
       void buildMobileMenuContent(root);
       syncMobileUtilityLayout(root);
+      syncMobileMenuBlurScope(root);
+      requestAnimationFrame(() => syncMobileMenuBlurScope(root));
     });
     mobileMenuLastFocused = triggerButton instanceof HTMLElement ? triggerButton : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
@@ -860,6 +883,7 @@
       root.setAttribute('aria-hidden', 'true');
       root.innerHTML = `
         <button class="dx-mobile-menu-backdrop" type="button" aria-label="Close menu" data-dx-mobile-menu-close="true"></button>
+        <div class="dx-mobile-menu-scope-blur" aria-hidden="true"></div>
         <div class="dx-mobile-menu-sheet dx-glass-shell--header-match" role="dialog" aria-modal="true" aria-label="Site menu">
           <div class="dx-mobile-menu-utility">
             <div class="dx-mobile-menu-social" aria-label="Social links"></div>
@@ -907,6 +931,7 @@
         event.preventDefault();
         toggleMobileProfileFolder(root);
         syncMobileUtilityLayout(root);
+        syncMobileMenuBlurScope(root);
         return;
       }
 
@@ -931,6 +956,7 @@
       normalizeMobileBurgerHooks(document);
       void buildMobileMenuContent(root);
       syncMobileUtilityLayout(root);
+      syncMobileMenuBlurScope(root);
     }, { passive: true });
 
     window.addEventListener('orientationchange', () => {
@@ -940,6 +966,7 @@
       normalizeMobileBurgerHooks(document);
       void buildMobileMenuContent(root);
       syncMobileUtilityLayout(root);
+      syncMobileMenuBlurScope(root);
     });
 
     window.addEventListener('keydown', (event) => {
@@ -954,10 +981,12 @@
       void buildMobileMenuContent(root, { forceAuthRefresh: true });
       markMobileMenuActiveForPath(window.location.pathname);
       syncMobileUtilityLayout(root);
+      syncMobileMenuBlurScope(root);
     });
 
     window.addEventListener('dex-auth:ready', () => {
       void buildMobileMenuContent(root, { forceAuthRefresh: true });
+      syncMobileMenuBlurScope(root);
     });
   }
 

@@ -3,6 +3,7 @@
 
   var AUTH_UI_ID = "auth-ui";
   var DROPDOWN_OPEN_CLASS = "is-open";
+  var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
   var PROTECTED_PATHS = {
     "/press": true,
     "/entry/2-organs-midori-ataka": true,
@@ -407,6 +408,7 @@
         + "#auth-ui[data-dex-scheme='dark'],#auth-ui[data-dex-scheme='light']{--dex-text:rgba(16,24,36,.92);--dex-text-muted:rgba(16,24,36,.72);}"
         + "#auth-ui,#auth-ui *,#auth-ui *::before,#auth-ui *::after{box-sizing:border-box;}"
         + "#auth-ui [hidden]{display:none!important;}"
+        + "#dx-auth-menu-scope-blur{position:fixed;left:0;top:0;width:0;height:0;border-radius:12px;background:rgba(255,255,255,.02);pointer-events:none;z-index:1199;opacity:0;transition:opacity .2s ease;}"
         + "#auth-ui-signin{display:inline-flex;align-items:center;justify-content:center;margin:0;line-height:1;}"
         + "#auth-ui-profile-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:34px;height:var(--dex-nav-h,38px);margin:0;line-height:1;}"
         + "#auth-ui-profile-toggle:focus-visible,#auth-ui-dropdown .dex-menu-item:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.38),0 0 0 4px rgba(255,25,16,.25);}"
@@ -577,6 +579,7 @@
       var ui = document.getElementById(AUTH_UI_ID);
       if (!ui) return;
       syncAuthUiMetrics(ui, pickMount());
+      syncDropdownBlurUnderlay();
     });
   }
 
@@ -703,6 +706,70 @@
     if (toggle) {
       toggle.setAttribute("aria-expanded", "false");
     }
+    setDropdownBlurUnderlayOpen(false);
+  }
+
+  function ensureDropdownBlurUnderlay() {
+    var existing = document.getElementById(AUTH_DROPDOWN_BLUR_UNDERLAY_ID);
+    if (existing) {
+      return existing;
+    }
+    if (!document.body) {
+      return null;
+    }
+    var underlay = document.createElement("div");
+    underlay.id = AUTH_DROPDOWN_BLUR_UNDERLAY_ID;
+    underlay.setAttribute("aria-hidden", "true");
+    document.body.appendChild(underlay);
+    return underlay;
+  }
+
+  function syncDropdownBlurUnderlay() {
+    var dropdown = document.getElementById("auth-ui-dropdown");
+    if (!dropdown || !dropdown.classList.contains(DROPDOWN_OPEN_CLASS)) {
+      return;
+    }
+    var underlay = ensureDropdownBlurUnderlay();
+    if (!underlay) {
+      return;
+    }
+    var rect = dropdown.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+    var dropdownCs = window.getComputedStyle(dropdown);
+    var ui = document.getElementById(AUTH_UI_ID);
+    var uiCs = ui ? window.getComputedStyle(ui) : null;
+    var filter = uiCs ? normalizeCssValue(uiCs.getPropertyValue("--dex-glass-filter")) : "";
+    if (!filter) {
+      filter = uiCs ? normalizeCssValue(uiCs.getPropertyValue("--dex-glass-webkit-filter")) : "";
+    }
+    if (!filter) {
+      var rootCs = window.getComputedStyle(document.documentElement);
+      filter = normalizeCssValue(rootCs.getPropertyValue("--dx-header-glass-backdrop")) || "saturate(190%) blur(60px)";
+    }
+    underlay.style.left = Math.round(rect.left) + "px";
+    underlay.style.top = Math.round(rect.top) + "px";
+    underlay.style.width = Math.round(rect.width) + "px";
+    underlay.style.height = Math.round(rect.height) + "px";
+    underlay.style.borderRadius = dropdownCs.borderRadius || "12px";
+    underlay.style.backdropFilter = filter;
+    underlay.style.webkitBackdropFilter = filter;
+    underlay.style.opacity = "1";
+  }
+
+  function setDropdownBlurUnderlayOpen(open) {
+    var underlay = ensureDropdownBlurUnderlay();
+    if (!underlay) {
+      return;
+    }
+    if (!open) {
+      underlay.style.opacity = "0";
+      underlay.style.width = "0px";
+      underlay.style.height = "0px";
+      return;
+    }
+    syncDropdownBlurUnderlay();
   }
 
   function bindUiEvents(cfg) {
@@ -733,6 +800,10 @@
         }
         var open = dropdown.classList.toggle(DROPDOWN_OPEN_CLASS);
         profileToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        setDropdownBlurUnderlayOpen(open);
+        if (open) {
+          requestAnimationFrame(syncDropdownBlurUnderlay);
+        }
       });
     }
 
@@ -788,6 +859,16 @@
         closeDropdown();
         toggle.focus();
       });
+    }
+
+    if (!document.documentElement.dataset.dexAuthBlurSyncBound) {
+      document.documentElement.dataset.dexAuthBlurSyncBound = "1";
+      window.addEventListener("scroll", syncDropdownBlurUnderlay, true);
+      var slotScrollRoot = document.getElementById("dx-slot-scroll-root");
+      if (slotScrollRoot && !slotScrollRoot.dataset.dexAuthBlurSyncBound) {
+        slotScrollRoot.dataset.dexAuthBlurSyncBound = "1";
+        slotScrollRoot.addEventListener("scroll", syncDropdownBlurUnderlay, { passive: true });
+      }
     }
 
   }
