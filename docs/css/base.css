@@ -46,6 +46,10 @@
   --dx-layer-foreground: 400;
   --dx-layer-header: 1300;
   --dx-gooey-overscan: 72px;
+  --dx-safe-top: env(safe-area-inset-top, 0px);
+  --dx-safe-right: env(safe-area-inset-right, 0px);
+  --dx-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --dx-safe-left: env(safe-area-inset-left, 0px);
   --dex-scroll-dot-size: 12px;
   --dex-scroll-rail-w: 4px;
   --dex-scroll-shift-x: -10px;
@@ -99,7 +103,7 @@ body.dx-slot-enabled {
 body.dx-slot-enabled #dx-slot-scroll-root {
   display: block;
   position: fixed;
-  inset: var(--dx-slot-top) 0 0 0;
+  inset: var(--dx-slot-top) 0 calc(var(--dx-safe-bottom) * -1) 0;
   overflow-y: auto;
   overflow-x: clip;
   -webkit-overflow-scrolling: touch;
@@ -129,21 +133,14 @@ body.dx-slot-enabled #gooey-mesh-wrapper {
 html body #scroll-gradient-bg,
 html body #gooey-mesh-wrapper {
   position: fixed !important;
-  top: calc(var(--dx-gooey-overscan) * -1) !important;
-  left: calc(var(--dx-gooey-overscan) * -1) !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: calc(100vw + (var(--dx-gooey-overscan) * 2)) !important;
-  height: calc(100vh + (var(--dx-gooey-overscan) * 2)) !important;
+  top: calc((var(--dx-gooey-overscan) + var(--dx-safe-top)) * -1) !important;
+  right: calc((var(--dx-gooey-overscan) + var(--dx-safe-right)) * -1) !important;
+  bottom: calc((var(--dx-gooey-overscan) + var(--dx-safe-bottom)) * -1) !important;
+  left: calc((var(--dx-gooey-overscan) + var(--dx-safe-left)) * -1) !important;
+  width: auto !important;
+  height: auto !important;
   -webkit-clip-path: none !important;
   clip-path: none !important;
-}
-
-@supports (height: 100dvh) {
-  html body #scroll-gradient-bg,
-  html body #gooey-mesh-wrapper {
-    height: calc(100dvh + (var(--dx-gooey-overscan) * 2)) !important;
-  }
 }
 
 html body #gooey-mesh-wrapper::before,
@@ -817,9 +814,12 @@ hr {
   }
 
   .header-display-mobile .header-title-logo img {
-    width: clamp(104px, 37vw, 162px) !important;
-    max-height: 48px !important;
+    width: clamp(96px, 34vw, 150px) !important;
+    max-width: 100% !important;
+    max-height: none !important;
     height: auto !important;
+    display: block !important;
+    transform-origin: 50% 50%;
   }
 
   .header-display-mobile .header-burger,
