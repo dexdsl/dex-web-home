@@ -1623,7 +1623,19 @@
 >
   
     <!-- DexDSL ▶ Submission Messages (glassmorphic) -->
-<div id="dex-msg"></div>
+<div id="dex-msg" data-dx-fetch-state="loading" aria-busy="true">
+  <div class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-root>
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:44%;"></div>
+    <div class="dx-fetch-shell-line" style="width:70%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:92%;"></div>
+      <div class="dx-fetch-shell-line" style="width:86%;"></div>
+    </div>
+  </div>
+</div>
 
 <style>
 /* —— shared shell —— */
@@ -1644,8 +1656,7 @@ background:rgba(255,255,255,.6);padding:var(--space-2) var(--space-3);border-rad
 .dex-header:hover .nav-btn{opacity:1}
 .quota-badge{display:inline-block;background:var(--dex-accent);color:#fff;
 padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:.8rem}
-.table{flex:1;overflow:auto}
-.table{position:relative;}
+.table{flex:1;overflow:auto;position:relative;}
 .table table{width:100%;border-collapse:collapse;font-size:.9rem}
 .table th,.table td{padding:var(--space-2);border-bottom:1px solid var(--liquid-border)}
 .status-Pending\ Review{background:rgba(255,25,16,.1)}
@@ -1655,15 +1666,12 @@ padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:.
 tr.clickable{cursor:pointer}
 .details{background:var(--liquid-bg);padding:var(--space-3);border-radius:var(--radius-sm);
 margin:var(--space-2) 0}
-/* Spinner */
-.spinner-overlay{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;background:rgba(255,255,255,0.05);z-index:50;}
-.spinner{width:1.75rem;height:1.75rem;border-radius:50%;border:3px solid rgba(0,0,0,0.1);border-top-color:var(--dex-accent);
-  animation:spin 0.7s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
 
 </style>
 
 <script>
 (async function () {
+  const DX_MIN_SHEEN_MS = 120;
 
   /* ——— CONFIG ——— */
   const SHEET_API =
@@ -1674,30 +1682,33 @@ margin:var(--space-2) 0}
     const t0 = Date.now();
 
     while (Date.now() - t0 < timeout) {
-      /* 1️⃣ easiest: custom global injected by your site */
       if (window.auth0Sub) return window.auth0Sub;
-
-      /* 2️⃣ Auth0 SPA SDK (v1+): window.auth0 available */
       if (window.auth0 && typeof auth0.getUser === 'function') {
         try {
-          const u = auth0.getUser();          // may be sync or promise
+          const u = auth0.getUser();
           const user = u && typeof u.then === 'function' ? await u : u;
           if (user && user.sub) return user.sub;
         } catch { /* ignore */ }
       }
-
-      /* 3️⃣ older embedded login puts the profile here */
       if (window.AUTH0_USER && AUTH0_USER.sub) return AUTH0_USER.sub;
-
-      await new Promise(r => setTimeout(r, 100));   // wait 100 ms then retry
+      await new Promise(r => setTimeout(r, 100));
     }
-    return '';   // timed-out
+    return '';
   }
-
-  const auth0Sub = await getAuth0Sub();
 
   /* ——— SHELL ——— */
   const root  = document.getElementById('dex-msg');
+  const dxFetchStartTs = performance.now();
+  async function finalizeFetchState(state = 'ready'){
+    const elapsed = performance.now() - dxFetchStartTs;
+    if (elapsed < DX_MIN_SHEEN_MS){
+      await new Promise(r => setTimeout(r, DX_MIN_SHEEN_MS - elapsed));
+    }
+    root.setAttribute('data-dx-fetch-state', state);
+    root.removeAttribute('aria-busy');
+  }
+
+  root.innerHTML = '';
   const aside = document.createElement('aside'); aside.className = 'dex-sidebar';
   root.append(aside);
 
@@ -1706,24 +1717,30 @@ margin:var(--space-2) 0}
                     <h1>Your Submission Messages</h1>`;
   aside.append(head);
 
-
   const body  = document.createElement('section'); body.className = 'table';
   aside.append(body);
 
-// spinner while loading
-const spinner = document.createElement('div');
-spinner.className = 'spinner-overlay';
-spinner.innerHTML = '<div class="spinner"></div>';
-body.append(spinner);          /* overlay just the table card */
+  const tableHost = document.createElement('div');
+  tableHost.className = 'dx-fetch-shell--rows';
+  body.append(tableHost);
 
-  /* ——— if still no id, show notice & exit ——— */
+  const tableOverlay = document.createElement('div');
+  tableOverlay.className = 'dx-fetch-shell-overlay';
+  body.append(tableOverlay);
+
+  function setTableLoading(isLoading){
+    body.setAttribute('data-dx-fetch-state', isLoading ? 'loading' : 'ready');
+    tableOverlay.hidden = !isLoading;
+  }
+
+  const auth0Sub = await getAuth0Sub();
   if (!auth0Sub) {
-    body.innerHTML =
-      '<p style="padding:var(--space-3)">Please sign&nbsp;in to view your submissions.</p>';
+    setTableLoading(false);
+    tableHost.innerHTML = '<p style="padding:var(--space-3)">Please sign&nbsp;in to view your submissions.</p>';
+    await finalizeFetchState('ready');
     return;
   }
 
-  /* ——— tiny JSONP helper ——— */
   function jsonp (url) {
     return new Promise((res, rej) => {
       const cb = '_cb' + Math.random().toString(36).slice(2);
@@ -1735,26 +1752,11 @@ body.append(spinner);          /* overlay just the table card */
     });
   }
 
-  /* ——— Fetch + render ——— */
-  try {
-    const resp = await jsonp(
-      `${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(auth0Sub)}`
-    );
-    renderTable(resp.rows || []);
-    spinner.remove();
-  } catch {
-    body.innerHTML =
-      '<p style="padding:var(--space-3)">Error loading submissions.</p>';
-    spinner.remove();
-  }
-
-  /* ——— renderer ——— */
   function renderTable (rows) {
-    body.innerHTML = '';
+    tableHost.innerHTML = '';
 
     if (!rows.length) {
-      body.innerHTML =
-        '<p style="padding:var(--space-3)">No submissions yet.</p>';
+      tableHost.innerHTML = '<p style="padding:var(--space-3)">No submissions yet.</p>';
       return;
     }
 
@@ -1777,7 +1779,6 @@ body.append(spinner);          /* overlay just the table card */
         <td><button class="cta-btn sm dx-button-element dx-button-element--primary dx-button-size--sm">Open</button></td>`;
       tbody.append(tr);
 
-      /* detail row */
       const detail = document.createElement('tr'); detail.style.display = 'none';
       detail.innerHTML = `<td colspan="5">
           <div class="details">
@@ -1791,25 +1792,43 @@ body.append(spinner);          /* overlay just the table card */
       tbody.append(detail);
 
       tr.querySelector('.cta-btn.sm').onclick = () => {
-        detail.style.display =
-          detail.style.display === 'none' ? 'table-row' : 'none';
+        detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
       };
     });
 
-    body.append(tbl);
+    tableHost.append(tbl);
   }
 
-  /* ——— acknowledge ——— */
+  async function loadRows(showErrors = true){
+    setTableLoading(true);
+    try{
+      const resp = await jsonp(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(auth0Sub)}`);
+      renderTable(resp.rows || []);
+      setTableLoading(false);
+      return true;
+    }catch{
+      if (showErrors){
+        tableHost.innerHTML = '<p style="padding:var(--space-3)">Error loading submissions.</p>';
+      }
+      setTableLoading(false);
+      return false;
+    }
+  }
+
   window.ack = function ack (row, btn) {
     btn.disabled = true;
+    setTableLoading(true);
     jsonp(`${SHEET_API}?action=ack&row=${row}`)
-      .then(() => {
+      .then(async () => {
         btn.textContent = 'Acknowledged';
         btn.style.opacity = '.6';
+        await loadRows(false);
       })
-      .catch(() => { btn.disabled = false; });
+      .catch(() => { btn.disabled = false; setTableLoading(false); });
   };
 
+  const ok = await loadRows();
+  await finalizeFetchState(ok ? 'ready' : 'error');
 })();
 </script>
 

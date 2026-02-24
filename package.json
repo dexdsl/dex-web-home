@@ -26,6 +26,7 @@
     "verify:assets": "node scripts/linkcheck_local_assets.mjs",
     "verify:hdr": "node scripts/verify_hdr_contract.mjs",
     "verify:header-slot": "node scripts/verify_header_slot_contract.mjs",
+    "verify:loading-shell": "node scripts/verify_loading_shell_contract.mjs",
     "verify:motion": "node scripts/verify_motion_contract.mjs",
     "verify:scroll-dot": "node scripts/verify_scroll_dot_contract.mjs",
     "verify:about": "node scripts/verify_about_integrity.mjs",

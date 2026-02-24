@@ -1200,7 +1200,19 @@
 >
   
     <!-- DexDSL Polls Tool ▶ Glassmorphic Console Block -->
-<div id="dex-console"></div>
+<div id="dex-console" data-dx-fetch-state="loading" aria-busy="true">
+  <div class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-root>
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:36%;"></div>
+    <div class="dx-fetch-shell-line" style="width:58%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:92%;"></div>
+      <div class="dx-fetch-shell-line" style="width:82%;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- Past-poll modal -->
 <div id="past-modal" class="modal-overlay" style="display:none">
@@ -1293,11 +1305,6 @@
 .nav-btn:disabled{opacity:0.3;cursor:default;}
 .page-indicator{font-size:0.8rem;}
 
-/* Spinner */
-.spinner-overlay{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;background:rgba(255,255,255,0.05);}
-.spinner{width:1.75rem;height:1.75rem;border-radius:50%;border:3px solid rgba(0,0,0,0.1);border-top-color:var(--dex-accent);
-  animation:spin 0.7s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
-
 /* Modal */
 .modal-overlay{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;
   background:rgba(0,0,0,0.45);z-index:10001;}
@@ -1315,7 +1322,17 @@
 
 <script>
 (async()=>{
+const DX_MIN_SHEEN_MS = 120;
 const root=document.getElementById('dex-console');
+const dxFetchStartTs = performance.now();
+async function finalizeFetchState(state='ready'){
+  const elapsed = performance.now() - dxFetchStartTs;
+  if (elapsed < DX_MIN_SHEEN_MS){
+    await new Promise(r => setTimeout(r, DX_MIN_SHEEN_MS - elapsed));
+  }
+  root.setAttribute('data-dx-fetch-state', state);
+  root.removeAttribute('aria-busy');
+}
 const WEBAPP='https://script.google.com/macros/s/AKfycbw0XIM4rK9siLvy4iGCE0aVcL-G6fi_OtE_FsdubZMj4ZjRTowKKuV2ABuimYD8Y_PJEg/exec';
 let auth,selectedPoll=null;
 
@@ -1366,8 +1383,14 @@ async function showPastResult(poll){
 
 /* main load */
 async function load(){
-  const [open,closed]=await Promise.all([fetchJSON(WEBAPP+'?open=1'),fetchJSON(WEBAPP+'?closed=1&page=1')]);
-  render(open,closed);
+  try{
+    const [open,closed]=await Promise.all([fetchJSON(WEBAPP+'?open=1'),fetchJSON(WEBAPP+'?closed=1&page=1')]);
+    render(open,closed);
+    await finalizeFetchState('ready');
+  }catch{
+    root.innerHTML = `<div class="dx-fetch-shell dx-fetch-shell--card"><p>Unable to load polls right now.</p></div>`;
+    await finalizeFetchState('error');
+  }
 }
 
 /* render */
@@ -1421,8 +1444,10 @@ function render(openList,closedList){
     });
     dc.appendChild(opts);
 
-    const resCard=el('div','results-card');const spinnerWrap=el('div','spinner-overlay');
-    spinnerWrap.innerHTML='<div class="spinner"></div>';resCard.appendChild(spinnerWrap);
+    const resCard=el('div','results-card');
+    resCard.setAttribute('data-dx-fetch-state','loading');
+    const loadingSheenOverlay=el('div','dx-fetch-shell-overlay');
+    resCard.appendChild(loadingSheenOverlay);
     const header=el('div','results-header');
     header.appendChild(el('span','total',''));header.appendChild(el('span','page-indicator',''));
     resCard.appendChild(header);
@@ -1446,10 +1471,16 @@ function render(openList,closedList){
     }
 
     async function drawResults(anim){
-      spinnerWrap.style.display='flex';
-      resultsData=await fetchJSON(WEBAPP+'?results='+selectedPoll.id);
-      resultsData.sorted=selectedPoll.options.split('|').map((o,i)=>({opt:o,c:resultsData.counts[i]||0})).sort((a,b)=>b.c-a.c);
-      header.querySelector('.total').textContent=`${resultsData.total} votes`;page=0;renderPage(anim);spinnerWrap.style.display='none';
+      resCard.setAttribute('data-dx-fetch-state','loading');
+      try{
+        resultsData=await fetchJSON(WEBAPP+'?results='+selectedPoll.id);
+        resultsData.sorted=selectedPoll.options.split('|').map((o,i)=>({opt:o,c:resultsData.counts[i]||0})).sort((a,b)=>b.c-a.c);
+        header.querySelector('.total').textContent=`${resultsData.total} votes`;page=0;renderPage(anim);
+      }catch{
+        showToast('Could not load results.', false);
+      }finally{
+        resCard.setAttribute('data-dx-fetch-state','ready');
+      }
     }
     function renderPage(animate){
       const pages=Math.max(1,Math.ceil(resultsData.sorted.length/pageSize));
@@ -1476,7 +1507,7 @@ function render(openList,closedList){
 
 /* wait for Auth0 then init */
 while(!window.auth0) await new Promise(r=>setTimeout(r,50));
-auth=window.auth0;load();
+auth=window.auth0;await load();
 })();
 </script>
 

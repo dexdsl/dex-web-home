@@ -1238,7 +1238,18 @@
 >
   
     <!-- DexDSL ▶ Submit Samples Tool (glassmorphic one-pager, no outer scroll) -->
-<div id="dex-submit"></div>
+<div id="dex-submit" data-dx-fetch-state="loading" aria-busy="true">
+  <div class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-root>
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:38%;"></div>
+    <div class="dx-fetch-shell-line" style="width:64%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:96%;"></div>
+      <div class="dx-fetch-shell-line" style="width:88%;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- Google Picker SDK -->
 <script src="https://apis.google.com/js/api.js"></script>
@@ -1364,6 +1375,8 @@
 <script>
 
 (async function() {
+  const DX_MIN_SHEEN_MS = 120;
+
   // CONFIG
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
 
@@ -1426,6 +1439,15 @@ function validateMeta() {
 
   // UTILS
   const root = document.getElementById('dex-submit');
+  const dxFetchStartTs = performance.now();
+  async function finalizeFetchState(state = 'ready'){
+    const elapsed = performance.now() - dxFetchStartTs;
+    if (elapsed < DX_MIN_SHEEN_MS){
+      await new Promise(r => setTimeout(r, DX_MIN_SHEEN_MS - elapsed));
+    }
+    root.setAttribute('data-dx-fetch-state', state);
+    root.removeAttribute('aria-busy');
+  }
   const toastC = document.createElement('div'); toastC.id = 'toast-container'; document.body.appendChild(toastC);
   function toast(msg,isErr=false){
     const d=document.createElement('div');
@@ -1463,6 +1485,7 @@ function validateMeta() {
   }
   window.addEventListener('resize',fit);
   fit();
+  root.innerHTML = '';
 
   // JSONP
   window.submissionCallback = resp => {
@@ -1562,6 +1585,7 @@ textarea.notes{
 
   const slides=[ buildStart, buildMeta, buildLicense, buildLink, buildDone ];
   await render();
+  await finalizeFetchState('ready');
 
   async function render(){
     body.innerHTML='';

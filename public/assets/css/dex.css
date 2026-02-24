@@ -319,6 +319,14 @@ div.dx-add-to-cart-button-inner {
   --dx-motion-scale-hover: 1.015;
   --dx-motion-scale-press: .985;
   --dx-motion-opacity-enter: .001;
+  --dx-fetch-min-shell-h: clamp(240px, 38vh, 520px);
+  --dx-fetch-shell-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
+  --dx-fetch-shell-rim: var(--dx-header-glass-rim);
+  --dx-fetch-shell-bg: var(--dx-header-glass-bg);
+  --dx-fetch-shell-shadow: var(--dx-header-glass-shadow);
+  --dx-fetch-sheen-duration: 1100ms;
+  --dx-fetch-sheen-ease: cubic-bezier(.22, .8, .24, 1);
+  --dx-fetch-sheen-gradient: linear-gradient(120deg, transparent 30%, var(--dx-glass-highlight, rgba(255, 255, 255, 0.56)) 50%, transparent 70%);
 }
 
 @media (color-gamut: p3) {
@@ -364,6 +372,100 @@ div.dx-add-to-cart-button-inner {
 [data-dx-motion='interactive'] {
   transform-origin: center center;
   will-change: transform, opacity;
+}
+
+[data-dx-fetch-state='loading'] {
+  position: relative;
+}
+
+[data-dx-fetch-state='loading'] .dx-fetch-shell-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-dx-fetch-state='ready'] .dx-fetch-shell-overlay,
+[data-dx-fetch-state='error'] .dx-fetch-shell-overlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dx-fetch-shell {
+  position: relative;
+  width: 100%;
+  min-height: var(--dx-fetch-min-shell-h);
+  padding: clamp(14px, 1.8vw, 22px);
+  border-radius: var(--dx-fetch-shell-radius);
+  border: 1px solid var(--dx-fetch-shell-rim);
+  background: var(--dx-fetch-shell-bg);
+  box-shadow: var(--dx-fetch-shell-shadow);
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop);
+  backdrop-filter: var(--dx-header-glass-backdrop);
+  overflow: hidden;
+}
+
+.dx-fetch-shell--card {
+  display: grid;
+  align-content: start;
+  gap: clamp(10px, 1.4vw, 14px);
+}
+
+.dx-fetch-shell--rows {
+  display: grid;
+  gap: clamp(10px, 1.4vw, 14px);
+}
+
+.dx-fetch-shell-line,
+.dx-fetch-shell-pill {
+  border-radius: calc(var(--dx-fetch-shell-radius) * 0.55);
+  border: 1px solid color-mix(in srgb, var(--dx-fetch-shell-rim) 80%, transparent);
+  background: color-mix(in srgb, var(--dx-fetch-shell-bg) 66%, rgba(255, 255, 255, 0.28));
+}
+
+.dx-fetch-shell-line {
+  height: clamp(10px, 1.1vw, 14px);
+}
+
+.dx-fetch-shell-pill {
+  height: clamp(18px, 2vw, 22px);
+  width: clamp(92px, 15vw, 152px);
+}
+
+.dx-fetch-shell-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dx-motion-dur-sm) var(--dx-motion-ease-standard);
+}
+
+.dx-fetch-shell-overlay::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: var(--dx-fetch-sheen-gradient);
+  transform: translateX(-120%);
+}
+
+[data-dx-fetch-state='loading'] .dx-fetch-shell-overlay::after {
+  animation: dx-fetch-sheen var(--dx-fetch-sheen-duration) var(--dx-fetch-sheen-ease) infinite;
+}
+
+@keyframes dx-fetch-sheen {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dx-fetch-shell-overlay,
+  .dx-fetch-shell-overlay::after {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /* Home FE containers that host full-width cards must allow header-width overflow */

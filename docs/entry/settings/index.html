@@ -1624,7 +1624,19 @@
   
     <!-- DEX — Settings (clean glass header, board-style tabs + working arrows, no header chips) -->
 <section id="dex-settings"
-  data-api="https://dex-api.spring-fog-8edd.workers.dev">
+  data-api="https://dex-api.spring-fog-8edd.workers.dev"
+  data-dx-fetch-state="loading"
+  aria-busy="true">
+  <div id="dx-settings-loading-shell" class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-root aria-hidden="true">
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:42%;"></div>
+    <div class="dx-fetch-shell-line" style="width:66%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:96%;"></div>
+      <div class="dx-fetch-shell-line" style="width:84%;"></div>
+    </div>
+  </div>
 
   <style>
     /* ===== legacysite container reset (full width, square padding) ===== */
@@ -1649,7 +1661,17 @@
       --accent: var(--dex-accent,#ff1910);
       --muted: rgba(0,0,0,.7);
       color:#000; width:100%; max-width:none; margin-inline:auto; padding:var(--pad);
+      position: relative;
       font: 14px/1.45 var(--font-body, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+    }
+    #dx-settings-loading-shell{
+      position:absolute;
+      inset: var(--pad);
+      z-index: 40;
+    }
+    #dex-settings[data-dx-fetch-state="ready"] #dx-settings-loading-shell,
+    #dex-settings[data-dx-fetch-state="error"] #dx-settings-loading-shell{
+      display:none;
     }
 
     /* ===== Header card (clean, industry-standard) ===== */
@@ -2377,9 +2399,34 @@
   <script>
     (() => {
       const root = document.getElementById('dex-settings');
+      const DX_MIN_SHEEN_MS = 120;
+      const dxFetchStartTs = performance.now();
+      const dxSettingsShell = document.getElementById('dx-settings-loading-shell');
       const api  = root.dataset.api || '/api';
       const $  = (s,el=document)=>el.querySelector(s);
       const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
+      const settingsFetchCards = ['idCard', 'creditsCard', 'asideBilling', 'notCard']
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+      settingsFetchCards.forEach((card) => {
+        card.setAttribute('data-dx-fetch-state', 'loading');
+        card.setAttribute('aria-busy', 'true');
+      });
+      function markSettingsCardReady(id){
+        const card = document.getElementById(id);
+        if (!card) return;
+        card.setAttribute('data-dx-fetch-state', 'ready');
+        card.removeAttribute('aria-busy');
+      }
+      async function finalizeFetchState(state = 'ready'){
+        const elapsed = performance.now() - dxFetchStartTs;
+        if (elapsed < DX_MIN_SHEEN_MS){
+          await new Promise((resolve) => setTimeout(resolve, DX_MIN_SHEEN_MS - elapsed));
+        }
+        root.setAttribute('data-dx-fetch-state', state);
+        root.removeAttribute('aria-busy');
+        if (dxSettingsShell) dxSettingsShell.remove();
+      }
       /* Auth0 token + fetch */
       async function token(){
         try{
@@ -2954,6 +3001,8 @@ function hydrateProfile(me){
   renderRoleChips(roles);
   renderTokens(instr);
   updatePreview();
+  markSettingsCardReady('idCard');
+  markSettingsCardReady('creditsCard');
 }
 
 
@@ -3071,6 +3120,7 @@ const memFoot   = document.getElementById('memFoot');
           });
           if (!inv?.data?.length) $('#invoices').innerHTML = '<p class="note">No invoices yet.</p>';
         }catch{}
+        finally { markSettingsCardReady('asideBilling'); }
       }
 
 function applySubUI(status, renewTs){
@@ -3210,6 +3260,7 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
       const d = await jfetch((pane.closest('#dex-settings')?.dataset.api || '/api') + '/me/notifications');
       hydrate(d||{});
     }catch(_){ /* non-fatal */ }
+    finally { markSettingsCardReady('notCard'); }
   }
 
   async function save(){
@@ -3242,56 +3293,65 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
 
       /* Initial boot */
       (async function boot(){
-        // Defer membership network until user opens that tab (see showPane)
-        let sub = null;
+        let routeState = 'ready';
+        try{
+          // Defer membership network until user opens that tab (see showPane)
+          let sub = null;
 
-try { sub = await jfetch(api + '/me/subscription'); } catch {}
-applySubUI(sub?.status, sub?.current_period_end);
+          try { sub = await jfetch(api + '/me/subscription'); } catch {}
+          applySubUI(sub?.status, sub?.current_period_end);
 
-// Profile hydrate (identity from API + claims)
-try{
-  await authReady(); // wait for window.auth0 to exist & session to resolve
+          // Profile hydrate (identity from API + claims)
+          try{
+            await authReady(); // wait for window.auth0 to exist & session to resolve
 
-  let me = {};
-  try { me = await jfetch(api + '/me/profile'); } catch {}
+            let me = {};
+            try { me = await jfetch(api + '/me/profile'); } catch {}
 
-  const claims = await getClaimsIdentity(); // <- reliable Google/Apple/GitHub identity
-  const merged = mergeIdentity(me, claims);
+            const claims = await getClaimsIdentity(); // <- reliable Google/Apple/GitHub identity
+            const merged = mergeIdentity(me, claims);
 
-  hydrateProfile(merged);
-  if (merged?.last_signin) $('#lastSignin').textContent = new Date(merged.last_signin*1000).toLocaleString();
-}catch(_){}
+            hydrateProfile(merged);
+            if (merged?.last_signin) $('#lastSignin').textContent = new Date(merged.last_signin*1000).toLocaleString();
+          }catch(_){}
 
-// keep the layout tight — throttle via rAF to avoid thrash
-let _fitRAF = 0;
-function scheduleFit(){ if (_fitRAF) return; _fitRAF = requestAnimationFrame(()=>{ _fitRAF=0; fitProfileLayout(); }); }
-window.addEventListener('resize', scheduleFit, { passive:true });
-new ResizeObserver(scheduleFit).observe(document.body);
+          // keep the layout tight — throttle via rAF to avoid thrash
+          let _fitRAF = 0;
+          function scheduleFit(){ if (_fitRAF) return; _fitRAF = requestAnimationFrame(()=>{ _fitRAF=0; fitProfileLayout(); }); }
+          window.addEventListener('resize', scheduleFit, { passive:true });
+          new ResizeObserver(scheduleFit).observe(document.body);
 
-setIntervalMode('month');
-// Micro-lift on chips/tokens (parity with /board)
-(() => {
-  if (!window.gsap) return;
-  document.addEventListener('pointerenter', e=>{
-    const t = e.target;
-    if (t?.classList?.contains('chip') || t?.classList?.contains('tok')){
-      gsap.to(t, { y:-1, duration:.16, ease:'power2.out' });
-    }
-  }, true);
-  document.addEventListener('pointerleave', e=>{
-    const t = e.target;
-    if (t?.classList?.contains('chip') || t?.classList?.contains('tok')){
-      gsap.to(t, { y:0, duration:.18, ease:'power2.out' });
-    }
-  }, true);
-})();
+          setIntervalMode('month');
+          // Micro-lift on chips/tokens (parity with /board)
+          (() => {
+            if (!window.gsap) return;
+            document.addEventListener('pointerenter', e=>{
+              const t = e.target;
+              if (t?.classList?.contains('chip') || t?.classList?.contains('tok')){
+                gsap.to(t, { y:-1, duration:.16, ease:'power2.out' });
+              }
+            }, true);
+            document.addEventListener('pointerleave', e=>{
+              const t = e.target;
+              if (t?.classList?.contains('chip') || t?.classList?.contains('tok')){
+                gsap.to(t, { y:0, duration:.18, ease:'power2.out' });
+              }
+            }, true);
+          })();
 
-
-        // Deep link “thanks”
-        if (new URLSearchParams(location.search).get('thanks') === '1'){
-          alert('Thanks — membership active.');
+          // Deep link “thanks”
+          if (new URLSearchParams(location.search).get('thanks') === '1'){
+            alert('Thanks — membership active.');
+          }
+        }catch(_){
+          routeState = 'error';
+        }finally{
+          markSettingsCardReady('idCard');
+          markSettingsCardReady('creditsCard');
+          markSettingsCardReady('asideBilling');
+          markSettingsCardReady('notCard');
+          await finalizeFetchState(routeState);
         }
-        
       })();
     })();
   </script>

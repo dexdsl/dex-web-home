@@ -1623,7 +1623,18 @@
 >
   
     <!-- DexDSL ▶ Press Room Submission (glassmorphic wizard) -->
-<div id="dex-press"></div>
+<div id="dex-press" data-dx-fetch-state="loading" aria-busy="true">
+  <div class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-root>
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:40%;"></div>
+    <div class="dx-fetch-shell-line" style="width:64%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:95%;"></div>
+      <div class="dx-fetch-shell-line" style="width:86%;"></div>
+    </div>
+  </div>
+</div>
 
 <style>
 :root{
@@ -1668,17 +1679,11 @@
   border:1px solid var(--liquid-border);background:var(--liquid-bg);border-radius:var(--radius-sm);
 }
 .bottom-buttons{display:flex;justify-content:space-between;}
-.spinner-overlay{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;
-  background:rgba(255,255,255,0.05);z-index:50;
-}
-.spinner{width:1.75rem;height:1.75rem;border-radius:50%;border:3px solid rgba(0,0,0,0.1);
-  border-top-color:var(--dex-accent);animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 
 <script>
 (async function(){
+  const DX_MIN_SHEEN_MS = 120;
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwb2lOkJDN7rOJVmGHPzY3IBRByjrfMI0GH_TzUsXYDEXIjdIlqr-ZR0VKDWvoPmFjw/exec';
   // state
   let current = 0;
@@ -1704,6 +1709,16 @@
 
   // root & shell
   const root=document.getElementById('dex-press');
+  const dxFetchStartTs = performance.now();
+  async function finalizeFetchState(state='ready'){
+    const elapsed = performance.now() - dxFetchStartTs;
+    if (elapsed < DX_MIN_SHEEN_MS){
+      await new Promise(r => setTimeout(r, DX_MIN_SHEEN_MS - elapsed));
+    }
+    root.setAttribute('data-dx-fetch-state', state);
+    root.removeAttribute('aria-busy');
+  }
+  root.innerHTML = '';
   const panel=$c('aside','dex-sidebar'); root.append(panel);
   const hdr=$c('section','dex-header'); panel.append(hdr);
   const back=$c('button','nav-btn','←'); back.onclick=()=>{ if(current>0){current--;render();}};
@@ -1713,12 +1728,14 @@
   // require login
   if(!window.auth0Sub){
     body.innerHTML='<p style="padding:var(--space-3)">Please sign in to submit requests.</p>';
+    await finalizeFetchState('ready');
     return;
   }
 
   // slides
   const slides=[buildStart, buildTypeContact, buildProjectDesc, buildDetails, buildDone];
   await render();
+  await finalizeFetchState('ready');
 
   async function render(){
     body.innerHTML=''; back.style.opacity = current>0?'1':'0';
