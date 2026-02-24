@@ -1152,6 +1152,7 @@ hr {
   body.dx-mobile-menu-open .dx-mobile-menu-backdrop {
     pointer-events: auto;
     opacity: 1;
+    background: rgba(12, 14, 20, 0.34);
   }
 
   body.dx-mobile-menu-open .dx-mobile-menu-scope-blur {
