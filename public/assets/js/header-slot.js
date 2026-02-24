@@ -10,6 +10,9 @@
   const ROUTE_SCRIPT_ATTR = 'data-dx-route-script';
   const HISTORY_SLOT_KEY = '__dxSlot';
   const HISTORY_SCROLL_KEY = '__dxSlotScrollTop';
+  const MOBILE_MENU_ROOT_ID = 'dx-mobile-menu';
+  const MOBILE_MENU_OPEN_CLASS = 'dx-mobile-menu-open';
+  const MOBILE_BREAKPOINT_QUERY = '(max-width: 980px)';
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);
   const PRESERVED_TAGS = new Set(['SCRIPT', 'STYLE', 'LINK', 'META']);
@@ -39,6 +42,8 @@
   let scrollStateInstalled = false;
   let scrollStateRafId = 0;
   let slotLayoutStabilizerInstalled = false;
+  let mobileMenuInstalled = false;
+  let mobileMenuLastFocused = null;
 
   function getHeaderElement(root = document) {
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
@@ -335,6 +340,271 @@
     blockEl.style.setProperty('transform', `translateX(${shiftX}px)`, 'important');
   }
 
+  function isMobileViewport() {
+    try {
+      return window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+    } catch {
+      return window.innerWidth <= 980;
+    }
+  }
+
+  function sanitizeClonedNode(node) {
+    if (!(node instanceof HTMLElement)) return node;
+    if (node.hasAttribute('id')) node.removeAttribute('id');
+    const descendantsWithIds = Array.from(node.querySelectorAll('[id]'));
+    for (const descendant of descendantsWithIds) {
+      descendant.removeAttribute('id');
+    }
+    return node;
+  }
+
+  function closeMobileMenu({ restoreFocus = true } = {}) {
+    const root = document.getElementById(MOBILE_MENU_ROOT_ID);
+    if (!root) return;
+
+    document.body.classList.remove(MOBILE_MENU_OPEN_CLASS);
+    root.setAttribute('aria-hidden', 'true');
+
+    const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
+    if (scrollRoot instanceof HTMLElement) {
+      const previousOverflow = String(scrollRoot.getAttribute('data-dx-mobile-menu-prev-overflow') || '');
+      if (previousOverflow) {
+        scrollRoot.style.overflowY = previousOverflow;
+      } else {
+        scrollRoot.style.removeProperty('overflow-y');
+      }
+      scrollRoot.removeAttribute('data-dx-mobile-menu-prev-overflow');
+    }
+
+    const burgerButtons = Array.from(document.querySelectorAll('.header-display-mobile .header-burger-btn'));
+    for (const button of burgerButtons) {
+      button.setAttribute('aria-expanded', 'false');
+    }
+
+    if (restoreFocus && mobileMenuLastFocused && mobileMenuLastFocused instanceof HTMLElement) {
+      try {
+        mobileMenuLastFocused.focus({ preventScroll: true });
+      } catch {}
+    }
+    mobileMenuLastFocused = null;
+  }
+
+  function markMobileMenuActiveForPath(pathname) {
+    const root = document.getElementById(MOBILE_MENU_ROOT_ID);
+    if (!root) return;
+
+    const normalizedTarget = normalizePathname(pathname);
+    const links = Array.from(root.querySelectorAll('.dx-mobile-menu-nav a[data-dx-mobile-menu-route]'));
+    for (const link of links) {
+      const routePath = normalizePathname(String(link.getAttribute('data-dx-mobile-menu-route') || ''));
+      const isActive = routePath === normalizedTarget;
+      link.setAttribute('data-dx-mobile-menu-active', isActive ? 'true' : 'false');
+      if (isActive) {
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    }
+  }
+
+  function getUniqueAnchors(candidates) {
+    const unique = [];
+    const seen = new Set();
+    for (const anchor of candidates) {
+      if (!(anchor instanceof HTMLAnchorElement)) continue;
+      const href = String(anchor.getAttribute('href') || '').trim();
+      if (!href) continue;
+      if (href.startsWith('javascript:')) continue;
+      const text = String(anchor.textContent || '').trim();
+      const key = `${href}::${text}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(anchor);
+    }
+    return unique;
+  }
+
+  function buildMobileMenuContent(root) {
+    if (!(root instanceof HTMLElement)) return;
+
+    const socialHost = root.querySelector('.dx-mobile-menu-social');
+    const actionsHost = root.querySelector('.dx-mobile-menu-actions');
+    const navHost = root.querySelector('.dx-mobile-menu-nav');
+    if (!(socialHost instanceof HTMLElement) || !(actionsHost instanceof HTMLElement) || !(navHost instanceof HTMLElement)) return;
+
+    clearChildren(socialHost);
+    clearChildren(actionsHost);
+    clearChildren(navHost);
+
+    const socialCandidates = getUniqueAnchors(Array.from(document.querySelectorAll(
+      '.header-display-desktop .header-actions--left .header-actions-action--social a.icon[href], .header-display-mobile .header-actions--left .header-actions-action--social a.icon[href]'
+    )));
+    for (const anchor of socialCandidates) {
+      const clone = sanitizeClonedNode(anchor.cloneNode(true));
+      if (!(clone instanceof HTMLAnchorElement)) continue;
+      clone.classList.add('icon');
+      socialHost.appendChild(clone);
+    }
+
+    const actionCandidates = getUniqueAnchors(Array.from(document.querySelectorAll(
+      '#auth-ui #auth-ui-profile-toggle[href], #auth-ui #auth-ui-signin[href], .header-display-desktop .customerAccountLoginDesktop a[href], .header-display-mobile .customerAccountLoginDesktop a[href], .header-display-desktop .header-actions-action--cta a[href], .header-display-mobile .header-actions-action--cta a[href]'
+    )));
+    for (const anchor of actionCandidates) {
+      const clone = sanitizeClonedNode(anchor.cloneNode(true));
+      if (!(clone instanceof HTMLAnchorElement)) continue;
+      clone.setAttribute('data-dx-mobile-menu-action', 'true');
+      actionsHost.appendChild(clone);
+    }
+
+    const navCandidates = getUniqueAnchors(Array.from(document.querySelectorAll(
+      '.header-display-desktop .header-nav-list .header-nav-item > a[href], .header-display-mobile .header-nav-list .header-nav-item > a[href]'
+    )));
+    for (const anchor of navCandidates) {
+      const href = String(anchor.getAttribute('href') || '').trim();
+      const absoluteHref = toAbsoluteUrl(href);
+      if (!absoluteHref) continue;
+      if (!isHttpUrl(absoluteHref)) continue;
+      if (!isSameOriginUrl(absoluteHref)) continue;
+
+      const clone = sanitizeClonedNode(anchor.cloneNode(true));
+      if (!(clone instanceof HTMLAnchorElement)) continue;
+      clone.setAttribute('data-dx-mobile-menu-route', normalizePathname(absoluteHref.pathname));
+      clone.removeAttribute('target');
+      clone.removeAttribute('rel');
+      navHost.appendChild(clone);
+    }
+
+    markMobileMenuActiveForPath(window.location.pathname);
+  }
+
+  function openMobileMenu(root, triggerButton = null) {
+    if (!(root instanceof HTMLElement)) return;
+    if (!isMobileViewport()) return;
+
+    buildMobileMenuContent(root);
+    root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add(MOBILE_MENU_OPEN_CLASS);
+    mobileMenuLastFocused = triggerButton instanceof HTMLElement ? triggerButton : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+
+    const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
+    if (scrollRoot instanceof HTMLElement) {
+      if (!scrollRoot.hasAttribute('data-dx-mobile-menu-prev-overflow')) {
+        scrollRoot.setAttribute('data-dx-mobile-menu-prev-overflow', scrollRoot.style.overflowY || '');
+      }
+      scrollRoot.style.overflowY = 'hidden';
+    }
+
+    const burgerButtons = Array.from(document.querySelectorAll('.header-display-mobile .header-burger-btn'));
+    for (const button of burgerButtons) {
+      button.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function normalizeMobileBurgerHooks(root = document) {
+    const burgerContainers = Array.from(root.querySelectorAll('.header-display-mobile .header-burger'));
+    for (const container of burgerContainers) {
+      container.classList.remove('header-burger');
+      container.classList.add('dx-header-burger');
+    }
+
+    const burgerButtons = Array.from(root.querySelectorAll('.header-display-mobile .header-burger-btn'));
+    for (const button of burgerButtons) {
+      button.setAttribute('type', 'button');
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.setAttribute('aria-expanded', document.body.classList.contains(MOBILE_MENU_OPEN_CLASS) ? 'true' : 'false');
+      button.setAttribute('aria-controls', MOBILE_MENU_ROOT_ID);
+    }
+  }
+
+  function installMobileMenu() {
+    if (mobileMenuInstalled) return;
+    mobileMenuInstalled = true;
+
+    let root = document.getElementById(MOBILE_MENU_ROOT_ID);
+    if (!(root instanceof HTMLElement)) {
+      root = document.createElement('div');
+      root.id = MOBILE_MENU_ROOT_ID;
+      root.className = 'dx-mobile-menu';
+      root.setAttribute('aria-hidden', 'true');
+      root.innerHTML = `
+        <button class="dx-mobile-menu-backdrop" type="button" aria-label="Close menu" data-dx-mobile-menu-close="true"></button>
+        <div class="dx-mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Site menu">
+          <div class="dx-mobile-menu-utility">
+            <div class="dx-mobile-menu-social" aria-label="Social links"></div>
+            <div class="dx-mobile-menu-actions" aria-label="Account and actions"></div>
+          </div>
+          <nav class="dx-mobile-menu-nav" aria-label="Site navigation"></nav>
+        </div>
+      `;
+      document.body.appendChild(root);
+    }
+
+    buildMobileMenuContent(root);
+    normalizeMobileBurgerHooks(document);
+
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      const burgerButton = target && target.closest ? target.closest('.header-display-mobile .header-burger-btn') : null;
+      if (!burgerButton) return;
+      if (!isMobileViewport()) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+
+      if (document.body.classList.contains(MOBILE_MENU_OPEN_CLASS)) {
+        closeMobileMenu();
+      } else {
+        openMobileMenu(root, burgerButton);
+      }
+    }, true);
+
+    root.addEventListener('click', (event) => {
+      const target = event.target;
+      const closeTrigger = target && target.closest ? target.closest('[data-dx-mobile-menu-close="true"]') : null;
+      if (closeTrigger) {
+        event.preventDefault();
+        closeMobileMenu();
+        return;
+      }
+
+      const clickedLink = target && target.closest ? target.closest('a[href]') : null;
+      if (!clickedLink) return;
+      const href = String(clickedLink.getAttribute('href') || '').trim();
+      if (!href) return;
+      closeMobileMenu({ restoreFocus: false });
+    });
+
+    window.addEventListener('resize', () => {
+      if (!isMobileViewport()) {
+        closeMobileMenu({ restoreFocus: false });
+      }
+      normalizeMobileBurgerHooks(document);
+    }, { passive: true });
+
+    window.addEventListener('orientationchange', () => {
+      if (!isMobileViewport()) {
+        closeMobileMenu({ restoreFocus: false });
+      }
+      normalizeMobileBurgerHooks(document);
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (!document.body.classList.contains(MOBILE_MENU_OPEN_CLASS)) return;
+      closeMobileMenu();
+    }, true);
+
+    window.addEventListener('dx:slotready', () => {
+      closeMobileMenu({ restoreFocus: false });
+      normalizeMobileBurgerHooks(document);
+      buildMobileMenuContent(root);
+      markMobileMenuActiveForPath(window.location.pathname);
+    });
+  }
+
   function alignHomeHeroToHeader() {
     if (!document.body.classList.contains('homepage')) return;
 
@@ -465,6 +735,8 @@
         link.removeAttribute('aria-current');
       }
     }
+
+    markMobileMenuActiveForPath(pathname);
   }
 
   function shouldIncludeRouteStylesheet(url) {
@@ -990,6 +1262,7 @@
     installSoftRouter();
     installScrollStateTracker(scrollRoot);
     installSlotLayoutStabilizer(scrollRoot, foregroundRoot);
+    installMobileMenu();
 
     requestAnimationFrame(() => {
       if (initialScroll > 0) {
@@ -998,6 +1271,7 @@
       scrollToHashTarget(window.location.hash);
       dispatchSlotReady(scrollRoot, foregroundRoot);
       installHomeHeroAligner();
+      normalizeMobileBurgerHooks(document);
       persistScrollState(scrollRoot);
     });
 
