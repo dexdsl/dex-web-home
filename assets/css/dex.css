@@ -275,6 +275,23 @@ div.dx-add-to-cart-button-inner {
 
 /* Header-aligned frame + glass tokens reused by homepage cards + global footer */
 :root {
+  --dx-accent-solid-sdr: rgb(255 25 16);
+  --dx-accent-solid-p3: color(display-p3 0.972 0.162 0.102);
+  --dx-accent-solid-hdr: color(display-p3 1 0.24 0.14);
+  --dx-accent-grad-start-sdr: rgb(255 25 16);
+  --dx-accent-grad-end-sdr: rgb(255 106 0);
+  --dx-accent-grad-start-p3: color(display-p3 0.972 0.162 0.102);
+  --dx-accent-grad-end-p3: color(display-p3 1 0.48 0.1);
+  --dx-accent-grad-start-hdr: color(display-p3 1 0.24 0.14);
+  --dx-accent-grad-end-hdr: color(display-p3 1 0.6 0.16);
+  --dx-glass-highlight-sdr: rgba(255, 255, 255, 0.56);
+  --dx-glass-highlight-p3: color(display-p3 1 1 1 / 0.62);
+  --dx-glass-highlight-hdr: color(display-p3 1 1 1 / 0.72);
+  --dx-accent-solid: var(--dx-accent-solid-sdr);
+  --dx-accent-grad-start: var(--dx-accent-grad-start-sdr);
+  --dx-accent-grad-end: var(--dx-accent-grad-end-sdr);
+  --dx-accent-gradient: linear-gradient(90deg, var(--dx-accent-grad-start) 0%, var(--dx-accent-grad-end) 100%);
+  --dx-glass-highlight: var(--dx-glass-highlight-sdr);
   --dx-header-frame-width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px);
   --dx-header-frame-width-vw: min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px);
   --dx-header-glass-radius: var(--dx-radius-md, 10px);
@@ -287,8 +304,44 @@ div.dx-add-to-cart-button-inner {
   --dx-social-glass: linear-gradient(120deg, rgba(221, 230, 240, 0.34) 0%, rgba(191, 208, 224, 0.25) 55%, rgba(232, 210, 203, 0.22) 100%);
   --dx-social-shadow-rest: 0 10px 22px rgba(18, 22, 30, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   --dx-social-shadow-hover: 0 14px 28px rgba(18, 22, 30, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  --dx-social-accent: linear-gradient(90deg, #ff2d13 0%, #ff7a1a 100%);
+  --dx-social-accent: var(--dx-accent-gradient);
   --dx-social-ease: 240ms cubic-bezier(.22, .8, .24, 1);
+}
+
+@media (color-gamut: p3) {
+  :root {
+    --dx-accent-solid: var(--dx-accent-solid-p3);
+    --dx-accent-grad-start: var(--dx-accent-grad-start-p3);
+    --dx-accent-grad-end: var(--dx-accent-grad-end-p3);
+    --dx-glass-highlight: var(--dx-glass-highlight-p3);
+  }
+}
+
+@media (dynamic-range: high) and (color-gamut: p3) {
+  :root {
+    --dx-accent-solid: var(--dx-accent-solid-hdr);
+    --dx-accent-grad-start: var(--dx-accent-grad-start-hdr);
+    --dx-accent-grad-end: var(--dx-accent-grad-end-hdr);
+    --dx-glass-highlight: var(--dx-glass-highlight-hdr);
+  }
+}
+
+@supports (dynamic-range-limit: standard) {
+  :root {
+    --dx-hdr-surface-limit: standard;
+  }
+
+  .dex-footer,
+  .dex-sidebar,
+  .dx-button-element,
+  .dx-block-button-element {
+    dynamic-range-limit: var(--dx-hdr-surface-limit);
+  }
+}
+
+.dx-hdr-picture > img {
+  display: block;
+  max-width: 100%;
 }
 
 /* Home FE containers that host full-width cards must allow header-width overflow */
@@ -608,7 +661,7 @@ body.homepage #dex-faq .spark-accordion__item {
 }
 
 .dex-footer .footer-nav a:hover {
-  color: var(--dex-accent, #ff1910) !important;
+  color: var(--dx-accent-solid) !important;
 }
 
 .dex-footer .footer-social {
@@ -652,7 +705,7 @@ body.homepage #dex-faq .spark-accordion__item {
   content: "" !important;
   position: absolute !important;
   inset: -44% -120% !important;
-  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0.56) 50%, rgba(255, 255, 255, 0) 65%) !important;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 35%, var(--dx-glass-highlight) 50%, rgba(255, 255, 255, 0) 65%) !important;
   transform: translateX(-130%) skewX(-18deg) !important;
   opacity: 0 !important;
   pointer-events: none !important;
@@ -1006,18 +1059,18 @@ padding-bottom: 1px;
 }
 
 .dex-breadcrumb-back:hover {
-color: #ff1910;
-border-bottom-color: #ff1910;
+color: var(--dx-accent-solid);
+border-bottom-color: var(--dx-accent-solid);
 }
 
 .dex-breadcrumb-back:focus-visible {
 outline: none;
-color: #ff1910;
-border-bottom-color: #ff1910;
+color: var(--dx-accent-solid);
+border-bottom-color: var(--dx-accent-solid);
 }
 
 .dex-breadcrumb-delimiter {
-color: #ff1910;
+color: var(--dx-accent-solid);
 opacity: 0.92;
 display: inline-grid;
 place-items: center;
@@ -1107,7 +1160,7 @@ border: 0;
   /* COLORS */
   --dex-bg:      rgba(255,255,255,0.15);
   --dex-text:    #282828;
-  --dex-accent:  #ff1910;
+  --dex-accent:  var(--dx-accent-solid);
 
   /* BREAKPOINTS */
   --break-sm:    570px;
@@ -1652,7 +1705,7 @@ border: 0;
   left: 0; bottom: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, #ff1910, #ff9810);
+  background: linear-gradient(90deg, var(--dx-accent-grad-start), var(--dx-accent-grad-end));
   transform: scaleX(0);
   transform-origin: right;
   transition: transform 0.3s ease;
@@ -1683,7 +1736,7 @@ border: 0;
   position: absolute;
   left: 0; bottom: 0;
   width: 100%; height: 2px;
-  background: linear-gradient(90deg, #ff1910, #ff9810);
+  background: linear-gradient(90deg, var(--dx-accent-grad-start), var(--dx-accent-grad-end));
   transform: scaleX(0);
   transform-origin: right;
   transition: transform 0.3s ease;
@@ -1692,7 +1745,7 @@ border: 0;
 /* on hover, lift + slide underline in */
 .dex-credits [data-person]:hover {
   transform: translateY(-2px);
-  color: #ff1910;
+  color: var(--dx-accent-solid);
 }
 .dex-credits [data-person]:hover::after {
   transform-origin: left;
@@ -1720,17 +1773,12 @@ border: 0;
 
 
 /* ── Chromatic Buttons & Hover ────────────────────────── */
-/* Apply the same gradient you use on your badges */
+/* Apply the shared Dex accent gradient */
 #downloads .btn-audio,
 #downloads .btn-video,
 .license-btn.copy-btn,
 .license-btn.usage-btn {
-  /* a 45° gradient from your red accent to a warmer orange */
-  background: linear-gradient(
-    45deg,
-    var(--dex-accent) 0%,
-    #ff9810 100%
-  ) !important;
+  background: linear-gradient(45deg, var(--dx-accent-grad-start) 0%, var(--dx-accent-grad-end) 100%) !important;
   color: #fff !important;
   box-shadow: var(--shadow-light) !important;
   transition:
@@ -1794,7 +1842,7 @@ border: 0;
 .person-popup a {
   font-family: var(--font-heading) !important;
   font-weight: 600 !important;
-  background: linear-gradient(45deg, #ff1910, #ff9810) !important;
+  background: linear-gradient(45deg, var(--dx-accent-grad-start), var(--dx-accent-grad-end)) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-size: 200% 200% !important;
@@ -1884,11 +1932,7 @@ border: 0;
 }
 /* ── Modal Buttons: Chromatic Gradient ───────────────── */
 .dex-modal-content .confirm-btn {
-  background: linear-gradient(
-    45deg,
-    var(--dex-accent) 0%,
-    #ff9810 100%
-  ) !important;
+  background: linear-gradient(45deg, var(--dx-accent-grad-start) 0%, var(--dx-accent-grad-end) 100%) !important;
   color: #fff !important;
   box-shadow: var(--shadow-light) !important;
   transition:
@@ -2148,7 +2192,7 @@ border: 0;
   padding: 0.6rem 0.85rem !important;
   border-radius: 4px !important;
   border: 1px solid rgba(0, 0, 0, 0.15) !important;
-  background: linear-gradient(130deg, var(--dex-accent, #ff1910), orange) !important;
+  background: linear-gradient(130deg, var(--dx-accent-grad-start), var(--dx-accent-grad-end)) !important;
   color: #fff !important;
   text-decoration: none !important;
   text-transform: uppercase !important;
@@ -2218,7 +2262,7 @@ border: 0;
     content: "";
     position: absolute;
     inset: -2px;
-    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+    background: linear-gradient(120deg, transparent 30%, var(--dx-glass-highlight) 50%, transparent 70%);
     transform: translateX(-120%);
     pointer-events: none;
   }
@@ -2268,7 +2312,7 @@ border: 0;
   padding: var(--dx-btn-pad-y-md, 0.72rem) var(--dx-btn-pad-x-md, 1.15rem) !important;
   border-radius: var(--dx-btn-radius, 4px) !important;
   border: 1px solid rgba(0, 0, 0, 0.15) !important;
-  background: linear-gradient(130deg, var(--dex-accent, #ff1910), #ff9810) !important;
+  background: linear-gradient(130deg, var(--dx-accent-grad-start), var(--dx-accent-grad-end)) !important;
   color: #fff !important;
   text-decoration: none !important;
   text-transform: none !important;
@@ -2369,7 +2413,7 @@ border: 0;
     content: "";
     position: absolute;
     inset: -2px;
-    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+    background: linear-gradient(120deg, transparent 30%, var(--dx-glass-highlight) 50%, transparent 70%);
     transform: translateX(-120%);
     pointer-events: none;
   }

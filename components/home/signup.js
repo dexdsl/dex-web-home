@@ -8,9 +8,13 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   <!-- media loop -->
   <div class="signup-media">
     <video
-      src="/assets/media/placeholder.m3u8"
-      muted autoplay playsinline loop
-      poster="/assets/img/c46e4503d44b2e2e2832.jpg"></video>
+      muted autoplay playsinline loop preload="metadata"
+      poster="/assets/img/c46e4503d44b2e2e2832.jpg"
+      data-dx-hdr-video="true">
+      <source media="(video-dynamic-range: high)" src="/assets/media/placeholder.hdr.mp4" type="video/mp4">
+      <source src="/assets/media/placeholder.sdr.mp4" type="video/mp4">
+      <source src="/assets/media/placeholder.m3u8" type="application/vnd.apple.mpegurl">
+    </video>
   </div>
 
   <!-- copy + CTA -->

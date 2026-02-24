@@ -41,6 +41,9 @@ jobs:
       - name: Verify local /css and /assets links
         run: npm run verify:assets
 
+      - name: Verify HDR contract
+        run: npm run verify:hdr
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

@@ -24,6 +24,7 @@
     "verify:no-legacy-cdn-images": "npm run repo:discover && node scripts/verify_no_legacy_cdn_images.mjs",
     "verify:no-dead-static-refs": "node scripts/verify_no_dead_static_refs.mjs",
     "verify:assets": "node scripts/linkcheck_local_assets.mjs",
+    "verify:hdr": "node scripts/verify_hdr_contract.mjs",
     "verify:header-slot": "node scripts/verify_header_slot_contract.mjs",
     "verify:scroll-dot": "node scripts/verify_scroll_dot_contract.mjs",
     "verify:about": "node scripts/verify_about_integrity.mjs",
@@ -32,8 +33,11 @@
     "verify:buttons": "node scripts/verify_button_primitives.mjs",
     "verify:dexnotes": "node scripts/verify_dexnotes_integrity.mjs",
     "verify:no-sq-images": "npm run verify:no-legacy-cdn-images",
-    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:header-slot && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes",
     "styles:sync": "node scripts/sync_runtime_css.mjs",
+    "hdr:manifest": "node scripts/hdr_build_manifest.mjs",
+    "hdr:inject": "node scripts/hdr_inject_picture_sources.mjs",
+    "hdr:all": "npm run hdr:manifest && npm run hdr:inject && npm run styles:sync && npm run verify:hdr",
     "catalog:extract": "node scripts/extract_catalog_data.mjs",
     "catalog:ref-probe": "node scripts/reference_catalog_probe.mjs",
     "catalog:build": "node scripts/build-catalog.mjs",
@@ -63,7 +67,7 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run phase2:all && npm run test:net && npm run test:visual"
+    "phase0-2:all": "npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run phase2:all && npm run test:net && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

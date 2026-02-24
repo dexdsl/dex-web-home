@@ -5,7 +5,24 @@
   --dx-color-text: var(--color-001, rgb(35 35 35));
   --dx-color-text-muted: var(--color-013, rgb(85 85 85));
   --dx-color-border: var(--color-015, rgba(0 0 0 / 0.12));
-  --dx-color-accent: var(--color-009, rgb(255 25 16));
+  --dx-accent-solid-sdr: rgb(255 25 16);
+  --dx-accent-solid-p3: color(display-p3 0.972 0.162 0.102);
+  --dx-accent-solid-hdr: color(display-p3 1 0.24 0.14);
+  --dx-accent-grad-start-sdr: rgb(255 25 16);
+  --dx-accent-grad-end-sdr: rgb(255 106 0);
+  --dx-accent-grad-start-p3: color(display-p3 0.972 0.162 0.102);
+  --dx-accent-grad-end-p3: color(display-p3 1 0.48 0.1);
+  --dx-accent-grad-start-hdr: color(display-p3 1 0.24 0.14);
+  --dx-accent-grad-end-hdr: color(display-p3 1 0.6 0.16);
+  --dx-glass-highlight-sdr: rgba(255, 255, 255, 0.56);
+  --dx-glass-highlight-p3: color(display-p3 1 1 1 / 0.62);
+  --dx-glass-highlight-hdr: color(display-p3 1 1 1 / 0.72);
+  --dx-accent-solid: var(--dx-accent-solid-sdr);
+  --dx-accent-grad-start: var(--dx-accent-grad-start-sdr);
+  --dx-accent-grad-end: var(--dx-accent-grad-end-sdr);
+  --dx-accent-gradient: linear-gradient(90deg, var(--dx-accent-grad-start) 0%, var(--dx-accent-grad-end) 100%);
+  --dx-glass-highlight: var(--dx-glass-highlight-sdr);
+  --dx-color-accent: var(--dx-accent-solid, var(--color-009, rgb(255 25 16)));
   --dx-space-xxs: var(--space-001, 0.25rem);
   --dx-space-xs: var(--space-002, 0.5rem);
   --dx-space-sm: var(--space-003, 0.75rem);
@@ -20,7 +37,7 @@
   --dx-social-glass: linear-gradient(120deg, rgba(221, 230, 240, 0.34) 0%, rgba(191, 208, 224, 0.25) 55%, rgba(232, 210, 203, 0.22) 100%);
   --dx-social-shadow-rest: 0 10px 22px rgba(18, 22, 30, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   --dx-social-shadow-hover: 0 14px 28px rgba(18, 22, 30, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  --dx-social-accent: linear-gradient(90deg, #ff2d13 0%, #ff7a1a 100%);
+  --dx-social-accent: var(--dx-accent-gradient);
   --dx-social-ease: 240ms cubic-bezier(.22, .8, .24, 1);
   --dx-border-thin: var(--border-001, 1px);
   --dx-shadow-soft: var(--shadow-001, none);
@@ -65,6 +82,40 @@
   --dex-scroll-clearance-x: 10px;
   --dex-scroll-right-padding: 8px;
   --dex-scroll-viewport-pad: 8px;
+}
+
+@media (color-gamut: p3) {
+  :root {
+    --dx-accent-solid: var(--dx-accent-solid-p3);
+    --dx-accent-grad-start: var(--dx-accent-grad-start-p3);
+    --dx-accent-grad-end: var(--dx-accent-grad-end-p3);
+    --dx-glass-highlight: var(--dx-glass-highlight-p3);
+  }
+}
+
+@media (dynamic-range: high) and (color-gamut: p3) {
+  :root {
+    --dx-accent-solid: var(--dx-accent-solid-hdr);
+    --dx-accent-grad-start: var(--dx-accent-grad-start-hdr);
+    --dx-accent-grad-end: var(--dx-accent-grad-end-hdr);
+    --dx-glass-highlight: var(--dx-glass-highlight-hdr);
+  }
+}
+
+@supports (dynamic-range-limit: standard) {
+  :root {
+    --dx-hdr-surface-limit: standard;
+  }
+
+  body,
+  .header-announcement-bar-wrapper,
+  .dex-footer,
+  .dx-mobile-menu-sheet,
+  #auth-ui-profile-toggle,
+  #auth-ui-dropdown,
+  .dx-button-element {
+    dynamic-range-limit: var(--dx-hdr-surface-limit);
+  }
 }
 
 *,
@@ -186,7 +237,7 @@ html body #gooey-mesh-wrapper .gooey-stage {
   width: var(--dex-scroll-dot-size);
   height: var(--dex-scroll-dot-size);
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--dx-color-accent, #ff1910) 0%, #ff6a00 100%) !important;
+  background: var(--dx-accent-gradient) !important;
   border: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.12) inset,
@@ -245,6 +296,11 @@ img,
 picture,
 video,
 canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.dx-hdr-picture > img {
   display: block;
   max-width: 100%;
 }
@@ -501,7 +557,7 @@ hr {
   content: "";
   position: absolute;
   inset: -44% -120%;
-  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0.56) 50%, rgba(255, 255, 255, 0) 65%);
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 35%, var(--dx-glass-highlight) 50%, rgba(255, 255, 255, 0) 65%);
   transform: translateX(-130%) skewX(-18deg);
   opacity: 0;
   pointer-events: none;
@@ -718,7 +774,7 @@ hr {
   bottom: 0;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #ff1910 0%, #ff6a00 100%);
+  background: var(--dx-accent-gradient);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 180ms ease;

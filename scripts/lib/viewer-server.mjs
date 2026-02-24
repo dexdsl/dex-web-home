@@ -10,6 +10,7 @@ const MAX_PORT_ATTEMPTS = 30;
 const LIST_CAP = 250;
 
 const MIME_TYPES = {
+  '.avif': 'image/avif',
   '.css': 'text/css; charset=utf-8',
   '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-24T05:31:22.400Z",
+  "images": [
+    {
+      "id": "about-team-ssuarez",
+      "source": "/assets/img/2319bdb331c97527f23f.jpg",
+      "sdrAvif": "/assets/hdr/images/2319bdb331c97527f23f.sdr.avif",
+      "hdrAvif": "/assets/hdr/images/2319bdb331c97527f23f.hdr.avif",
+      "targets": [
+        "docs/about/index.html"
+      ],
+      "ready": true,
+      "missing": []
+    },
+    {
+      "id": "about-team-cchurch",
+      "source": "/assets/img/8777ddc189323d789f1c.jpg",
+      "sdrAvif": "/assets/hdr/images/8777ddc189323d789f1c.sdr.avif",
+      "hdrAvif": "/assets/hdr/images/8777ddc189323d789f1c.hdr.avif",
+      "targets": [
+        "docs/about/index.html"
+      ],
+      "ready": true,
+      "missing": []
+    },
+    {
+      "id": "about-team-tjordan",
+      "source": "/assets/img/15e1054490df27af1ca2.jpg",
+      "sdrAvif": "/assets/hdr/images/15e1054490df27af1ca2.sdr.avif",
+      "hdrAvif": "/assets/hdr/images/15e1054490df27af1ca2.hdr.avif",
+      "targets": [
+        "docs/about/index.html"
+      ],
+      "ready": true,
+      "missing": []
+    }
+  ],
+  "videos": [
+    {
+      "id": "home-signup-loop",
+      "legacySource": "/assets/media/placeholder.m3u8",
+      "sdrMp4": "/assets/media/placeholder.sdr.mp4",
+      "hdrMp4": "/assets/media/placeholder.hdr.mp4",
+      "targets": [
+        "components/home/signup.js",
+        "docs/index.html"
+      ],
+      "ready": true,
+      "missing": []
+    }
+  ]
+}
