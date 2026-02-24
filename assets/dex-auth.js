@@ -200,7 +200,7 @@
       + '    <span class="dex-profile-chevron" aria-hidden="true"></span>'
       + "  </button>"
       + '  <div id="auth-ui-dropdown" role="menu" aria-label="Account menu">'
-      + getMenuLinkMarkup("/catalog", "Catalog", "catalog")
+      + getMenuLinkMarkup("/catalog/", "Catalog", "catalog")
       + getMenuLinkMarkup("/entry/favorites/", "Favorites", "favorites")
       + getMenuLinkMarkup("/polls", "Polls", "polls")
       + '    <div class="dex-menu-sep" role="separator"></div>'

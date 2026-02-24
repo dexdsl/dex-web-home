@@ -18,6 +18,22 @@
   const ROUTE_TRANSITION_OUT_END = 'dx:route-transition-out:end';
   const ROUTE_TRANSITION_IN_START = 'dx:route-transition-in:start';
   const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
+  const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
+  const PROFILE_PROTECTED_ROUTES = new Set([
+    '/polls',
+    '/press',
+    '/favorites',
+    '/submit',
+    '/messages',
+    '/settings',
+    '/achievements',
+    '/entry/favorites',
+    '/entry/submit',
+    '/entry/messages',
+    '/entry/pressroom',
+    '/entry/settings',
+    '/entry/achievements',
+  ]);
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);
   const PRESERVED_TAGS = new Set(['SCRIPT', 'STYLE', 'LINK', 'META']);
@@ -82,6 +98,14 @@
     const raw = String(pathname || '/').replace(/\/{2,}/g, '/');
     if (raw === '/') return '/';
     return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  }
+
+  function isProfileProtectedPath(pathname) {
+    return PROFILE_PROTECTED_ROUTES.has(normalizePathname(pathname));
+  }
+
+  function syncProfileProtectedRouteState(pathname) {
+    document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProfileProtectedPath(pathname));
   }
 
   function ensureViewportFitCover() {
@@ -201,10 +225,13 @@
 
   function extractForegroundNodes(sourceDocument) {
     const sourceHeader = getHeaderElement(sourceDocument);
-    const sourceContainer = (sourceHeader && sourceHeader.parentElement) || sourceDocument.body;
+    let sourceContainer = (sourceHeader && sourceHeader.parentElement) || sourceDocument.body;
+    if (!sourceContainer || sourceContainer.tagName === 'HEAD') {
+      sourceContainer = sourceDocument.body || sourceDocument.documentElement;
+    }
     const sourceChildren = Array.from(sourceContainer ? sourceContainer.children : []);
     const nodes = [];
-    let canMove = sourceHeader ? false : true;
+    let canMove = sourceHeader ? !sourceContainer || !sourceContainer.contains(sourceHeader) : true;
 
     for (const node of sourceChildren) {
       if (sourceHeader && node === sourceHeader) {
@@ -1557,6 +1584,7 @@
 
     syncHtmlAttributes(sourceDocument);
     syncBodyAttributes(sourceDocument.body);
+    syncProfileProtectedRouteState(targetUrl.pathname);
     markHeaderActiveForPath(targetUrl.pathname);
   }
 
@@ -1804,6 +1832,7 @@
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
 
     document.body.classList.add(BODY_CLASS);
+    syncProfileProtectedRouteState(window.location.pathname);
     normalizeHeaderWordmarkLinks();
 
     window.dxGetSlotScrollRoot = () => document.getElementById(SLOT_SCROLL_ID);
