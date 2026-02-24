@@ -40,6 +40,10 @@
   --dx-header-glass-rim: rgba(255, 255, 255, 0.42);
   --dx-header-glass-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
   --dx-header-glass-backdrop: saturate(180%) blur(18px);
+  --dx-glass-shell-bg: var(--dx-header-glass-bg);
+  --dx-glass-shell-rim: var(--dx-header-glass-rim);
+  --dx-glass-shell-shadow: var(--dx-header-glass-shadow);
+  --dx-glass-shell-backdrop: var(--dx-header-glass-backdrop);
   --dx-slot-top: var(--dx-fixed-header-top);
   --dx-slot-content-offset: calc(var(--dx-fixed-header-height) + var(--dx-fixed-header-gap));
   --dx-layer-gooey: 200;
@@ -358,6 +362,19 @@ hr {
   .header-announcement-bar-wrapper {
     -webkit-backdrop-filter: var(--dx-header-glass-backdrop) !important;
     backdrop-filter: var(--dx-header-glass-backdrop) !important;
+  }
+}
+
+.dx-glass-shell--header-match {
+  background: var(--dx-glass-shell-bg);
+  border: 1px solid var(--dx-glass-shell-rim);
+  box-shadow: var(--dx-glass-shell-shadow);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .dx-glass-shell--header-match {
+    -webkit-backdrop-filter: var(--dx-glass-shell-backdrop);
+    backdrop-filter: var(--dx-glass-shell-backdrop);
   }
 }
 
@@ -930,9 +947,7 @@ hr {
     padding: 0;
     width: 100%;
     height: 100%;
-    background: rgba(16, 19, 26, 0.2);
-    -webkit-backdrop-filter: blur(4px) saturate(140%);
-    backdrop-filter: blur(4px) saturate(140%);
+    background: rgba(16, 19, 26, 0.14);
     opacity: 0;
     transition: opacity 220ms ease;
     pointer-events: none;
@@ -951,11 +966,6 @@ hr {
     overflow: auto;
     overscroll-behavior: contain;
     border-radius: var(--dx-radius-md, 10px);
-    border: 1px solid var(--dx-header-glass-rim);
-    background: var(--dx-header-glass-bg);
-    box-shadow: var(--dx-header-glass-shadow);
-    -webkit-backdrop-filter: var(--dx-header-glass-backdrop);
-    backdrop-filter: var(--dx-header-glass-backdrop);
     transition: transform 220ms ease, opacity 220ms ease;
     will-change: transform, opacity;
     padding: clamp(10px, 2.8vw, 16px);

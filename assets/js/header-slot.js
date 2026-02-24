@@ -860,7 +860,7 @@
       root.setAttribute('aria-hidden', 'true');
       root.innerHTML = `
         <button class="dx-mobile-menu-backdrop" type="button" aria-label="Close menu" data-dx-mobile-menu-close="true"></button>
-        <div class="dx-mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Site menu">
+        <div class="dx-mobile-menu-sheet dx-glass-shell--header-match" role="dialog" aria-modal="true" aria-label="Site menu">
           <div class="dx-mobile-menu-utility">
             <div class="dx-mobile-menu-social" aria-label="Social links"></div>
             <div class="dx-mobile-menu-actions" aria-label="Account and actions"></div>
