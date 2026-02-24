@@ -102,6 +102,14 @@ border-bottom: none !important;
     align-items: center;
     justify-content: center;
   }
+  .carousel-card-host {
+    position: relative;
+    width: 100%;
+    min-height: 1px;
+  }
+  .carousel-card-host > .carousel-card {
+    width: 100%;
+  }
   .carousel-nav {
     position: absolute;
     top: 50%;
@@ -541,6 +549,10 @@ document.addEventListener('DOMContentLoaded',function(){
   let idx=0,
       frame=document.getElementById('carousel-frame'),
       dots=document.getElementById('carousel-indicators');
+  if(!frame || !dots || !items.length) return;
+  const reducedMotion = (()=>{ try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }})();
+  let isAnimating=false;
+  let currentCard=null;
 
   function getYouTubeId(url){
     try{const u=new URL(url);
@@ -606,17 +618,8 @@ function loadYT(){
   return __ytReady;
 }
 
-  function render(){
-    frame.innerHTML=''; dots.innerHTML='';
-
-    const prev=document.createElement('button');
-    prev.className='carousel-nav prev';
-    prev.setAttribute('aria-label','Previous');
-    prev.onclick=()=>{ idx=(idx+items.length-1)%items.length; render(); };
-    frame.appendChild(prev);
-
-    const it=items[idx],
-          card=document.createElement('div');
+  function buildCard(it){
+    const card=document.createElement('div');
     card.className='carousel-card';
 
     const h1=document.createElement('h1');
@@ -686,23 +689,87 @@ card.style.webkitBackdropFilter = 'none';
     const p=document.createElement('p'); p.className='lead-text';
     p.textContent=it.leadIn; card.appendChild(p);
 
-    frame.appendChild(card);
+    return card;
+  }
 
-    const next=document.createElement('button');
-    next.className='carousel-nav next';
-    next.setAttribute('aria-label','Next');
-    next.onclick=()=>{ idx=(idx+1)%items.length; render(); };
-    frame.appendChild(next);
-
+  function renderDots(){
+    dots.innerHTML='';
     items.forEach((_,i)=>{
       const d=document.createElement('div');
       d.className='dot'+(i===idx?' active':'');
-      d.onclick=()=>{idx=i;render();};
+      d.onclick=()=>{
+        if(i===idx || isAnimating) return;
+        const dir = i > idx ? 1 : -1;
+        goTo(i, dir);
+      };
       dots.appendChild(d);
     });
   }
 
-  render();
+  const cardHost = document.createElement('div');
+  cardHost.className='carousel-card-host';
+
+  const prev=document.createElement('button');
+  prev.className='carousel-nav prev';
+  prev.setAttribute('aria-label','Previous');
+  prev.onclick=()=>{
+    if(isAnimating) return;
+    goTo((idx+items.length-1)%items.length, -1);
+  };
+
+  const next=document.createElement('button');
+  next.className='carousel-nav next';
+  next.setAttribute('aria-label','Next');
+  next.onclick=()=>{
+    if(isAnimating) return;
+    goTo((idx+1)%items.length, 1);
+  };
+
+  frame.innerHTML='';
+  frame.appendChild(prev);
+  frame.appendChild(cardHost);
+  frame.appendChild(next);
+
+  function commitCard(nextCard, nextIndex){
+    cardHost.replaceChildren(nextCard);
+    nextCard.style.opacity='';
+    currentCard=nextCard;
+    idx=nextIndex;
+    renderDots();
+  }
+
+  function goTo(nextIndex, direction){
+    const nextCard = buildCard(items[nextIndex]);
+    if(!currentCard || reducedMotion){
+      commitCard(nextCard, nextIndex);
+      return;
+    }
+
+    isAnimating=true;
+    const exitAnim = currentCard.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: 160, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }
+    );
+
+    Promise.resolve(exitAnim.finished)
+      .catch(()=>{})
+      .then(()=>{
+        if (!isAnimating) return;
+        commitCard(nextCard, nextIndex);
+        nextCard.style.opacity='0';
+        const enterAnim = nextCard.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: 220, easing: 'cubic-bezier(.22,.8,.24,1)', fill: 'forwards' }
+        );
+        return Promise.resolve(enterAnim.finished).catch(()=>{});
+      })
+      .finally(()=>{
+        nextCard.style.opacity='';
+        isAnimating=false;
+      });
+  }
+
+  goTo(idx, 1);
 });
 </script>
 

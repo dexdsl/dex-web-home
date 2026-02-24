@@ -1,5 +1,6 @@
 import { animate } from 'framer-motion/dom';
 import Fuse from 'fuse.js';
+import { bindDexButtonMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -40,14 +41,6 @@ import Fuse from 'fuse.js';
 
   function clearNode(node) {
     while (node.firstChild) node.removeChild(node.firstChild);
-  }
-
-  function prefersReducedMotion() {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch {
-      return false;
-    }
   }
 
   function startBlobMotion() {
@@ -350,91 +343,6 @@ import Fuse from 'fuse.js';
     listRoot.appendChild(list);
   }
 
-  function revealWithMotion(scope) {
-    if (prefersReducedMotion()) return;
-    if (!(window.IntersectionObserver && typeof window.IntersectionObserver === 'function')) return;
-
-    const observer = new IntersectionObserver(
-      (entries, instance) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const node = entry.target;
-          if (node.dataset.dxRevealed === '1') {
-            instance.unobserve(node);
-            return;
-          }
-          node.dataset.dxRevealed = '1';
-          const staggerIndex = Number(node.style.getPropertyValue('--dx-stagger-index') || 0);
-          const localOrder = Number(node.dataset.dxRevealOrder || 0);
-          animate(
-            node,
-            {
-              opacity: [0, 1],
-              transform: ['translate3d(0, 20px, 0)', 'translate3d(0, 0, 0)'],
-            },
-            {
-              duration: 0.42,
-              ease: 'easeOut',
-              delay: (localOrder + staggerIndex) * 0.024,
-            },
-          );
-          instance.unobserve(node);
-        });
-      },
-      {
-        threshold: 0.14,
-        rootMargin: '0px 0px -5% 0px',
-      },
-    );
-
-    scope.querySelectorAll('.dx-dexnotes-reveal').forEach((node, index) => {
-      node.style.opacity = '0';
-      node.style.transform = 'translate3d(0, 20px, 0)';
-      node.dataset.dxRevealOrder = String(index);
-      observer.observe(node);
-    });
-  }
-
-  function bindHoverMotion(scope) {
-    if (prefersReducedMotion()) return;
-
-    const attachLift = (selector, lift, duration) => {
-      scope.querySelectorAll(selector).forEach((node) => {
-        const onEnter = () => {
-          animate(
-            node,
-            {
-              y: lift,
-            },
-            {
-              duration,
-              ease: 'easeOut',
-            },
-          );
-        };
-        const onLeave = () => {
-          animate(
-            node,
-            {
-              y: 0,
-            },
-            {
-              duration: duration * 0.9,
-              ease: 'easeOut',
-            },
-          );
-        };
-        node.addEventListener('mouseenter', onEnter);
-        node.addEventListener('mouseleave', onLeave);
-        node.addEventListener('focusin', onEnter);
-        node.addEventListener('focusout', onLeave);
-      });
-    };
-
-    attachLift('.dx-dexnotes-card, .dx-dexnotes-card-media', -3.2, 0.2);
-    attachLift('.dx-button-element', -1.6, 0.16);
-  }
-
   function animateDrawer(drawer, isOpen) {
     if (prefersReducedMotion()) return;
     animate(
@@ -609,8 +517,17 @@ import Fuse from 'fuse.js';
     listSection.appendChild(listRoot);
     app.appendChild(listSection);
 
-    revealWithMotion(app);
-    bindHoverMotion(app);
+    revealStagger(app, '.dx-dexnotes-reveal', {
+      key: 'dexnotes-index-reveal',
+      y: 20,
+      duration: 0.42,
+      stagger: 0.024,
+      threshold: 0.14,
+      rootMargin: '0px 0px -5% 0px',
+    });
+    bindDexButtonMotion(app, {
+      selector: '.dx-button-element, .dx-dexnotes-card, .dx-dexnotes-card-media',
+    });
     requestDrawerAnimation(drawer, state.drawerOpen);
   }
 

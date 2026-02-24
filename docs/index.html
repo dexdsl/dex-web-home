@@ -2162,6 +2162,10 @@ document.addEventListener('DOMContentLoaded',function(){
   let idx=0,
       frame=document.getElementById('carousel-frame'),
       dots=document.getElementById('carousel-indicators');
+  if(!frame || !dots || !items.length) return;
+  const reducedMotion = (()=>{ try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }})();
+  let isAnimating=false;
+  let currentCard=null;
 
   function getYouTubeId(url){
     try{const u=new URL(url);
@@ -2227,17 +2231,8 @@ function loadYT(){
   return __ytReady;
 }
 
-  function render(){
-    frame.innerHTML=''; dots.innerHTML='';
-
-    const prev=document.createElement('button');
-    prev.className='carousel-nav prev';
-    prev.setAttribute('aria-label','Previous');
-    prev.onclick=()=>{ idx=(idx+items.length-1)%items.length; render(); };
-    frame.appendChild(prev);
-
-    const it=items[idx],
-          card=document.createElement('div');
+  function buildCard(it){
+    const card=document.createElement('div');
     card.className='carousel-card';
 
     const h1=document.createElement('h1');
@@ -2259,71 +2254,133 @@ function loadYT(){
     card.appendChild(mb);
 
     const vw = document.createElement('div');
-vw.className = 'carousel-video';
-// SAFARI: force a real box + isolate from ancestor filters
-vw.style.position = 'relative';
-vw.style.width = '100%';
-vw.style.aspectRatio = '16 / 9';
-vw.style.background = '#000';
-vw.style.borderRadius = '4px';
-vw.style.overflow = 'hidden';
-vw.style.isolation = 'isolate';
+    vw.className = 'carousel-video';
+    // SAFARI: force a real box + isolate from ancestor filters
+    vw.style.position = 'relative';
+    vw.style.width = '100%';
+    vw.style.aspectRatio = '16 / 9';
+    vw.style.background = '#000';
+    vw.style.borderRadius = '4px';
+    vw.style.overflow = 'hidden';
+    vw.style.isolation = 'isolate';
 
-const ifr = document.createElement('iframe');
-const s   = parseStartParam(it.video);
+    const ifr = document.createElement('iframe');
+    const s   = parseStartParam(it.video);
 
-// Use nocookie + origin + inline playback (Safari 18.x friendly)
-ifr.src = `https://www.youtube-nocookie.com/embed/${getYouTubeId(it.video)}?rel=0&modestbranding=1&playsinline=1${s?`&start=${s}`:''}&origin=${encodeURIComponent(location.origin)}`;
+    // Use nocookie + origin + inline playback (Safari 18.x friendly)
+    ifr.src = `https://www.youtube-nocookie.com/embed/${getYouTubeId(it.video)}?rel=0&modestbranding=1&playsinline=1${s?`&start=${s}`:''}&origin=${encodeURIComponent(location.origin)}`;
 
-// Fill the box, force its own layer (prevents blanking)
-ifr.style.position = 'absolute';
-ifr.style.inset = '0';
-ifr.style.width = '100%';
-ifr.style.height = '100%';
-ifr.style.border = '0';
-ifr.style.transform = 'translateZ(0)';
-ifr.style.webkitTransform = 'translateZ(0)';
+    // Fill the box, force its own layer (prevents blanking)
+    ifr.style.position = 'absolute';
+    ifr.style.inset = '0';
+    ifr.style.width = '100%';
+    ifr.style.height = '100%';
+    ifr.style.border = '0';
+    ifr.style.transform = 'translateZ(0)';
+    ifr.style.webkitTransform = 'translateZ(0)';
 
-// Minimal, permissive attrs
-ifr.setAttribute('playsinline','');
-ifr.setAttribute('allowfullscreen','');
-ifr.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+    // Minimal, permissive attrs
+    ifr.setAttribute('playsinline','');
+    ifr.setAttribute('allowfullscreen','');
+    ifr.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
 
-// Drop referrerpolicy + lazy for Safari quirks
-ifr.removeAttribute('referrerpolicy');
-ifr.removeAttribute('loading');
+    // Drop referrerpolicy + lazy for Safari quirks
+    ifr.removeAttribute('referrerpolicy');
+    ifr.removeAttribute('loading');
 
-vw.appendChild(ifr);
-card.appendChild(vw);
+    vw.appendChild(ifr);
+    card.appendChild(vw);
 
-// Belt-and-suspenders: neutralize any residual filter on this card only
-card.style.filter = 'none';
-card.style.webkitBackdropFilter = 'none';
+    // Belt-and-suspenders: neutralize any residual filter on this card only
+    card.style.filter = 'none';
+    card.style.webkitBackdropFilter = 'none';
 
+    const p=document.createElement('p');
+    p.className='lead-text';
+    p.textContent=it.leadIn;
+    card.appendChild(p);
 
+    return card;
+  }
 
-
-
-    const p=document.createElement('p'); p.className='lead-text';
-    p.textContent=it.leadIn; card.appendChild(p);
-
-    frame.appendChild(card);
-
-    const next=document.createElement('button');
-    next.className='carousel-nav next';
-    next.setAttribute('aria-label','Next');
-    next.onclick=()=>{ idx=(idx+1)%items.length; render(); };
-    frame.appendChild(next);
-
+  function renderDots(){
+    dots.innerHTML='';
     items.forEach((_,i)=>{
       const d=document.createElement('div');
       d.className='dot'+(i===idx?' active':'');
-      d.onclick=()=>{idx=i;render();};
+      d.onclick=()=>{
+        if(i===idx || isAnimating) return;
+        const dir = i > idx ? 1 : -1;
+        goTo(i, dir);
+      };
       dots.appendChild(d);
     });
   }
 
-  render();
+  const cardHost = document.createElement('div');
+  cardHost.className='carousel-card-host';
+
+  const prev=document.createElement('button');
+  prev.className='carousel-nav prev';
+  prev.setAttribute('aria-label','Previous');
+  prev.onclick=()=>{
+    if(isAnimating) return;
+    goTo((idx+items.length-1)%items.length, -1);
+  };
+
+  const next=document.createElement('button');
+  next.className='carousel-nav next';
+  next.setAttribute('aria-label','Next');
+  next.onclick=()=>{
+    if(isAnimating) return;
+    goTo((idx+1)%items.length, 1);
+  };
+
+  frame.innerHTML='';
+  frame.appendChild(prev);
+  frame.appendChild(cardHost);
+  frame.appendChild(next);
+
+  function commitCard(nextCard, nextIndex){
+    cardHost.replaceChildren(nextCard);
+    nextCard.style.opacity='';
+    currentCard=nextCard;
+    idx=nextIndex;
+    renderDots();
+  }
+
+  function goTo(nextIndex, direction){
+    const nextCard = buildCard(items[nextIndex]);
+    if(!currentCard || reducedMotion){
+      commitCard(nextCard, nextIndex);
+      return;
+    }
+
+    isAnimating=true;
+    const exitAnim = currentCard.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: 160, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }
+    );
+
+    Promise.resolve(exitAnim.finished)
+      .catch(()=>{})
+      .then(()=>{
+        if (!isAnimating) return;
+        commitCard(nextCard, nextIndex);
+        nextCard.style.opacity='0';
+        const enterAnim = nextCard.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: 220, easing: 'cubic-bezier(.22,.8,.24,1)', fill: 'forwards' }
+        );
+        return Promise.resolve(enterAnim.finished).catch(()=>{});
+      })
+      .finally(()=>{
+        nextCard.style.opacity='';
+        isAnimating=false;
+      });
+  }
+
+  goTo(idx, 1);
 });
 </script>
 

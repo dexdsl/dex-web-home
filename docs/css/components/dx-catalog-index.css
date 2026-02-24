@@ -329,7 +329,8 @@
 }
 
 .dx-catalog-index-season-open {
-  align-self: flex-start;
+  align-self: stretch;
+  width: 100%;
   margin-top: auto;
 }
 

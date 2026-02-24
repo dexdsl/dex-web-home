@@ -1,4 +1,4 @@
-import { animate } from 'framer-motion/dom';
+import { bindDexButtonMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -7,14 +7,6 @@ import { animate } from 'framer-motion/dom';
 
   const APP_SELECTOR = '[data-catalog-symbols-app]';
   const DATA_URL = '/data/catalog.symbols.json';
-
-  function prefersReducedMotion() {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch {
-      return false;
-    }
-  }
 
   function text(value) {
     return String(value ?? '');
@@ -126,23 +118,15 @@ import { animate } from 'framer-motion/dom';
     shell.appendChild(wrap);
     root.appendChild(shell);
 
-    if (!prefersReducedMotion()) {
-      const sections = root.querySelectorAll('.dx-catalog-symbols-group');
-      sections.forEach((section, index) => {
-        animate(
-          section,
-          {
-            opacity: [0, 1],
-            transform: ['translate3d(0px, 10px, 0px)', 'translate3d(0px, 0px, 0px)'],
-          },
-          {
-            duration: 0.24,
-            delay: Math.min(index * 0.03, 0.2),
-            ease: 'easeOut',
-          },
-        );
-      });
-    }
+    bindDexButtonMotion(root);
+    revealStagger(root, '.dx-catalog-symbols-group', {
+      key: 'catalog-symbols-reveal',
+      y: 10,
+      duration: 0.24,
+      stagger: 0.03,
+      threshold: 0.1,
+      rootMargin: '0px 0px -8% 0px',
+    });
   }
 
   function renderError(error) {

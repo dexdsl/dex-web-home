@@ -306,6 +306,19 @@ div.dx-add-to-cart-button-inner {
   --dx-social-shadow-hover: 0 14px 28px rgba(18, 22, 30, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --dx-social-accent: var(--dx-accent-gradient);
   --dx-social-ease: 240ms cubic-bezier(.22, .8, .24, 1);
+  --dx-motion-ease-standard: cubic-bezier(.22, .8, .24, 1);
+  --dx-motion-ease-emphasis: cubic-bezier(.2, .9, .25, 1);
+  --dx-motion-ease-exit: cubic-bezier(.4, 0, .2, 1);
+  --dx-motion-dur-xs: 120ms;
+  --dx-motion-dur-sm: 180ms;
+  --dx-motion-dur-md: 260ms;
+  --dx-motion-dur-lg: 420ms;
+  --dx-motion-distance-sm: 4px;
+  --dx-motion-distance-md: 10px;
+  --dx-motion-distance-lg: 20px;
+  --dx-motion-scale-hover: 1.015;
+  --dx-motion-scale-press: .985;
+  --dx-motion-opacity-enter: .001;
 }
 
 @media (color-gamut: p3) {
@@ -342,6 +355,15 @@ div.dx-add-to-cart-button-inner {
 .dx-hdr-picture > img {
   display: block;
   max-width: 100%;
+}
+
+[data-dx-motion='pagination'] {
+  position: relative;
+}
+
+[data-dx-motion='interactive'] {
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
 /* Home FE containers that host full-width cards must allow header-width overflow */
@@ -499,9 +521,15 @@ body.homepage #dexCombined {
 
   body.homepage #dexFeaturedSide .dex-sidebar,
   body.homepage #dexFeaturedSide .carousel-card,
-  body.homepage #dexFeaturedSide #carousel-frame {
+  body.homepage #dexFeaturedSide #carousel-frame,
+  body.homepage #dexFeaturedSide .carousel-card-host {
     width: 100% !important;
     max-width: none !important;
+  }
+
+  body.homepage #dexFeaturedSide .carousel-card-host {
+    position: relative !important;
+    min-height: 1px !important;
   }
 
   body.homepage #dexFeaturedSide .dex-sidebar {
@@ -531,6 +559,18 @@ body.homepage #dexCombined {
   body.homepage #dexFeaturedSide .carousel-nav.next {
     right: calc(var(--dx-featured-tab-size) * -0.5) !important;
   }
+}
+
+body.homepage #dexFeaturedSide .carousel-card-host {
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 1px !important;
+}
+
+body.homepage #dexFeaturedSide .carousel-card-host > .carousel-card {
+  width: 100% !important;
+  max-width: none !important;
 }
 
 /* Homepage cards: lock corner radius to header radius */
@@ -793,6 +833,14 @@ body.homepage #dex-faq .spark-accordion__item {
   .dex-footer .footer-social a:focus-visible::before {
     opacity: 0 !important;
     animation: none !important;
+  }
+
+  [data-dx-motion='interactive'],
+  [data-dx-motion='pagination'] {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    filter: none !important;
   }
 }
 // Product Variant Button (Just Text Style- Ghost //

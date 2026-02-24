@@ -1,4 +1,4 @@
-import { animate } from 'framer-motion/dom';
+import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -32,14 +32,6 @@ import { animate } from 'framer-motion/dom';
 
   function clearNode(node) {
     while (node.firstChild) node.removeChild(node.firstChild);
-  }
-
-  function prefersReducedMotion() {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch {
-      return false;
-    }
   }
 
   function isExternalHref(href) {
@@ -316,6 +308,7 @@ import { animate } from 'framer-motion/dom';
 
   function renderPrevNext(entry) {
     const nav = create('nav', 'dx-dexnotes-surface dx-dexnotes-entry-pagination dx-dexnotes-entry-reveal');
+    nav.setAttribute('data-dx-motion', 'pagination');
     nav.setAttribute('aria-label', 'Dex Notes article navigation');
     nav.appendChild(create('h2', 'dx-dexnotes-entry-pagination-title', 'KEEP READING'));
 
@@ -387,90 +380,6 @@ import { animate } from 'framer-motion/dom';
     return section;
   }
 
-  function revealWithMotion(scope) {
-    if (prefersReducedMotion()) return;
-    if (!(window.IntersectionObserver && typeof window.IntersectionObserver === 'function')) return;
-
-    const observer = new IntersectionObserver(
-      (entries, instance) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const node = entry.target;
-          if (node.dataset.dxRevealed === '1') {
-            instance.unobserve(node);
-            return;
-          }
-          node.dataset.dxRevealed = '1';
-          const localOrder = Number(node.dataset.dxRevealOrder || 0);
-          animate(
-            node,
-            {
-              opacity: [0, 1],
-              transform: ['translate3d(0, 20px, 0)', 'translate3d(0, 0, 0)'],
-            },
-            {
-              duration: 0.42,
-              ease: 'easeOut',
-              delay: localOrder * 0.038,
-            },
-          );
-          instance.unobserve(node);
-        });
-      },
-      {
-        threshold: 0.13,
-        rootMargin: '0px 0px -6% 0px',
-      },
-    );
-
-    scope.querySelectorAll('.dx-dexnotes-entry-reveal').forEach((node, index) => {
-      node.style.opacity = '0';
-      node.style.transform = 'translate3d(0, 20px, 0)';
-      node.dataset.dxRevealOrder = String(index);
-      observer.observe(node);
-    });
-  }
-
-  function bindHoverMotion(scope) {
-    if (prefersReducedMotion()) return;
-
-    const attachLift = (selector, lift, duration) => {
-      scope.querySelectorAll(selector).forEach((node) => {
-        const enter = () => {
-          animate(
-            node,
-            {
-              y: lift,
-            },
-            {
-              duration,
-              ease: 'easeOut',
-            },
-          );
-        };
-        const leave = () => {
-          animate(
-            node,
-            {
-              y: 0,
-            },
-            {
-              duration: duration * 0.9,
-              ease: 'easeOut',
-            },
-          );
-        };
-        node.addEventListener('mouseenter', enter);
-        node.addEventListener('mouseleave', leave);
-        node.addEventListener('focusin', enter);
-        node.addEventListener('focusout', leave);
-      });
-    };
-
-    attachLift('.dx-button-element', -1.6, 0.16);
-    attachLift('.dx-dexnotes-entry-related-item, .dx-dexnotes-entry-cover-link', -3, 0.2);
-  }
-
   function tuneBodyLinks(scope) {
     scope.querySelectorAll('.dx-dexnotes-entry-body a').forEach((node) => {
       node.classList.add('dx-dexnotes-link');
@@ -531,8 +440,18 @@ import { animate } from 'framer-motion/dom';
     app.appendChild(renderPrevNext(entry));
     app.appendChild(renderComments(entry, commentsConfig));
 
-    revealWithMotion(app);
-    bindHoverMotion(app);
+    revealStagger(app, '.dx-dexnotes-entry-reveal', {
+      key: 'dexnotes-entry-reveal',
+      y: 20,
+      duration: 0.42,
+      stagger: 0.038,
+      threshold: 0.13,
+      rootMargin: '0px 0px -6% 0px',
+    });
+    bindDexButtonMotion(app, {
+      selector: '.dx-button-element, .dx-dexnotes-entry-related-item, .dx-dexnotes-entry-cover-link',
+    });
+    bindPaginationMotion(app);
     tuneBodyLinks(app);
     bindProgress();
     scheduleProgressUpdate();

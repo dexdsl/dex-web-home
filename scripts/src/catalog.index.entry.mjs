@@ -1,5 +1,6 @@
 import { animate } from 'framer-motion/dom';
 import Fuse from 'fuse.js';
+import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -41,14 +42,6 @@ import Fuse from 'fuse.js';
       return true;
     }
     return false;
-  }
-
-  function prefersReducedMotion() {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch {
-      return false;
-    }
   }
 
   function ensureGooeyMesh() {
@@ -660,6 +653,7 @@ import Fuse from 'fuse.js';
     if (!seasons.includes(seasonCarouselSeason)) seasonCarouselSeason = seasons[0];
 
     const section = create('section', 'dx-catalog-index-season-carousel dx-catalog-index-surface');
+    section.setAttribute('data-dx-motion', 'pagination');
 
     const tabs = create('div', 'dx-catalog-index-season-tabs');
     const seasonMeta = create('p', 'dx-catalog-index-season-meta', seasonLabel(seasonCarouselSeason));
@@ -711,20 +705,38 @@ import Fuse from 'fuse.js';
         tab.setAttribute('aria-pressed', active ? 'true' : 'false');
         tab.addEventListener('click', () => {
           if (seasonCarouselSeason === season) return;
+          const currentIndex = seasons.indexOf(seasonCarouselSeason);
+          const nextIndex = seasons.indexOf(season);
+          const direction = nextIndex === currentIndex ? 0 : (nextIndex > currentIndex ? 1 : -1);
           seasonCarouselSeason = season;
           renderTabs();
-          renderTrack();
+          renderTrack(direction);
         });
         tabs.appendChild(tab);
       });
     };
 
-    const renderTrack = () => {
+    const renderTrack = (direction = 0) => {
       clearNode(track);
+      track.setAttribute('data-dx-motion', 'pagination');
       seasonMeta.textContent = seasonLabel(seasonCarouselSeason);
       const seasonEntries = seasonBuckets.get(seasonCarouselSeason) || [];
       seasonEntries.forEach((entry) => track.appendChild(renderSeasonSlide(entry)));
       track.scrollLeft = 0;
+
+      if (prefersReducedMotion()) return;
+      const offset = direction === 0 ? 0 : direction * 8;
+      animate(
+        track,
+        {
+          opacity: [0, 1],
+          transform: [`translate3d(${offset}px, 0, 0)`, 'translate3d(0, 0, 0)'],
+        },
+        {
+          duration: 0.24,
+          ease: 'easeOut',
+        },
+      );
     };
 
     renderTabs();
@@ -836,23 +848,15 @@ import Fuse from 'fuse.js';
     browse.appendChild(list);
     host.appendChild(browse);
 
-    if (!prefersReducedMotion()) {
-      const groupsToAnimate = browse.querySelectorAll('.dx-catalog-index-group');
-      groupsToAnimate.forEach((group, index) => {
-        animate(
-          group,
-          {
-            opacity: [0, 1],
-            transform: ['translate3d(0px, 8px, 0px)', 'translate3d(0px, 0px, 0px)'],
-          },
-          {
-            duration: 0.24,
-            delay: Math.min(index * 0.02, 0.2),
-            ease: 'easeOut',
-          },
-        );
-      });
-    }
+    revealStagger(browse, '.dx-catalog-index-group', {
+      key: 'catalog-index-browse-reveal',
+      y: 8,
+      duration: 0.24,
+      stagger: 0.02,
+      threshold: 0.1,
+      rootMargin: '0px 0px -8% 0px',
+    });
+    bindDexButtonMotion(browse);
   }
 
   function renderError(error) {
@@ -882,6 +886,8 @@ import Fuse from 'fuse.js';
 
     root.appendChild(shell);
     renderBrowse();
+    bindDexButtonMotion(root);
+    bindPaginationMotion(root);
     startBlobMotion();
   }
 

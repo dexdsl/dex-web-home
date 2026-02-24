@@ -1,4 +1,5 @@
 import { animate } from 'framer-motion/dom';
+import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -34,14 +35,6 @@ import { animate } from 'framer-motion/dom';
     if (className) element.className = className;
     if (textValue !== null) element.textContent = textValue;
     return element;
-  }
-
-  function prefersReducedMotion() {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch {
-      return false;
-    }
   }
 
   function ensureGooeyMesh() {
@@ -287,101 +280,6 @@ import { animate } from 'framer-motion/dom';
     SECTION_STEPS.forEach(([id]) => {
       const node = document.getElementById(id);
       if (node) observer.observe(node);
-    });
-  }
-
-  function animateSections(root) {
-    if (prefersReducedMotion()) return;
-    if (!('IntersectionObserver' in window)) return;
-
-    const observer = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const node = entry.target;
-          if (node.dataset.dxCallRevealed === '1') {
-            obs.unobserve(node);
-            return;
-          }
-          node.dataset.dxCallRevealed = '1';
-          animate(
-            node,
-            {
-              opacity: [0, 1],
-              transform: ['translate3d(0px, 14px, 0px)', 'translate3d(0px, 0px, 0px)'],
-            },
-            {
-              duration: 0.34,
-              ease: 'easeOut',
-            },
-          );
-          obs.unobserve(node);
-        });
-      },
-      {
-        threshold: 0.16,
-        rootMargin: '0px 0px -8% 0px',
-      },
-    );
-
-    root.querySelectorAll('.dx-call-reveal').forEach((section) => {
-      section.style.opacity = '0';
-      observer.observe(section);
-    });
-  }
-
-  function bindInteractiveMotion(root) {
-    if (prefersReducedMotion()) return;
-
-    const hoverDefs = [
-      {
-        selector: '.dx-call-cta, .dx-call-newsletter-submit',
-        enter: {
-          y: -2,
-          scale: 1.01,
-          boxShadow: '0 14px 28px rgba(20, 28, 42, 0.2)',
-        },
-        leave: {
-          y: 0,
-          scale: 1,
-          boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
-        },
-      },
-      {
-        selector: '.dx-call-lane-card, .dx-call-subcall-card, .dx-call-timeline-item, .dx-call-active-rail-card, .dx-call-utility',
-        enter: {
-          y: -3,
-          scale: 1.006,
-          boxShadow: '0 16px 34px rgba(16, 22, 36, 0.22)',
-        },
-        leave: {
-          y: 0,
-          scale: 1,
-          boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
-        },
-      },
-      {
-        selector: '.dx-call-progress-link',
-        enter: {
-          x: 2,
-          scale: 1.01,
-        },
-        leave: {
-          x: 0,
-          scale: 1,
-        },
-      },
-    ];
-
-    hoverDefs.forEach((def) => {
-      root.querySelectorAll(def.selector).forEach((node) => {
-        node.addEventListener('pointerenter', () => {
-          animate(node, def.enter, { duration: 0.18, ease: 'easeOut' });
-        });
-        node.addEventListener('pointerleave', () => {
-          animate(node, def.leave, { duration: 0.22, ease: 'easeOut' });
-        });
-      });
     });
   }
 
@@ -753,8 +651,18 @@ import { animate } from 'framer-motion/dom';
     root.appendChild(shell);
 
     wireProgressNav(root);
-    animateSections(root);
-    bindInteractiveMotion(root);
+    revealStagger(root, '.dx-call-reveal', {
+      key: 'call-editorial-reveal',
+      y: 14,
+      duration: 0.34,
+      stagger: 0.026,
+      threshold: 0.16,
+      rootMargin: '0px 0px -8% 0px',
+    });
+    bindDexButtonMotion(root, {
+      selector: '.dx-button-element, .dx-call-cta, .dx-call-newsletter-submit, .dx-call-lane-card, .dx-call-subcall-card, .dx-call-timeline-item, .dx-call-active-rail-card, .dx-call-utility, .dx-call-progress-link',
+    });
+    bindSidebarMotion(root);
     startBlobMotion();
   }
 

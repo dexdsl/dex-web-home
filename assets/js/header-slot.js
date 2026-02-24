@@ -14,6 +14,10 @@
   const MOBILE_PROFILE_PANEL_ID = 'dx-mobile-menu-profile-panel';
   const MOBILE_MENU_OPEN_CLASS = 'dx-mobile-menu-open';
   const MOBILE_BREAKPOINT_QUERY = '(max-width: 980px)';
+  const ROUTE_TRANSITION_OUT_START = 'dx:route-transition-out:start';
+  const ROUTE_TRANSITION_OUT_END = 'dx:route-transition-out:end';
+  const ROUTE_TRANSITION_IN_START = 'dx:route-transition-in:start';
+  const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);
   const PRESERVED_TAGS = new Set(['SCRIPT', 'STYLE', 'LINK', 'META']);
@@ -1348,6 +1352,134 @@
     }
   }
 
+  function prefersReducedMotion() {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch {
+      return false;
+    }
+  }
+
+  function parseCssTimeMs(rawValue, fallbackMs) {
+    const raw = String(rawValue || '').trim();
+    if (!raw) return fallbackMs;
+    if (raw.endsWith('ms')) {
+      const parsed = Number.parseFloat(raw.slice(0, -2));
+      return Number.isFinite(parsed) ? parsed : fallbackMs;
+    }
+    if (raw.endsWith('s')) {
+      const parsed = Number.parseFloat(raw.slice(0, -1));
+      return Number.isFinite(parsed) ? parsed * 1000 : fallbackMs;
+    }
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : fallbackMs;
+  }
+
+  function parseCssNumber(rawValue, fallbackValue) {
+    const parsed = Number.parseFloat(String(rawValue || '').trim());
+    return Number.isFinite(parsed) ? parsed : fallbackValue;
+  }
+
+  function readCssToken(node, token, fallback) {
+    if (!node || typeof window.getComputedStyle !== 'function') return fallback;
+    try {
+      const style = window.getComputedStyle(node);
+      const value = style.getPropertyValue(token);
+      return value ? value.trim() : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function dispatchRouteTransitionEvent(name, detail = {}) {
+    try {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+      return;
+    } catch {}
+    try {
+      const legacyEvent = document.createEvent('CustomEvent');
+      legacyEvent.initCustomEvent(name, false, false, detail);
+      window.dispatchEvent(legacyEvent);
+    } catch {}
+  }
+
+  function clearRouteMotionState(scopeEl) {
+    if (!scopeEl || typeof scopeEl.removeAttribute !== 'function') return;
+    scopeEl.removeAttribute('data-dx-motion');
+    scopeEl.style.removeProperty('pointer-events');
+  }
+
+  function waitForMilliseconds(ms) {
+    if (!ms || ms <= 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  async function runRouteMotion(scopeEl, mode, options = {}) {
+    if (!scopeEl || prefersReducedMotion()) {
+      clearRouteMotionState(scopeEl);
+      return;
+    }
+
+    const signal = options.signal || null;
+    const isExit = mode === 'out';
+    const durationMs = parseCssTimeMs(
+      readCssToken(scopeEl, isExit ? '--dx-motion-dur-sm' : '--dx-motion-dur-md', isExit ? '180ms' : '260ms'),
+      isExit ? 180 : 260,
+    );
+    const distance = parseCssNumber(
+      readCssToken(scopeEl, isExit ? '--dx-motion-distance-md' : '--dx-motion-distance-lg', isExit ? '10' : '20'),
+      isExit ? 10 : 20,
+    );
+    const easing = readCssToken(scopeEl, isExit ? '--dx-motion-ease-exit' : '--dx-motion-ease-standard', isExit ? 'cubic-bezier(.4,0,.2,1)' : 'cubic-bezier(.22,.8,.24,1)');
+    const keyframes = isExit
+      ? [
+          { opacity: 1, transform: 'translate3d(0, 0, 0)', filter: 'blur(0px)' },
+          { opacity: 0, transform: `translate3d(0, ${distance}px, 0)`, filter: 'blur(2px)' },
+        ]
+      : [
+          { opacity: parseCssNumber(readCssToken(scopeEl, '--dx-motion-opacity-enter', '.001'), 0.001), transform: `translate3d(0, ${distance}px, 0)`, filter: 'blur(2px)' },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)', filter: 'blur(0px)' },
+        ];
+
+    if (isExit) {
+      scopeEl.setAttribute('data-dx-motion', 'route-exit');
+      scopeEl.style.pointerEvents = 'none';
+    } else {
+      scopeEl.setAttribute('data-dx-motion', 'route-enter');
+    }
+
+    if (typeof scopeEl.animate !== 'function') {
+      clearRouteMotionState(scopeEl);
+      return;
+    }
+
+    let animation = null;
+    try {
+      animation = scopeEl.animate(keyframes, {
+        duration: durationMs,
+        easing,
+        fill: 'both',
+      });
+
+      if (signal && typeof signal.addEventListener === 'function') {
+        signal.addEventListener('abort', () => {
+          try {
+            animation.cancel();
+          } catch {}
+          clearRouteMotionState(scopeEl);
+        }, { once: true });
+      }
+
+      await animation.finished;
+    } catch {
+      // Ignore route motion failures and keep navigation resilient.
+    } finally {
+      clearRouteMotionState(scopeEl);
+    }
+  }
+
   function persistScrollState(scrollRoot) {
     if (!scrollRoot) return;
     const currentState = (history.state && typeof history.state === 'object') ? history.state : {};
@@ -1544,8 +1676,26 @@
     routeAbortController = abortController;
     isNavigating = true;
     setRoutingState(true);
+    const transitionDetail = {
+      from: normalizePathname(currentUrl.pathname),
+      to: normalizePathname(targetUrl.pathname),
+    };
+    let didDispatchOutStart = false;
+    let didDispatchOutEnd = false;
+    let didDispatchInStart = false;
+    let didDispatchInEnd = false;
 
     try {
+      const outgoingScope = document.getElementById(SLOT_FOREGROUND_ID);
+      dispatchRouteTransitionEvent(ROUTE_TRANSITION_OUT_START, transitionDetail);
+      didDispatchOutStart = true;
+      await Promise.race([
+        runRouteMotion(outgoingScope, 'out', { signal: abortController.signal }),
+        waitForMilliseconds(220),
+      ]);
+      dispatchRouteTransitionEvent(ROUTE_TRANSITION_OUT_END, transitionDetail);
+      didDispatchOutEnd = true;
+
       const response = await fetch(targetUrl.href, {
         credentials: 'same-origin',
         signal: abortController.signal,
@@ -1566,6 +1716,14 @@
       finalUrl.hash = targetUrl.hash;
 
       await applyRouteDocument(parsed, finalUrl, options);
+      dispatchRouteTransitionEvent(ROUTE_TRANSITION_IN_START, transitionDetail);
+      didDispatchInStart = true;
+      await Promise.race([
+        runRouteMotion(document.getElementById(SLOT_FOREGROUND_ID), 'in', { signal: abortController.signal }),
+        waitForMilliseconds(320),
+      ]);
+      dispatchRouteTransitionEvent(ROUTE_TRANSITION_IN_END, transitionDetail);
+      didDispatchInEnd = true;
 
       if (options.pushHistory) {
         try {
@@ -1581,6 +1739,12 @@
     } finally {
       if (routeAbortController === abortController) {
         routeAbortController = null;
+      }
+      if (didDispatchOutStart && !didDispatchOutEnd) {
+        dispatchRouteTransitionEvent(ROUTE_TRANSITION_OUT_END, transitionDetail);
+      }
+      if (didDispatchInStart && !didDispatchInEnd) {
+        dispatchRouteTransitionEvent(ROUTE_TRANSITION_IN_END, transitionDetail);
       }
       isNavigating = false;
       setRoutingState(false);

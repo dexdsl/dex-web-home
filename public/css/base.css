@@ -39,6 +39,19 @@
   --dx-social-shadow-hover: 0 14px 28px rgba(18, 22, 30, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --dx-social-accent: var(--dx-accent-gradient);
   --dx-social-ease: 240ms cubic-bezier(.22, .8, .24, 1);
+  --dx-motion-ease-standard: cubic-bezier(.22, .8, .24, 1);
+  --dx-motion-ease-emphasis: cubic-bezier(.2, .9, .25, 1);
+  --dx-motion-ease-exit: cubic-bezier(.4, 0, .2, 1);
+  --dx-motion-dur-xs: 120ms;
+  --dx-motion-dur-sm: 180ms;
+  --dx-motion-dur-md: 260ms;
+  --dx-motion-dur-lg: 420ms;
+  --dx-motion-distance-sm: 4px;
+  --dx-motion-distance-md: 10px;
+  --dx-motion-distance-lg: 20px;
+  --dx-motion-scale-hover: 1.015;
+  --dx-motion-scale-press: .985;
+  --dx-motion-opacity-enter: .001;
   --dx-border-thin: var(--border-001, 1px);
   --dx-shadow-soft: var(--shadow-001, none);
   --dx-shadow-strong: var(--shadow-002, none);
@@ -177,6 +190,23 @@ body.dx-slot-enabled #dx-slot-scroll-root::-webkit-scrollbar {
 body.dx-slot-enabled #dx-slot-foreground-root {
   min-height: 100%;
   padding-top: var(--dx-slot-content-offset);
+  transition:
+    opacity var(--dx-motion-dur-sm) var(--dx-motion-ease-standard),
+    transform var(--dx-motion-dur-sm) var(--dx-motion-ease-standard),
+    filter var(--dx-motion-dur-sm) var(--dx-motion-ease-standard);
+  will-change: opacity, transform, filter;
+}
+
+body.dx-slot-routing #dx-slot-foreground-root {
+  pointer-events: none;
+}
+
+body.dx-slot-enabled #dx-slot-foreground-root[data-dx-motion='route-exit'] {
+  pointer-events: none;
+}
+
+body.dx-slot-enabled #dx-slot-foreground-root[data-dx-motion='route-enter'] {
+  transform-origin: top center;
 }
 
 body.dx-slot-enabled #scroll-gradient-bg,
@@ -204,6 +234,15 @@ html body #gooey-mesh-wrapper .gooey-stage {
   left: 0 !important;
   width: 100% !important;
   height: 100% !important;
+}
+
+[data-dx-motion='pagination'] {
+  position: relative;
+}
+
+[data-dx-motion='interactive'] {
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
 .dex-scroll-rail {
@@ -671,6 +710,17 @@ hr {
   .header-display-mobile .header-actions--left a.icon:focus-visible::before {
     opacity: 0;
     animation: none;
+  }
+
+  body.dx-slot-routing #dx-slot-foreground-root,
+  body.dx-slot-enabled #dx-slot-foreground-root[data-dx-motion='route-enter'],
+  body.dx-slot-enabled #dx-slot-foreground-root[data-dx-motion='route-exit'],
+  [data-dx-motion='interactive'],
+  [data-dx-motion='pagination'] {
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
   }
 }
 

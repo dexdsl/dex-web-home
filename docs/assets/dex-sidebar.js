@@ -5,6 +5,24 @@
   const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
+  const prefersReducedMotion = () => {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch {
+      return false;
+    }
+  };
+
+  const animateNode = (node, keyframes, options) => {
+    if (!node || prefersReducedMotion()) return null;
+    if (typeof node.animate !== 'function') return null;
+    try {
+      return node.animate(keyframes, options);
+    } catch {
+      return null;
+    }
+  };
+
   const buildBucketsHtml = (pageBuckets) => {
     const selected = normalizeBuckets(pageBuckets);
     return ALL_BUCKETS
@@ -124,6 +142,94 @@
             }
           });
         }, 0);
+      });
+    });
+  };
+
+  const installSidebarRevealMotion = () => {
+    if (prefersReducedMotion()) return;
+    if (!(window.IntersectionObserver && typeof window.IntersectionObserver === 'function')) return;
+
+    const sections = Array.from(document.querySelectorAll('.dex-sidebar section'));
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries, instance) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const node = entry.target;
+          if (node.dataset.dexMotionReveal === '1') {
+            instance.unobserve(node);
+            return;
+          }
+          node.dataset.dexMotionReveal = '1';
+          const index = Number(node.dataset.dexMotionRevealIndex || 0);
+          animateNode(
+            node,
+            [
+              { opacity: 0, transform: 'translate3d(0, 14px, 0)' },
+              { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+            ],
+            {
+              duration: 320,
+              delay: Math.min(index * 28, 240),
+              easing: 'cubic-bezier(.22,.8,.24,1)',
+              fill: 'both',
+            },
+          );
+          instance.unobserve(node);
+        });
+      },
+      {
+        threshold: 0.15,
+        rootMargin: '0px 0px -8% 0px',
+      },
+    );
+
+    sections.forEach((section, index) => {
+      if (section.dataset.dexMotionReveal === '1') return;
+      section.dataset.dexMotionRevealIndex = String(index);
+      section.style.opacity = '0';
+      section.style.transform = 'translate3d(0, 14px, 0)';
+      observer.observe(section);
+    });
+  };
+
+  const installSidebarInteractiveMotion = () => {
+    if (prefersReducedMotion()) return;
+    const nodes = Array.from(
+      document.querySelectorAll('.dex-sidebar section, .dex-sidebar .license-btn, .dex-sidebar #downloads .btn-audio, .dex-sidebar #downloads .btn-video'),
+    );
+    nodes.forEach((node) => {
+      if (node.dataset.dexMotionBound === '1') return;
+      node.dataset.dexMotionBound = '1';
+      node.addEventListener('pointerenter', () => {
+        animateNode(
+          node,
+          [
+            { transform: 'translate3d(0, 0, 0) scale(1)' },
+            { transform: 'translate3d(0, -2px, 0) scale(1.01)' },
+          ],
+          {
+            duration: 180,
+            easing: 'cubic-bezier(.2,.9,.25,1)',
+            fill: 'forwards',
+          },
+        );
+      });
+      node.addEventListener('pointerleave', () => {
+        animateNode(
+          node,
+          [
+            { transform: 'translate3d(0, -2px, 0) scale(1.01)' },
+            { transform: 'translate3d(0, 0, 0) scale(1)' },
+          ],
+          {
+            duration: 140,
+            easing: 'cubic-bezier(.22,.8,.24,1)',
+            fill: 'forwards',
+          },
+        );
       });
     });
   };
@@ -252,11 +358,46 @@
       if (btn.dataset.dexBound === '1') return;
       btn.dataset.dexBound = '1';
       btn.addEventListener('click', () => {
+        const owner = btn.closest('.dex-file-info') || btn.closest('.dex-sidebar') || document;
+        const panels = Array.from(owner.querySelectorAll('.file-info-panels > div'));
+        const previous = panels.find((panel) => !panel.hidden) || null;
         document.querySelectorAll('.file-info-tabs button').forEach((b) => b.setAttribute('aria-selected', 'false'));
         btn.setAttribute('aria-selected', 'true');
         const target = btn.dataset.tab;
         document.querySelectorAll('.file-info-panels > div').forEach((panel) => {
           panel.hidden = panel.id !== target;
+        });
+
+        requestAnimationFrame(() => {
+          const next = panels.find((panel) => !panel.hidden) || null;
+          if (previous && previous !== next) {
+            animateNode(
+              previous,
+              [
+                { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+                { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
+              ],
+              {
+                duration: 160,
+                easing: 'cubic-bezier(.4,0,.2,1)',
+                fill: 'forwards',
+              },
+            );
+          }
+          if (next) {
+            animateNode(
+              next,
+              [
+                { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
+                { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+              ],
+              {
+                duration: 200,
+                easing: 'cubic-bezier(.22,.8,.24,1)',
+                fill: 'both',
+              },
+            );
+          }
         });
       });
     });
@@ -264,6 +405,8 @@
     attach(cfg, 'audio', '#downloads .btn-audio');
     attach(cfg, 'video', '#downloads .btn-video');
     initPersonPins();
+    installSidebarRevealMotion();
+    installSidebarInteractiveMotion();
 
     document.documentElement.dataset.dexSidebarRendered = '1';
   };

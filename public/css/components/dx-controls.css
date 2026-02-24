@@ -18,6 +18,15 @@
   --dx-btn-primary-shadow-hover: 0 12px 36px rgba(255, 0, 80, 0.28);
   --dx-btn-primary-shadow-focus: 0 0 0 2px rgba(255, 255, 255, 0.35) inset, 0 0 0 4px rgba(255, 25, 16, 0.25), 0 10px 30px rgba(255, 0, 80, 0.25);
   --dx-btn-glint: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+  --dx-btn-hover-lift: -2px;
+  --dx-btn-hover-scale: var(--dx-motion-scale-hover, 1.015);
+  --dx-btn-press-scale: var(--dx-motion-scale-press, 0.985);
+  --dx-btn-dur-xs: var(--dx-motion-dur-xs, 120ms);
+  --dx-btn-dur-sm: var(--dx-motion-dur-sm, 180ms);
+  --dx-btn-dur-md: var(--dx-motion-dur-md, 260ms);
+  --dx-btn-ease-standard: var(--dx-motion-ease-standard, cubic-bezier(.22, .8, .24, 1));
+  --dx-btn-ease-emphasis: var(--dx-motion-ease-emphasis, cubic-bezier(.2, .9, .25, 1));
+  --dx-btn-ease-exit: var(--dx-motion-ease-exit, cubic-bezier(.4, 0, .2, 1));
 }
 
 button,
@@ -199,7 +208,13 @@ button,
   .ghost,
   .ghost-btn,
   .btn--border.theme-btn--primary-inverse {
-    transition: transform 0.16s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition:
+      transform var(--dx-btn-dur-sm) var(--dx-btn-ease-emphasis),
+      box-shadow var(--dx-btn-dur-md) var(--dx-btn-ease-standard),
+      background-color var(--dx-btn-dur-md) var(--dx-btn-ease-standard),
+      border-color var(--dx-btn-dur-md) var(--dx-btn-ease-standard),
+      filter var(--dx-btn-dur-md) var(--dx-btn-ease-standard),
+      opacity var(--dx-btn-dur-sm) var(--dx-btn-ease-standard);
   }
 
   .dx-button-element--primary:hover,
@@ -215,7 +230,7 @@ button,
   .ghost:hover,
   .ghost-btn:hover,
   .btn--border.theme-btn--primary-inverse:hover {
-    transform: translateY(-1px);
+    transform: translateY(var(--dx-btn-hover-lift)) scale(var(--dx-btn-hover-scale));
   }
 
   .dx-button-element--primary:hover,
@@ -226,6 +241,40 @@ button,
   .cta:hover,
   .dex-btn:hover {
     box-shadow: var(--dx-btn-primary-shadow-hover);
+  }
+
+  .dx-button-element--primary:active,
+  .dx-block-button-element--primary:active,
+  .sqs-button-element--primary:active,
+  .theme-btn--primary:active,
+  .cta-btn:active,
+  .cta:active,
+  .dex-btn:active,
+  .dx-button-element--secondary:active,
+  .dx-block-button-element--secondary:active,
+  .sqs-button-element--secondary:active,
+  .ghost:active,
+  .ghost-btn:active,
+  .btn--border.theme-btn--primary-inverse:active {
+    transform: translateY(0) scale(var(--dx-btn-press-scale));
+    transition-duration: var(--dx-btn-dur-xs);
+    transition-timing-function: var(--dx-btn-ease-exit);
+  }
+
+  .dx-button-element--primary:not(:hover):not(:focus-visible),
+  .dx-block-button-element--primary:not(:hover):not(:focus-visible),
+  .sqs-button-element--primary:not(:hover):not(:focus-visible),
+  .theme-btn--primary:not(:hover):not(:focus-visible),
+  .cta-btn:not(:hover):not(:focus-visible),
+  .cta:not(:hover):not(:focus-visible),
+  .dex-btn:not(:hover):not(:focus-visible),
+  .dx-button-element--secondary:not(:hover):not(:focus-visible),
+  .dx-block-button-element--secondary:not(:hover):not(:focus-visible),
+  .sqs-button-element--secondary:not(:hover):not(:focus-visible),
+  .ghost:not(:hover):not(:focus-visible),
+  .ghost-btn:not(:hover):not(:focus-visible),
+  .btn--border.theme-btn--primary-inverse:not(:hover):not(:focus-visible) {
+    animation: dx-button-settle var(--dx-btn-dur-xs) var(--dx-btn-ease-standard);
   }
 }
 
@@ -327,5 +376,19 @@ textarea:focus-visible {
 @keyframes dx-button-glint {
   to {
     transform: translateX(120%);
+  }
+}
+
+@keyframes dx-button-settle {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  40% {
+    transform: translateY(-0.3px) scale(1.006);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
   }
 }
