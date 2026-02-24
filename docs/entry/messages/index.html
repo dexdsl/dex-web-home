@@ -1747,7 +1747,24 @@ margin:var(--space-2) 0}
 
   function setTableLoading(isLoading){
     body.setAttribute('data-dx-fetch-state', isLoading ? 'loading' : 'ready');
-    tableLoadingShell.hidden = !isLoading;
+    if (isLoading){
+      if (!tableLoadingShell.isConnected){
+        body.append(tableLoadingShell);
+      }
+      tableLoadingShell.hidden = false;
+      tableLoadingShell.style.display = 'grid';
+      tableLoadingShell.style.opacity = '1';
+      tableLoadingShell.removeAttribute('aria-hidden');
+      return;
+    }
+    body.setAttribute('data-dx-fetch-state', 'ready');
+    tableLoadingShell.hidden = true;
+    tableLoadingShell.style.opacity = '0';
+    tableLoadingShell.style.display = 'none';
+    tableLoadingShell.setAttribute('aria-hidden', 'true');
+    if (tableLoadingShell.isConnected){
+      tableLoadingShell.remove();
+    }
   }
 
   const auth0Sub = await getAuth0Sub();
@@ -1845,6 +1862,7 @@ margin:var(--space-2) 0}
   };
 
   const ok = await loadRows();
+  setTableLoading(false);
   await finalizeFetchState(ok ? 'ready' : 'error');
 })();
 </script>

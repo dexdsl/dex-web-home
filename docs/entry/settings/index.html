@@ -2144,36 +2144,9 @@
 
 /* Component itself: keep vertical breathing room, remove side padding only */
 #dex-settings{ padding-inline:0; } /* overrides earlier padding without !important */
-/* One full-bleed background card wrapping the entire block */
-#dex-settings .bgcard{
-  position: relative;
-  border: 1px solid var(--glass-brd);
-  border-radius: var(--radius);          /* uses your 4px token */
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
-  backdrop-filter: blur(20px) saturate(120%);
-  box-shadow: var(--shadow-1);
-  padding: var(--pad-2);                 /* inset all inner content */
-}
-
-/* Make the host truly full-bleed; the card now provides spacing */
-#dex-settings{
-  padding-inline: 0;
-  padding-top: 0;
-  padding-bottom: 0;                     /* moved into .bgcard */
-}
-/* Profile view: let the 2×2 grid fill to the card edge (no extra bottom space) */
-#dex-settings[data-fit-profile="1"] .bgcard{
-  padding-bottom: 0;
-}
-/* Keep route scroll on the page document so footer remains reachable */
-#dex-settings .bgcard{
-  overflow: visible;
-}
 
   </style>
-<!-- Single background glass card that contains the entire UI -->
-<div class="bgcard">
+<!-- Settings UI -->
   <!-- Header (no chips / no manage button) -->
   <header class="hdr" aria-label="Account settings">
     <h1 id="dexs-title">Settings</h1>
@@ -2392,7 +2365,6 @@
 </aside>
 
   </div>
-</div> <!-- /.bgcard -->
   <!-- GSAP for ink animation (falls back to inline styles if not present) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 
@@ -2624,7 +2596,7 @@ function fitProfileLayout(){
 
   // available vertical space for the 2 rows
   const rect  = twocol.getBoundingClientRect();
-const frameEl = root.querySelector('.bgcard') || root;
+const frameEl = root;
 const csFrame = getComputedStyle(frameEl);
 const padB = (parseFloat(csFrame.paddingBottom) || 0) + (parseFloat(csFrame.borderBottomWidth) || 0);
 
