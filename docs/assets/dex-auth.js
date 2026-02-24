@@ -903,6 +903,23 @@
       });
   }
 
+  function triggerSignOut(returnTo) {
+    var resolvedReturnTo = (typeof returnTo === "string" && returnTo.trim())
+      ? returnTo.trim()
+      : window.location.origin;
+    return ensureAuthClient()
+      .then(function (client) {
+        return client.logout({
+          logoutParams: {
+            returnTo: resolvedReturnTo
+          }
+        });
+      })
+      .catch(function (err) {
+        logError("LOG OUT failed:", err);
+      });
+  }
+
   window.DEX_AUTH = {
     ready: authReady.then(function () { return authReadyState; }),
     isAuthenticated: function () {
@@ -913,6 +930,9 @@
     },
     signUp: function (returnTo) {
       return triggerSignUp(returnTo || getCurrentReturnTo());
+    },
+    signOut: function (returnTo) {
+      return triggerSignOut(returnTo || window.location.origin);
     },
     getUser: function () {
       return authReady.then(function () { return authReadyState.user || null; });
