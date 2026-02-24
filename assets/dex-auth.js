@@ -47,7 +47,9 @@
   var AUDIENCE_DISABLE_KEY = "dex.auth.disableAudience";
   var audienceFallbackDisabled = false;
   try {
-    audienceFallbackDisabled = !!(window.localStorage && window.localStorage.getItem(AUDIENCE_DISABLE_KEY) === "1");
+    if (window.localStorage && window.localStorage.getItem(AUDIENCE_DISABLE_KEY) === "1") {
+      window.localStorage.removeItem(AUDIENCE_DISABLE_KEY);
+    }
   } catch (e) {}
 
   function publishAuthState(auth, user) {

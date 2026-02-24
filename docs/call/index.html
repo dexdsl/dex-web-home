@@ -1550,69 +1550,6 @@ skill." />
 
       
     </div>
-
-    <!-- Auth0 -->
-<!-- Paste this into Home → Settings → Advanced → Code Injection → Footer -->
-<!-- Auth0 Footer Injection (with profile pic support) -->
-<script>
-(async () => {
-  // 1️⃣ Initialize Auth0 client (incl. profile scope)
-  const auth0 = await createAuth0Client({
-    domain:    'dexdsl.us.auth0.com',
-    client_id: 'M92hIItt3XQPUvGvK0t2xDtLMCK1mVqc',
-    authorizationParams: {
-      redirect_uri: window.location.origin,
-      scope:         'openid profile email'
-    },
-    cacheLocation:   'localstorage',
-   useRefreshTokens: true,
-  });
-window.auth0 = auth0;
-  // 2️⃣ Handle callback
-  if (location.search.includes('code=') && location.search.includes('state=')) {
-    await auth0.handleRedirectCallback();
-    history.replaceState({}, document.title, location.pathname);
-  }
-
-  // 3️⃣ Cache elements
-  const btnLogin       = document.getElementById('btn-login');
-  const profContainer  = document.getElementById('btn-profile-container');
-  const avatarEl       = document.getElementById('user-avatar');
-
-  // 4️⃣ UI sync
-  const updateUI = async () => {
-    const isAuthenticated = await auth0.isAuthenticated();
-
-    // Show SIGN IN or Profile avatar
-    btnLogin.style.display      = isAuthenticated ? 'none'        : 'inline-flex';
-    profContainer.style.display = isAuthenticated ? 'inline-block' : 'none';
-
-    // Protected pages/content
-    document.querySelectorAll('.protected')
-      .forEach(el => el.style.display = isAuthenticated ? 'block' : 'none');
-
-    // Load avatar
-    if (isAuthenticated) {
-      const user = await auth0.getUser() || {};
-      if (user.picture) {
-        avatarEl.src           = user.picture;
-        avatarEl.style.display = 'block';
-      }
-    }
-  };
-  await updateUI();
-
-  // 5️⃣ Protect /entry/*
-  const path = window.location.pathname;
-  if (path.startsWith('/entry/') && !(await auth0.isAuthenticated())) {
-    await auth0.loginWithRedirect({ redirect_uri: window.location.href });
-  }
-})();
-</script>
-
-
-<!-- end Auth0 -->
-
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K3G8LQPX"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
