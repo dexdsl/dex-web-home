@@ -947,6 +947,29 @@ body.homepage #dex-faq .spark-accordion__item {
 }
 
 /* Profile-protected routes: use global mesh/background and header-aligned card system */
+/* Global kill-switch for legacy chromatic-aberration card treatment. */
+body :is(
+  .dex-sidebar,
+  .dex-sidebar section,
+  .dex-overview,
+  .dex-license,
+  .dex-credits,
+  .badge,
+  .license-btn.usage-btn,
+  .dex-modal,
+  .dex-modal-content
+) {
+  filter: none !important;
+}
+
+body :is(.dex-sidebar, .dex-modal-content, .badge)::after,
+body .dex-sidebar::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  animation: none !important;
+}
+
 /* Route-root safety net: force profile route glass tokens even before route class hydration. */
 :is(
   #dex-favorites,
