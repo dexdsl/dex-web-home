@@ -129,16 +129,20 @@
       return;
     }
     var cs = window.getComputedStyle(headerGlass);
+    var rootCs = window.getComputedStyle(document.documentElement);
+    var cssHeaderBg = normalizeCssValue(cs.getPropertyValue("--dx-header-glass-bg"));
+    if (!cssHeaderBg) {
+      cssHeaderBg = normalizeCssValue(rootCs.getPropertyValue("--dx-header-glass-bg"));
+    }
     var bgImage = normalizeCssValue(cs.backgroundImage);
     var bgColor = normalizeCssValue(cs.backgroundColor);
-    var bg = bgImage || bgColor;
+    var bg = cssHeaderBg || bgImage || bgColor;
     var border = normalizeCssValue(cs.borderColor);
     var shadow = normalizeCssValue(cs.boxShadow);
     var filter = normalizeCssValue(cs.backdropFilter || cs.getPropertyValue("backdrop-filter"));
     var webkitFilter = normalizeCssValue(cs.webkitBackdropFilter || cs.getPropertyValue("-webkit-backdrop-filter"));
     var cssHeaderFilter = normalizeCssValue(cs.getPropertyValue("--dx-header-glass-backdrop"));
     if (!cssHeaderFilter) {
-      var rootCs = window.getComputedStyle(document.documentElement);
       cssHeaderFilter = normalizeCssValue(rootCs.getPropertyValue("--dx-header-glass-backdrop"));
     }
     var headerFilter = filter || webkitFilter || cssHeaderFilter || "saturate(180%) blur(18px)";
@@ -414,7 +418,7 @@
         + "#auth-ui .dex-profile-chevron{position:absolute;right:10px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--dex-text-muted);border-bottom:1.5px solid var(--dex-text-muted);transform:translateY(-50%) rotate(45deg);opacity:.95;transition:transform .2s ease,border-color .2s ease;pointer-events:none;z-index:2;}"
         + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:min(292px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(70vh,420px);overflow:auto;border:1px solid var(--dex-glass-border);border-top-color:var(--dex-glass-border-strong);border-radius:calc(var(--dex-radius) + 2px);background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);padding:var(--dex-space-2);z-index:1200;opacity:0;transform:translateY(-6px) scale(.985);pointer-events:none;backdrop-filter:var(--dex-glass-filter);-webkit-backdrop-filter:var(--dex-glass-webkit-filter);transition:opacity .2s ease,transform .2s ease;}"
         + "#auth-ui-dropdown." + DROPDOWN_OPEN_CLASS + "{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}"
-        + "#auth-ui .dex-menu-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:9px;width:100%;max-width:100%;border:1px solid var(--dex-glass-border);border-radius:max(6px,calc(var(--dex-radius) - 2px));background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);padding:9px 11px;margin:0 0 6px;color:var(--dex-text);text-shadow:var(--dex-text-shadow);text-decoration:none;font-size:13px;line-height:1.25;cursor:pointer;overflow:hidden;transition:transform .18s ease,border-color .18s ease,background .18s ease;}"
+        + "#auth-ui .dex-menu-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:9px;width:100%;max-width:100%;border:1px solid var(--dex-glass-border);border-radius:max(6px,calc(var(--dex-radius) - 2px));background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);padding:9px 11px;margin:0 0 6px;color:var(--dex-text);text-shadow:var(--dex-text-shadow);text-decoration:none;font-size:13px;line-height:1.25;cursor:pointer;overflow:hidden;backdrop-filter:var(--dex-glass-filter);-webkit-backdrop-filter:var(--dex-glass-webkit-filter);transition:transform .18s ease,border-color .18s ease,background .18s ease,filter .18s ease;}"
         + "#auth-ui .dex-menu-icon-wrap{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;opacity:.92;}"
         + "#auth-ui .dex-menu-icon{width:16px;height:16px;display:block;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;fill:none;}"
         + "#auth-ui .dex-menu-label{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
