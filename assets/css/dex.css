@@ -1092,7 +1092,7 @@ body.dx-route-profile-protected {
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
   --dx-profile-home-header-gap: 13.5px !important;
   --dx-profile-home-card-footer-gap: 34.671875px !important;
-  --dx-profile-home-footer-inset: 105.015625px !important;
+  --dx-profile-home-footer-inset: 35px !important;
   --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
   --dx-profile-footer-bottom: max(var(--dx-profile-home-footer-inset), calc(var(--dx-safe-bottom) + 4px)) !important;
   --dx-profile-footer-height-fallback: clamp(108px, 18vh, 220px) !important;
@@ -1509,7 +1509,7 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   body.dx-route-profile-protected {
     --dx-profile-home-header-gap: 13.5px !important;
     --dx-profile-home-card-footer-gap: 34.671875px !important;
-    --dx-profile-home-footer-inset: 105.015625px !important;
+    --dx-profile-home-footer-inset: 35px !important;
     --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
     --dx-profile-footer-height-fallback: clamp(124px, 24vh, 280px) !important;
   }
