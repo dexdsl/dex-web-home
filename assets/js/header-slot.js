@@ -133,56 +133,8 @@
   }
 
   function syncProfileRouteGlassFromHeader(root = document) {
-    if (!isProfileProtectedPath(window.location.pathname)) return;
-    if (!root || !root.querySelectorAll) return;
-
-    const routeRootSelector = '#dex-favorites, #dex-msg, #dex-submit, #dex-press, #dex-achv, #dex-console, #dex-settings';
-    const routeRoots = Array.from(root.querySelectorAll(routeRootSelector));
-    if (routeRoots.length === 0) return;
-
-    const glass = getHeaderGlassSnapshot(root);
-    if (!glass || !glass.background) return;
-
-    const targetSelector = [
-      '#dex-favorites > .dex-sidebar',
-      '#dex-msg > .dex-sidebar',
-      '#dex-submit > .dex-sidebar',
-      '#dex-press > .dex-sidebar',
-      '#dex-achv > .dex-sidebar',
-      '#dex-console > .dex-sidebar',
-      '#dex-settings',
-      '#dex-settings .hdr',
-      '#dex-settings .tabsbar',
-      '#dex-settings .card',
-      '#dex-settings .savebar',
-    ].join(', ');
-
-    const targets = Array.from(root.querySelectorAll(targetSelector));
-
-    for (const routeRoot of routeRoots) {
-      routeRoot.style.setProperty('--dx-header-glass-bg', glass.background, 'important');
-      if (glass.borderColor) routeRoot.style.setProperty('--dx-header-glass-rim', glass.borderColor, 'important');
-      if (glass.boxShadow) routeRoot.style.setProperty('--dx-header-glass-shadow', glass.boxShadow, 'important');
-      if (glass.backdropFilter) routeRoot.style.setProperty('--dx-header-glass-backdrop', glass.backdropFilter, 'important');
-      routeRoot.style.setProperty('--liquid-bg', glass.background, 'important');
-      if (glass.borderColor) routeRoot.style.setProperty('--liquid-border', glass.borderColor, 'important');
-      routeRoot.style.setProperty('--glass-bg', glass.background, 'important');
-      if (glass.borderColor) routeRoot.style.setProperty('--glass-brd', glass.borderColor, 'important');
-      if (glass.boxShadow) {
-        routeRoot.style.setProperty('--shadow-1', glass.boxShadow, 'important');
-        routeRoot.style.setProperty('--shadow-2', glass.boxShadow, 'important');
-      }
-    }
-
-    for (const target of targets) {
-      target.style.setProperty('background', glass.background, 'important');
-      if (glass.borderColor) target.style.setProperty('border-color', glass.borderColor, 'important');
-      if (glass.boxShadow) target.style.setProperty('box-shadow', glass.boxShadow, 'important');
-      if (glass.webkitBackdropFilter) target.style.setProperty('-webkit-backdrop-filter', glass.webkitBackdropFilter, 'important');
-      if (glass.backdropFilter) target.style.setProperty('backdrop-filter', glass.backdropFilter, 'important');
-      if (glass.borderRadius) target.style.setProperty('border-radius', glass.borderRadius, 'important');
-      target.style.setProperty('filter', 'none', 'important');
-    }
+    void root;
+    return;
   }
 
   function ensureViewportFitCover() {

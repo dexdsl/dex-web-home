@@ -980,25 +980,25 @@ body .dex-sidebar::before {
   #dex-console,
   #dex-settings
 ) {
-  --dx-header-glass-bg: linear-gradient(120deg, rgba(238, 243, 249, 0.9) 0%, rgba(220, 229, 239, 0.88) 55%, rgba(241, 230, 223, 0.86) 100%) !important;
-  --dx-header-glass-rim: rgba(255, 255, 255, 0.42) !important;
-  --dx-header-glass-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
-  --dx-header-glass-backdrop: saturate(190%) blur(60px) contrast(1.04) !important;
+  --dx-route-glass-bg: rgba(255, 255, 255, 0.18) !important;
+  --dx-route-glass-rim: rgba(255, 255, 255, 0.35) !important;
+  --dx-route-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  --dx-route-glass-blur: 28px !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  --liquid-bg: var(--dx-header-glass-bg) !important;
-  --liquid-border: var(--dx-header-glass-rim) !important;
-  --liquid-blur: 18px !important;
-  --shadow-light: 0 10px 22px rgba(18, 22, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-  --shadow-md: var(--dx-header-glass-shadow) !important;
+  --liquid-bg: var(--dx-route-glass-bg) !important;
+  --liquid-border: var(--dx-route-glass-rim) !important;
+  --liquid-blur: var(--dx-route-glass-blur) !important;
+  --shadow-light: var(--dx-route-glass-shadow) !important;
+  --shadow-md: var(--dx-route-glass-shadow) !important;
 }
 
 /* Settings route uses local --glass-* aliases; force them onto shared header-glass tokens. */
 #dex-settings {
-  --glass-bg: var(--dx-header-glass-bg) !important;
-  --glass-brd: var(--dx-header-glass-rim) !important;
-  --shadow-1: var(--dx-header-glass-shadow) !important;
-  --shadow-2: var(--dx-header-glass-shadow) !important;
+  --glass-bg: var(--liquid-bg) !important;
+  --glass-brd: var(--liquid-border) !important;
+  --shadow-1: var(--shadow-md) !important;
+  --shadow-2: var(--shadow-md) !important;
   --radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
 }
 
@@ -1033,11 +1033,11 @@ body .dex-sidebar::before {
   .savebar
 ) {
   border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  border: 1px solid var(--dx-header-glass-rim) !important;
-  background: var(--dx-header-glass-bg) !important;
-  box-shadow: var(--dx-header-glass-shadow) !important;
-  -webkit-backdrop-filter: var(--dx-header-glass-backdrop) !important;
-  backdrop-filter: var(--dx-header-glass-backdrop) !important;
+  border: 1px solid var(--liquid-border) !important;
+  background: var(--liquid-bg) !important;
+  box-shadow: var(--shadow-md) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
   filter: none !important;
 }
 
@@ -1086,11 +1086,11 @@ body.dx-route-profile-protected {
   --space-5: var(--dx-space-xl) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  --liquid-bg: var(--dx-header-glass-bg) !important;
-  --liquid-border: var(--dx-header-glass-rim) !important;
-  --liquid-blur: 18px !important;
-  --shadow-light: 0 10px 22px rgba(18, 22, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-  --shadow-md: var(--dx-header-glass-shadow) !important;
+  --liquid-bg: rgba(255, 255, 255, 0.18) !important;
+  --liquid-border: rgba(255, 255, 255, 0.35) !important;
+  --liquid-blur: 28px !important;
+  --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
 }
 
 html body.dx-route-profile-protected {
@@ -1147,11 +1147,11 @@ body.dx-route-profile-protected #dex-settings .tabsbar,
 body.dx-route-profile-protected #dex-settings .card,
 body.dx-route-profile-protected #dex-settings .savebar {
   border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  border: 1px solid var(--dx-header-glass-rim) !important;
-  background: var(--dx-header-glass-bg) !important;
-  box-shadow: var(--dx-header-glass-shadow) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(18px) !important;
-  backdrop-filter: saturate(180%) blur(18px) !important;
+  border: 1px solid var(--liquid-border) !important;
+  background: var(--liquid-bg) !important;
+  box-shadow: var(--shadow-md) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
 }
 
 body.dx-route-profile-protected :is(
@@ -1194,9 +1194,9 @@ body.dx-route-profile-protected :is(
   #dex-console .modal
 ) {
   border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  border: 1px solid var(--dx-header-glass-rim) !important;
-  background: var(--dx-header-glass-bg) !important;
-  box-shadow: 0 10px 22px rgba(18, 22, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+  border: 1px solid var(--liquid-border) !important;
+  background: var(--liquid-bg) !important;
+  box-shadow: var(--shadow-light) !important;
   padding: clamp(14px, 1.8vw, 22px) !important;
 }
 
