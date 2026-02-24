@@ -20,6 +20,7 @@
   const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
   const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
   const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
+  const PROFILE_FOOTER_PORTALED_CLASS = 'dx-profile-footer-portaled';
   const PROFILE_PROTECTED_ROUTES = new Set([
     '/polls',
     '/press',
@@ -73,6 +74,7 @@
   let mobileMenuBuildSequence = 0;
   let profileViewportMetricsInstalled = false;
   let profileViewportMetricsRafId = 0;
+  let profileFooterPortalState = { footer: null, anchor: null };
 
   function getHeaderElement(root = document) {
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
@@ -103,17 +105,113 @@
     return raw.endsWith('/') ? raw.slice(0, -1) : raw;
   }
 
+  function normalizeProfileRoutePath(pathname) {
+    let normalized = normalizePathname(pathname);
+    if (normalized !== '/' && normalized.toLowerCase().endsWith('/index.html')) {
+      normalized = normalized.slice(0, -'/index.html'.length) || '/';
+    } else if (normalized !== '/' && normalized.toLowerCase().endsWith('.html')) {
+      normalized = normalized.slice(0, -'.html'.length) || '/';
+    }
+    if (!normalized.startsWith('/')) {
+      normalized = `/${normalized}`;
+    }
+    return normalized || '/';
+  }
+
   function isProfileProtectedPath(pathname) {
-    return PROFILE_PROTECTED_ROUTES.has(normalizePathname(pathname));
+    const normalized = normalizeProfileRoutePath(pathname);
+    return PROFILE_PROTECTED_ROUTES.has(normalized);
+  }
+
+  function getProfileFooterSourceElement(root = document) {
+    if (!root || !root.querySelector) return null;
+    const sectionFooter = root.querySelector('#footer-sections .dex-footer');
+    if (sectionFooter instanceof HTMLElement) return sectionFooter;
+    const firstFooter = root.querySelector('.dex-footer');
+    return firstFooter instanceof HTMLElement ? firstFooter : null;
+  }
+
+  function clearProfileFooterPortalState() {
+    profileFooterPortalState = { footer: null, anchor: null };
+  }
+
+  function restoreProfileFooterFromPortal({ removeIfDetached = false } = {}) {
+    const footer = profileFooterPortalState.footer;
+    const anchor = profileFooterPortalState.anchor;
+
+    if (!(footer instanceof HTMLElement)) {
+      clearProfileFooterPortalState();
+      return;
+    }
+
+    footer.classList.remove(PROFILE_FOOTER_PORTALED_CLASS);
+    footer.removeAttribute('data-dx-profile-footer-portaled');
+
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(footer, anchor);
+      anchor.parentNode.removeChild(anchor);
+    } else if ((removeIfDetached || footer.parentElement === document.body) && footer.parentNode) {
+      footer.parentNode.removeChild(footer);
+    }
+
+    clearProfileFooterPortalState();
+  }
+
+  function portalProfileFooterIfNeeded() {
+    if (!document.body) return;
+
+    const sourceFooter = getProfileFooterSourceElement(document);
+    if (!(sourceFooter instanceof HTMLElement)) {
+      restoreProfileFooterFromPortal({ removeIfDetached: true });
+      return;
+    }
+
+    if (sourceFooter.classList.contains(PROFILE_FOOTER_PORTALED_CLASS)) {
+      if (sourceFooter.parentElement !== document.body) {
+        document.body.appendChild(sourceFooter);
+      }
+      profileFooterPortalState.footer = sourceFooter;
+      return;
+    }
+
+    if (
+      profileFooterPortalState.footer &&
+      profileFooterPortalState.footer !== sourceFooter
+    ) {
+      restoreProfileFooterFromPortal({ removeIfDetached: true });
+    }
+
+    const parentNode = sourceFooter.parentNode;
+    if (!parentNode) return;
+
+    const anchor = document.createComment('dx-profile-footer-anchor');
+    parentNode.insertBefore(anchor, sourceFooter);
+
+    sourceFooter.classList.add(PROFILE_FOOTER_PORTALED_CLASS);
+    sourceFooter.setAttribute('data-dx-profile-footer-portaled', 'true');
+    document.body.appendChild(sourceFooter);
+
+    profileFooterPortalState = {
+      footer: sourceFooter,
+      anchor,
+    };
+  }
+
+  function syncProfileFooterPlacementNow() {
+    const isProtectedRoute = document.body && document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
+    if (isProtectedRoute) {
+      portalProfileFooterIfNeeded();
+      return;
+    }
+    restoreProfileFooterFromPortal();
   }
 
   function getProfileFooterElement(root = document) {
     if (!root || !root.querySelectorAll) return null;
-
-    const sectionsFooter = root.querySelector('#footer-sections');
-    if (sectionsFooter instanceof HTMLElement) {
-      const rect = sectionsFooter.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) return sectionsFooter;
+    const portaled = root.querySelector(`.dex-footer.${PROFILE_FOOTER_PORTALED_CLASS}`);
+    if (portaled instanceof HTMLElement) {
+      const rect = portaled.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return portaled;
     }
 
     const footers = Array.from(root.querySelectorAll('.dex-footer'));
@@ -134,10 +232,12 @@
     if (!document.body || !document.documentElement) return;
     const isProtectedRoute = document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
     if (!isProtectedRoute) {
+      syncProfileFooterPlacementNow();
       document.documentElement.style.removeProperty(PROFILE_FOOTER_HEIGHT_VAR);
       return;
     }
 
+    syncProfileFooterPlacementNow();
     const footer = getProfileFooterElement(document);
     const footerRect = footer ? footer.getBoundingClientRect() : null;
     const footerHeight = footerRect ? Math.max(0, Math.round(footerRect.height)) : 0;
@@ -177,8 +277,12 @@
   function syncProfileProtectedRouteState(pathname) {
     const isProtected = isProfileProtectedPath(pathname);
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
+    syncProfileFooterPlacementNow();
     scheduleProfileViewportMetricsSync();
     if (isProtected) {
+      requestAnimationFrame(syncProfileFooterPlacementNow);
+      window.setTimeout(syncProfileFooterPlacementNow, 90);
+      window.setTimeout(syncProfileFooterPlacementNow, 220);
       requestAnimationFrame(scheduleProfileViewportMetricsSync);
       window.setTimeout(scheduleProfileViewportMetricsSync, 90);
       window.setTimeout(scheduleProfileViewportMetricsSync, 220);

@@ -1090,8 +1090,11 @@ body.dx-route-profile-protected {
   --liquid-blur: 28px !important;
   --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-  --dx-profile-layout-gap: clamp(10px, 1.1vw, 14px) !important;
-  --dx-profile-footer-bottom: max(var(--dx-profile-layout-gap), calc(var(--dx-safe-bottom) + 4px)) !important;
+  --dx-profile-home-header-gap: 13.5px !important;
+  --dx-profile-home-card-footer-gap: 34.671875px !important;
+  --dx-profile-home-footer-inset: 105.015625px !important;
+  --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
+  --dx-profile-footer-bottom: max(var(--dx-profile-home-footer-inset), calc(var(--dx-safe-bottom) + 4px)) !important;
   --dx-profile-footer-height-fallback: clamp(108px, 18vh, 220px) !important;
   --dx-profile-footer-height-effective: var(--dx-profile-footer-height, var(--dx-profile-footer-height-fallback)) !important;
   --dx-profile-shell-height: max(
@@ -1099,10 +1102,9 @@ body.dx-route-profile-protected {
     calc(
       100dvh
       - var(--dx-fixed-header-top)
-      - var(--dx-slot-content-offset)
+      - var(--dx-fixed-header-height)
       - var(--dx-profile-footer-bottom)
       - var(--dx-profile-footer-height-effective)
-      - var(--dx-profile-layout-gap)
     )
   ) !important;
 }
@@ -1135,22 +1137,36 @@ body.dx-route-profile-protected .dex-scroll-dot {
 }
 
 body.dx-route-profile-protected #footer-sections {
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: var(--dx-profile-footer-bottom) !important;
+  position: static !important;
   margin: 0 !important;
-  z-index: 1288 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
   pointer-events: none !important;
 }
 
 body.dx-route-profile-protected #footer-sections .page-section {
+  position: static !important;
   min-height: 0 !important;
+  height: 0 !important;
   background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform: none !important;
 }
 
 body.dx-route-profile-protected #footer-sections .content-wrapper {
   padding: 0 !important;
+  margin: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+}
+
+body.dx-route-profile-protected #footer-sections .section-border,
+body.dx-route-profile-protected #footer-sections .section-background {
+  display: none !important;
 }
 
 body.dx-route-profile-protected #footer-sections .content,
@@ -1163,14 +1179,20 @@ body.dx-route-profile-protected #footer-sections .dx-code-container {
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  transform: none !important;
 }
 
-body.dx-route-profile-protected #footer-sections .dex-footer {
-  position: relative !important;
-  left: auto !important;
+body.dx-route-profile-protected #footer-sections .dex-footer,
+body.dx-route-profile-protected .dex-footer.dx-profile-footer-portaled {
+  position: fixed !important;
+  left: 50% !important;
   right: auto !important;
-  bottom: auto !important;
-  transform: none !important;
+  bottom: var(--dx-profile-footer-bottom) !important;
+  transform: translateX(-50%) !important;
+  z-index: 1288 !important;
   margin: 0 auto !important;
   pointer-events: auto !important;
 }
@@ -1251,7 +1273,8 @@ body.dx-route-profile-protected :is(
   margin-left: auto !important;
   margin-right: auto !important;
   padding-inline: 0 !important;
-  padding-block: clamp(8px, 1vw, 14px) !important;
+  padding-top: var(--dx-profile-home-header-gap) !important;
+  padding-bottom: var(--dx-profile-home-card-footer-gap) !important;
   box-sizing: border-box !important;
 }
 
@@ -1484,7 +1507,10 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
 
 @media (max-width: 980px) {
   body.dx-route-profile-protected {
-    --dx-profile-layout-gap: clamp(8px, 2.4vw, 12px) !important;
+    --dx-profile-home-header-gap: 13.5px !important;
+    --dx-profile-home-card-footer-gap: 34.671875px !important;
+    --dx-profile-home-footer-inset: 105.015625px !important;
+    --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
     --dx-profile-footer-height-fallback: clamp(124px, 24vh, 280px) !important;
   }
 
