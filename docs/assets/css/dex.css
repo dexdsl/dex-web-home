@@ -980,6 +980,10 @@ body .dex-sidebar::before {
   #dex-console,
   #dex-settings
 ) {
+  --dx-header-glass-bg: linear-gradient(120deg, rgba(238, 243, 249, 0.9) 0%, rgba(220, 229, 239, 0.88) 55%, rgba(241, 230, 223, 0.86) 100%) !important;
+  --dx-header-glass-rim: rgba(255, 255, 255, 0.42) !important;
+  --dx-header-glass-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  --dx-header-glass-backdrop: saturate(190%) blur(60px) contrast(1.04) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --liquid-bg: var(--dx-header-glass-bg) !important;
@@ -987,6 +991,15 @@ body .dex-sidebar::before {
   --liquid-blur: 18px !important;
   --shadow-light: 0 10px 22px rgba(18, 22, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
   --shadow-md: var(--dx-header-glass-shadow) !important;
+}
+
+/* Settings route uses local --glass-* aliases; force them onto shared header-glass tokens. */
+#dex-settings {
+  --glass-bg: var(--dx-header-glass-bg) !important;
+  --glass-brd: var(--dx-header-glass-rim) !important;
+  --shadow-1: var(--dx-header-glass-shadow) !important;
+  --shadow-2: var(--dx-header-glass-shadow) !important;
+  --radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
 }
 
 /* Route-root safety net: normalize core surfaces to header glass and strip chromatic filters. */

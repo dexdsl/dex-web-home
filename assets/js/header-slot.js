@@ -108,6 +108,83 @@
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProfileProtectedPath(pathname));
   }
 
+  function getHeaderGlassSnapshot(root = document) {
+    if (!root || !root.querySelector || typeof window.getComputedStyle !== 'function') return null;
+    const wrapper = root.querySelector('.header-announcement-bar-wrapper');
+    if (!(wrapper instanceof HTMLElement)) return null;
+
+    const style = window.getComputedStyle(wrapper);
+    const backgroundImage = String(style.backgroundImage || '').trim();
+    const backgroundColor = String(style.backgroundColor || '').trim();
+    const borderTopColor = String(style.borderTopColor || '').trim();
+    const boxShadow = String(style.boxShadow || '').trim();
+    const backdropFilter = String(style.backdropFilter || '').trim();
+    const webkitBackdropFilter = String(style.webkitBackdropFilter || '').trim();
+    const borderRadius = String(style.borderTopLeftRadius || '').trim();
+
+    return {
+      background: backgroundImage && backgroundImage !== 'none' ? backgroundImage : backgroundColor,
+      borderColor: borderTopColor || '',
+      boxShadow: boxShadow || '',
+      backdropFilter: backdropFilter || webkitBackdropFilter || '',
+      webkitBackdropFilter: webkitBackdropFilter || backdropFilter || '',
+      borderRadius: borderRadius || '',
+    };
+  }
+
+  function syncProfileRouteGlassFromHeader(root = document) {
+    if (!isProfileProtectedPath(window.location.pathname)) return;
+    if (!root || !root.querySelectorAll) return;
+
+    const routeRootSelector = '#dex-favorites, #dex-msg, #dex-submit, #dex-press, #dex-achv, #dex-console, #dex-settings';
+    const routeRoots = Array.from(root.querySelectorAll(routeRootSelector));
+    if (routeRoots.length === 0) return;
+
+    const glass = getHeaderGlassSnapshot(root);
+    if (!glass || !glass.background) return;
+
+    const targetSelector = [
+      '#dex-favorites > .dex-sidebar',
+      '#dex-msg > .dex-sidebar',
+      '#dex-submit > .dex-sidebar',
+      '#dex-press > .dex-sidebar',
+      '#dex-achv > .dex-sidebar',
+      '#dex-console > .dex-sidebar',
+      '#dex-settings',
+      '#dex-settings .hdr',
+      '#dex-settings .tabsbar',
+      '#dex-settings .card',
+      '#dex-settings .savebar',
+    ].join(', ');
+
+    const targets = Array.from(root.querySelectorAll(targetSelector));
+
+    for (const routeRoot of routeRoots) {
+      routeRoot.style.setProperty('--dx-header-glass-bg', glass.background, 'important');
+      if (glass.borderColor) routeRoot.style.setProperty('--dx-header-glass-rim', glass.borderColor, 'important');
+      if (glass.boxShadow) routeRoot.style.setProperty('--dx-header-glass-shadow', glass.boxShadow, 'important');
+      if (glass.backdropFilter) routeRoot.style.setProperty('--dx-header-glass-backdrop', glass.backdropFilter, 'important');
+      routeRoot.style.setProperty('--liquid-bg', glass.background, 'important');
+      if (glass.borderColor) routeRoot.style.setProperty('--liquid-border', glass.borderColor, 'important');
+      routeRoot.style.setProperty('--glass-bg', glass.background, 'important');
+      if (glass.borderColor) routeRoot.style.setProperty('--glass-brd', glass.borderColor, 'important');
+      if (glass.boxShadow) {
+        routeRoot.style.setProperty('--shadow-1', glass.boxShadow, 'important');
+        routeRoot.style.setProperty('--shadow-2', glass.boxShadow, 'important');
+      }
+    }
+
+    for (const target of targets) {
+      target.style.setProperty('background', glass.background, 'important');
+      if (glass.borderColor) target.style.setProperty('border-color', glass.borderColor, 'important');
+      if (glass.boxShadow) target.style.setProperty('box-shadow', glass.boxShadow, 'important');
+      if (glass.webkitBackdropFilter) target.style.setProperty('-webkit-backdrop-filter', glass.webkitBackdropFilter, 'important');
+      if (glass.backdropFilter) target.style.setProperty('backdrop-filter', glass.backdropFilter, 'important');
+      if (glass.borderRadius) target.style.setProperty('border-radius', glass.borderRadius, 'important');
+      target.style.setProperty('filter', 'none', 'important');
+    }
+  }
+
   function ensureViewportFitCover() {
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     if (!(viewportMeta instanceof HTMLMetaElement)) return;
@@ -1586,6 +1663,7 @@
     syncBodyAttributes(sourceDocument.body);
     syncProfileProtectedRouteState(targetUrl.pathname);
     markHeaderActiveForPath(targetUrl.pathname);
+    syncProfileRouteGlassFromHeader(document);
   }
 
   function shouldBypassAnchor(anchor) {
@@ -1656,6 +1734,10 @@
     }
 
     dispatchSlotReady(scrollRoot, foregroundRoot);
+    syncProfileRouteGlassFromHeader(document);
+    requestAnimationFrame(() => {
+      syncProfileRouteGlassFromHeader(document);
+    });
     installScrollStateTracker(scrollRoot);
     persistScrollState(scrollRoot);
   }
@@ -1834,6 +1916,7 @@
     document.body.classList.add(BODY_CLASS);
     syncProfileProtectedRouteState(window.location.pathname);
     normalizeHeaderWordmarkLinks();
+    syncProfileRouteGlassFromHeader(document);
 
     window.dxGetSlotScrollRoot = () => document.getElementById(SLOT_SCROLL_ID);
     window.dxGetSlotForegroundRoot = () => document.getElementById(SLOT_FOREGROUND_ID);
@@ -1852,6 +1935,7 @@
       dispatchSlotReady(scrollRoot, foregroundRoot);
       installHomeHeroAligner();
       normalizeMobileBurgerHooks(document);
+      syncProfileRouteGlassFromHeader(document);
       persistScrollState(scrollRoot);
     });
 
