@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner:
+    - generic [ref=e3]:
+      - link "Skip to Content" [ref=e4] [cursor=pointer]:
+        - /url: index.html#page
+      - generic [ref=e6]:
+        - generic [ref=e8]:
+          - link "YouTube" [ref=e9] [cursor=pointer]:
+            - /url: https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ
+            - img [ref=e10]
+          - link "Instagram" [ref=e12] [cursor=pointer]:
+            - /url: http://instagram.com/dexdsl
+            - img [ref=e13]
+          - link "TikTok" [ref=e15] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@dexdsl
+            - img [ref=e16]
+          - link "Twitter" [ref=e18] [cursor=pointer]:
+            - /url: https://twitter.com/dexdsl
+            - img [ref=e19]
+        - generic [ref=e21]:
+          - link "dex digital sample library" [ref=e24] [cursor=pointer]:
+            - /url: index.html
+            - img "dex digital sample library" [ref=e25]
+          - navigation [ref=e26]:
+            - link "CATALOG" [ref=e28] [cursor=pointer]:
+              - /url: /catalog/
+            - link "IN DEX" [ref=e30] [cursor=pointer]:
+              - /url: /call/
+            - link "DEX NOTES" [ref=e32] [cursor=pointer]:
+              - /url: /dexnotes/
+            - link "ABOUT" [ref=e34] [cursor=pointer]:
+              - /url: /about/
+        - link "DOONATE" [ref=e37] [cursor=pointer]:
+          - /url: /donate/
+  - main [ref=e38]:
+    - article [ref=e39]:
+      - generic [ref=e49]:
+        - generic [ref=e51]:
+          - heading "THE OPEN-AC‌CES‌S RECORDING LIBRARY FOR" [level=1] [ref=e52]:
+            - text: THE OPEN-AC‌CES‌S
+            - text: RECORDING LIBRARY FOR
+          - paragraph [ref=e53]: dexFest 2024 recordings releasing all month — free & CC-BY.
+          - generic [ref=e54]:
+            - link [ref=e55] [cursor=pointer]:
+              - /url: /catalog/
+            - button "SIGN UP FRE‌E ↗" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: SIGN UP FRE‌E ↗
+        - complementary [ref=e61]:
+          - generic [ref=e62]:
+            - heading [level=2]
+      - region "Founding Expansion Board" [ref=e73]:
+        - link "Go to Dex /board" [ref=e74] [cursor=pointer]:
+          - /url: /board/
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - paragraph [ref=e77]: Help steward Dex
+              - heading "Founding Expansion Board" [level=2] [ref=e78]
+              - paragraph [ref=e79]: Keep the library free, forever.
+            - list "What you’ll impact" [ref=e80]:
+              - listitem [ref=e81]:
+                - img [ref=e82]
+                - generic [ref=e84]: Protect CC-BY as a hard-lock
+              - listitem [ref=e85]:
+                - img [ref=e86]
+                - generic [ref=e88]: Shape releases & commissions
+              - listitem [ref=e89]:
+                - img [ref=e90]
+                - generic [ref=e92]: Build the model for open access
+            - generic "Proof points" [ref=e93]:
+              - generic [ref=e94]: Directors
+              - generic [ref=e95]: Advisors
+              - generic [ref=e96]: Observers
+              - generic [ref=e98]:
+                - generic [ref=e99]: ~30 hours
+                - generic [ref=e100]: catalog
+              - generic [ref=e101]:
+                - generic [ref=e102]: ~12k
+                - generic [ref=e103]: downloads
+            - generic "Timeline" [ref=e104]:
+              - generic [ref=e105]:
+                - generic [ref=e106]: Soft deadline
+                - generic [ref=e107]: Nov 15, 2025
+              - generic [ref=e109]:
+                - generic [ref=e110]: Briefings
+                - generic [ref=e111]: Dec ’25 – Jan ’26
+              - generic [ref=e113]:
+                - generic [ref=e114]: Seating
+                - generic [ref=e115]: Q1 2026
+            - generic [ref=e116]:
+              - generic [ref=e118]: NOMINATE OR AP‌PLY
+              - generic [ref=e119]: ~6 hrs/mo · Remote OK · Builders, not gatekeepers
+      - generic [ref=e132]:
+        - heading "SIGN-UP FOR FR‎E‎E AC‎C‎E‎S‎SSS" [level=2] [ref=e133]
+        - paragraph [ref=e134]: 700+ CC-BY artist loops in one click – join Dex & start sampling now.
+        - button "JOIN DEX" [ref=e137] [cursor=pointer]:
+          - generic [ref=e138]: JOIN DEX
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - heading "FAQ" [level=2] [ref=e150]
+          - navigation [ref=e151]:
+            - link "Explore Our Catalog" [ref=e152] [cursor=pointer]:
+              - /url: /catalog/
+            - link "Submit Your Work" [ref=e153] [cursor=pointer]:
+              - /url: /call/
+        - main [ref=e154]:
+          - generic "Dex FAQ"
+      - generic [ref=e165]:
+        - img "Dex Footer Logo (black)" [ref=e168]
+        - generic [ref=e169]:
+          - text: © 2023–2026 DEX CO-OP CORP (EIN 92-3509152)
+          - text: dba Dex Digital Sample Library. All rights reserved.
+        - link "View Dex Digital Sample Library's Candid (GuideStar) profile" [ref=e171] [cursor=pointer]:
+          - /url: https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152
+          - img "Candid (GuideStar) Transparency Seal" [ref=e172]
+        - generic [ref=e173]:
+          - generic [ref=e174]:
+            - link "YouTube" [ref=e175] [cursor=pointer]:
+              - /url: https://www.youtube.com/dexdsl
+              - img [ref=e176]
+            - link "Instagram" [ref=e178] [cursor=pointer]:
+              - /url: https://instagram.com/dexdsl
+              - img [ref=e179]
+            - link "TikTok" [ref=e181] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@dexdsl
+              - img [ref=e182]
+            - link "Twitter" [ref=e184] [cursor=pointer]:
+              - /url: https://twitter.com/dexdsl
+              - img [ref=e185]
+          - navigation [ref=e187]:
+            - link "Privacy" [ref=e188] [cursor=pointer]:
+              - /url: /privacy/
+            - link "Contact" [ref=e189] [cursor=pointer]:
+              - /url: /contact/
+            - link "Copyright" [ref=e190] [cursor=pointer]:
+              - /url: /copyright/
+  - contentinfo
+```
