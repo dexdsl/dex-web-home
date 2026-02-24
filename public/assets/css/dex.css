@@ -978,6 +978,7 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
     .fluid-engine:has(#dex-msg),
     .fluid-engine:has(#dex-submit),
     .fluid-engine:has(#dex-press),
+    .fluid-engine:has(#dex-achv),
     .fluid-engine:has(#dex-console),
     .fluid-engine:has(#dex-settings)
   ) {
@@ -985,14 +986,15 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   }
 
   body.dx-route-profile-protected :is(
-    .fluid-engine:has(#dex-favorites),
-    .fluid-engine:has(#dex-msg),
-    .fluid-engine:has(#dex-submit),
-    .fluid-engine:has(#dex-press),
-    .fluid-engine:has(#dex-console),
-    .fluid-engine:has(#dex-settings)
-  ) > .fe-block {
-    grid-column: 2 / 26 !important;
+    .fluid-engine > .fe-block:has(#dex-favorites),
+    .fluid-engine > .fe-block:has(#dex-msg),
+    .fluid-engine > .fe-block:has(#dex-submit),
+    .fluid-engine > .fe-block:has(#dex-press),
+    .fluid-engine > .fe-block:has(#dex-achv),
+    .fluid-engine > .fe-block:has(#dex-console),
+    .fluid-engine > .fe-block:has(#dex-settings)
+  ) {
+    grid-column: 1 / -1 !important;
     justify-self: stretch !important;
   }
 
@@ -1001,21 +1003,42 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
     .dx-block:has(#dex-msg),
     .dx-block:has(#dex-submit),
     .dx-block:has(#dex-press),
+    .dx-block:has(#dex-achv),
     .dx-block:has(#dex-console),
     .dx-block:has(#dex-settings),
     .dx-block-content:has(#dex-favorites),
     .dx-block-content:has(#dex-msg),
     .dx-block-content:has(#dex-submit),
     .dx-block-content:has(#dex-press),
+    .dx-block-content:has(#dex-achv),
     .dx-block-content:has(#dex-console),
     .dx-block-content:has(#dex-settings),
     .dx-code-container:has(#dex-favorites),
     .dx-code-container:has(#dex-msg),
     .dx-code-container:has(#dex-submit),
     .dx-code-container:has(#dex-press),
+    .dx-code-container:has(#dex-achv),
     .dx-code-container:has(#dex-console),
     .dx-code-container:has(#dex-settings)
   ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .page-section:has(#dex-favorites),
+    .page-section:has(#dex-msg),
+    .page-section:has(#dex-submit),
+    .page-section:has(#dex-press),
+    .page-section:has(#dex-achv),
+    .page-section:has(#dex-console),
+    .page-section:has(#dex-settings)
+  ) :is(.content-wrapper, .content) {
     width: 100% !important;
     max-width: none !important;
     margin-left: 0 !important;
