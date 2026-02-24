@@ -1090,6 +1090,71 @@ body.dx-route-profile-protected {
   --liquid-blur: 28px !important;
   --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  --dx-profile-layout-gap: clamp(10px, 1.1vw, 14px) !important;
+  --dx-profile-footer-bottom: max(var(--dx-profile-layout-gap), calc(var(--dx-safe-bottom) + 4px)) !important;
+  --dx-profile-footer-height-fallback: clamp(108px, 18vh, 220px) !important;
+  --dx-profile-footer-height-effective: var(--dx-profile-footer-height, var(--dx-profile-footer-height-fallback)) !important;
+  --dx-profile-shell-height: max(
+    300px,
+    calc(
+      100dvh
+      - var(--dx-fixed-header-top)
+      - var(--dx-slot-content-offset)
+      - var(--dx-profile-footer-bottom)
+      - var(--dx-profile-footer-height-effective)
+      - var(--dx-profile-layout-gap)
+    )
+  ) !important;
+}
+
+html body.dx-slot-enabled.dx-route-profile-protected,
+body.dx-slot-enabled.dx-route-profile-protected {
+  overflow: hidden !important;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body.dx-slot-enabled.dx-route-profile-protected #dx-slot-scroll-root {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body.dx-slot-enabled.dx-route-profile-protected #dx-slot-scroll-root::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+body.dx-route-profile-protected .dex-scroll-rail,
+body.dx-route-profile-protected .dex-scroll-dot {
+  opacity: 0 !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.dx-route-profile-protected .dex-footer {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: var(--dx-profile-footer-bottom) !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  z-index: 1288 !important;
+}
+
+body.dx-route-profile-protected :is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) {
+  height: var(--dx-profile-shell-height) !important;
+  min-height: var(--dx-profile-shell-height) !important;
+  max-height: var(--dx-profile-shell-height) !important;
 }
 
 /* Profile routes: normalize remaining inner white fills to the same translucent glass opacity. */
@@ -1259,6 +1324,19 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
 
 @supports selector(.fluid-engine:has(#dex-favorites)) {
   body.dx-route-profile-protected :is(
+    .page-section:has(#dex-favorites),
+    .page-section:has(#dex-msg),
+    .page-section:has(#dex-submit),
+    .page-section:has(#dex-press),
+    .page-section:has(#dex-achv),
+    .page-section:has(#dex-console),
+    .page-section:has(#dex-settings)
+  ) {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  body.dx-route-profile-protected :is(
     .fluid-engine:has(#dex-favorites),
     .fluid-engine:has(#dex-msg),
     .fluid-engine:has(#dex-submit),
@@ -1313,6 +1391,42 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
     padding-left: 0 !important;
     padding-right: 0 !important;
     box-sizing: border-box !important;
+    min-height: 0 !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .dx-block:has(#dex-favorites),
+    .dx-block:has(#dex-msg),
+    .dx-block:has(#dex-submit),
+    .dx-block:has(#dex-press),
+    .dx-block:has(#dex-achv),
+    .dx-block:has(#dex-console),
+    .dx-block:has(#dex-settings)
+  ) {
+    height: var(--dx-profile-shell-height) !important;
+    max-height: var(--dx-profile-shell-height) !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .dx-block-content:has(#dex-favorites),
+    .dx-block-content:has(#dex-msg),
+    .dx-block-content:has(#dex-submit),
+    .dx-block-content:has(#dex-press),
+    .dx-block-content:has(#dex-achv),
+    .dx-block-content:has(#dex-console),
+    .dx-block-content:has(#dex-settings),
+    .dx-code-container:has(#dex-favorites),
+    .dx-code-container:has(#dex-msg),
+    .dx-code-container:has(#dex-submit),
+    .dx-code-container:has(#dex-press),
+    .dx-code-container:has(#dex-achv),
+    .dx-code-container:has(#dex-console),
+    .dx-code-container:has(#dex-settings)
+  ) {
+    height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   body.dx-route-profile-protected :is(
@@ -1330,11 +1444,18 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
     margin-right: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     box-sizing: border-box !important;
   }
 }
 
 @media (max-width: 980px) {
+  body.dx-route-profile-protected {
+    --dx-profile-layout-gap: clamp(8px, 2.4vw, 12px) !important;
+    --dx-profile-footer-height-fallback: clamp(124px, 24vh, 280px) !important;
+  }
+
   body.dx-route-profile-protected :is(
     main#page.container,
     main#page,

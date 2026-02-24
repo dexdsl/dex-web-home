@@ -19,6 +19,7 @@
   const ROUTE_TRANSITION_IN_START = 'dx:route-transition-in:start';
   const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
   const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
+  const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
   const PROFILE_PROTECTED_ROUTES = new Set([
     '/polls',
     '/press',
@@ -70,6 +71,8 @@
   let mobileMenuAuthProbePromise = null;
   let mobileMenuAuthProbeToken = 0;
   let mobileMenuBuildSequence = 0;
+  let profileViewportMetricsInstalled = false;
+  let profileViewportMetricsRafId = 0;
 
   function getHeaderElement(root = document) {
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
@@ -104,8 +107,75 @@
     return PROFILE_PROTECTED_ROUTES.has(normalizePathname(pathname));
   }
 
+  function getProfileFooterElement(root = document) {
+    if (!root || !root.querySelectorAll) return null;
+    const footers = Array.from(root.querySelectorAll('.dex-footer'));
+    if (!footers.length) return null;
+
+    let candidate = null;
+    for (const footer of footers) {
+      if (!(footer instanceof HTMLElement)) continue;
+      const rect = footer.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      candidate = footer;
+    }
+
+    return candidate;
+  }
+
+  function syncProfileViewportMetricsNow() {
+    if (!document.body || !document.documentElement) return;
+    const isProtectedRoute = document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
+    if (!isProtectedRoute) {
+      document.documentElement.style.removeProperty(PROFILE_FOOTER_HEIGHT_VAR);
+      return;
+    }
+
+    const footer = getProfileFooterElement(document);
+    const footerRect = footer ? footer.getBoundingClientRect() : null;
+    const footerHeight = footerRect ? Math.max(0, Math.round(footerRect.height)) : 0;
+    if (footerHeight > 0) {
+      document.documentElement.style.setProperty(PROFILE_FOOTER_HEIGHT_VAR, `${footerHeight}px`);
+      return;
+    }
+
+    document.documentElement.style.removeProperty(PROFILE_FOOTER_HEIGHT_VAR);
+  }
+
+  function scheduleProfileViewportMetricsSync() {
+    if (profileViewportMetricsRafId) {
+      cancelAnimationFrame(profileViewportMetricsRafId);
+      profileViewportMetricsRafId = 0;
+    }
+    profileViewportMetricsRafId = requestAnimationFrame(() => {
+      profileViewportMetricsRafId = 0;
+      syncProfileViewportMetricsNow();
+    });
+  }
+
+  function installProfileViewportMetricsSync() {
+    if (profileViewportMetricsInstalled) return;
+    profileViewportMetricsInstalled = true;
+
+    window.addEventListener('resize', scheduleProfileViewportMetricsSync, { passive: true });
+    window.addEventListener('orientationchange', scheduleProfileViewportMetricsSync);
+    window.addEventListener('load', scheduleProfileViewportMetricsSync);
+    window.addEventListener('dx:slotready', scheduleProfileViewportMetricsSync);
+    window.addEventListener(ROUTE_TRANSITION_IN_END, scheduleProfileViewportMetricsSync);
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', scheduleProfileViewportMetricsSync, { passive: true });
+    }
+  }
+
   function syncProfileProtectedRouteState(pathname) {
-    document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProfileProtectedPath(pathname));
+    const isProtected = isProfileProtectedPath(pathname);
+    document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
+    scheduleProfileViewportMetricsSync();
+    if (isProtected) {
+      requestAnimationFrame(scheduleProfileViewportMetricsSync);
+      window.setTimeout(scheduleProfileViewportMetricsSync, 90);
+      window.setTimeout(scheduleProfileViewportMetricsSync, 220);
+    }
   }
 
   function getHeaderGlassSnapshot(root = document) {
@@ -1686,8 +1756,10 @@
     }
 
     dispatchSlotReady(scrollRoot, foregroundRoot);
+    scheduleProfileViewportMetricsSync();
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
+      scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
     });
     installScrollStateTracker(scrollRoot);
@@ -1877,6 +1949,7 @@
     installSoftRouter();
     installScrollStateTracker(scrollRoot);
     installSlotLayoutStabilizer(scrollRoot, foregroundRoot);
+    installProfileViewportMetricsSync();
     installMobileMenu();
 
     requestAnimationFrame(() => {
@@ -1887,6 +1960,7 @@
       dispatchSlotReady(scrollRoot, foregroundRoot);
       installHomeHeroAligner();
       normalizeMobileBurgerHooks(document);
+      scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
       persistScrollState(scrollRoot);
     });
