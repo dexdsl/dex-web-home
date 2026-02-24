@@ -972,15 +972,6 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   pointer-events: none !important;
 }
 
-body.dx-route-profile-protected #dex-settings,
-body.dx-route-profile-protected #dex-settings .bgcard {
-  height: auto !important;
-}
-
-body.dx-route-profile-protected #dex-settings .bgcard {
-  overflow: visible !important;
-}
-
 @supports selector(.fluid-engine:has(#dex-favorites)) {
   body.dx-route-profile-protected :is(
     .fluid-engine:has(#dex-favorites),

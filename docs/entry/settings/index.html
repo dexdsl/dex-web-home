@@ -2144,10 +2144,9 @@
 #dex-settings[data-fit-profile="1"] .bgcard{
   padding-bottom: 0;
 }
-/* Make the background card the scrolling frame */
+/* Keep route scroll on the page document so footer remains reachable */
 #dex-settings .bgcard{
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
   </style>
@@ -2381,26 +2380,6 @@
       const api  = root.dataset.api || '/api';
       const $  = (s,el=document)=>el.querySelector(s);
       const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-function updateHeight(){
-  const card = root.querySelector('.bgcard');
-  if (!card) return;
-  const pad = 20; // same breathing room used across DEX blocks
-  const top = card.getBoundingClientRect().top;
-  const h = Math.max(window.innerHeight - top - pad, 0);
-  card.style.height = h + 'px';
-}
-
-function initHeightObserver(){
-  updateHeight();
-  // reflow when the host column/header shifts
-  const host = root.parentElement || document.body;
-  try { new ResizeObserver(updateHeight).observe(host); } catch(_) {}
-  window.addEventListener('resize', updateHeight, { passive:true });
-  window.addEventListener('orientationchange', updateHeight, { passive:true });
-  // fonts/images can nudge layout
-  if (document.fonts?.ready) document.fonts.ready.then(updateHeight);
-  window.addEventListener('load', updateHeight, { once:true });
-}
       /* Auth0 token + fetch */
       async function token(){
         try{
@@ -3265,7 +3244,6 @@ memFoot?.setAttribute('aria-hidden','true');     // NEW
       (async function boot(){
         // Defer membership network until user opens that tab (see showPane)
         let sub = null;
-initHeightObserver();
 
 try { sub = await jfetch(api + '/me/subscription'); } catch {}
 applySubUI(sub?.status, sub?.current_period_end);
