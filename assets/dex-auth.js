@@ -44,6 +44,11 @@
   var authReady = new Promise(function (resolve) { authReadyResolve = resolve; });
   var authReadyState = { isAuthenticated: false, user: null };
   var authReadyDone = false;
+  var AUDIENCE_DISABLE_KEY = "dex.auth.disableAudience";
+  var audienceFallbackDisabled = false;
+  try {
+    audienceFallbackDisabled = !!(window.localStorage && window.localStorage.getItem(AUDIENCE_DISABLE_KEY) === "1");
+  } catch (e) {}
 
   function publishAuthState(auth, user) {
     authReadyState = { isAuthenticated: !!auth, user: user || null };
@@ -290,11 +295,56 @@
       }
       return null;
     }
-    
-    function ensureAuthClient() {
-      if (authClient) return Promise.resolve(authClient);
 
+    function getResolvedCfg() {
       var cfg = getCfg();
+      if (!cfg) return null;
+      return {
+        domain: cfg.domain,
+        clientId: cfg.clientId,
+        audience: audienceFallbackDisabled ? "" : (cfg.audience || ""),
+        redirectUri: cfg.redirectUri,
+        useRefreshTokens: !!cfg.useRefreshTokens
+      };
+    }
+
+    function toErrorText(err) {
+      if (!err) return "";
+      var parts = [];
+      if (err.error) parts.push(String(err.error));
+      if (err.error_description) parts.push(String(err.error_description));
+      if (err.message) parts.push(String(err.message));
+      return parts.join(" ").toLowerCase();
+    }
+
+    function isAudienceError(err) {
+      var text = toErrorText(err);
+      var status = Number(err && (err.status || err.statusCode));
+      if (!text) return false;
+      return (
+        (status === 400 && text.indexOf("invalid_request") >= 0) ||
+        text.indexOf("audience") >= 0 ||
+        text.indexOf("service not found") >= 0 ||
+        text.indexOf("invalid_target") >= 0 ||
+        text.indexOf("service is not enabled within domain") >= 0
+      );
+    }
+
+    function disableAudienceFallback(err) {
+      if (audienceFallbackDisabled) return;
+      audienceFallbackDisabled = true;
+      authClient = null;
+      try {
+        if (window.localStorage) window.localStorage.setItem(AUDIENCE_DISABLE_KEY, "1");
+      } catch (e) {}
+      logError("Audience rejected by Auth0; retrying without audience.", err);
+    }
+    
+    function ensureAuthClient(opts) {
+      var forceNewClient = !!(opts && opts.forceNewClient);
+      if (authClient && !forceNewClient) return Promise.resolve(authClient);
+
+      var cfg = getResolvedCfg();
       if (!cfg) {
         return Promise.reject(
           new Error("Missing Auth0 config (host " + window.location.hostname + ")")
@@ -316,7 +366,7 @@
           clientId: cfg.clientId,
           authorizationParams: authorizationParams,
           cacheLocation: "localstorage",
-          useRefreshTokens: !!(cfg && cfg.useRefreshTokens)
+          useRefreshTokens: !!cfg.useRefreshTokens
         }).then(function (client) {
           authClient = client;
           window.auth0Client = authClient;
@@ -938,10 +988,11 @@
     return window.location.pathname + window.location.search + window.location.hash;
   }
 
-  function openAuthFlow(returnTo, screenHint) {
+  function openAuthFlow(returnTo, screenHint, allowAudienceRetry) {
+    var canRetry = allowAudienceRetry !== false;
     return ensureAuthClient()
       .then(function (client) {
-        var cfgNow = getCfg();
+        var cfgNow = getResolvedCfg();
         if (!cfgNow) throw new Error("Missing Auth0 config at click-time");
         var authorizationParams = { redirect_uri: cfgNow.redirectUri };
         if (screenHint) authorizationParams.screen_hint = screenHint;
@@ -949,6 +1000,13 @@
           appState: { returnTo: returnTo || getCurrentReturnTo() },
           authorizationParams: authorizationParams
         });
+      })
+      .catch(function (err) {
+        if (canRetry && !audienceFallbackDisabled && isAudienceError(err)) {
+          disableAudienceFallback(err);
+          return openAuthFlow(returnTo, screenHint, false);
+        }
+        throw err;
       });
   }
 
@@ -1003,14 +1061,22 @@
     getAccessToken: function () {
       return ensureAuthClient()
         .then(function (client) { return client.getTokenSilently(); })
-        .catch(function () { return null; });
+        .catch(function (err) {
+          if (!audienceFallbackDisabled && isAudienceError(err)) {
+            disableAudienceFallback(err);
+            return ensureAuthClient({ forceNewClient: true })
+              .then(function (client) { return client.getTokenSilently(); })
+              .catch(function () { return null; });
+          }
+          return null;
+        });
     }
   };
   window.dexAuth = window.DEX_AUTH;
 
   async function init() {
     try {
-        var cfg = getCfg();
+        var cfg = getResolvedCfg();
       ensureAuthUi();
       bindUiResizeSync();
       startAuthUiObserver();
@@ -1062,6 +1128,10 @@
       try {
         await authClient.checkSession();
       } catch (e) {
+        if (!audienceFallbackDisabled && cfg.audience && isAudienceError(e)) {
+          disableAudienceFallback(e);
+          return init();
+        }
         // Silent auth can fail (ITP / cookie restrictions). Ignore and fall through.
       }
 
