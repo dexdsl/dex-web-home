@@ -980,8 +980,8 @@ body .dex-sidebar::before {
   #dex-console,
   #dex-settings
 ) {
-  --dx-route-glass-bg: rgba(255, 255, 255, 0.18) !important;
-  --dx-route-glass-rim: rgba(255, 255, 255, 0.35) !important;
+  --dx-route-glass-bg: rgba(255, 255, 255, 0.14) !important;
+  --dx-route-glass-rim: rgba(255, 255, 255, 0.32) !important;
   --dx-route-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
   --dx-route-glass-blur: 28px !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
@@ -1086,11 +1086,37 @@ body.dx-route-profile-protected {
   --space-5: var(--dx-space-xl) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  --liquid-bg: rgba(255, 255, 255, 0.18) !important;
-  --liquid-border: rgba(255, 255, 255, 0.35) !important;
+  --liquid-bg: rgba(255, 255, 255, 0.14) !important;
+  --liquid-border: rgba(255, 255, 255, 0.32) !important;
   --liquid-blur: 28px !important;
   --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Profile routes: normalize remaining inner white fills to the same translucent glass opacity. */
+body.dx-route-profile-protected :is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) :is(
+  .dex-header,
+  .empty,
+  .interval,
+  .tier,
+  .readonly,
+  .tokens,
+  .avatar,
+  .provider-chip
+) {
+  background: var(--liquid-bg) !important;
+  border-color: var(--liquid-border) !important;
+  box-shadow: var(--shadow-light) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
 }
 
 html body.dx-route-profile-protected {
