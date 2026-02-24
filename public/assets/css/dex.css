@@ -1158,9 +1158,6 @@ body.dx-route-profile-protected :is(
   box-sizing: border-box !important;
 }
 
-body.dx-route-profile-protected :is(
-  #dex-favorites
-) > .dex-sidebar,
 body.dx-route-profile-protected #dex-settings .hdr,
 body.dx-route-profile-protected #dex-settings .tabsbar,
 body.dx-route-profile-protected #dex-settings .card,
@@ -1173,8 +1170,26 @@ body.dx-route-profile-protected #dex-settings .savebar {
   backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
 }
 
+/* Always remove base wrapper shells on profile-route surfaces (independent of route class hydration). */
+:is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console
+) > .dex-sidebar,
+#dex-settings {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* Remove extra base-layer cards on profile routes; keep glass only on inner content cards. */
 body.dx-route-profile-protected :is(
+  #dex-favorites,
   #dex-msg,
   #dex-submit,
   #dex-press,

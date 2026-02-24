@@ -1656,7 +1656,7 @@ background:rgba(255,255,255,.6);padding:var(--space-2) var(--space-3);border-rad
 .dex-header:hover .nav-btn{opacity:1}
 .quota-badge{display:inline-block;background:var(--dex-accent);color:#fff;
 padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:.8rem}
-.table{flex:1;overflow:auto;position:relative;}
+.table{flex:1;overflow:auto;position:relative;min-height:220px;}
 .table table{width:100%;border-collapse:collapse;font-size:.9rem}
 .table th,.table td{padding:var(--space-2);border-bottom:1px solid var(--liquid-border)}
 .status-Pending\ Review{background:rgba(255,25,16,.1)}
@@ -1666,6 +1666,13 @@ padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:.
 tr.clickable{cursor:pointer}
 .details{background:var(--liquid-bg);padding:var(--space-3);border-radius:var(--radius-sm);
 margin:var(--space-2) 0}
+.dx-msg-table-host{position:relative;z-index:1}
+.dx-msg-table-loading-shell{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+}
 
 </style>
 
@@ -1721,16 +1728,26 @@ margin:var(--space-2) 0}
   aside.append(body);
 
   const tableHost = document.createElement('div');
-  tableHost.className = 'dx-fetch-shell--rows';
+  tableHost.className = 'dx-msg-table-host';
   body.append(tableHost);
 
-  const tableOverlay = document.createElement('div');
-  tableOverlay.className = 'dx-fetch-shell-overlay';
-  body.append(tableOverlay);
+  const tableLoadingShell = document.createElement('div');
+  tableLoadingShell.className = 'dx-fetch-shell dx-fetch-shell--card dx-msg-table-loading-shell';
+  tableLoadingShell.innerHTML = `
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:38%;"></div>
+    <div class="dx-fetch-shell-line" style="width:58%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:94%;"></div>
+      <div class="dx-fetch-shell-line" style="width:88%;"></div>
+    </div>`;
+  body.append(tableLoadingShell);
 
   function setTableLoading(isLoading){
     body.setAttribute('data-dx-fetch-state', isLoading ? 'loading' : 'ready');
-    tableOverlay.hidden = !isLoading;
+    tableLoadingShell.hidden = !isLoading;
   }
 
   const auth0Sub = await getAuth0Sub();
