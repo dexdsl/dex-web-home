@@ -3292,11 +3292,15 @@ function hydrateProfile(me){
       }
 
       async function createCheckoutSession(){
+        const successUrl = new URL(SUCCESS_PATH, window.location.origin).toString();
+        const cancelUrl = new URL(RETURN_PATH, window.location.origin).toString();
         const payload = {
           tier: selected,
           interval,
           coverFees: !!document.getElementById('cover')?.checked,
-          returnPath: RETURN_PATH
+          returnPath: RETURN_PATH,
+          successUrl,
+          cancelUrl
         };
         try {
           return await jfetch(api + BILLING_ENDPOINTS.checkout, {
@@ -3312,8 +3316,10 @@ function hydrateProfile(me){
             tier: selected,
             interval,
             coverFees: !!document.getElementById('cover')?.checked,
-            success_url: location.origin + SUCCESS_PATH,
-            cancel_url: location.href
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            successUrl,
+            cancelUrl
           })
         });
       }

@@ -2,6 +2,36 @@
 
 This is the exact deployment sequence for the external billing/auth API used by `https://dexdsl.github.io`.
 
+## Hotfix from your current deployed state
+
+If you already deployed and see:
+
+- `D1_ERROR: no such table: user_customers`
+- `500` on `/me/billing/summary` or `/me/billing/portal-session`
+- `404` on `/me/profile`, `/me/notifications`, `/me/invoices`
+
+run these first:
+
+```bash
+cd ~/dex-api-worker/dex-api
+npx wrangler d1 execute dex_api --remote --file=./schema.sql
+npx wrangler deploy
+```
+
+Then implement (or stub) these non-billing routes expected by `/entry/settings`:
+
+- `GET /me/profile`
+- `PATCH /me/profile`
+- `GET /me/notifications`
+- `PATCH /me/notifications`
+- `GET /me/invoices?limit=5`
+
+Recommended temporary stubs (to stop 404s immediately) until full profile/notifications storage is implemented:
+
+- `/me/profile`: return Auth0 claim-backed profile object
+- `/me/notifications`: return defaults (all booleans false + empty quiet hours)
+- `/me/invoices`: return `{ "data": [] }` if no invoices exist
+
 ## 0. Create repo and local project
 
 ```bash
