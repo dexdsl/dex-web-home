@@ -36,10 +36,10 @@
   --dx-fixed-header-gap: 12px;
   --dx-fixed-header-space: calc(var(--dx-fixed-header-top) + var(--dx-fixed-header-height) + var(--dx-fixed-header-gap));
   --dx-header-frame-width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px);
-  --dx-header-glass-bg: linear-gradient(120deg, rgba(232, 238, 246, 0.58) 0%, rgba(209, 222, 236, 0.52) 55%, rgba(236, 222, 215, 0.5) 100%);
+  --dx-header-glass-bg: linear-gradient(120deg, rgba(236, 241, 248, 0.82) 0%, rgba(216, 226, 238, 0.78) 55%, rgba(240, 228, 221, 0.76) 100%);
   --dx-header-glass-rim: rgba(255, 255, 255, 0.42);
   --dx-header-glass-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-  --dx-header-glass-backdrop: saturate(225%) blur(30px) contrast(1.06);
+  --dx-header-glass-backdrop: saturate(245%) blur(44px) contrast(1.1);
   --dx-glass-shell-bg: var(--dx-header-glass-bg);
   --dx-glass-shell-rim: var(--dx-header-glass-rim);
   --dx-glass-shell-shadow: var(--dx-header-glass-shadow);
