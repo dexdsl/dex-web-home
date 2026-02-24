@@ -947,7 +947,7 @@ hr {
     padding: 0;
     width: 100%;
     height: 100%;
-    background: rgba(16, 19, 26, 0.14);
+    background: transparent;
     opacity: 0;
     transition: opacity 220ms ease;
     pointer-events: none;
@@ -1152,7 +1152,7 @@ hr {
   body.dx-mobile-menu-open .dx-mobile-menu-backdrop {
     pointer-events: auto;
     opacity: 1;
-    background: rgba(12, 14, 20, 0.34);
+    background: transparent;
   }
 
   body.dx-mobile-menu-open .dx-mobile-menu-scope-blur {
@@ -1162,6 +1162,7 @@ hr {
   body.dx-mobile-menu-open .dx-mobile-menu-sheet {
     opacity: 1;
     transform: translate(-50%, 0);
+    box-shadow: var(--dx-glass-shell-shadow), 0 0 0 200vmax rgba(12, 14, 20, 0.34);
   }
 
   .dx-mobile-menu[data-dx-mobile-utility-stacked="true"] .dx-mobile-menu-utility {
