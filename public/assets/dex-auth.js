@@ -3,7 +3,6 @@
 
   var AUTH_UI_ID = "auth-ui";
   var DROPDOWN_OPEN_CLASS = "is-open";
-  var DROPDOWN_BODY_OPEN_CLASS = "dx-auth-dropdown-open";
   var PROTECTED_PATHS = {
     "/press": true,
     "/entry/2-organs-midori-ataka": true,
@@ -704,9 +703,6 @@
     if (toggle) {
       toggle.setAttribute("aria-expanded", "false");
     }
-    if (document.body) {
-      document.body.classList.remove(DROPDOWN_BODY_OPEN_CLASS);
-    }
   }
 
   function bindUiEvents(cfg) {
@@ -737,9 +733,6 @@
         }
         var open = dropdown.classList.toggle(DROPDOWN_OPEN_CLASS);
         profileToggle.setAttribute("aria-expanded", open ? "true" : "false");
-        if (document.body) {
-          document.body.classList.toggle(DROPDOWN_BODY_OPEN_CLASS, open);
-        }
       });
     }
 

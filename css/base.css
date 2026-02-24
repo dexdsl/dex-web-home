@@ -117,18 +117,6 @@ body.dx-slot-enabled #dx-slot-scroll-root {
   scroll-padding-top: calc(var(--dx-slot-content-offset) + var(--dx-space-xs));
 }
 
-/* Backdrop-filter can be inconsistent in some browser/compositor states.
-   Blur the underlying content layer while menus are open to guarantee frosting. */
-body.dx-auth-dropdown-open #dx-slot-scroll-root,
-body.dx-mobile-menu-open #dx-slot-scroll-root {
-  filter: blur(14px) saturate(120%);
-}
-
-body.dx-auth-dropdown-open #page,
-body.dx-mobile-menu-open #page {
-  filter: blur(14px) saturate(120%);
-}
-
 body.dx-slot-enabled #dx-slot-scroll-root::-webkit-scrollbar {
   width: 0 !important;
   height: 0 !important;
