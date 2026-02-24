@@ -1134,13 +1134,45 @@ body.dx-route-profile-protected .dex-scroll-dot {
   pointer-events: none !important;
 }
 
-body.dx-route-profile-protected .dex-footer {
+body.dx-route-profile-protected #footer-sections {
   position: fixed !important;
-  left: 50% !important;
+  left: 0 !important;
+  right: 0 !important;
   bottom: var(--dx-profile-footer-bottom) !important;
-  transform: translateX(-50%) !important;
   margin: 0 !important;
   z-index: 1288 !important;
+  pointer-events: none !important;
+}
+
+body.dx-route-profile-protected #footer-sections .page-section {
+  min-height: 0 !important;
+  background: transparent !important;
+}
+
+body.dx-route-profile-protected #footer-sections .content-wrapper {
+  padding: 0 !important;
+}
+
+body.dx-route-profile-protected #footer-sections .content,
+body.dx-route-profile-protected #footer-sections .fluid-engine,
+body.dx-route-profile-protected #footer-sections .fe-block,
+body.dx-route-profile-protected #footer-sections .dx-block,
+body.dx-route-profile-protected #footer-sections .dx-block-content,
+body.dx-route-profile-protected #footer-sections .dx-code-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.dx-route-profile-protected #footer-sections .dex-footer {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  pointer-events: auto !important;
 }
 
 body.dx-route-profile-protected :is(

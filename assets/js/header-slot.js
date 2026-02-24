@@ -109,6 +109,13 @@
 
   function getProfileFooterElement(root = document) {
     if (!root || !root.querySelectorAll) return null;
+
+    const sectionsFooter = root.querySelector('#footer-sections');
+    if (sectionsFooter instanceof HTMLElement) {
+      const rect = sectionsFooter.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return sectionsFooter;
+    }
+
     const footers = Array.from(root.querySelectorAll('.dex-footer'));
     if (!footers.length) return null;
 
