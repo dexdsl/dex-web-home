@@ -1707,7 +1707,7 @@
   const panel=$c('aside','dex-sidebar'); root.append(panel);
   const hdr=$c('section','dex-header'); panel.append(hdr);
   const back=$c('button','nav-btn','←'); back.onclick=()=>{ if(current>0){current--;render();}};
-  hdr.append(back,$c('h1','','Press Room'));
+  hdr.append(back,$c('h1','','PRESS‌ ROOM'));
   const body=$c('section','dex-body'); panel.append(body);
 
   // require login
@@ -1856,7 +1856,7 @@
 
 <style>
   /* 0) Ensure dark background */
-  body { background: #232323 !important; }
+  body { background: transparent !important; }
 
   /* 1) Full‑screen wrapper behind everything */
   #gooey-mesh-wrapper {

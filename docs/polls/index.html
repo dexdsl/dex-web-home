@@ -1480,6 +1480,118 @@ auth=window.auth0;load();
 })();
 </script>
 
+<style id="dx-polls-gooey-style">
+  #gooey-mesh-wrapper {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: var(--dx-layer-gooey, 200);
+  }
+
+  #gooey-mesh-wrapper .gooey-stage {
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    filter: url("#goo");
+  }
+
+  #gooey-mesh-wrapper .gooey-blob {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--d);
+    height: var(--d);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background:
+      radial-gradient(circle at 30% 30%, var(--g1a) 0%, var(--g1b) 45%, transparent 75%),
+      radial-gradient(circle at 70% 70%, var(--g2a) 0%, var(--g2b) 45%, transparent 75%);
+    filter: blur(34px) saturate(150%);
+    will-change: transform;
+  }
+
+  #gooey-mesh-wrapper svg#goo-filter {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+</style>
+
+<script>
+;(function () {
+  'use strict';
+  if (document.getElementById('gooey-mesh-wrapper')) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'gooey-mesh-wrapper';
+  wrapper.innerHTML = `
+    <div class="gooey-stage">
+      <div class="gooey-blob" style="--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7"></div>
+      <div class="gooey-blob" style="--d:32vmax;--g1a:#7F00FF;--g1b:#E100FF;--g2a:#00DBDE;--g2b:#FC00FF"></div>
+      <div class="gooey-blob" style="--d:33vmax;--g1a:#FFD452;--g1b:#FFB347;--g2a:#FF8456;--g2b:#FF5E62"></div>
+      <div class="gooey-blob" style="--d:37vmax;--g1a:#13F1FC;--g1b:#0470DC;--g2a:#A1FFCE;--g2b:#FAFFD1"></div>
+      <div class="gooey-blob" style="--d:27vmax;--g1a:#F9516D;--g1b:#FF9A44;--g2a:#FA8BFF;--g2b:#6F7BF7"></div>
+    </div>
+    <svg id="goo-filter" aria-hidden="true">
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur"></feGaussianBlur>
+          <feColorMatrix in="blur" mode="matrix"
+            values="1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 18 -8" result="goo"></feColorMatrix>
+          <feBlend in="SourceGraphic" in2="goo" mode="normal"></feBlend>
+        </filter>
+      </defs>
+    </svg>
+  `;
+  document.body.appendChild(wrapper);
+
+  const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+  if (!blobs.length) return;
+
+  const width = () => window.innerWidth;
+  const height = () => window.innerHeight;
+
+  blobs.forEach((el) => {
+    const speed = 60 + Math.random() * 60;
+    const angle = Math.random() * Math.PI * 2;
+    el._rad = el.offsetWidth / 2;
+    el._x = width() / 2;
+    el._y = height() / 2;
+    el._vx = Math.cos(angle) * speed * 0.25;
+    el._vy = Math.sin(angle) * speed * 0.25;
+  });
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = (now - last) / 1000;
+    last = now;
+
+    blobs.forEach((el) => {
+      el._x += el._vx * dt;
+      el._y += el._vy * dt;
+      if (el._x - el._rad <= 0 && el._vx < 0) el._vx *= -1;
+      if (el._x + el._rad >= width() && el._vx > 0) el._vx *= -1;
+      if (el._y - el._rad <= 0 && el._vy < 0) el._vy *= -1;
+      if (el._y + el._rad >= height() && el._vy > 0) el._vy *= -1;
+      el.style.transform = `translate(${el._x}px,${el._y}px) translate(-50%,-50%)`;
+    });
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  window.addEventListener('resize', () => {
+    blobs.forEach((el) => {
+      el._x = Math.min(Math.max(el._rad, el._x), width() - el._rad);
+      el._y = Math.min(Math.max(el._rad, el._y), height() - el._rad);
+    });
+  });
+})();
+</script>
+
   
 </div>
 </div></div></div></div></div>

@@ -895,10 +895,8 @@ body.dx-route-profile-protected :is(
   max-width: none !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  padding-inline: clamp(8px, 1vw, 14px) !important;
+  padding-inline: 0 !important;
   padding-block: clamp(8px, 1vw, 14px) !important;
-  min-height: 0 !important;
-  height: auto !important;
   box-sizing: border-box !important;
 }
 
@@ -933,10 +931,7 @@ body.dx-route-profile-protected :is(
 ) > .dex-sidebar {
   width: 100% !important;
   max-width: none !important;
-  min-height: 0 !important;
-  height: auto !important;
   padding: clamp(16px, 2vw, 26px) !important;
-  overflow: visible !important;
 }
 
 body.dx-route-profile-protected #dex-favorites > .dex-sidebar::before,
@@ -977,6 +972,69 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   pointer-events: none !important;
 }
 
+body.dx-route-profile-protected #dex-settings,
+body.dx-route-profile-protected #dex-settings .bgcard {
+  height: auto !important;
+}
+
+body.dx-route-profile-protected #dex-settings .bgcard {
+  overflow: visible !important;
+}
+
+@supports selector(.fluid-engine:has(#dex-favorites)) {
+  body.dx-route-profile-protected :is(
+    .fluid-engine:has(#dex-favorites),
+    .fluid-engine:has(#dex-msg),
+    .fluid-engine:has(#dex-submit),
+    .fluid-engine:has(#dex-press),
+    .fluid-engine:has(#dex-console),
+    .fluid-engine:has(#dex-settings)
+  ) {
+    overflow: visible !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .fluid-engine:has(#dex-favorites),
+    .fluid-engine:has(#dex-msg),
+    .fluid-engine:has(#dex-submit),
+    .fluid-engine:has(#dex-press),
+    .fluid-engine:has(#dex-console),
+    .fluid-engine:has(#dex-settings)
+  ) > .fe-block {
+    grid-column: 2 / 26 !important;
+    justify-self: stretch !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .dx-block:has(#dex-favorites),
+    .dx-block:has(#dex-msg),
+    .dx-block:has(#dex-submit),
+    .dx-block:has(#dex-press),
+    .dx-block:has(#dex-console),
+    .dx-block:has(#dex-settings),
+    .dx-block-content:has(#dex-favorites),
+    .dx-block-content:has(#dex-msg),
+    .dx-block-content:has(#dex-submit),
+    .dx-block-content:has(#dex-press),
+    .dx-block-content:has(#dex-console),
+    .dx-block-content:has(#dex-settings),
+    .dx-code-container:has(#dex-favorites),
+    .dx-code-container:has(#dex-msg),
+    .dx-code-container:has(#dex-submit),
+    .dx-code-container:has(#dex-press),
+    .dx-code-container:has(#dex-console),
+    .dx-code-container:has(#dex-settings)
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
 @media (max-width: 980px) {
   body.dx-route-profile-protected :is(
     main#page.container,
@@ -996,7 +1054,7 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
     #dex-console,
     #dex-settings
   ) {
-    padding-inline: clamp(6px, 3vw, 10px) !important;
+    padding-inline: 0 !important;
   }
 }
 
