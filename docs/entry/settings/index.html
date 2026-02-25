@@ -1745,6 +1745,14 @@
       overflow:visible;
       pointer-events:none;
     }
+    #dex-settings .nav svg path{
+      fill:none !important;
+      stroke:currentColor !important;
+      stroke-width:1.9 !important;
+      stroke-linecap:round !important;
+      stroke-linejoin:round !important;
+      vector-effect:non-scaling-stroke;
+    }
     #dex-settings .nav-left{ left:6px; }  #dex-settings .nav-right{ right:6px; }
 
     /* ===== Stage/grid ===== */
@@ -2318,7 +2326,7 @@
   <div class="tabsbar">
     <button class="nav nav-left"  type="button" id="navPrev" aria-label="Previous tab">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        <path d="M10.5 19.5L3 12M3 12L10.5 4.5M3 12H21" />
       </svg>
     </button>
 
@@ -2332,7 +2340,7 @@
 
     <button class="nav nav-right" type="button" id="navNext" aria-label="Next tab">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+        <path d="M13.5 4.5L21 12M21 12L13.5 19.5M21 12H3" />
       </svg>
     </button>
   </div>
