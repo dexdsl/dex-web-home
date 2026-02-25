@@ -35,6 +35,9 @@ jobs:
       - name: Verify Auth0 script order
         run: npm run verify:auth0-html
 
+      - name: Verify protected auth contract
+        run: npm run verify:protected-auth
+
       - name: Repo purity scan
         run: npm run sanitize:scan
 
@@ -58,6 +61,9 @@ jobs:
 
       - name: Auth0 runtime test
         run: npm run test:auth0
+
+      - name: Protected refresh runtime test
+        run: npm run test:auth-protected-refresh
 
       - name: Phase 2 pipeline
         run: npm run phase2:all

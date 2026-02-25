@@ -5,6 +5,17 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const TARGETS_PATH = path.join(ROOT, 'artifacts', 'repo-targets.json');
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'artifacts', '.git']);
+const PROTECTED_AUTH_REL_PATHS = new Set([
+  'docs/entry/favorites/index.html',
+  'docs/entry/submit/index.html',
+  'docs/entry/messages/index.html',
+  'docs/entry/pressroom/index.html',
+  'docs/entry/settings/index.html',
+  'docs/entry/achievements/index.html',
+  'docs/polls/index.html',
+  'docs/press/index.html',
+  'docs/messages.html',
+]);
 
 function listHtmlFilesFallback(dirPath, out = []) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -100,6 +111,8 @@ function main() {
   for (const filePath of htmlFiles) {
     const html = fs.readFileSync(filePath, 'utf8');
     const refs = collectScriptRefs(html);
+    const relPath = path.relative(ROOT, filePath).replace(/\\/g, '/');
+    const requiresProtectedAuth = PROTECTED_AUTH_REL_PATHS.has(relPath);
 
     const externalAuth0 = refs.filter((ref) => /auth0-spa-js/i.test(ref.src) && ref.path !== '/assets/vendor/auth0-spa-js.umd.min.js');
     if (externalAuth0.length > 0) {
@@ -113,10 +126,18 @@ function main() {
     }
 
     const authIndex = firstIndexByPath(refs, ['/assets/dex-auth.js']);
-    if (authIndex < 0) continue;
+    if (authIndex < 0 && !requiresProtectedAuth) continue;
 
     const vendorIndex = firstIndexByPath(refs, ['/assets/vendor/auth0-spa-js.umd.min.js']);
     const configIndex = firstIndexByPath(refs, ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js']);
+    if (requiresProtectedAuth && authIndex < 0) {
+      violations.push({
+        file: relPath,
+        message: 'protected route is missing /assets/dex-auth.js',
+        snippet: refs.length > 0 ? buildOrderSnippet(refs, 0, Math.min(4, refs.length - 1)) : '(no script tags found)',
+      });
+      continue;
+    }
 
     const hasOrder = vendorIndex >= 0 && configIndex >= 0 && vendorIndex < configIndex && configIndex < authIndex;
     if (!hasOrder) {

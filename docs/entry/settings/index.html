@@ -40,6 +40,9 @@
 <!-- header code injection.css -->
 
 <!-- End of legacysite Headers -->
+<script src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
+<script src="/assets/dex-auth0-config.js"></script>
+<script src="/assets/dex-auth.js"></script>
 <script defer src="/assets/js/header-slot.js"></script>
 <script defer src="/assets/js/dx-scroll-dot.js"></script>
 </head>
@@ -2451,6 +2454,16 @@
         if (t) headers.Authorization = 'Bearer ' + t;
         const res = await fetch(url, Object.assign({}, opts, {headers}));
         if (!res.ok) {
+          if ((res.status === 401 || res.status === 403) && !opts.__skipAuthGuard) {
+            if (!authFetchReguarded) {
+              authFetchReguarded = true;
+              await requireProtectedAuth({
+                returnTo: currentReturnTo(),
+                autoRedirect: true,
+                timeoutMs: 2500
+              });
+            }
+          }
           const err = new Error(await res.text().catch(()=>res.statusText));
           err.status = res.status;
           throw err;
@@ -2471,17 +2484,95 @@
       }
 
       // === Auth bridge (single source of truth) ===
-async function authReady(timeoutMs = 4000){
+let authGuardInFlight = null;
+let authFetchReguarded = false;
+
+function currentReturnTo(){
+  return window.location.pathname + window.location.search + window.location.hash;
+}
+
+function ensureSignedOutCard(reason = 'blocked'){
+  const existing = document.getElementById('dx-settings-auth-fallback');
+  if (existing) return existing;
+  const mount = document.getElementById('mainCard') || root;
+  const card = document.createElement('section');
+  card.id = 'dx-settings-auth-fallback';
+  card.className = 'card';
+  card.setAttribute('data-dx-auth-state', String(reason || 'blocked'));
+  card.innerHTML = ''
+    + '<h2>SIGN IN REQUIRED</h2>'
+    + '<p class="small">Your session is unavailable right now. Sign in to continue to Settings.</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
+    + '  <button type="button" id="dx-settings-auth-signin" class="btn btn--primary">Sign in</button>'
+    + '  <a href="/" class="btn btn--ghost">Back home</a>'
+    + '</div>';
+  mount.insertBefore(card, mount.firstChild);
+  const signInBtn = card.querySelector('#dx-settings-auth-signin');
+  if (signInBtn) {
+    signInBtn.addEventListener('click', () => {
+      if (window.DEX_AUTH?.signIn) {
+        window.DEX_AUTH.signIn(currentReturnTo());
+      }
+    });
+  }
+  return card;
+}
+
+function clearSignedOutCard(){
+  const existing = document.getElementById('dx-settings-auth-fallback');
+  if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+}
+
+async function authResolve(timeoutMs = 2500){
+  if (window.DEX_AUTH?.resolve) {
+    return window.DEX_AUTH.resolve(timeoutMs);
+  }
   const start = Date.now();
   while (Date.now() - start < timeoutMs){
-    if (window.auth0 && typeof window.auth0.isAuthenticated === 'function'){
-      try { await window.auth0.isAuthenticated(); } catch(_) {}
-      return true;
+    if (window.auth0Client || window.dexAuth || window.DEX_AUTH){
+      return { ready:true, authenticated: false, user: null, reason:'resolved' };
     }
-    if (window.auth0Client || window.dexAuth) return true;
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise((resolve) => setTimeout(resolve, 60));
   }
-  return false;
+  return { ready:false, authenticated:false, user:null, reason:'timeout' };
+}
+
+async function requireProtectedAuth(options = {}){
+  const opts = {
+    returnTo: currentReturnTo(),
+    autoRedirect: true,
+    timeoutMs: 2500,
+    ...options
+  };
+  if (authGuardInFlight) return authGuardInFlight;
+  authGuardInFlight = (async () => {
+    if (window.DEX_AUTH?.requireAuth) {
+      const result = await window.DEX_AUTH.requireAuth(opts);
+      if (result?.status === 'authenticated') {
+        authFetchReguarded = false;
+        clearSignedOutCard();
+      }
+      if (result?.status === 'blocked') ensureSignedOutCard(result.reason || 'blocked');
+      return result;
+    }
+    const resolved = await authResolve(opts.timeoutMs);
+    if (resolved?.authenticated) {
+      authFetchReguarded = false;
+      clearSignedOutCard();
+      return { status:'authenticated' };
+    }
+    if (opts.autoRedirect && window.DEX_AUTH?.signIn) {
+      await window.DEX_AUTH.signIn(opts.returnTo);
+      return { status:'redirecting' };
+    }
+    ensureSignedOutCard('auth-unavailable');
+    return { status:'blocked', reason:'auth-unavailable' };
+  })();
+  try {
+    return await authGuardInFlight;
+  } finally {
+    authGuardInFlight = null;
+  }
 }
 
 
@@ -2992,7 +3083,8 @@ elP.refresh?.addEventListener('click', async ()=>{
   try{
     elP.refresh.disabled = true;
     setStatus('Refreshing…','Refreshing…');
-    await authReady();
+    const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: true, timeoutMs: 2500 });
+    if (authGate?.status !== 'authenticated') return;
 
     let fresh = null;
     try { fresh = await jfetch(api + '/me/identity/refresh', { method:'POST' }); } catch {}
@@ -3663,7 +3755,8 @@ function hydrateProfile(me){
 
   async function load(){
     try{
-      await authReady();
+      const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: false, timeoutMs: 2500 });
+      if (authGate?.status !== 'authenticated') return;
       const d = await jfetch((pane.closest('#dex-settings')?.dataset.api || '/api') + '/me/notifications');
       hydrate(d||{});
     }catch(_){ /* non-fatal */ }
@@ -3701,7 +3794,23 @@ function hydrateProfile(me){
       /* Initial boot */
       (async function boot(){
         let routeState = 'ready';
+        let shouldFinalize = true;
         try{
+          const guard = await requireProtectedAuth({
+            returnTo: currentReturnTo(),
+            autoRedirect: true,
+            timeoutMs: 2500
+          });
+          if (guard?.status === 'redirecting'){
+            shouldFinalize = false;
+            return;
+          }
+          if (guard?.status === 'blocked'){
+            ensureSignedOutCard(guard.reason || 'blocked');
+            routeState = 'ready';
+            return;
+          }
+          clearSignedOutCard();
           setIntervalMode('month');
           try {
             await loadBillingSummary();
@@ -3717,8 +3826,6 @@ function hydrateProfile(me){
 
           // Profile hydrate (identity from API + claims)
           try{
-            await authReady(); // wait for window.auth0 to exist & session to resolve
-
             let me = {};
             try { me = await jfetch(api + '/me/profile'); } catch {}
 
@@ -3764,6 +3871,7 @@ function hydrateProfile(me){
         }catch(_){
           routeState = 'error';
         }finally{
+          if (!shouldFinalize) return;
           markSettingsCardReady('idCard');
           markSettingsCardReady('creditsCard');
           markSettingsCardReady('asideBilling');

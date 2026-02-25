@@ -6,6 +6,12 @@
   var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
   var PROTECTED_PATHS = {
     "/press": true,
+    "/polls": true,
+    "/favorites": true,
+    "/submit": true,
+    "/messages": true,
+    "/settings": true,
+    "/achievements": true,
     "/entry/2-organs-midori-ataka": true,
     "/entry/aidan-yeats": true,
     "/entry/amplified-knives-tyler-jordan": true,
@@ -20,18 +26,23 @@
     "/entry/cybernetic-scat-paul-hermansen": true,
     "/entry/electric-guitar-chris-mann": true,
     "/entry/electric-guitar-pedals-ethan-bailey-gould": true,
+    "/entry/favorites": true,
     "/entry/hammered-dulcimer-cameron-church": true,
+    "/entry/messages": true,
     "/entry/multiperc": true,
     "/entry/no-input-mixer-jared-murphy": true,
     "/entry/prepared-bass-viol-suarez-solis": true,
     "/entry/prepared-harpsichord-suarez-solis": true,
     "/entry/prepared-oboe-sky-macklay": true,
+    "/entry/pressroom": true,
     "/entry/sebastian-suarez-solis": true,
+    "/entry/settings": true,
     "/entry/splinterings-jakob-heinemann": true,
+    "/entry/submit": true,
     "/entry/this-is-a-tangible-space": true,
     "/entry/tim-feeney": true,
     "/entry/voice-everyday-object-manipulation-levi-lu": true,
-    "/favorites": true
+    "/entry/achievements": true
   };
 
   var authClient = null;
@@ -45,6 +56,10 @@
   var authReadyState = { isAuthenticated: false, user: null };
   var authReadyDone = false;
   var AUDIENCE_DISABLE_KEY = "dex.auth.disableAudience";
+  var GUARD_REDIRECT_LOCK_KEY = "dex.auth.guard.redirect";
+  var GUARD_REDIRECT_LOCK_TTL_MS = 20000;
+  var GUARD_FALLBACK_STYLE_ID = "dx-auth-guard-fallback-style";
+  var GUARD_FALLBACK_ID = "dx-auth-guard-fallback";
   var audienceFallbackDisabled = false;
   try {
     if (window.localStorage && window.localStorage.getItem(AUDIENCE_DISABLE_KEY) === "1") {
@@ -67,6 +82,22 @@
       } else if (document && document.createEvent) {
         var evt = document.createEvent("CustomEvent");
         evt.initCustomEvent("dex-auth:ready", false, false, authReadyState);
+        window.dispatchEvent(evt);
+      }
+    } catch (e) {}
+    dispatchWindowEvent("dex-auth:state", {
+      isAuthenticated: !!authReadyState.isAuthenticated,
+      user: authReadyState.user || null
+    });
+  }
+
+  function dispatchWindowEvent(name, detail) {
+    try {
+      if (typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent(name, { detail: detail }));
+      } else if (document && document.createEvent) {
+        var evt = document.createEvent("CustomEvent");
+        evt.initCustomEvent(name, false, false, detail);
         window.dispatchEvent(evt);
       }
     } catch (e) {}
@@ -396,6 +427,11 @@
     path = path.replace(/\/+/g, "/");
     if (path.length > 1 && path.charAt(path.length - 1) === "/") {
       path = path.slice(0, -1);
+    }
+    if (path !== "/" && /\/index\.html$/i.test(path)) {
+      path = path.slice(0, -"/index.html".length) || "/";
+    } else if (path !== "/" && /\.html$/i.test(path)) {
+      path = path.slice(0, -".html".length) || "/";
     }
     return path || "/";
   }
@@ -937,8 +973,12 @@
   }
 
   function handleGuardedNavIntent(returnTo) {
-      triggerSignIn(returnTo);
-    }
+    guardRequireAuth({
+      returnTo: returnTo || getCurrentReturnTo(),
+      autoRedirect: true,
+      timeoutMs: 2500
+    });
+  }
 
   function bindClickGuard() {
     if (document.documentElement.dataset.dexAuthClickGuardBound) {
@@ -988,6 +1028,204 @@
 
   function getCurrentReturnTo() {
     return window.location.pathname + window.location.search + window.location.hash;
+  }
+
+  function clearGuardFallback() {
+    var existing = document.getElementById(GUARD_FALLBACK_ID);
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+  }
+
+  function ensureGuardFallbackStyle() {
+    if (document.getElementById(GUARD_FALLBACK_STYLE_ID)) {
+      return;
+    }
+    var style = document.createElement("style");
+    style.id = GUARD_FALLBACK_STYLE_ID;
+    style.textContent = ""
+      + "#" + GUARD_FALLBACK_ID + "{position:relative;z-index:8;display:flex;justify-content:center;align-items:center;width:min(calc(var(--dx-content-max-width,1360px) + (var(--dx-site-gutter,24px) * 2)),calc(100% - (var(--dx-site-gutter,24px) * 2)));margin:clamp(14px,2.4vw,26px) auto;pointer-events:none;}"
+      + "#" + GUARD_FALLBACK_ID + " .dx-auth-guard-card{pointer-events:auto;width:100%;max-width:760px;border-radius:var(--dx-radius-md,10px);border:1px solid rgba(255,255,255,.42);background:var(--dx-header-glass-bg,linear-gradient(120deg,rgba(221,230,240,.36) 0%,rgba(191,208,224,.26) 55%,rgba(232,210,203,.24) 100%));box-shadow:var(--dx-header-glass-shadow,0 16px 36px rgba(18,22,30,.22),inset 0 1px 0 rgba(255,255,255,.32));backdrop-filter:var(--dx-header-glass-backdrop,saturate(180%) blur(18px));-webkit-backdrop-filter:var(--dx-header-glass-backdrop,saturate(180%) blur(18px));padding:clamp(16px,2.2vw,26px);display:grid;gap:10px;}"
+      + "#" + GUARD_FALLBACK_ID + " .dx-auth-guard-title{margin:0;font-family:var(--dx-font-heading,var(--heading-font-family,'BC Alphapipe'));font-size:clamp(28px,3.8vw,44px);line-height:.92;color:rgba(16,24,36,.95);letter-spacing:.01em;}"
+      + "#" + GUARD_FALLBACK_ID + " .dx-auth-guard-copy{margin:0;color:rgba(16,24,36,.78);font-size:clamp(14px,1.7vw,17px);line-height:1.42;}"
+      + "#" + GUARD_FALLBACK_ID + " .dx-auth-guard-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}"
+      + "#" + GUARD_FALLBACK_ID + " .dx-auth-guard-actions .dx-button-element{min-width:180px;justify-content:center;text-decoration:none;}";
+    document.head.appendChild(style);
+  }
+
+  function getGuardFallbackMount() {
+    var slotRoot = document.getElementById("dx-slot-foreground-root");
+    if (slotRoot) return slotRoot;
+    var pageMain = document.getElementById("page");
+    if (pageMain) return pageMain;
+    var content = document.querySelector("main");
+    if (content) return content;
+    return document.body;
+  }
+
+  function renderGuardFallback(reason, returnTo) {
+    if (!document.body) return;
+    ensureGuardFallbackStyle();
+    clearGuardFallback();
+    var mount = getGuardFallbackMount();
+    if (!mount) return;
+    var fallback = document.createElement("section");
+    fallback.id = GUARD_FALLBACK_ID;
+    fallback.setAttribute("data-dx-auth-guard-reason", String(reason || "blocked"));
+    fallback.innerHTML = ""
+      + '<div class="dx-auth-guard-card" role="status" aria-live="polite">'
+      + '  <h2 class="dx-auth-guard-title">SIGN IN REQUIRED</h2>'
+      + '  <p class="dx-auth-guard-copy">This page is protected. Sign in to continue, or return to the home route.</p>'
+      + '  <div class="dx-auth-guard-actions">'
+      + '    <button type="button" id="dx-auth-guard-signin" class="dx-button-element dx-button-element--primary dx-button-size--md">SIGN IN</button>'
+      + '    <a href="/" class="dx-button-element dx-button-element--secondary dx-button-size--md">BACK HOME</a>'
+      + "  </div>"
+      + "</div>";
+    mount.insertBefore(fallback, mount.firstChild);
+    var signInBtn = fallback.querySelector("#dx-auth-guard-signin");
+    if (signInBtn) {
+      signInBtn.addEventListener("click", function () {
+        triggerSignIn(returnTo || getCurrentReturnTo());
+      });
+    }
+  }
+
+  function readGuardRedirectLock() {
+    try {
+      var raw = window.sessionStorage && window.sessionStorage.getItem(GUARD_REDIRECT_LOCK_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      var ts = Number(parsed.ts);
+      if (!isFinite(ts)) return null;
+      if ((Date.now() - ts) > GUARD_REDIRECT_LOCK_TTL_MS) {
+        window.sessionStorage.removeItem(GUARD_REDIRECT_LOCK_KEY);
+        return null;
+      }
+      return {
+        path: normalizePath(parsed.path || "/"),
+        ts: ts
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function setGuardRedirectLock(pathname) {
+    try {
+      if (!window.sessionStorage) return;
+      window.sessionStorage.setItem(GUARD_REDIRECT_LOCK_KEY, JSON.stringify({
+        path: normalizePath(pathname || window.location.pathname),
+        ts: Date.now()
+      }));
+    } catch (err) {}
+  }
+
+  function clearGuardRedirectLock() {
+    try {
+      if (window.sessionStorage) {
+        window.sessionStorage.removeItem(GUARD_REDIRECT_LOCK_KEY);
+      }
+    } catch (err) {}
+  }
+
+  function hasActiveGuardRedirectLock(pathname) {
+    var lock = readGuardRedirectLock();
+    if (!lock) return false;
+    return lock.path === normalizePath(pathname || window.location.pathname);
+  }
+
+  function resolveAuthState(timeoutMs) {
+    var maxWait = Number(timeoutMs);
+    if (!isFinite(maxWait) || maxWait <= 0) {
+      maxWait = 2500;
+    }
+    if (authReadyDone) {
+      return Promise.resolve({
+        ready: true,
+        authenticated: !!authReadyState.isAuthenticated,
+        user: authReadyState.user || null,
+        reason: "resolved"
+      });
+    }
+    return new Promise(function (resolve) {
+      var settled = false;
+      var timer = window.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        resolve({
+          ready: false,
+          authenticated: !!authReadyState.isAuthenticated,
+          user: authReadyState.user || null,
+          reason: "timeout"
+        });
+      }, maxWait);
+      authReady.then(function () {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        resolve({
+          ready: true,
+          authenticated: !!authReadyState.isAuthenticated,
+          user: authReadyState.user || null,
+          reason: "resolved"
+        });
+      }).catch(function () {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        resolve({
+          ready: false,
+          authenticated: !!authReadyState.isAuthenticated,
+          user: authReadyState.user || null,
+          reason: "error"
+        });
+      });
+    });
+  }
+
+  function guardRequireAuth(options) {
+    var opts = options || {};
+    var returnTo = typeof opts.returnTo === "string" && opts.returnTo.trim()
+      ? opts.returnTo.trim()
+      : getCurrentReturnTo();
+    var autoRedirect = opts.autoRedirect !== false;
+    var timeoutMs = Number(opts.timeoutMs);
+    if (!isFinite(timeoutMs) || timeoutMs <= 0) timeoutMs = 2500;
+
+    return resolveAuthState(timeoutMs).then(function (resolved) {
+      if (resolved.authenticated) {
+        clearGuardRedirectLock();
+        clearGuardFallback();
+        return { status: "authenticated" };
+      }
+
+      var guardPath = normalizePath(window.location.pathname);
+      try {
+        guardPath = normalizePath((new URL(returnTo, window.location.origin)).pathname);
+      } catch (e) {}
+      if (!autoRedirect) {
+        renderGuardFallback("auto-redirect-disabled", returnTo);
+        dispatchWindowEvent("dex-auth:guard", { status: "blocked", reason: "auto-redirect-disabled", returnTo: returnTo, path: guardPath });
+        return { status: "blocked", reason: "auto-redirect-disabled" };
+      }
+      if (hasActiveGuardRedirectLock(guardPath)) {
+        renderGuardFallback("redirect-loop-guard", returnTo);
+        dispatchWindowEvent("dex-auth:guard", { status: "blocked", reason: "redirect-loop-guard", returnTo: returnTo, path: guardPath });
+        return { status: "blocked", reason: "redirect-loop-guard" };
+      }
+
+      setGuardRedirectLock(guardPath);
+      dispatchWindowEvent("dex-auth:guard", { status: "redirecting", reason: resolved.reason || "unauthenticated", returnTo: returnTo, path: guardPath });
+      return openAuthFlow(returnTo, null).then(function () {
+        return { status: "redirecting" };
+      }).catch(function (err) {
+        clearGuardRedirectLock();
+        renderGuardFallback("redirect-failed", returnTo);
+        dispatchWindowEvent("dex-auth:guard", { status: "blocked", reason: "redirect-failed", returnTo: returnTo, path: guardPath });
+        return { status: "blocked", reason: "redirect-failed" };
+      });
+    });
   }
 
   function openAuthFlow(returnTo, screenHint, allowAudienceRetry) {
@@ -1045,6 +1283,12 @@
 
   window.DEX_AUTH = {
     ready: authReady.then(function () { return authReadyState; }),
+    resolve: function (timeoutMs) {
+      return resolveAuthState(timeoutMs);
+    },
+    requireAuth: function (options) {
+      return guardRequireAuth(options || {});
+    },
     isAuthenticated: function () {
       return authReady.then(function () { return !!authReadyState.isAuthenticated; });
     },
@@ -1120,6 +1364,8 @@
 
       if (isCallbackPath(window.location.pathname)) {
         var callbackResult = await authClient.handleRedirectCallback();
+        clearGuardRedirectLock();
+        clearGuardFallback();
         publishAuthState(false, null);
         clearAuthQueryParams();
         var returnTo = (callbackResult && callbackResult.appState && callbackResult.appState.returnTo) || "/";
@@ -1140,12 +1386,24 @@
       isAuthenticated = await authClient.isAuthenticated();
       if (isProtectedPath(window.location.pathname) && !isAuthenticated) {
         publishAuthState(false, null);
-        handleGuardedNavIntent(getCurrentReturnTo());
+        var guardResult = await guardRequireAuth({
+          returnTo: getCurrentReturnTo(),
+          autoRedirect: true,
+          timeoutMs: 2500
+        });
+        if (guardResult && guardResult.status === "redirecting") {
+          return;
+        }
+        setUiState(false, null);
+        bindUiEvents(cfg);
+        bindClickGuard();
         return;
       }
 
       var user = null;
       if (isAuthenticated) {
+        clearGuardRedirectLock();
+        clearGuardFallback();
         user = await authClient.getUser();
       }
       setUiState(isAuthenticated, user);
