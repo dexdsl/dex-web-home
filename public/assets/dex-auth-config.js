@@ -1,4 +1,21 @@
 (function () {
+  if (typeof window.createAuth0Client !== 'function') {
+    window.createAuth0Client = function () {
+      var auth0Global = window.auth0 && typeof window.auth0 === 'object' ? window.auth0 : null;
+      var delegate = auth0Global && typeof auth0Global.createAuth0Client === 'function'
+        ? auth0Global.createAuth0Client
+        : auth0Global
+          && auth0Global.default
+          && typeof auth0Global.default.createAuth0Client === 'function'
+          ? auth0Global.default.createAuth0Client
+          : null;
+      if (typeof delegate !== 'function') {
+        return Promise.reject(new Error('Auth0 SPA SDK missing (createAuth0Client)'));
+      }
+      return delegate.apply(auth0Global, arguments);
+    };
+  }
+
   function normalizeHost(value) {
     var raw = String(value || '').trim().toLowerCase();
     if (!raw) return '';

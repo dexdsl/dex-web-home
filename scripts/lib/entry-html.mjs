@@ -6,7 +6,7 @@ const MARKERS = {
 };
 
 const AUTH_CANDIDATES = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
-const AUTH_CDN = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js';
+const AUTH_VENDOR = '/assets/vendor/auth0-spa-js.umd.min.js';
 const REQUIRED_ANCHORS = ['video', 'desc', 'sidebar'];
 const REQUIRED_CONTRACT_SCRIPT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
 const PAGE_CONFIG_BRIDGE_SCRIPT_ID = 'dex-sidebar-page-config-bridge';
@@ -23,6 +23,11 @@ const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
 });
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const AUTH0_SDK_SRC_RX = /<script[^>]*src=['"][^"']*auth0-spa-js[^"']*['"][^>]*><\/script>\s*/gi;
+
+function scriptSrcRegex(pathname) {
+  return new RegExp(`<script[^>]*src=['"](?:https?:\\/\\/[^"']+)?${esc(pathname)}['"][^>]*><\\/script>\\s*`, 'gi');
+}
 
 function escapeHtml(str) {
   return String(str || '')
@@ -770,7 +775,7 @@ function normalizeAllowedOutsideAnchorChanges(html) {
     .replace(scriptByIdRegex(PAGE_CONFIG_BRIDGE_SCRIPT_ID), '')
     .replace(/<style[^>]*id=['"]dex-layout-patch['"][^>]*>[\s\S]*?<\/style>\s*/gi, '')
     .replace(/<script[^>]*src=['"]\/assets\/dex-sidebar\.js['"][^>]*><\/script>\s*/g, '')
-    .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|https:\/\/cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js|\/assets\/dex-auth\.js)['"][^>]*><\/script>\s*/g, '')
+    .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|\/assets\/vendor\/auth0-spa-js\.umd\.min\.js|\/assets\/dex-auth\.js|https?:\/\/[^"']*auth0-spa-js[^"']*)['"][^>]*><\/script>\s*/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -847,15 +852,16 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(displayLabel)}</title>`);
 
   if (authEnabled) {
-    const canonical = AUTH_CANDIDATES.find((s) => html.includes(`src="${s}"`)) || AUTH_CANDIDATES[0];
+    const canonical = AUTH_CANDIDATES.find((s) => scriptSrcRegex(s).test(html)) || AUTH_CANDIDATES[0];
     html = html
       .replace(/<!-- Auth0 -->[\s\S]*?<!-- end Auth0 -->/g, '')
       .replace(/<[^>]*id="btn-login"[\s\S]*?<\/[^>]+>/g, '')
       .replace(/<[^>]*id="btn-profile-container"[\s\S]*?<\/[^>]+>/g, '')
-      .replace(new RegExp(`<script[^>]*src="${esc(canonical)}"[^>]*><\\/script>\\s*`, 'g'), '')
-      .replace(new RegExp(`<script[^>]*src="${esc(AUTH_CDN)}"[^>]*><\\/script>\\s*`, 'g'), '')
-      .replace(/<script[^>]*src="\/assets\/dex-auth\.js"[^>]*><\/script>\s*/g, '');
-    const trio = `<script defer src="${canonical}"></script>\n<script defer src="${AUTH_CDN}"></script>\n<script defer src="/assets/dex-auth.js"></script>`;
+      .replace(scriptSrcRegex(canonical), '')
+      .replace(scriptSrcRegex(AUTH_VENDOR), '')
+      .replace(scriptSrcRegex('/assets/dex-auth.js'), '')
+      .replace(AUTH0_SDK_SRC_RX, '');
+    const trio = `<script defer src="${AUTH_VENDOR}"></script>\n<script defer src="${canonical}"></script>\n<script defer src="/assets/dex-auth.js"></script>`;
     if (!html.includes('</head>')) throw new Error('Cannot inject auth snippets: </head> not found');
     html = html.replace('</head>', `${trio}\n</head>`);
   }
@@ -864,4 +870,4 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   return { html, strategy: { title: titleInjectionStrategy, video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
 }
 
-export const AUTH_TRIO = [...AUTH_CANDIDATES, AUTH_CDN, '/assets/dex-auth.js'];
+export const AUTH_TRIO = [AUTH_VENDOR, ...AUTH_CANDIDATES, '/assets/dex-auth.js'];

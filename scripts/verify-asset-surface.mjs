@@ -12,7 +12,7 @@ const PUBLIC_ORIGIN = 'https://dexdsl.github.io';
 const BREADCRUMB_BUNDLE_RELATIVE_PATH = path.join('assets', 'js', 'dex-breadcrumb-motion.js');
 
 const ATTR_RX = /\b(?:src|href)\s*=\s*(["'])([^"']+)\1/gi;
-const CORE_RUNTIME = ['/assets/dex-auth0-config.js', '/assets/dex-auth.js', '/assets/dex-sidebar.js', '/assets/js/dex-breadcrumb-motion.js'];
+const CORE_RUNTIME = ['/assets/vendor/auth0-spa-js.umd.min.js', '/assets/dex-auth0-config.js', '/assets/dex-auth.js', '/assets/dex-sidebar.js', '/assets/js/dex-breadcrumb-motion.js'];
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const FORBIDDEN_BUNDLE_PATTERNS = [
   { token: 'esm.sh import', regex: /esm\.sh/i },

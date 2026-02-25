@@ -36,7 +36,7 @@ const REQUIRED_SCRIPT_SIGNATURES = [
   /app\.sparkplugin\.com\/app\.js/i,
   /googletagmanager\.com\/gtag\/js/i,
   /dexdsl\.github\.io\/assets\/dex-auth0-config\.js/i,
-  /cdn\.auth0\.com\/js\/auth0-spa-js\/2\.0\/auth0-spa-js\.production\.js/i,
+  /(?:dexdsl\.github\.io)?\/assets\/vendor\/auth0-spa-js\.umd\.min\.js/i,
   /dexdsl\.github\.io\/assets\/dex-auth\.js/i,
   /dexdsl\.github\.io\/assets\/js\/dex-breadcrumb-motion\.js/i,
   /dexdsl\.github\.io\/assets\/dex-sidebar\.js/i,

@@ -2,14 +2,16 @@
 import re
 from pathlib import Path
 
-AUTH0_SCRIPT = '<script defer src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>'
+AUTH0_SCRIPT = '<script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>'
 CFG_SCRIPT = '<script defer src="/assets/dex-auth0-config.js"></script>'
 AUTH_SCRIPT = '<script defer src="/assets/dex-auth.js"></script>'
 BLOCK = f"  {AUTH0_SCRIPT}\n  {CFG_SCRIPT}\n  {AUTH_SCRIPT}\n"
 
 SCRIPT_PATTERNS = [
-    re.compile(r"\s*<script[^>]*src=\"https://cdn\.auth0\.com/js/auth0-spa-js/[^\"]+\"[^>]*></script>\s*", re.IGNORECASE),
+    re.compile(r"\s*<script[^>]*src=\"[^\"]*auth0-spa-js[^\"]*\"[^>]*></script>\s*", re.IGNORECASE),
+    re.compile(r"\s*<script[^>]*src=\"/assets/vendor/auth0-spa-js\.umd\.min\.js\"[^>]*></script>\s*", re.IGNORECASE),
     re.compile(r"\s*<script[^>]*src=\"/assets/dex-auth0-config\.js\"[^>]*></script>\s*", re.IGNORECASE),
+    re.compile(r"\s*<script[^>]*src=\"/assets/dex-auth-config\.js\"[^>]*></script>\s*", re.IGNORECASE),
     re.compile(r"\s*<script[^>]*src=\"/assets/dex-auth\.js\"[^>]*></script>\s*", re.IGNORECASE),
 ]
 

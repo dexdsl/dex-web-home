@@ -3,7 +3,7 @@ import { load as loadHtml } from 'cheerio';
 export const DEX_ORIGIN = 'https://dexdsl.github.io';
 export const DEX_CSS_HREF = `${DEX_ORIGIN}/assets/css/dex.css`;
 export const DEX_SIDEBAR_SRC = `${DEX_ORIGIN}/assets/dex-sidebar.js`;
-export const AUTH_CDN_SRC = 'https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js';
+export const AUTH_VENDOR_SRC = `${DEX_ORIGIN}/assets/vendor/auth0-spa-js.umd.min.js`;
 
 const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
 const REQUIRED_CONTRACT_IDS = ['dex-sidebar-config', 'dex-sidebar-page-config', 'dex-manifest'];
@@ -1211,27 +1211,24 @@ function ensureDexCssAfterSiteCss($, head) {
 
 function ensureRequiredRuntimeScripts($, head) {
   const configScripts = $('script[src]').filter((_, el) => AUTH_CONFIG_PATHS.includes(canonicalPathKey($(el).attr('src'))));
-  if (configScripts.length > 1) configScripts.slice(1).remove();
-  configScripts.each((_, el) => {
-    const pathKey = canonicalPathKey($(el).attr('src'));
-    if (pathKey) $(el).attr('src', `${DEX_ORIGIN}${pathKey}`);
-  });
+  const configPath = configScripts.length > 0
+    ? (canonicalPathKey(configScripts.first().attr('src')) || AUTH_CONFIG_PATHS[0])
+    : AUTH_CONFIG_PATHS[0];
 
-  dedupeScriptsByPath($, '/assets/dex-auth.js', `${DEX_ORIGIN}/assets/dex-auth.js`, { defer: true });
-  dedupeScriptsByPath($, '/assets/dex-auth0-config.js', `${DEX_ORIGIN}/assets/dex-auth0-config.js`, { defer: true });
-  dedupeScriptsByPath($, '/assets/dex-auth-config.js', `${DEX_ORIGIN}/assets/dex-auth-config.js`, { defer: true });
+  $('script[src]').filter((_, el) => {
+    const src = String($(el).attr('src') || '').trim();
+    const pathKey = canonicalPathKey(src);
+    if (pathKey === '/assets/vendor/auth0-spa-js.umd.min.js') return true;
+    if (pathKey === '/assets/dex-auth.js') return true;
+    if (AUTH_CONFIG_PATHS.includes(pathKey)) return true;
+    return /auth0-spa-js/i.test(src);
+  }).remove();
+
+  head.append(`\n<script defer src="${AUTH_VENDOR_SRC}"></script>`);
+  head.append(`\n<script defer src="${DEX_ORIGIN}${configPath}"></script>`);
+  head.append(`\n<script defer src="${DEX_ORIGIN}/assets/dex-auth.js"></script>`);
+
   dedupeScriptsByPath($, '/assets/dex-sidebar.js', DEX_SIDEBAR_SRC, { defer: true, removeAsync: true });
-
-  const authCdnScripts = $('script[src]').filter((_, el) => String($(el).attr('src') || '').trim() === AUTH_CDN_SRC);
-  authCdnScripts.each((index, element) => {
-    const node = $(element);
-    if (index === 0) {
-      node.attr('defer', '');
-      node.removeAttr('async');
-      return;
-    }
-    node.remove();
-  });
 
   if ($('script[src]').filter((_, el) => String($(el).attr('src') || '').trim() === DEX_SIDEBAR_SRC).length === 0) {
     head.append(`\n<script defer src="${DEX_SIDEBAR_SRC}"></script>`);

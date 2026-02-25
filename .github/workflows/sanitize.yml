@@ -23,8 +23,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Vendor Auth0 SPA SDK
+        run: npm run vendor:auth0
+
+      - name: Verify Auth0 vendor asset
+        run: npm run verify:auth0-vendor
+
       - name: Discover repo targets
         run: npm run repo:discover
+
+      - name: Verify Auth0 script order
+        run: npm run verify:auth0-html
 
       - name: Repo purity scan
         run: npm run sanitize:scan
@@ -46,6 +55,9 @@ jobs:
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+
+      - name: Auth0 runtime test
+        run: npm run test:auth0
 
       - name: Phase 2 pipeline
         run: npm run phase2:all

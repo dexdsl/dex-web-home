@@ -126,6 +126,18 @@ const SYNC_MAP = [
     targets: ['assets/dex-auth.js', 'docs/assets/dex-auth.js'],
   },
   {
+    source: 'public/assets/dex-auth0-config.js',
+    targets: ['assets/dex-auth0-config.js', 'docs/assets/dex-auth0-config.js'],
+  },
+  {
+    source: 'public/assets/dex-auth-config.js',
+    targets: ['assets/dex-auth-config.js', 'docs/assets/dex-auth-config.js'],
+  },
+  {
+    source: 'public/assets/vendor/auth0-spa-js.umd.min.js',
+    targets: ['assets/vendor/auth0-spa-js.umd.min.js', 'docs/assets/vendor/auth0-spa-js.umd.min.js'],
+  },
+  {
     source: 'public/dexnotes/rss.xml',
     targets: ['dexnotes/rss.xml'],
   },

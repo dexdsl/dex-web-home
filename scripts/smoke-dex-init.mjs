@@ -9,7 +9,7 @@ import { assertAnchorOnlyChanges as assertTemplateDrift, injectEntryHtml } from 
 
 const root = process.cwd();
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-'));
-const tmpl = `<!doctype html><html><head><title>Template</title><link rel="stylesheet" href="/assets/css/dex.css"><script defer src="/assets/dex-auth0-config.js"></script></head><body>
+const tmpl = `<!doctype html><html><head><title>Template</title><link rel="stylesheet" href="/assets/css/dex.css"><script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script><script defer src="/assets/dex-auth0-config.js"></script></head><body>
 <script id="dex-sidebar-config" type="application/json">{"downloads":{"formats":{"audio":[{"key":"wav"}],"video":[{"key":"1080p"}]}}}</script>
 <!-- DEX:SIDEBAR_PAGE_CONFIG_START --><script id="dex-sidebar-page-config" type="application/json">{}</script><!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
 <!-- DEX:TITLE_START --><h1 class="dex-entry-page-title" data-dex-entry-page-title></h1><!-- DEX:TITLE_END -->
@@ -60,6 +60,7 @@ for (const needle of [
   '<title>synth, artist</title>',
   'LOOKUP-1',
   `${DEFAULT_ASSET_ORIGIN}/assets/css/dex.css`,
+  `${DEFAULT_ASSET_ORIGIN}/assets/vendor/auth0-spa-js.umd.min.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   '<script id="dex-sidebar-page-config" type="application/json">',
@@ -158,6 +159,7 @@ if (!portableDirs.length) throw new Error('no generated portable entry dir');
 const portableHtml = await fs.readFile(path.join(portableTemp, 'entries', portableDirs[0].name, 'index.html'), 'utf8');
 for (const needle of [
   `${DEFAULT_ASSET_ORIGIN}/assets/css/dex.css`,
+  `${DEFAULT_ASSET_ORIGIN}/assets/vendor/auth0-spa-js.umd.min.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth0-config.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-auth.js`,
   `${DEFAULT_ASSET_ORIGIN}/assets/dex-sidebar.js`,
