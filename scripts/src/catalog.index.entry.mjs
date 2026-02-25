@@ -36,6 +36,15 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   let favoritesSignalsBound = false;
   const ZWNJ = '\u200C';
   const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
+  const FAVORITES_UI_STYLE_ID = 'dx-favorites-ui-style';
+  const FAVORITES_TOAST_ROOT_ID = 'dx-favorites-toast-root';
+  const FAVORITES_TOAST_ID = 'dx-favorites-toast';
+  const HEART_SVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 dx-fav-heart-svg" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+    </svg>
+  `.trim();
+  let favoritesToastTimer = 0;
 
   function redirectLegacyHashes() {
     const target = REDIRECT_HASHES[window.location.hash || ''];
@@ -178,6 +187,224 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
+  function ensureFavoritesUiStyles() {
+    if (document.getElementById(FAVORITES_UI_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = FAVORITES_UI_STYLE_ID;
+    style.textContent = `
+      .dx-fav-sr {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+
+      .dx-catalog-index-row-favorite.dx-fav-heart-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.05rem;
+        min-width: 2.05rem;
+        height: 2.05rem;
+        padding: 0;
+        border-radius: 999px;
+        overflow: visible;
+        line-height: 1;
+      }
+
+      .dx-fav-heart-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.15rem;
+        height: 1.15rem;
+        pointer-events: none;
+      }
+
+      .dx-fav-heart-svg {
+        width: 1.15rem;
+        height: 1.15rem;
+        stroke: currentColor;
+      }
+
+      .dx-fav-heart-svg path {
+        fill: transparent;
+        transition: fill 180ms ease, stroke 180ms ease;
+      }
+
+      .dx-fav-heart-btn {
+        color: rgba(37, 41, 52, 0.88);
+      }
+
+      .dx-fav-heart-btn.is-active {
+        color: #e0245e;
+      }
+
+      .dx-fav-heart-btn.is-active .dx-fav-heart-svg path {
+        fill: currentColor;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1'] .dx-fav-heart-icon {
+        animation: dx-fav-heart-pop 460ms cubic-bezier(.17,.89,.31,1.35);
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::before,
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        pointer-events: none;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::before {
+        width: 0.46rem;
+        height: 0.46rem;
+        border-radius: 999px;
+        border: 2px solid rgba(224, 36, 94, 0.45);
+        transform: translate(-50%, -50%);
+        animation: dx-fav-heart-ring 520ms ease-out;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+        width: 0.16rem;
+        height: 0.16rem;
+        border-radius: 999px;
+        background: rgba(224, 36, 94, 0.9);
+        transform: translate(-50%, -50%);
+        box-shadow:
+          0 -1rem 0 rgba(224, 36, 94, 0.86),
+          0.94rem -0.32rem 0 rgba(255, 120, 154, 0.88),
+          0.86rem 0.56rem 0 rgba(255, 58, 111, 0.82),
+          -0.86rem 0.56rem 0 rgba(255, 89, 129, 0.78),
+          -0.94rem -0.32rem 0 rgba(255, 133, 164, 0.84);
+        animation: dx-fav-heart-spark 560ms ease-out;
+      }
+
+      @keyframes dx-fav-heart-pop {
+        0% { transform: scale(0.62); }
+        50% { transform: scale(1.22); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes dx-fav-heart-ring {
+        0% { opacity: 0.78; transform: translate(-50%, -50%) scale(0.2); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+      }
+
+      @keyframes dx-fav-heart-spark {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+        24% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.34); }
+      }
+
+      #${FAVORITES_TOAST_ROOT_ID} {
+        position: fixed;
+        left: 50%;
+        bottom: max(18px, env(safe-area-inset-bottom, 0px) + 10px);
+        transform: translateX(-50%);
+        z-index: 2147482400;
+        pointer-events: none;
+      }
+
+      #${FAVORITES_TOAST_ID} {
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        border-radius: 999px;
+        background: linear-gradient(128deg, rgba(23, 28, 40, 0.9), rgba(38, 20, 40, 0.88));
+        color: #fff2f7;
+        font-family: var(--font-mono, "Courier Prime", monospace);
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        padding: 0.62rem 0.96rem;
+        box-shadow: 0 12px 30px rgba(14, 16, 24, 0.34);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        opacity: 0;
+        transform: translateY(6px) scale(0.97);
+        transition: opacity 170ms ease, transform 170ms ease;
+      }
+
+      #${FAVORITES_TOAST_ID}.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dx-fav-heart-btn[data-dx-fav-animating='1'] .dx-fav-heart-icon,
+        .dx-fav-heart-btn[data-dx-fav-animating='1']::before,
+        .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+          animation: none !important;
+        }
+        #${FAVORITES_TOAST_ID} {
+          transition: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showFavoritesToast(message = 'Added to favorites!') {
+    ensureFavoritesUiStyles();
+    let root = document.getElementById(FAVORITES_TOAST_ROOT_ID);
+    if (!root) {
+      root = document.createElement('div');
+      root.id = FAVORITES_TOAST_ROOT_ID;
+      root.setAttribute('aria-live', 'polite');
+      root.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(root);
+    }
+
+    let toast = document.getElementById(FAVORITES_TOAST_ID);
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = FAVORITES_TOAST_ID;
+      root.appendChild(toast);
+    }
+
+    toast.textContent = message;
+    toast.classList.remove('is-visible');
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
+
+    if (favoritesToastTimer) {
+      window.clearTimeout(favoritesToastTimer);
+      favoritesToastTimer = 0;
+    }
+    favoritesToastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      favoritesToastTimer = 0;
+    }, 1800);
+  }
+
+  function animateFavoriteAdded(button) {
+    if (!(button instanceof HTMLElement)) return;
+    if (prefersReducedMotion()) return;
+    button.setAttribute('data-dx-fav-animating', '1');
+    window.setTimeout(() => {
+      if (button.getAttribute('data-dx-fav-animating') === '1') {
+        button.removeAttribute('data-dx-fav-animating');
+      }
+    }, 620);
+  }
+
+  function ensureFavoriteButtonContent(button) {
+    if (!(button instanceof HTMLElement)) return;
+    if (button.dataset.dxFavUiReady === '1') return;
+    button.dataset.dxFavUiReady = '1';
+    button.classList.add('dx-fav-heart-btn');
+    button.innerHTML = `
+      <span class="dx-fav-heart-icon">${HEART_SVG}</span>
+      <span class="dx-fav-sr"></span>
+    `;
+  }
+
   function canonicalMode(value) {
     return MODE_VALUES.includes(value) ? value : DEFAULT_STATE.mode;
   }
@@ -246,9 +473,15 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   }
 
   function setFavoriteButtonState(button, active) {
+    ensureFavoritesUiStyles();
+    ensureFavoriteButtonContent(button);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
     button.classList.toggle('is-active', active);
-    button.textContent = active ? 'Favorited' : 'Favorite';
+    const sr = button.querySelector('.dx-fav-sr');
+    const nextLabel = active ? 'Favorited' : 'Add to favorites';
+    button.setAttribute('aria-label', nextLabel);
+    button.setAttribute('title', nextLabel);
+    if (sr) sr.textContent = nextLabel;
   }
 
   function syncFavoriteButtons(root = document) {
@@ -275,8 +508,9 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   }
 
   function createEntryFavoriteButton(entry) {
-    const button = create('button', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-index-row-favorite', 'Favorite');
+    const button = create('button', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-index-row-favorite');
     button.type = 'button';
+    ensureFavoriteButtonContent(button);
     const record = favoriteEntryRecord(entry);
     const api = getFavoritesApi();
     const key = api && typeof api.keyFor === 'function'
@@ -290,7 +524,11 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       event.stopPropagation();
       const runtime = getFavoritesApi();
       if (!runtime) return;
-      runtime.toggle(record);
+      const result = runtime.toggle(record);
+      if (result && result.action === 'added') {
+        animateFavoriteAdded(button);
+        showFavoritesToast('Added to favorites!');
+      }
       syncFavoriteButtons(document);
     });
     setFavoriteButtonState(button, api ? api.isFavorite(record) : false);

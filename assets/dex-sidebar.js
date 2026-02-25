@@ -5,8 +5,17 @@
   const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
   const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
   const FAVORITES_RUNTIME_PATH = '/assets/js/dx-favorites.js';
+  const FAVORITES_UI_STYLE_ID = 'dx-favorites-ui-style';
+  const FAVORITES_TOAST_ROOT_ID = 'dx-favorites-toast-root';
+  const FAVORITES_TOAST_ID = 'dx-favorites-toast';
+  const HEART_SVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 dx-fav-heart-svg" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+    </svg>
+  `.trim();
   let favoritesRuntimePromise = null;
   let favoritesSignalsBound = false;
+  let favoritesToastTimer = 0;
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -154,11 +163,259 @@
     return favoritesRuntimePromise;
   };
 
+  const ensureFavoritesUiStyles = () => {
+    if (document.getElementById(FAVORITES_UI_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = FAVORITES_UI_STYLE_ID;
+    style.textContent = `
+      .dx-fav-sr {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+
+      .dx-fav-heart-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        min-width: 2rem;
+        min-height: 2rem;
+        width: auto;
+        padding: 0.42rem 0.56rem;
+        border-radius: 999px;
+        border: 1px solid rgba(27, 33, 45, 0.24);
+        background: rgba(255, 255, 255, 0.3);
+        color: rgba(29, 33, 42, 0.86);
+        line-height: 1;
+        cursor: pointer;
+        overflow: visible;
+        transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 180ms ease;
+      }
+
+      .dx-fav-heart-btn:hover,
+      .dx-fav-heart-btn:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(224, 36, 94, 0.42);
+      }
+
+      .dx-fav-heart-btn .dx-fav-heart-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1rem;
+        height: 1rem;
+        pointer-events: none;
+      }
+
+      .dx-fav-heart-btn .dx-fav-heart-svg {
+        width: 1rem;
+        height: 1rem;
+        stroke: currentColor;
+      }
+
+      .dx-fav-heart-btn .dx-fav-heart-svg path {
+        fill: transparent;
+        transition: fill 160ms ease, stroke 160ms ease;
+      }
+
+      .dx-fav-heart-btn .dx-fav-heart-chip {
+        font-family: "Courier Prime", monospace;
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+
+      .dx-fav-heart-btn.is-active {
+        color: #e0245e;
+        border-color: rgba(224, 36, 94, 0.44);
+        background: rgba(224, 36, 94, 0.1);
+      }
+
+      .dx-fav-heart-btn.is-active .dx-fav-heart-svg path {
+        fill: currentColor;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1'] .dx-fav-heart-icon {
+        animation: dx-fav-heart-pop 460ms cubic-bezier(.17,.89,.31,1.35);
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::before,
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        pointer-events: none;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::before {
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        border: 2px solid rgba(224, 36, 94, 0.45);
+        transform: translate(-50%, -50%);
+        animation: dx-fav-heart-ring 520ms ease-out;
+      }
+
+      .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+        width: 0.15rem;
+        height: 0.15rem;
+        border-radius: 999px;
+        background: rgba(224, 36, 94, 0.92);
+        transform: translate(-50%, -50%);
+        box-shadow:
+          0 -1rem 0 rgba(224, 36, 94, 0.86),
+          0.94rem -0.32rem 0 rgba(255, 120, 154, 0.88),
+          0.86rem 0.56rem 0 rgba(255, 58, 111, 0.82),
+          -0.86rem 0.56rem 0 rgba(255, 89, 129, 0.78),
+          -0.94rem -0.32rem 0 rgba(255, 133, 164, 0.84);
+        animation: dx-fav-heart-spark 560ms ease-out;
+      }
+
+      .overview-item .dx-fav-heart-btn {
+        min-width: 2.05rem;
+      }
+
+      .dx-fav-file-toggle {
+        min-height: 1.9rem;
+      }
+
+      @keyframes dx-fav-heart-pop {
+        0% { transform: scale(0.62); }
+        50% { transform: scale(1.22); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes dx-fav-heart-ring {
+        0% { opacity: 0.78; transform: translate(-50%, -50%) scale(0.2); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+      }
+
+      @keyframes dx-fav-heart-spark {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+        24% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.34); }
+      }
+
+      #${FAVORITES_TOAST_ROOT_ID} {
+        position: fixed;
+        left: 50%;
+        bottom: max(16px, env(safe-area-inset-bottom, 0px) + 8px);
+        transform: translateX(-50%);
+        z-index: 2147482400;
+        pointer-events: none;
+      }
+
+      #${FAVORITES_TOAST_ID} {
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        border-radius: 999px;
+        background: linear-gradient(128deg, rgba(23, 28, 40, 0.9), rgba(38, 20, 40, 0.88));
+        color: #fff2f7;
+        font-family: "Courier Prime", monospace;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        padding: 0.62rem 0.96rem;
+        box-shadow: 0 12px 30px rgba(14, 16, 24, 0.34);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        opacity: 0;
+        transform: translateY(6px) scale(0.97);
+        transition: opacity 170ms ease, transform 170ms ease;
+      }
+
+      #${FAVORITES_TOAST_ID}.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dx-fav-heart-btn[data-dx-fav-animating='1'] .dx-fav-heart-icon,
+        .dx-fav-heart-btn[data-dx-fav-animating='1']::before,
+        .dx-fav-heart-btn[data-dx-fav-animating='1']::after {
+          animation: none !important;
+        }
+        #${FAVORITES_TOAST_ID} {
+          transition: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const showFavoritesToast = (message = 'Added to favorites!') => {
+    ensureFavoritesUiStyles();
+    let root = document.getElementById(FAVORITES_TOAST_ROOT_ID);
+    if (!root) {
+      root = document.createElement('div');
+      root.id = FAVORITES_TOAST_ROOT_ID;
+      root.setAttribute('aria-live', 'polite');
+      root.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(root);
+    }
+    let toast = document.getElementById(FAVORITES_TOAST_ID);
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = FAVORITES_TOAST_ID;
+      root.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.remove('is-visible');
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
+    if (favoritesToastTimer) {
+      window.clearTimeout(favoritesToastTimer);
+      favoritesToastTimer = 0;
+    }
+    favoritesToastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      favoritesToastTimer = 0;
+    }, 1800);
+  };
+
+  const animateFavoriteAdded = (button) => {
+    if (!(button instanceof HTMLElement)) return;
+    if (prefersReducedMotion()) return;
+    button.setAttribute('data-dx-fav-animating', '1');
+    window.setTimeout(() => {
+      if (button.getAttribute('data-dx-fav-animating') === '1') {
+        button.removeAttribute('data-dx-fav-animating');
+      }
+    }, 620);
+  };
+
+  const ensureFavoriteButtonContent = (button) => {
+    if (!(button instanceof HTMLElement)) return;
+    if (button.dataset.dxFavUiReady === '1') return;
+    button.dataset.dxFavUiReady = '1';
+    button.classList.add('dx-fav-heart-btn');
+    const chip = String(button.getAttribute('data-dx-fav-chip') || '').trim().toUpperCase();
+    button.innerHTML = `
+      <span class="dx-fav-heart-icon">${HEART_SVG}</span>
+      ${chip ? `<span class="dx-fav-heart-chip">${chip}</span>` : ''}
+      <span class="dx-fav-sr"></span>
+    `;
+  };
+
   const setFavoriteButtonState = (button, active, activeLabel, inactiveLabel) => {
+    ensureFavoritesUiStyles();
+    ensureFavoriteButtonContent(button);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
     button.classList.toggle('is-active', active);
     const label = active ? activeLabel : inactiveLabel;
-    button.textContent = label;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    const sr = button.querySelector('.dx-fav-sr');
+    if (sr) sr.textContent = label;
   };
 
   const refreshFavoriteButtons = (favoritesApi, root = document) => {
@@ -208,7 +465,11 @@
       button.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        api.toggle(record);
+        const result = api.toggle(record);
+        if (result && result.action === 'added') {
+          animateFavoriteAdded(button);
+          showFavoritesToast('Added to favorites!');
+        }
         refreshFavoriteButtons(api, document);
       });
     }
@@ -303,6 +564,8 @@
               const favButton = document.createElement('button');
               favButton.type = 'button';
               favButton.className = 'dx-button-element--secondary dx-fav-toggle dx-fav-file-toggle';
+              favButton.setAttribute('aria-label', 'Add file to favorites');
+              favButton.setAttribute('title', 'Add file to favorites');
               const record = buildFileFavoriteRecord({
                 lookup: context?.lookup,
                 entryHref: context?.entryHref,
@@ -538,7 +801,16 @@
     const overviewEl = document.querySelector('.dex-overview');
     if (overviewEl) {
       const bucketFavoriteButtonsHtml = favoriteBuckets
-        .map((bucket) => `<button type="button" class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle" data-bucket="${bucket}">Favorite ${bucket}</button>`)
+        .map((bucket) => `
+          <button
+            type="button"
+            class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle"
+            data-bucket="${bucket}"
+            data-dx-fav-chip="${bucket}"
+            aria-label="Add bucket ${bucket} to favorites"
+            title="Add bucket ${bucket} to favorites"
+          ></button>
+        `)
         .join('');
       overviewEl.innerHTML = `
         <div class="overview-item">
@@ -554,7 +826,12 @@
           <p class="p3 overview-label">Buckets</p>
         </div>
         <div class="overview-item">
-          <button type="button" class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle">Favorite entry</button>
+          <button
+            type="button"
+            class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle"
+            aria-label="Add entry to favorites"
+            title="Add entry to favorites"
+          ></button>
           <p class="p3 overview-label">Collection</p>
         </div>
         <div class="overview-item">

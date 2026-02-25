@@ -196,7 +196,7 @@
   function getMenuIcon(iconName) {
     var icons = {
       catalog: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5Z"></path><path d="M4 6v15"></path><path d="M8 8h8"></path><path d="M8 12h8"></path></svg>',
-      favorites: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20.2 4.9 13.7a4.5 4.5 0 0 1 6.3-6.4L12 8l.8-.7a4.5 4.5 0 1 1 6.3 6.4L12 20.2Z"></path></svg>',
+      favorites: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="dex-menu-icon" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"></path></svg>',
       polls: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h16"></path><path d="M7 16V9"></path><path d="M12 16V5"></path><path d="M17 16v-3"></path></svg>',
       submit: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4"></path><path d="M7.5 8.5 12 4l4.5 4.5"></path><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg>',
       messages: '<svg class="dex-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 4V6.5Z"></path><path d="M8 9h8"></path><path d="M8 12h5"></path></svg>',
