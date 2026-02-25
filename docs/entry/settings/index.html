@@ -2375,7 +2375,7 @@
 <div class="card" id="dangerCard">
   <h2>Danger zone</h2>
   <p id="dangerNote" class="note">Delete your account (requires no active membership).</p>
-  <button id="delete" class="btn primary danger" aria-describedby="dangerNote">Delete account</button>
+  <button id="delete" type="button" class="btn primary danger" aria-describedby="dangerNote">Delete account</button>
 </div>
 
 <div id="accountDeleteModal" class="dx-delete-modal" hidden>
@@ -4158,21 +4158,38 @@ function hydrateProfile(me){
         }
       }
 
-      if (deleteModal && deleteDialog && deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
-          deleteOpener = deleteBtn;
-          deleteBodyOverflow = document.body.style.overflow;
-          deleteModal.hidden = false;
-          document.body.style.overflow = 'hidden';
-          document.addEventListener('keydown', handleDeleteModalKeydown, true);
-          if (deletePhraseInput) deletePhraseInput.value = '';
-          setDeleteStep('gate-subscription');
-          requestAnimationFrame(() => deleteDialog.focus());
-          await runDeleteSubscriptionGate();
-          if (deleteDialog.getAttribute('data-dx-delete-step') === 'confirm-phrase') {
-            deletePhraseInput?.focus();
-          }
-        });
+      async function openDeleteModal(triggerEl){
+        if (!deleteModal || !deleteDialog) return;
+        deleteOpener = triggerEl instanceof HTMLElement ? triggerEl : deleteBtn;
+        deleteBodyOverflow = document.body.style.overflow;
+        deleteModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', handleDeleteModalKeydown, true);
+        if (deletePhraseInput) deletePhraseInput.value = '';
+        setDeleteStep('gate-subscription');
+        requestAnimationFrame(() => deleteDialog.focus());
+        await runDeleteSubscriptionGate();
+        if (deleteDialog.getAttribute('data-dx-delete-step') === 'confirm-phrase') {
+          deletePhraseInput?.focus();
+        }
+      }
+
+      if (deleteModal && deleteDialog) {
+        if (deleteBtn) {
+          deleteBtn.type = 'button';
+          deleteBtn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            await openDeleteModal(deleteBtn);
+          });
+        }
+        document.addEventListener('click', async (event) => {
+          const target = event.target instanceof Element ? event.target.closest('#delete') : null;
+          if (!target) return;
+          if (deleteModal.hidden === false) return;
+          event.preventDefault();
+          await openDeleteModal(target);
+        }, true);
+        window.DEX_DEBUG_OPEN_DELETE_MODAL = () => openDeleteModal(deleteBtn || document.activeElement);
       }
 
       deletePhraseInput?.addEventListener('input', () => {
