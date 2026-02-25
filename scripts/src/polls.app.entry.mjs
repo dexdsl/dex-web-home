@@ -188,7 +188,17 @@
     return `/polls/${encodeURIComponent(id)}/`;
   }
 
-  function parseRoute() {
+  function parseRoute(root = null) {
+    if (root && root instanceof Element) {
+      const pollIdFromDom = String(root.getAttribute('data-dx-poll-id') || '').trim();
+      if (pollIdFromDom) {
+        return { type: 'detail', pollId: pollIdFromDom };
+      }
+      if (root.hasAttribute('data-dx-polls-app')) {
+        return { type: 'list', pollId: null };
+      }
+    }
+
     const normalized = normalizePath(window.location.pathname || '/');
     if (normalized === '/polls' || normalized === '/polls/index.html') {
       return { type: 'list', pollId: null };
@@ -240,12 +250,17 @@
   }
 
   function bindSoftPollLinks(root) {
+    const slotRouterActive = typeof window.dxNavigate === 'function'
+      || document.body.classList.contains('dx-slot-enabled');
+    if (slotRouterActive) return;
+
     const links = root.querySelectorAll('a.dx-poll-link[href]');
     links.forEach((link) => {
       if (!(link instanceof HTMLAnchorElement)) return;
       if (link.getAttribute('data-dx-poll-link-bound') === 'true') return;
       link.setAttribute('data-dx-poll-link-bound', 'true');
       link.addEventListener('click', (event) => {
+        if (event.defaultPrevented) return;
         event.preventDefault();
         navigateTo(link.getAttribute('href') || '');
       });
@@ -677,7 +692,7 @@
 
     try {
       const authSnapshot = await resolveAuthSnapshot();
-      const route = parseRoute();
+      const route = parseRoute(root);
       if (route.type === 'detail' && route.pollId) {
         await mountDetail(root, route.pollId, authSnapshot);
       } else {

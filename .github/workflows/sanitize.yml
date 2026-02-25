@@ -71,5 +71,8 @@ jobs:
       - name: Network purity test
         run: npm run test:net
 
+      - name: Polls soft routing test
+        run: npm run test:polls-routing
+
       - name: Visual snapshot test
         run: npm run test:visual
