@@ -1968,6 +1968,15 @@
       color: #63140f;
       font-weight: 600;
     }
+    #dex-settings .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    #dex-settings .actions-tight{
+      margin-top:10px;
+    }
     #dex-settings .actions [data-billing-busy="true"]{
       opacity: .62;
       pointer-events: none;
@@ -2403,6 +2412,10 @@
               </div>
 
               <div id="undoWrap" class="undo" hidden>Saved · <button id="undoLast" class="linklike" type="button">Undo</button></div>
+              <p id="profileSaveError" class="mem-inline-error" role="status" aria-live="polite" hidden></p>
+              <div class="actions actions-tight" id="profileSaveActions" hidden>
+                <button id="retryProfileSave" class="btn" type="button">Retry save</button>
+              </div>
             </div>
           </div>
 
@@ -2685,26 +2698,69 @@
         return null;
       }
       async function jfetch(url, opts={}){
+        const timeoutMs = Number(opts.timeoutMs);
+        const requestTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10000;
+        const retriedAfterAuth = opts.__retriedAfterAuth === true;
+        const skipAuthGuard = opts.__skipAuthGuard === true;
+        const fetchOpts = Object.assign({}, opts);
+        delete fetchOpts.timeoutMs;
+        delete fetchOpts.__retriedAfterAuth;
+        delete fetchOpts.__skipAuthGuard;
+
         const t = await token();
-        const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+        const headers = Object.assign({}, fetchOpts.headers || {});
+        const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === 'content-type');
+        if (!hasContentType && fetchOpts.body && !(fetchOpts.body instanceof FormData)) {
+          headers['Content-Type'] = 'application/json';
+        }
         if (t) headers.Authorization = 'Bearer ' + t;
-        const res = await fetch(url, Object.assign({}, opts, {headers}));
+
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const timeoutId = controller
+          ? setTimeout(() => controller.abort(), requestTimeout)
+          : null;
+
+        let res;
+        try{
+          res = await fetch(url, Object.assign({}, fetchOpts, {
+            headers,
+            signal: controller ? controller.signal : fetchOpts.signal
+          }));
+        }catch(error){
+          if (timeoutId) clearTimeout(timeoutId);
+          if (controller && controller.signal.aborted){
+            const err = new Error(`Request timed out after ${requestTimeout}ms`);
+            err.status = 408;
+            throw err;
+          }
+          throw error;
+        }
+        if (timeoutId) clearTimeout(timeoutId);
+
         if (!res.ok) {
-          if ((res.status === 401 || res.status === 403) && !opts.__skipAuthGuard) {
-            if (!authFetchReguarded) {
-              authFetchReguarded = true;
-              await requireProtectedAuth({
+          const raw = await res.text().catch(() => res.statusText || '');
+          if ((res.status === 401 || res.status === 403) && !skipAuthGuard && !retriedAfterAuth) {
+            const authResult = await requireProtectedAuth({
                 returnTo: currentReturnTo(),
                 autoRedirect: true,
                 timeoutMs: 2500
-              });
+            });
+            if (authResult?.status === 'authenticated') {
+              return jfetch(url, Object.assign({}, opts, { __retriedAfterAuth: true }));
             }
           }
-          const err = new Error(await res.text().catch(()=>res.statusText));
+          const err = new Error(raw || res.statusText || `HTTP ${res.status}`);
           err.status = res.status;
+          err.url = url;
           throw err;
         }
-        return res.json().catch(()=> ({}));
+        const text = await res.text().catch(() => '');
+        if (!text) return {};
+        try {
+          return JSON.parse(text);
+        } catch {
+          return {};
+        }
       }
       function statusCodeOf(error){
         const status = Number(error && error.status);
@@ -2731,7 +2787,6 @@
 
       // === Auth bridge (single source of truth) ===
 let authGuardInFlight = null;
-let authFetchReguarded = false;
 
 function currentReturnTo(){
   return window.location.pathname + window.location.search + window.location.hash;
@@ -2795,7 +2850,6 @@ async function requireProtectedAuth(options = {}){
     if (window.DEX_AUTH?.requireAuth) {
       const result = await window.DEX_AUTH.requireAuth(opts);
       if (result?.status === 'authenticated') {
-        authFetchReguarded = false;
         clearSignedOutCard();
       }
       if (result?.status === 'blocked') ensureSignedOutCard(result.reason || 'blocked');
@@ -2803,7 +2857,6 @@ async function requireProtectedAuth(options = {}){
     }
     const resolved = await authResolve(opts.timeoutMs);
     if (resolved?.authenticated) {
-      authFetchReguarded = false;
       clearSignedOutCard();
       return { status:'authenticated' };
     }
@@ -3175,7 +3228,14 @@ function fitProfileLayout(){
 const Profile = {
   me: null, serverState: { roles:[], instruments:[] },
   pendingTO: null, debounceMs: 450,
-  lastUndo: null, saving: false
+  lastUndo: null, saving: false,
+  saveState: 'idle',
+  inFlightSave: null,
+  queuedPayload: null,
+  lastSubmittedPayloadHash: '',
+  lastSuccessfulPayloadHash: '',
+  lastFailedPayload: null,
+  stateResetTimer: null
 };
 const roleOptions = ['Composer','Performer','Producer','Engineer','Video','Conductor','Arranger','Editor','Other'];
 const instrumentSuggest = [
@@ -3200,6 +3260,9 @@ const elP = {
   status:   document.getElementById('profStatus'),
   undoWrap: document.getElementById('undoWrap'),
   undoBtn:  document.getElementById('undoLast'),
+  retryBtn: document.getElementById('retryProfileSave'),
+  saveError: document.getElementById('profileSaveError'),
+  saveActions: document.getElementById('profileSaveActions'),
 
   prevAvatar: document.getElementById('prevAvatar'),
   prevName:   document.getElementById('prevName'),
@@ -3223,6 +3286,65 @@ function setStatus(state, text){
   const s = elP.status; if(!s) return;
   if(state){ s.hidden = false; s.textContent = text || state; }
   else { s.hidden = true; }
+}
+
+function profilePayloadHash(payload){
+  const safeRoles = Array.isArray(payload?.roles) ? payload.roles : [];
+  const safeInstruments = Array.isArray(payload?.instruments) ? payload.instruments : [];
+  return JSON.stringify({ roles: safeRoles, instruments: safeInstruments });
+}
+
+function summarizeProfileSaveError(error){
+  const payload = parseErrorPayload(error);
+  const detail = payload ? safeText(payload.detail || payload.error || payload.message || '', '') : '';
+  if (detail) return detail;
+  const status = statusCodeOf(error);
+  if (status === 408) return 'Save request timed out. Please retry.';
+  if (status === 401 || status === 403) return 'Session expired. Sign in and retry.';
+  const raw = safeText(error?.message, '');
+  if (!raw || raw === '[object Object]') return 'Could not save changes right now.';
+  return raw.length > 140 ? `${raw.slice(0, 137)}...` : raw;
+}
+
+function setProfileSaveState(nextState, message = ''){
+  Profile.saveState = nextState;
+  if (Profile.stateResetTimer){
+    clearTimeout(Profile.stateResetTimer);
+    Profile.stateResetTimer = null;
+  }
+  if (nextState === 'idle'){
+    setStatus(null);
+    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
+    if (elP.saveActions) elP.saveActions.hidden = true;
+    if (elP.retryBtn) elP.retryBtn.hidden = true;
+    return;
+  }
+  if (nextState === 'saving'){
+    setStatus('Saving…', 'Saving…');
+    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
+    if (elP.saveActions) elP.saveActions.hidden = true;
+    if (elP.retryBtn) elP.retryBtn.hidden = true;
+    return;
+  }
+  if (nextState === 'saved'){
+    setStatus('Saved', 'Saved');
+    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
+    if (elP.saveActions) elP.saveActions.hidden = true;
+    if (elP.retryBtn) elP.retryBtn.hidden = true;
+    Profile.stateResetTimer = setTimeout(() => {
+      if (Profile.saveState === 'saved') setProfileSaveState('idle');
+    }, 1200);
+    return;
+  }
+  if (nextState === 'error'){
+    setStatus('Save failed', 'Save failed');
+    if (elP.saveError){
+      elP.saveError.hidden = false;
+      elP.saveError.textContent = message || 'Could not save changes right now.';
+    }
+    if (elP.saveActions) elP.saveActions.hidden = false;
+    if (elP.retryBtn) elP.retryBtn.hidden = false;
+  }
 }
 
 function setSecurityStatus(message){
@@ -3371,49 +3493,95 @@ function updatePreview(){
   if (elP.prevInstr) elP.prevInstr.textContent = currentInstruments().join(', ') || '—';
 }
 
-function scheduleSave(){
-  setStatus('Saving…','Saving…');
-  if (Profile.pendingTO) clearTimeout(Profile.pendingTO);
-  Profile.pendingTO = setTimeout(doSave, Profile.debounceMs);
+function buildCurrentProfilePayload(){
+  return { roles: currentRoles(), instruments: currentInstruments() };
 }
 
-async function doSave(){
-  const payload = { roles: currentRoles(), instruments: currentInstruments() };
-  // On first change since last sync, capture undo snapshot
-  if (!Profile.lastUndo) Profile.lastUndo = { ...Profile.serverState };
+function queueProfileSave(payload = buildCurrentProfilePayload()){
+  const normalizedPayload = {
+    roles: Array.isArray(payload?.roles) ? payload.roles : [],
+    instruments: Array.isArray(payload?.instruments) ? payload.instruments : []
+  };
+  Profile.queuedPayload = {
+    payload: normalizedPayload,
+    hash: profilePayloadHash(normalizedPayload)
+  };
+  void flushProfileSaveQueue();
+}
+
+async function flushProfileSaveQueue(){
+  if (Profile.inFlightSave) return Profile.inFlightSave;
+  Profile.inFlightSave = (async () => {
+    while (Profile.queuedPayload){
+      const next = Profile.queuedPayload;
+      Profile.queuedPayload = null;
+      if (!next) break;
+      if (next.hash === Profile.lastSuccessfulPayloadHash){
+        continue;
+      }
+      if (!Profile.lastUndo) Profile.lastUndo = { ...Profile.serverState };
+      setProfileSaveState('saving');
+      try{
+        Profile.saving = true;
+        await jfetch(api + '/me/profile', {
+          method: 'PATCH',
+          body: JSON.stringify(next.payload),
+          timeoutMs: 10000
+        });
+        Profile.serverState = { ...next.payload };
+        Profile.lastSubmittedPayloadHash = next.hash;
+        Profile.lastSuccessfulPayloadHash = next.hash;
+        Profile.lastFailedPayload = null;
+        if (elP.undoWrap) elP.undoWrap.hidden = false;
+        setProfileSaveState('saved');
+      }catch(error){
+        Profile.lastSubmittedPayloadHash = next.hash;
+        const queuedOnFailure = Profile.queuedPayload && Profile.queuedPayload.payload
+          ? Profile.queuedPayload.payload
+          : null;
+        Profile.lastFailedPayload = queuedOnFailure
+          ? { roles: [...(queuedOnFailure.roles || [])], instruments: [...(queuedOnFailure.instruments || [])] }
+          : { ...next.payload };
+        setProfileSaveState('error', summarizeProfileSaveError(error));
+        break;
+      }finally{
+        Profile.saving = false;
+      }
+    }
+  })();
   try{
-    Profile.saving = true;
-    await jfetch(api + '/me/profile', { method:'PATCH', body: JSON.stringify(payload) });
-    Profile.serverState = { ...payload };
-    setStatus('Saved','Saved');
-    elP.undoWrap.hidden = false;
-    setTimeout(()=>{ if(!Profile.saving){ setStatus(null); } }, 1200);
-  }catch{
-    setStatus('Pending…','Pending…'); // offline/failed; queued by user retry (edit again)
+    return await Profile.inFlightSave;
   }finally{
-    Profile.saving = false;
+    Profile.inFlightSave = null;
   }
 }
 
-elP.undoBtn?.addEventListener('click', async ()=>{
+function scheduleSave(){
+  if (Profile.pendingTO) clearTimeout(Profile.pendingTO);
+  Profile.pendingTO = setTimeout(() => {
+    Profile.pendingTO = null;
+    queueProfileSave(buildCurrentProfilePayload());
+  }, Profile.debounceMs);
+}
+
+elP.undoBtn?.addEventListener('click', ()=>{
   if (!Profile.lastUndo) return;
-  const snap = Profile.lastUndo;
+  const snap = {
+    roles: Array.isArray(Profile.lastUndo.roles) ? [...Profile.lastUndo.roles] : [],
+    instruments: Array.isArray(Profile.lastUndo.instruments) ? [...Profile.lastUndo.instruments] : []
+  };
+  Profile.lastUndo = null;
+  if (elP.undoWrap) elP.undoWrap.hidden = true;
   // Re-render UI
   renderRoleChips(snap.roles||[]);
   renderTokens(snap.instruments||[]);
   updatePreview();
-  // Save
-  try{
-    setStatus('Saving…','Saving…');
-    await jfetch(api + '/me/profile', { method:'PATCH', body: JSON.stringify(snap) });
-    Profile.serverState = { ...snap };
-    setStatus('Saved','Saved'); setTimeout(()=> setStatus(null), 1200);
-  }catch{
-    setStatus('Pending…','Pending…');
-  }finally{
-    Profile.lastUndo = null;
-    elP.undoWrap.hidden = true;
-  }
+  queueProfileSave(snap);
+});
+
+elP.retryBtn?.addEventListener('click', () => {
+  const retryPayload = Profile.lastFailedPayload || buildCurrentProfilePayload();
+  queueProfileSave(retryPayload);
 });
 
 elP.refresh?.addEventListener('click', async ()=>{
@@ -3497,10 +3665,16 @@ function hydrateProfile(me){
   // Seed editable state
   const roles = Array.isArray(me?.roles) ? me.roles : [];
   const instr = Array.isArray(me?.instruments) ? me.instruments : [];
-  Profile.serverState = { roles:[...roles], instruments:[...instr] };
+  const seedPayload = { roles:[...roles], instruments:[...instr] };
+  const seedHash = profilePayloadHash(seedPayload);
+  Profile.serverState = seedPayload;
+  Profile.lastSubmittedPayloadHash = seedHash;
+  Profile.lastSuccessfulPayloadHash = seedHash;
+  Profile.lastFailedPayload = null;
   renderRoleChips(roles);
   renderTokens(instr);
   updatePreview();
+  setProfileSaveState('idle');
   markSettingsCardReady('idCard');
   markSettingsCardReady('creditsCard');
 }
@@ -4548,13 +4722,18 @@ function hydrateProfile(me){
           // Profile hydrate (identity from API + claims)
           try{
             let me = {};
-            try { me = await jfetch(api + '/me/profile'); } catch {}
-
+            try {
+              me = await jfetch(api + '/me/profile', { timeoutMs: 10000 });
+            } catch {}
             const claims = await getClaimsIdentity(); // <- reliable Google/Apple/GitHub identity
             const merged = mergeIdentity(me, claims);
-
             hydrateProfile(merged);
-          }catch(_){}
+          }catch(_){
+            hydrateProfile(mergeIdentity({}, {}));
+          }finally{
+            markSettingsCardReady('idCard');
+            markSettingsCardReady('creditsCard');
+          }
 
           // keep the layout tight — throttle via rAF to avoid thrash
           let _fitRAF = 0;
@@ -4592,8 +4771,6 @@ function hydrateProfile(me){
           routeState = 'error';
         }finally{
           if (!shouldFinalize) return;
-          markSettingsCardReady('idCard');
-          markSettingsCardReady('creditsCard');
           markSettingsCardReady('asideBilling');
           markSettingsCardReady('notCard');
           markSettingsCardReady('membershipCard');
