@@ -1737,21 +1737,13 @@
       box-shadow: var(--shadow-1);
       color:#000;
     }
-    #dex-settings .nav-chevron{
+    #dex-settings .nav svg{
+      width:18px;
+      height:18px;
       display:block;
-      width:10px;
-      height:10px;
-      border-top:2.25px solid currentColor;
-      border-right:2.25px solid currentColor;
-      transform-origin:50% 50%;
-    }
-    #dex-settings .nav-chevron-left{
-      transform: rotate(-135deg);
-      margin-left:4px;
-    }
-    #dex-settings .nav-chevron-right{
-      transform: rotate(45deg);
-      margin-right:4px;
+      flex:none;
+      overflow:visible;
+      pointer-events:none;
     }
     #dex-settings .nav-left{ left:6px; }  #dex-settings .nav-right{ right:6px; }
 
@@ -2325,7 +2317,9 @@
   <!-- Tabs bar (board-style pills + ink + arrows) -->
   <div class="tabsbar">
     <button class="nav nav-left"  type="button" id="navPrev" aria-label="Previous tab">
-      <span class="nav-chevron nav-chevron-left" aria-hidden="true"></span>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
     </button>
 
     <nav class="pills" role="tablist" aria-label="Settings sections">
@@ -2337,7 +2331,9 @@
     </nav>
 
     <button class="nav nav-right" type="button" id="navNext" aria-label="Next tab">
-      <span class="nav-chevron nav-chevron-right" aria-hidden="true"></span>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+      </svg>
     </button>
   </div>
 
@@ -2367,22 +2363,6 @@
               <p class="note">We don’t store your password or photo. Identity is provided by your connected provider via Auth0.</p>
             </div>
 
-            <!-- SECURITY (moved from old tab) -->
-            <div class="card" id="securityCard">
-              <h2>Security</h2>
-              <div class="list">
-                <div class="item"><span>Last sign-in</span><span id="lastSignin" class="note">—</span></div>
-                <div class="item"><span>Auth provider</span><span id="securityProvider" class="note">—</span></div>
-                <div class="item"><span>Email verification</span><span id="securityEmailState" class="note">—</span></div>
-                <div class="item"><span>This session</span><button id="signOutCurrent" class="btn" type="button">Sign out</button></div>
-                <div class="item"><span>Other sessions</span><button id="revokeOthers" class="btn" type="button">Sign out others</button></div>
-                <div class="item"><span>Re-authenticate</span><button id="reauthNow" class="btn" type="button">Re-authenticate</button></div>
-              </div>
-              <p id="securityInlineStatus" class="note" aria-live="polite"></p>
-            </div>
-          </div>
-
-          <div class="profile-col profile-col-right">
             <!-- Credits & Roles (editable) -->
             <div class="card" id="creditsCard">
               <div class="card-head">
@@ -2409,6 +2389,22 @@
               </div>
 
               <div id="undoWrap" class="undo" hidden>Saved · <button id="undoLast" class="linklike" type="button">Undo</button></div>
+            </div>
+          </div>
+
+          <div class="profile-col profile-col-right">
+            <!-- SECURITY (moved from old tab) -->
+            <div class="card" id="securityCard">
+              <h2>Security</h2>
+              <div class="list">
+                <div class="item"><span>Last sign-in</span><span id="lastSignin" class="note">—</span></div>
+                <div class="item"><span>Auth provider</span><span id="securityProvider" class="note">—</span></div>
+                <div class="item"><span>Email verification</span><span id="securityEmailState" class="note">—</span></div>
+                <div class="item"><span>This session</span><button id="signOutCurrent" class="btn" type="button">Sign out</button></div>
+                <div class="item"><span>Other sessions</span><button id="revokeOthers" class="btn" type="button">Sign out others</button></div>
+                <div class="item"><span>Re-authenticate</span><button id="reauthNow" class="btn" type="button">Re-authenticate</button></div>
+              </div>
+              <p id="securityInlineStatus" class="note" aria-live="polite"></p>
             </div>
 
             <!-- DANGER (moved from old tab) -->
