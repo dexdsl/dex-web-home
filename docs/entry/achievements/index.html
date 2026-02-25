@@ -1719,7 +1719,7 @@ const DX_MIN_SHEEN_MS = 120;
 
 /* —— CONFIG —— */
 const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
-const POLLS_API = 'https://script.google.com/macros/s/AKfycbw0XIM4rK9siLvy4iGCE0aVcL-G6fi_OtE_FsdubZMj4ZjRTowKKuV2ABuimYD8Y_PJEg/exec'
+const DEX_API = (window.DEX_API_BASE_URL || 'https://dex-api.spring-fog-8edd.workers.dev').replace(/\/+$/,'');
 /* —— robust user-id helper (same as messages) —— */
 async function getAuth0Sub(timeout=3000){
   const t0=Date.now(); while(Date.now()-t0<timeout){
@@ -1734,6 +1734,16 @@ async function getAuth0Sub(timeout=3000){
   return '';
 }
 const auth0Sub = await getAuth0Sub();
+
+async function getAccessTokenMaybe(){
+  const auth = window.DEX_AUTH || window.dexAuth || null;
+  if(!auth || typeof auth.getAccessToken !== 'function') return '';
+  try{
+    if (typeof auth.resolve === 'function') await auth.resolve(2500);
+    else if (auth.ready && typeof auth.ready.then === 'function') await auth.ready;
+  }catch{}
+  try{return String(await auth.getAccessToken() || '');}catch{return '';}
+}
 
 
 /* —— shell —— */
@@ -1875,14 +1885,23 @@ try {
   progress['rejection-count'] = rejectionCount;
   if (rejectionCount >= 1) earned.push('rejection-1');
 
-    // 2) Poll votes count — only votes this user made
-  const polls = await jsonp(
-    `${POLLS_API}`
-    + `?action=list`
-    + `&sheet=Votes`
-    + `&auth0Sub=${encodeURIComponent(auth0Sub)}`
-  );
-  const voteCount = polls.status==='ok' ? polls.rows.length : 0;
+  // 2) Poll votes count — authenticated Worker summary
+  const token = await getAccessTokenMaybe();
+  let voteCount = 0;
+  if (token){
+    const summaryRes = await fetch(`${DEX_API}/me/polls/votes/summary`,{
+      method:'GET',
+      headers:{ Authorization:`Bearer ${token}` },
+      mode:'cors',
+      credentials:'omit'
+    });
+    if (summaryRes.ok){
+      const summary = await summaryRes.json();
+      voteCount = Number(summary.voteCount || summary.totalVotes || 0);
+      const streak = Number(summary.currentStreak || 0);
+      if (Number.isFinite(streak)) progress['poll-streak'] = streak;
+    }
+  }
   progress['vote-count'] = voteCount;
   if (voteCount >= 1) earned.push('vote-1');
   if (voteCount >= 5) earned.push('vote-5');

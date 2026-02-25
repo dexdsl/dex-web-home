@@ -6,7 +6,6 @@
   var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
   var PROTECTED_PATHS = {
     "/press": true,
-    "/polls": true,
     "/favorites": true,
     "/submit": true,
     "/messages": true,

@@ -17,7 +17,6 @@ const PROTECTED_AUTH_PATHS = new Set([
   'entry/pressroom/index.html',
   'entry/settings/index.html',
   'entry/achievements/index.html',
-  'polls/index.html',
   'press/index.html',
   'messages.html',
 ]);

@@ -238,6 +238,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'view', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'polls') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'polls', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
@@ -260,6 +264,136 @@ function parseInitArgs(rest = []) {
     if (!arg.startsWith('-') && !slugArg) slugArg = arg;
   }
   return { slugArg, opts };
+}
+
+function parsePollsCommandArgs(rest = []) {
+  const [subcommand = '', ...rawArgs] = rest;
+  const flags = new Map();
+  const values = [];
+  for (let index = 0; index < rawArgs.length; index += 1) {
+    const arg = rawArgs[index];
+    if (arg.startsWith('--')) {
+      const [name, inlineValue] = arg.split('=', 2);
+      if (inlineValue !== undefined) {
+        flags.set(name, inlineValue);
+        continue;
+      }
+      const next = rawArgs[index + 1];
+      if (next && !next.startsWith('--')) {
+        flags.set(name, next);
+        index += 1;
+        continue;
+      }
+      flags.set(name, 'true');
+      continue;
+    }
+    values.push(arg);
+  }
+  return { subcommand, flags, values };
+}
+
+async function runPollsCommand(rest = []) {
+  const {
+    readPollsFile,
+    writePollsFile,
+    createPollDraft,
+    upsertPoll,
+    setPollStatus,
+  } = await import('./lib/polls-store.mjs');
+  const { validatePollsFile } = await import('./lib/polls-schema.mjs');
+  const { publishPolls } = await import('./lib/polls-publish.mjs');
+  const { runPollsScreen } = await import('./ui/polls-screen.mjs');
+
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+
+  if (!subcommand) {
+    if (process.stdout.isTTY && process.stdin.isTTY) {
+      const action = await runPollsScreen();
+      if (action === 'validate') {
+        const { data } = await readPollsFile();
+        validatePollsFile(data);
+        console.log('polls:validate passed.');
+        return;
+      }
+      if (action === 'publish-test' || action === 'publish-prod') {
+        const env = action === 'publish-prod' ? 'prod' : 'test';
+        const result = await publishPolls({ env });
+        console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}`);
+        return;
+      }
+    }
+    console.log('Usage: dex polls <validate|create|edit|close|open|publish> [args]');
+    return;
+  }
+
+  if (subcommand === 'validate') {
+    const { data } = await readPollsFile();
+    validatePollsFile(data);
+    console.log('polls:validate passed.');
+    return;
+  }
+
+  if (subcommand === 'publish') {
+    const env = flags.get('--env') || flags.get('--target') || 'test';
+    const filePath = flags.get('--file');
+    const result = await publishPolls({ env, filePath });
+    console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}`);
+    return;
+  }
+
+  const { data } = await readPollsFile(flags.get('--file'));
+
+  if (subcommand === 'create') {
+    const draft = createPollDraft(data, {
+      question: flags.get('--question') || 'New poll question',
+      visibility: flags.get('--visibility') || 'public',
+      status: flags.get('--status') || 'draft',
+    });
+    const next = upsertPoll(data, draft);
+    await writePollsFile(next, flags.get('--file'));
+    console.log(`polls:create wrote ${draft.id}`);
+    return;
+  }
+
+  if (subcommand === 'edit') {
+    const pollId = values[0] || flags.get('--id');
+    if (!pollId) {
+      throw new Error('polls:edit requires a poll id');
+    }
+    const existing = data.polls.find((poll) => poll.id === pollId);
+    if (!existing) {
+      throw new Error(`polls:edit poll not found: ${pollId}`);
+    }
+    const updated = {
+      ...existing,
+      question: flags.get('--question') || existing.question,
+      visibility: flags.get('--visibility') || existing.visibility,
+      status: flags.get('--status') || existing.status,
+      closeAt: flags.get('--closeAt') || existing.closeAt,
+      manualClose: flags.has('--manualClose')
+        ? flags.get('--manualClose') === 'true'
+        : existing.manualClose,
+    };
+    const next = upsertPoll(data, updated);
+    await writePollsFile(next, flags.get('--file'));
+    console.log(`polls:edit wrote ${pollId}`);
+    return;
+  }
+
+  if (subcommand === 'close' || subcommand === 'open') {
+    const pollId = values[0] || flags.get('--id');
+    if (!pollId) {
+      throw new Error(`polls:${subcommand} requires a poll id`);
+    }
+    const status = subcommand === 'close' ? 'closed' : 'open';
+    const next = setPollStatus(data, pollId, status);
+    await writePollsFile(next, flags.get('--file'));
+    console.log(`polls:${subcommand} wrote ${pollId}`);
+    return;
+  }
+
+  throw new Error(`Unknown polls command: ${subcommand}`);
 }
 
 const topLevel = parseTopLevelMode(process.argv);
@@ -324,6 +458,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'view') {
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
   process.stdin.resume();
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'polls') {
+  await runPollsCommand(topLevel.rest);
+  process.exit(0);
 }
 
 if (topLevel.mode === 'legacy') {

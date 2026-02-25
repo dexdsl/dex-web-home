@@ -7,6 +7,8 @@ const ROOT = process.cwd();
 const FILES = {
   baseCss: path.join(ROOT, 'public', 'css', 'base.css'),
   dexCss: path.join(ROOT, 'public', 'assets', 'css', 'dex.css'),
+  pollsRuntime: path.join(ROOT, 'public', 'assets', 'js', 'polls.app.js'),
+  pollsRuntimeSource: path.join(ROOT, 'scripts', 'src', 'polls.app.entry.mjs'),
 };
 
 const COVERED_ROUTES = [
@@ -83,7 +85,16 @@ function verifyRouteContracts(failures) {
       }
     }
 
-    if (!/DX_MIN_SHEEN_MS\s*=\s*120\b/.test(html)) {
+    const minSheenInHtml = /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(html);
+    const minSheenInPollsRuntime = contract.file === 'docs/polls/index.html'
+      && (
+        (fs.existsSync(FILES.pollsRuntime)
+          && /DX_MIN_SHEEN_MS(?:\s*=\s*120\b|=120\b)/.test(readText(FILES.pollsRuntime)))
+        || (fs.existsSync(FILES.pollsRuntimeSource)
+          && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.pollsRuntimeSource)))
+      );
+
+    if (!minSheenInHtml && !minSheenInPollsRuntime) {
       failures.push(`${relPath} missing DX_MIN_SHEEN_MS = 120 contract`);
     }
 

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "updatedAt": "2026-02-25T00:00:00.000Z",
+  "polls": [
+    {
+      "id": "poll-2026-season-focus",
+      "slug": "season-focus-2026",
+      "status": "open",
+      "visibility": "public",
+      "question": "Which catalog focus should Dex prioritize for Spring 2026?",
+      "options": [
+        "Prepared strings",
+        "Extended winds",
+        "Hybrid electroacoustic",
+        "Percussion systems"
+      ],
+      "createdAt": "2026-02-20T18:00:00.000Z",
+      "closeAt": "2026-03-20T23:59:59.000Z",
+      "manualClose": false
+    },
+    {
+      "id": "poll-2026-member-briefing-window",
+      "slug": "member-briefing-window",
+      "status": "open",
+      "visibility": "members",
+      "question": "Members: what briefing cadence is most useful for upcoming release calls?",
+      "options": [
+        "Weekly",
+        "Biweekly",
+        "Monthly"
+      ],
+      "createdAt": "2026-02-21T16:00:00.000Z",
+      "closeAt": "2026-03-12T23:59:59.000Z",
+      "manualClose": false
+    },
+    {
+      "id": "poll-2025-archive-priority",
+      "slug": "archive-priority-2025",
+      "status": "closed",
+      "visibility": "public",
+      "question": "Which archive family should be expanded first?",
+      "options": [
+        "Live multitracks",
+        "Contact mic studies",
+        "No-input mixer sessions",
+        "Prepared keyboard sessions"
+      ],
+      "createdAt": "2025-12-01T12:00:00.000Z",
+      "closeAt": "2026-01-05T23:59:59.000Z",
+      "manualClose": true
+    }
+  ]
+}

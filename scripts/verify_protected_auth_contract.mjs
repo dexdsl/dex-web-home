@@ -7,7 +7,6 @@ const AUTH_PATH = path.join(ROOT, 'public', 'assets', 'dex-auth.js');
 const HEADER_SLOT_PATH = path.join(ROOT, 'public', 'assets', 'js', 'header-slot.js');
 
 const PROFILE_PROTECTED_ROUTES = [
-  '/polls',
   '/press',
   '/favorites',
   '/submit',

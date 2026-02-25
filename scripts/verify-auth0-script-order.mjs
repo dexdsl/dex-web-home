@@ -12,7 +12,6 @@ const PROTECTED_AUTH_REL_PATHS = new Set([
   'docs/entry/pressroom/index.html',
   'docs/entry/settings/index.html',
   'docs/entry/achievements/index.html',
-  'docs/polls/index.html',
   'docs/press/index.html',
   'docs/messages.html',
 ]);
