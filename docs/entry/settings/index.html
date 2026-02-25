@@ -3081,33 +3081,120 @@ function hydrateProfile(me){
         if (!Number.isFinite(sec) || sec <= 0) return '—';
         return new Date(sec * 1000).toLocaleDateString();
       }
-      function paymentMethodLabel(summary){
-        const last4Raw = String(summary?.default_payment_method_last4 || '').replace(/\D/g, '');
-        if (last4Raw.length >= 4) return `•••• ${last4Raw.slice(-4)}`;
-
-        const preview = summary?.invoice_preview && typeof summary.invoice_preview === 'object'
-          ? summary.invoice_preview
+      function extractLast4(value){
+        const digits = String(value == null ? '' : value).replace(/\D/g, '');
+        if (digits.length < 4) return '';
+        return digits.slice(-4);
+      }
+      function findPaymentLast4(summary){
+        const src = summary && typeof summary === 'object' ? summary : {};
+        const preview = src.invoice_preview && typeof src.invoice_preview === 'object'
+          ? src.invoice_preview
           : null;
-        const previewLast4 = String(
-          preview?.default_payment_method_last4
-          || preview?.payment_method_last4
-          || preview?.last4
-          || ''
-        ).replace(/\D/g, '');
-        if (previewLast4.length >= 4) return `•••• ${previewLast4.slice(-4)}`;
+        const defaultPm = src.default_payment_method && typeof src.default_payment_method === 'object'
+          ? src.default_payment_method
+          : null;
+        const invoiceSettings = src.invoice_settings && typeof src.invoice_settings === 'object'
+          ? src.invoice_settings
+          : null;
+        const customerObj = src.customer && typeof src.customer === 'object'
+          ? src.customer
+          : null;
+        const paymentIntent = src.payment_intent && typeof src.payment_intent === 'object'
+          ? src.payment_intent
+          : null;
+        const latestInvoice = src.latest_invoice && typeof src.latest_invoice === 'object'
+          ? src.latest_invoice
+          : null;
+        const latestInvoicePaymentIntent = latestInvoice?.payment_intent && typeof latestInvoice.payment_intent === 'object'
+          ? latestInvoice.payment_intent
+          : null;
 
+        const candidates = [
+          src.default_payment_method_last4,
+          src.payment_last4,
+          src.payment_method_last4,
+          src.card_last4,
+          preview?.default_payment_method_last4,
+          preview?.payment_method_last4,
+          preview?.last4,
+          defaultPm?.last4,
+          defaultPm?.card?.last4,
+          defaultPm?.payment_method_details?.card?.last4,
+          invoiceSettings?.default_payment_method_last4,
+          invoiceSettings?.default_payment_method?.last4,
+          invoiceSettings?.default_payment_method?.card?.last4,
+          customerObj?.default_payment_method_last4,
+          customerObj?.invoice_settings?.default_payment_method_last4,
+          customerObj?.invoice_settings?.default_payment_method?.last4,
+          paymentIntent?.payment_method?.card?.last4,
+          latestInvoicePaymentIntent?.payment_method?.card?.last4
+        ];
+        for (const candidate of candidates){
+          const last4 = extractLast4(candidate);
+          if (last4) return last4;
+        }
+        return '';
+      }
+      function paymentMethodLabel(summary){
+        const hasDefaultExplicit = summary?.has_default_payment_method === true
+          ? true
+          : summary?.has_default_payment_method === false
+            ? false
+            : null;
+        const paymentOnFileExplicit = summary?.payment_method_on_file === true
+          ? true
+          : summary?.payment_method_on_file === false
+            ? false
+            : null;
+        const hasPaymentMethodExplicit = summary?.has_payment_method === true
+          ? true
+          : summary?.has_payment_method === false
+            ? false
+            : null;
         const status = String(summary?.status || 'none').toLowerCase();
         const hasMembershipContext = ['trialing', 'active', 'past_due', 'unpaid', 'canceled_at_period_end'].includes(status)
           || Boolean(summary?.cancel_at_period_end);
-        return hasMembershipContext ? 'No default method on file' : 'None on file';
+        const hasStableInactiveStatus = ['none', 'canceled', 'incomplete', 'incomplete_expired'].includes(status);
+
+        const last4Raw = extractLast4(summary?.default_payment_method_last4);
+        if (last4Raw) return `•••• ${last4Raw}`;
+
+        const inferredLast4 = extractLast4(findPaymentLast4(summary));
+        if (inferredLast4) return `•••• ${inferredLast4}`;
+
+        const hasDefaultSource = typeof summary?.default_payment_method === 'string'
+          ? summary.default_payment_method.trim().length > 0
+          : !!(summary?.default_payment_method && typeof summary.default_payment_method === 'object');
+        const hasPaymentEvidence = hasDefaultSource
+          || hasDefaultExplicit === true
+          || paymentOnFileExplicit === true
+          || hasPaymentMethodExplicit === true;
+        const explicitNoPaymentMethod = hasDefaultExplicit === false
+          || paymentOnFileExplicit === false
+          || hasPaymentMethodExplicit === false;
+
+        if (hasPaymentEvidence) return 'On file in Customer Portal';
+        if (summary?.customer_portal_enabled !== false && hasMembershipContext) return 'Managed in Customer Portal';
+        if (explicitNoPaymentMethod && hasStableInactiveStatus) return 'No default method on file';
+        if (explicitNoPaymentMethod) return 'Managed in Customer Portal';
+
+        return 'None on file';
       }
       function normalizeSummary(raw){
         const summary = raw && typeof raw === 'object' ? raw : {};
         const status = String(summary.status || summary.subscription_status || 'none').toLowerCase();
         const tier = String(summary.tier || summary.plan_tier || '').toUpperCase();
         const intervalValue = String(summary.interval || summary.plan_interval || '').toLowerCase();
-        const paymentLast4 = summary.default_payment_method_last4 || summary.payment_last4 || null;
+        const paymentLast4 = extractLast4(findPaymentLast4(summary)) || null;
         const cancellation = Boolean(summary.cancel_at_period_end || status === 'canceled_at_period_end');
+        const defaultPmRaw = summary.default_payment_method
+          || summary.invoice_settings?.default_payment_method
+          || summary.customer?.invoice_settings?.default_payment_method
+          || null;
+        const hasDefaultSource = typeof defaultPmRaw === 'string'
+          ? defaultPmRaw.trim().length > 0
+          : !!(defaultPmRaw && typeof defaultPmRaw === 'object');
         return {
           status: status || 'none',
           tier: ['S', 'M', 'L'].includes(tier) ? tier : null,
@@ -3115,7 +3202,25 @@ function hydrateProfile(me){
           cancel_at_period_end: cancellation,
           current_period_end: Number(summary.current_period_end || summary.renewTs || 0) || null,
           customer_portal_enabled: summary.customer_portal_enabled !== false,
+          has_default_payment_method: summary.has_default_payment_method === true
+            ? true
+            : summary.has_default_payment_method === false
+              ? false
+              : hasDefaultSource
+                ? true
+                : null,
+          has_payment_method: summary.has_payment_method === true
+            ? true
+            : summary.has_payment_method === false
+              ? false
+              : null,
+          payment_method_on_file: summary.payment_method_on_file === true
+            ? true
+            : summary.payment_method_on_file === false
+              ? false
+              : null,
           default_payment_method_last4: paymentLast4,
+          default_payment_method: defaultPmRaw,
           invoice_preview: summary.invoice_preview || null
         };
       }
