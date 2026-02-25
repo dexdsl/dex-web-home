@@ -1752,6 +1752,124 @@
     #dex-settings .btn.primary{ background: linear-gradient(130deg, var(--accent), orange); color:#fff; border-color:transparent; box-shadow: 0 10px 30px rgba(255,0,80,.25); }
     #dex-settings .note{ color: var(--muted); font-size:12.5px; }
     #dex-settings [role="tabpanel"][hidden]{ display:none; }
+    #dex-settings .dx-btn-danger-solid{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-height:40px;
+      padding:10px 14px;
+      border-radius:10px;
+      border:1px solid rgba(145,10,10,.92);
+      background:#b21616;
+      color:#fff;
+      font:700 clamp(11px,1vw,12px) var(--font-heading,'Typefesse',sans-serif);
+      text-transform:uppercase;
+      letter-spacing:.02em;
+      cursor:pointer;
+      transition: background .18s ease, border-color .18s ease, opacity .18s ease;
+    }
+    #dex-settings .dx-btn-danger-solid:hover{ background:#8f1212; border-color:#6e0f0f; }
+    #dex-settings .dx-btn-danger-solid:focus-visible{
+      outline:none;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.95), 0 0 0 5px rgba(178,22,22,.35);
+    }
+    #dex-settings .dx-btn-danger-solid:disabled{
+      cursor:not-allowed;
+      opacity:.55;
+      background:#8b7373;
+      border-color:#837878;
+      color:#efeaea;
+    }
+    #dex-settings .dx-delete-modal{
+      position:fixed;
+      inset:0;
+      z-index:9998;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    #dex-settings .dx-delete-modal[hidden]{ display:none !important; }
+    #dex-settings .dx-delete-modal-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(16,18,23,.28);
+    }
+    #dex-settings .dx-delete-modal-dialog{
+      position:relative;
+      z-index:1;
+      width:min(640px, calc(100vw - 36px));
+      border:1px solid var(--glass-brd);
+      border-radius:var(--radius);
+      background:var(--glass-bg);
+      -webkit-backdrop-filter: blur(20px) saturate(120%);
+      backdrop-filter: blur(20px) saturate(120%);
+      box-shadow: var(--shadow-2);
+      padding:var(--pad-2);
+      display:grid;
+      gap:12px;
+    }
+    #dex-settings .dx-delete-modal-dialog h3{
+      margin:0;
+      font:700 clamp(16px,2vw,18px) var(--font-heading,'Typefesse',sans-serif);
+      text-transform:uppercase;
+    }
+    #dex-settings .dx-delete-panel{ display:none; }
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="gate-subscription"] .dx-delete-panel--gate-subscription,
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="blocked-subscription"] .dx-delete-panel--blocked-subscription,
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="confirm-phrase"] .dx-delete-panel--confirm-phrase,
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="submitting"] .dx-delete-panel--submitting,
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="success"] .dx-delete-panel--success,
+    #dex-settings #accountDeleteDialog[data-dx-delete-step="error"] .dx-delete-panel--error{
+      display:grid;
+      gap:10px;
+    }
+    #dex-settings .dx-delete-meta{
+      border:1px solid var(--glass-brd);
+      border-radius:var(--radius-sm);
+      background:var(--glass-bg);
+    }
+    #dex-settings .dx-delete-meta .item{
+      padding:10px 12px;
+      border-bottom:1px dashed rgba(0,0,0,.12);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    #dex-settings .dx-delete-meta .item:last-child{ border-bottom:0; }
+    #dex-settings .dx-delete-phrase-shell{
+      margin:0;
+      padding:10px 12px;
+      border:1px solid var(--glass-brd);
+      border-radius:var(--radius-sm);
+      background:rgba(255,255,255,.52);
+      overflow-wrap:anywhere;
+    }
+    #dex-settings .dx-delete-input{
+      width:100%;
+      min-height:40px;
+      padding:9px 11px;
+      border-radius:10px;
+      border:1px solid var(--glass-brd);
+      background:rgba(255,255,255,.82);
+      color:#000;
+      font:600 13px var(--font-body,system-ui);
+    }
+    #dex-settings .dx-delete-input:focus-visible{
+      outline:none;
+      box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 0 5px rgba(0,0,0,.14);
+    }
+    #dex-settings .dx-delete-inline-error{
+      margin:0;
+      padding:9px 11px;
+      border:1px solid rgba(178,22,22,.45);
+      border-radius:10px;
+      background:rgba(178,22,22,.08);
+      color:#6e0f0f;
+      font-weight:600;
+    }
 /* Customer Portal button — match promo .cta-primary */
 #dex-settings .cta-primary{
   display:inline-flex; align-items:center; gap:10px;
@@ -2260,6 +2378,71 @@
   <button id="delete" class="btn primary danger" aria-describedby="dangerNote">Delete account</button>
 </div>
 
+<div id="accountDeleteModal" class="dx-delete-modal" hidden>
+  <div class="dx-delete-modal-backdrop" data-dx-delete-close="true" aria-hidden="true"></div>
+  <div
+    id="accountDeleteDialog"
+    class="dx-delete-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="dxDeleteTitle"
+    aria-describedby="dxDeleteBody"
+    tabindex="-1"
+    data-dx-delete-step="gate-subscription">
+    <h3 id="dxDeleteTitle">Delete account</h3>
+    <p id="dxDeleteBody" class="note">This action is permanent and removes your Dex account access.</p>
+
+    <section class="dx-delete-panel dx-delete-panel--gate-subscription" data-dx-delete-panel="gate-subscription" aria-live="polite">
+      <p class="note">Checking membership status…</p>
+    </section>
+
+    <section class="dx-delete-panel dx-delete-panel--blocked-subscription" data-dx-delete-panel="blocked-subscription">
+      <p class="note">Account deletion is blocked until your subscription is fully ended.</p>
+      <div class="dx-delete-meta">
+        <div class="item"><span>Status</span><span id="dxDeleteBlockedStatus" class="note">—</span></div>
+        <div class="item"><span>Plan</span><span id="dxDeleteBlockedPlan" class="note">—</span></div>
+        <div class="item"><span>Period end</span><span id="dxDeleteBlockedEnd" class="note">—</span></div>
+      </div>
+      <p id="dxDeleteBlockedError" class="dx-delete-inline-error" hidden></p>
+      <div class="actions">
+        <button type="button" id="dxDeleteOpenPortalCancel" class="cta">Cancel in Customer Portal</button>
+        <button type="button" id="dxDeleteBlockedClose" class="btn">Close</button>
+      </div>
+    </section>
+
+    <section class="dx-delete-panel dx-delete-panel--confirm-phrase" data-dx-delete-panel="confirm-phrase">
+      <p class="note">Type this exact sentence to continue:</p>
+      <p class="dx-delete-phrase-shell"><code id="dxDeleteExpectedPhrase">I want to delete my dex account, member.</code></p>
+      <label for="dxDeletePhraseInput" class="label">Confirmation sentence</label>
+      <input id="dxDeletePhraseInput" class="dx-delete-input" type="text" autocomplete="off" spellcheck="false" />
+      <p id="dxDeletePhraseError" class="dx-delete-inline-error" hidden></p>
+      <div class="actions">
+        <button type="button" id="dxDeleteCancel" class="btn">Cancel</button>
+        <button type="button" id="dxDeleteConfirm" class="dx-btn-danger-solid" disabled>Delete permanently</button>
+      </div>
+    </section>
+
+    <section class="dx-delete-panel dx-delete-panel--submitting" data-dx-delete-panel="submitting" aria-live="polite">
+      <p class="note">Deleting account…</p>
+    </section>
+
+    <section class="dx-delete-panel dx-delete-panel--success" data-dx-delete-panel="success" aria-live="polite">
+      <p class="note">Your account has been deleted. Redirecting home…</p>
+      <div class="actions">
+        <a href="/" class="btn">Go home now</a>
+      </div>
+    </section>
+
+    <section class="dx-delete-panel dx-delete-panel--error" data-dx-delete-panel="error" aria-live="polite">
+      <p id="dxDeleteGlobalError" class="dx-delete-inline-error">Could not delete your account right now.</p>
+      <div class="actions">
+        <button type="button" id="dxDeleteRetry" class="btn">Try again</button>
+        <button type="button" id="dxDeleteErrorClose" class="btn">Close</button>
+      </div>
+    </section>
+  </div>
+</div>
+
 
       </section>
 
@@ -2412,7 +2595,8 @@
         portal: '/me/billing/portal-session',
         invoices: '/me/invoices?limit=5',
         pause: '/me/billing/subscription/pause',
-        resume: '/me/billing/subscription/resume'
+        resume: '/me/billing/subscription/resume',
+        accountDelete: '/me/account/delete'
       };
       const RETURN_PATH = '/entry/settings#membership';
       const SUCCESS_PATH = '/entry/settings?thanks=1#membership';
@@ -2481,6 +2665,16 @@
       function safeText(value, fallback = '—'){
         const v = String(value || '').trim();
         return v || fallback;
+      }
+      function parseErrorPayload(error){
+        const raw = error && typeof error.message === 'string' ? error.message.trim() : '';
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch {
+          return null;
+        }
       }
 
       // === Auth bridge (single source of truth) ===
@@ -3703,6 +3897,327 @@ function hydrateProfile(me){
           markSettingsCardReady('billingHistoryCard');
         }
       }
+
+      /* Account deletion modal (subscription-gated + typed confirmation) */
+      const DELETE_ALLOWED_STATUSES = new Set(['none', 'canceled', 'incomplete_expired']);
+      const deleteBtn = document.getElementById('delete');
+      const deleteModal = document.getElementById('accountDeleteModal');
+      const deleteDialog = document.getElementById('accountDeleteDialog');
+      const deletePhraseInput = document.getElementById('dxDeletePhraseInput');
+      const deleteExpectedPhraseEl = document.getElementById('dxDeleteExpectedPhrase');
+      const deletePhraseError = document.getElementById('dxDeletePhraseError');
+      const deleteGlobalError = document.getElementById('dxDeleteGlobalError');
+      const deleteBlockedError = document.getElementById('dxDeleteBlockedError');
+      const deleteConfirmBtn = document.getElementById('dxDeleteConfirm');
+      const deleteCancelBtn = document.getElementById('dxDeleteCancel');
+      const deleteBlockedCloseBtn = document.getElementById('dxDeleteBlockedClose');
+      const deleteErrorCloseBtn = document.getElementById('dxDeleteErrorClose');
+      const deleteRetryBtn = document.getElementById('dxDeleteRetry');
+      const deletePortalCancelBtn = document.getElementById('dxDeleteOpenPortalCancel');
+      const deleteBlockedStatus = document.getElementById('dxDeleteBlockedStatus');
+      const deleteBlockedPlan = document.getElementById('dxDeleteBlockedPlan');
+      const deleteBlockedEnd = document.getElementById('dxDeleteBlockedEnd');
+      let deleteExpectedPhrase = 'I want to delete my dex account, member.';
+      let deleteAccountName = 'member';
+      let deleteOpener = null;
+      let deleteBodyOverflow = '';
+      let deleteRedirectTimer = 0;
+
+      function normalizeDeleteString(value){
+        return String(value || '')
+          .trim()
+          .replace(/\s+/g, ' ')
+          .toLowerCase();
+      }
+
+      function deriveDeleteAccountName(){
+        const me = Profile?.me || {};
+        const displayName = typeof me.name === 'string' ? me.name.trim() : '';
+        const creditName = typeof me.credit_name === 'string' ? me.credit_name.trim() : '';
+        const email = typeof me.email === 'string' ? me.email.trim() : '';
+        const emailLocal = email.includes('@') ? email.split('@')[0].trim() : '';
+        const raw = displayName || creditName || emailLocal || 'member';
+        return raw.replace(/\s+/g, ' ').trim() || 'member';
+      }
+
+      function buildDeletePhrase(name){
+        return `I want to delete my dex account, ${name}.`;
+      }
+
+      function humanizeStatus(status){
+        const normalized = String(status || '').toLowerCase();
+        if (!normalized) return 'Unknown';
+        if (normalized === 'canceled_at_period_end') return 'Canceling at period end';
+        return normalized
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+
+      function describePlan(summary){
+        if (!summary?.tier) return 'No active plan';
+        const planName = tierName[summary.tier] || summary.tier;
+        const intervalLabel = summary.interval === 'year' ? 'Annual' : 'Monthly';
+        return `${planName} (${intervalLabel})`;
+      }
+
+      function setDeleteStep(step){
+        if (!deleteDialog) return;
+        deleteDialog.setAttribute('data-dx-delete-step', step);
+      }
+
+      function syncDeletePhraseUi(){
+        deleteAccountName = deriveDeleteAccountName();
+        deleteExpectedPhrase = buildDeletePhrase(deleteAccountName);
+        if (deleteExpectedPhraseEl) deleteExpectedPhraseEl.textContent = deleteExpectedPhrase;
+      }
+
+      function validateDeletePhrase(){
+        if (!deleteConfirmBtn || !deletePhraseInput) return false;
+        const matches =
+          normalizeDeleteString(deletePhraseInput.value) ===
+          normalizeDeleteString(deleteExpectedPhrase);
+        deleteConfirmBtn.disabled = !matches;
+        return matches;
+      }
+
+      function setDeleteBlockedState(summary, errorMessage = ''){
+        if (deleteBlockedStatus) deleteBlockedStatus.textContent = humanizeStatus(summary?.status || 'unknown');
+        if (deleteBlockedPlan) deleteBlockedPlan.textContent = describePlan(summary || null);
+        if (deleteBlockedEnd) deleteBlockedEnd.textContent = formatDate(summary?.current_period_end || null);
+        if (deleteBlockedError) {
+          const message = String(errorMessage || '').trim();
+          deleteBlockedError.hidden = !message;
+          deleteBlockedError.textContent = message;
+        }
+      }
+
+      function focusablesInDeleteModal(){
+        if (!deleteDialog) return [];
+        return Array.from(
+          deleteDialog.querySelectorAll(
+            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => !el.hasAttribute('hidden') && el.offsetParent !== null);
+      }
+
+      function handleDeleteModalKeydown(event){
+        if (!deleteModal || deleteModal.hidden) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeDeleteModal();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const focusables = focusablesInDeleteModal();
+        if (!focusables.length) {
+          event.preventDefault();
+          deleteDialog?.focus();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+
+      function closeDeleteModal(options = {}){
+        if (!deleteModal) return;
+        const shouldRestoreFocus = options.restoreFocus !== false;
+        deleteModal.hidden = true;
+        document.removeEventListener('keydown', handleDeleteModalKeydown, true);
+        if (deleteBodyOverflow !== null) {
+          document.body.style.overflow = deleteBodyOverflow;
+          deleteBodyOverflow = '';
+        }
+        if (deletePhraseInput) deletePhraseInput.value = '';
+        if (deletePhraseError) {
+          deletePhraseError.hidden = true;
+          deletePhraseError.textContent = '';
+        }
+        if (deleteGlobalError) {
+          deleteGlobalError.hidden = false;
+          deleteGlobalError.textContent = 'Could not delete your account right now.';
+        }
+        if (deleteBlockedError) {
+          deleteBlockedError.hidden = true;
+          deleteBlockedError.textContent = '';
+        }
+        setDeleteStep('gate-subscription');
+        if (deleteRedirectTimer) {
+          clearTimeout(deleteRedirectTimer);
+          deleteRedirectTimer = 0;
+        }
+        if (shouldRestoreFocus && deleteOpener instanceof HTMLElement) {
+          deleteOpener.focus();
+        }
+      }
+
+      async function runDeleteSubscriptionGate(){
+        setDeleteStep('gate-subscription');
+        syncDeletePhraseUi();
+        if (deletePhraseError) {
+          deletePhraseError.hidden = true;
+          deletePhraseError.textContent = '';
+        }
+        if (deleteBlockedError) {
+          deleteBlockedError.hidden = true;
+          deleteBlockedError.textContent = '';
+        }
+        try {
+          const summary = normalizeSummary((await loadBillingSummary()) || billingSummary || {});
+          if (DELETE_ALLOWED_STATUSES.has(summary.status)) {
+            setDeleteStep('confirm-phrase');
+            validateDeletePhrase();
+            return { allowed: true, summary };
+          }
+          setDeleteBlockedState(summary);
+          setDeleteStep('blocked-subscription');
+          return { allowed: false, summary };
+        } catch (_error) {
+          setDeleteBlockedState(billingSummary || null, 'Could not verify subscription status. Please try again.');
+          setDeleteStep('blocked-subscription');
+          return { allowed: false, summary: billingSummary || null };
+        }
+      }
+
+      async function submitAccountDelete(){
+        if (!deleteConfirmBtn || !deletePhraseInput) return;
+        if (deletePhraseError) {
+          deletePhraseError.hidden = true;
+          deletePhraseError.textContent = '';
+        }
+        const gate = await runDeleteSubscriptionGate();
+        if (!gate.allowed) return;
+        if (!validateDeletePhrase()) {
+          if (deletePhraseError) {
+            deletePhraseError.hidden = false;
+            deletePhraseError.textContent = 'Confirmation sentence does not match.';
+          }
+          deletePhraseInput.focus();
+          return;
+        }
+
+        setDeleteStep('submitting');
+        setButtonBusy(deleteConfirmBtn, true);
+        try {
+          await jfetch(api + BILLING_ENDPOINTS.accountDelete, {
+            method: 'POST',
+            body: JSON.stringify({
+              confirmationPhrase: deletePhraseInput.value,
+              accountName: deleteAccountName
+            })
+          });
+          setDeleteStep('success');
+          deleteRedirectTimer = window.setTimeout(() => {
+            window.location.href = '/';
+          }, 1400);
+        } catch (error) {
+          const status = statusCodeOf(error);
+          const payload = parseErrorPayload(error);
+          if (status === 409) {
+            const blockedSummary = normalizeSummary({
+              ...(billingSummary || {}),
+              status: payload?.status || billingSummary?.status || 'active',
+              current_period_end: payload?.current_period_end || billingSummary?.current_period_end || null,
+              cancel_at_period_end:
+                payload?.status === 'canceled_at_period_end' ||
+                Boolean(billingSummary?.cancel_at_period_end)
+            });
+            setDeleteBlockedState(blockedSummary);
+            setDeleteStep('blocked-subscription');
+            return;
+          }
+          if (status === 422) {
+            setDeleteStep('confirm-phrase');
+            if (deletePhraseError) {
+              deletePhraseError.hidden = false;
+              deletePhraseError.textContent = 'Confirmation sentence does not match.';
+            }
+            validateDeletePhrase();
+            deletePhraseInput.focus();
+            return;
+          }
+          if (status === 401 || status === 403) {
+            closeDeleteModal({ restoreFocus: false });
+            return;
+          }
+          setDeleteStep('error');
+          if (deleteGlobalError) {
+            const detail = payload?.detail ? ` (${String(payload.detail)})` : '';
+            deleteGlobalError.textContent = payload?.error
+              ? `${String(payload.error)}${detail}`
+              : 'Could not delete your account right now.';
+          }
+        } finally {
+          setButtonBusy(deleteConfirmBtn, false);
+        }
+      }
+
+      if (deleteModal && deleteDialog && deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+          deleteOpener = deleteBtn;
+          deleteBodyOverflow = document.body.style.overflow;
+          deleteModal.hidden = false;
+          document.body.style.overflow = 'hidden';
+          document.addEventListener('keydown', handleDeleteModalKeydown, true);
+          if (deletePhraseInput) deletePhraseInput.value = '';
+          setDeleteStep('gate-subscription');
+          requestAnimationFrame(() => deleteDialog.focus());
+          await runDeleteSubscriptionGate();
+          if (deleteDialog.getAttribute('data-dx-delete-step') === 'confirm-phrase') {
+            deletePhraseInput?.focus();
+          }
+        });
+      }
+
+      deletePhraseInput?.addEventListener('input', () => {
+        if (deletePhraseError) {
+          deletePhraseError.hidden = true;
+          deletePhraseError.textContent = '';
+        }
+        validateDeletePhrase();
+      });
+      deleteConfirmBtn?.addEventListener('click', submitAccountDelete);
+      deleteCancelBtn?.addEventListener('click', () => closeDeleteModal());
+      deleteBlockedCloseBtn?.addEventListener('click', () => closeDeleteModal());
+      deleteErrorCloseBtn?.addEventListener('click', () => closeDeleteModal());
+      deleteRetryBtn?.addEventListener('click', async () => {
+        await runDeleteSubscriptionGate();
+      });
+      deletePortalCancelBtn?.addEventListener('click', async () => {
+        setButtonBusy(deletePortalCancelBtn, true);
+        if (deleteBlockedError) {
+          deleteBlockedError.hidden = true;
+          deleteBlockedError.textContent = '';
+        }
+        try {
+          const portal = await openPortalSession('subscription_cancel');
+          if (portal?.url) {
+            window.location.href = portal.url;
+            return;
+          }
+          throw new Error('No portal URL returned.');
+        } catch (error) {
+          console.error('Portal cancel flow failed:', error);
+          if (deleteBlockedError) {
+            deleteBlockedError.hidden = false;
+            deleteBlockedError.textContent = 'Could not open Customer Portal cancel flow right now.';
+          }
+        } finally {
+          setButtonBusy(deletePortalCancelBtn, false);
+        }
+      });
+      deleteModal?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target instanceof Element && target.getAttribute('data-dx-delete-close') === 'true') {
+          closeDeleteModal();
+        }
+      });
 
 /* Notifications — isolated (no globals, no chips) */
 (() => {
