@@ -29,6 +29,28 @@ const GOOEY_MESH_MARKUP = `
       </div>
 `;
 
+function extractMainWindow(source, label) {
+  const mainStart = source.indexOf('<main id="page"');
+  if (mainStart < 0) {
+    throw new Error(`Unable to find <main id=\"page\"> in ${label}`);
+  }
+  const mainEnd = source.indexOf('</main>', mainStart);
+  if (mainEnd < 0) {
+    throw new Error(`Unable to find </main> in ${label}`);
+  }
+  const preMain = source.slice(0, mainStart);
+  const postMain = source.slice(mainEnd + '</main>'.length);
+  return { preMain, postMain };
+}
+
+function extractBodySuffix(postMain) {
+  const footerSectionsStart = postMain.indexOf('<footer class="sections"');
+  if (footerSectionsStart >= 0) {
+    return postMain.slice(footerSectionsStart);
+  }
+  return postMain;
+}
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -59,21 +81,17 @@ function readShellParts() {
   }
 
   const source = fs.readFileSync(sourcePath, 'utf8');
-  const mainStart = source.indexOf('<main id="page"');
-  if (mainStart < 0) {
-    throw new Error(`Unable to find <main id=\"page\"> in ${path.relative(ROOT, sourcePath)}`);
-  }
-  const mainEnd = source.indexOf('</main>', mainStart);
-  if (mainEnd < 0) {
-    throw new Error(`Unable to find </main> in ${path.relative(ROOT, sourcePath)}`);
-  }
+  const mainShell = extractMainWindow(source, path.relative(ROOT, sourcePath));
+  let preMain = mainShell.preMain;
+  let bodySuffix = extractBodySuffix(mainShell.postMain);
 
-  let preMain = source.slice(0, mainStart);
-  const postMain = source.slice(mainEnd + '</main>'.length);
-  let bodySuffix = postMain;
-  const footerSectionsStart = postMain.indexOf('<footer class="sections"');
-  if (footerSectionsStart >= 0) {
-    bodySuffix = postMain.slice(footerSectionsStart);
+  if (!bodySuffix.includes('class="dex-footer"') && fs.existsSync(SHELL_FALLBACK_PATH)) {
+    const fallbackSource = fs.readFileSync(SHELL_FALLBACK_PATH, 'utf8');
+    const fallbackShell = extractMainWindow(fallbackSource, path.relative(ROOT, SHELL_FALLBACK_PATH));
+    const fallbackSuffix = extractBodySuffix(fallbackShell.postMain);
+    if (fallbackSuffix.includes('class="dex-footer"')) {
+      bodySuffix = fallbackSuffix;
+    }
   }
 
   const gooStart = preMain.indexOf('<div id="gooey-mesh-wrapper">');

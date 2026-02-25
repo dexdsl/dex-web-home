@@ -18,8 +18,15 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      .dx-polls-shell{width:var(--dx-header-frame-width);max-width:var(--dx-header-frame-width);margin:0 auto;padding:0;box-sizing:border-box}
-      .dx-polls-layout{display:grid;gap:clamp(14px,1.8vw,22px);grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+      .dx-polls-shell{
+        --dx-polls-gap: clamp(14px,1.8vw,22px);
+        width:var(--dx-header-frame-width);
+        max-width:var(--dx-header-frame-width);
+        margin:0 auto;
+        padding:var(--dx-polls-gap) 0;
+        box-sizing:border-box
+      }
+      .dx-polls-layout{display:grid;gap:var(--dx-polls-gap);grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
       .dx-polls-panel{padding:clamp(16px,1.8vw,22px);border-radius:var(--dx-header-glass-radius,var(--dx-radius-md,10px));background:var(--dx-header-glass-bg);border:1px solid var(--dx-header-glass-rim);box-shadow:var(--dx-header-glass-shadow)}
       @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))){.dx-polls-panel{-webkit-backdrop-filter:var(--dx-header-glass-backdrop);backdrop-filter:var(--dx-header-glass-backdrop)}}
       .dx-polls-title{margin:0;font-family:var(--font-heading);font-size:clamp(1.6rem,3.3vw,2.35rem);letter-spacing:.02em;text-transform:uppercase}
@@ -30,6 +37,12 @@
       .dx-poll-card-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
       .dx-poll-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;border:1px solid rgba(38,42,52,.25);font-family:var(--font-body);font-size:.74rem;letter-spacing:.02em;text-transform:uppercase}
       .dx-poll-chip.is-accent{background:linear-gradient(90deg,#ff2d13 0%,#ff7a1a 100%);color:#fff;border-color:rgba(0,0,0,.18)}
+      .dx-poll-chip.is-members{
+        background:rgba(22,26,34,.9);
+        color:#fff;
+        border-color:rgba(255,255,255,.24);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 14px rgba(16,20,30,.22)
+      }
       .dx-poll-question{margin:0;font-family:var(--font-heading);font-size:clamp(1rem,1.2vw,1.25rem);line-height:1.15;letter-spacing:.01em}
       .dx-poll-meta{margin:0;font-family:var(--font-body);font-size:.86rem;color:var(--dx-color-text-muted,#5e6270)}
       .dx-poll-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -377,8 +390,8 @@
     const closeLabel = closed ? `Closed ${formatDate(poll.closeAt)}` : `Closes ${formatDate(poll.closeAt)} (${relativeCloseText(poll.closeAt)})`;
 
     const lockChip = poll.visibility === 'members'
-      ? '<span class="dx-poll-chip">Members</span>'
-      : '<span class="dx-poll-chip">Public</span>';
+      ? '<span class="dx-poll-chip is-members">Members only</span>'
+      : '';
 
     const cta = locked
       ? `<button class="dx-poll-action" type="button" data-dx-poll-action="signin" data-dx-poll-id="${htmlEscape(poll.id)}">Sign in to unlock</button>`
@@ -410,7 +423,7 @@
       <section class="dx-polls-shell">
         <article class="dx-polls-panel">
           <h1 class="dx-polls-title">Dex Polls</h1>
-          <p class="dx-polls-subtitle">Community signal desk. Public polls are open to everyone; member polls require sign-in.</p>
+          <p class="dx-polls-subtitle">Community signal desk. Members-only polls require sign-in.</p>
         </article>
         <section class="dx-polls-layout">
           <article class="dx-polls-panel" data-dx-motion="pagination">
@@ -453,8 +466,8 @@
     }).join('');
 
     const memberChip = poll.visibility === 'members'
-      ? '<span class="dx-poll-chip">Members</span>'
-      : '<span class="dx-poll-chip">Public</span>';
+      ? '<span class="dx-poll-chip is-members">Members only</span>'
+      : '';
 
     const saveLabel = saveState === 'saving'
       ? 'Submitting vote…'
