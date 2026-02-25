@@ -40,7 +40,7 @@
     "verify:buttons": "node scripts/verify_button_primitives.mjs",
     "verify:dexnotes": "node scripts/verify_dexnotes_integrity.mjs",
     "verify:no-sq-images": "npm run verify:no-legacy-cdn-images",
-    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:polls",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:favorites && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:polls",
     "styles:sync": "node scripts/sync_runtime_css.mjs",
     "hdr:manifest": "node scripts/hdr_build_manifest.mjs",
     "hdr:inject": "node scripts/hdr_inject_picture_sources.mjs",
@@ -51,6 +51,8 @@
     "catalog:sync": "node scripts/sync_runtime_css.mjs",
     "catalog:verify": "node scripts/verify_catalog_integrity.mjs",
     "catalog:all": "npm run catalog:extract && npm run catalog:build && npm run catalog:sync && npm run catalog:verify",
+    "favorites:build": "node scripts/build-favorites.mjs",
+    "verify:favorites": "node scripts/verify_favorites_contract.mjs",
     "call:extract": "node scripts/extract_call_data.mjs",
     "call:build": "node scripts/build-call.mjs",
     "call:sync": "node scripts/sync_runtime_css.mjs",
@@ -69,11 +71,12 @@
     "test:net": "playwright test tests/network-purity.spec.ts",
     "test:polls-routing": "playwright test tests/polls-soft-routing.spec.ts",
     "test:achievements-loading": "playwright test tests/achievements-loading-resilience.spec.ts",
+    "test:favorites-lookup": "playwright test tests/favorites-lookup-parity.spec.ts",
     "test:net:prod": "node -e \"if(!process.env.BASE_URL){console.error('BASE_URL is required');process.exit(1)}\" && playwright test tests/network-purity-prod.spec.ts",
     "test:auth0": "playwright test tests/auth0-spa-loaded.spec.ts",
     "test:auth-protected-refresh": "playwright test tests/auth-protected-refresh.spec.ts",
     "test:visual": "playwright test tests/visual.spec.ts",
-    "sanitize:all": "npm run vendor:auth0 && npm run phase1:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:visual",
+    "sanitize:all": "npm run vendor:auth0 && npm run phase1:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:visual",
     "phase2:inventory": "node scripts/style_inventory.mjs",
     "phase2:states": "node scripts/style_states.mjs",
     "phase2:tokens": "node scripts/tokenize_inventory.mjs",
@@ -82,7 +85,7 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:visual"
+    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

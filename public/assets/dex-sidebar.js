@@ -3,6 +3,11 @@
   window.__dexSidebarRuntimeBound = true;
 
   const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+  const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
+  const FAVORITES_RUNTIME_PATH = '/assets/js/dx-favorites.js';
+  let favoritesRuntimePromise = null;
+  let favoritesSignalsBound = false;
+
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
   const prefersReducedMotion = () => {
@@ -41,6 +46,14 @@
       } catch {}
     }
     return window.location.origin;
+  };
+
+  const normalizeLocationPath = (pathname) => {
+    const raw = String(pathname || '').trim();
+    if (!raw) return '/';
+    const clean = raw.startsWith('/') ? raw.replace(/\/+/g, '/') : `/${raw.replace(/\/+/g, '/')}`;
+    if (clean === '/') return '/';
+    return clean.endsWith('/') ? clean : `${clean}/`;
   };
 
   const seriesKey = (page) => {
@@ -87,34 +100,253 @@
     return cfg.downloads.driveBase + encodeURIComponent(id);
   };
 
-  const attach = (cfg, type, btnSel) => {
+  const bucketHasAnyAsset = (cfg, bucket) => {
+    const audio = Object.values(cfg.downloads.audioFileIds?.[bucket] || {});
+    const video = Object.values(cfg.downloads.videoFileIds?.[bucket] || {});
+    return [...audio, ...video].some((value) => String(value || '').trim());
+  };
+
+  const getFavoritesApi = () => {
+    const api = window.__dxFavorites;
+    if (!api || typeof api.toggle !== 'function' || typeof api.isFavorite !== 'function' || typeof api.keyFor !== 'function') {
+      return null;
+    }
+    return api;
+  };
+
+  const ensureFavoritesApi = (origin) => {
+    const existing = getFavoritesApi();
+    if (existing) return Promise.resolve(existing);
+    if (favoritesRuntimePromise) return favoritesRuntimePromise;
+
+    favoritesRuntimePromise = new Promise((resolve) => {
+      const done = () => resolve(getFavoritesApi());
+      const src = new URL(FAVORITES_RUNTIME_PATH, origin || window.location.origin).toString();
+      const found = Array.from(document.querySelectorAll('script[src]')).find((script) => {
+        try {
+          const parsed = new URL(script.src, window.location.href);
+          return parsed.pathname === FAVORITES_RUNTIME_PATH;
+        } catch {
+          return false;
+        }
+      });
+
+      if (found) {
+        if (getFavoritesApi()) {
+          done();
+          return;
+        }
+        found.addEventListener('load', done, { once: true });
+        found.addEventListener('error', done, { once: true });
+        window.setTimeout(done, 3000);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      script.onload = done;
+      script.onerror = done;
+      document.head.appendChild(script);
+      window.setTimeout(done, 3000);
+    });
+
+    return favoritesRuntimePromise;
+  };
+
+  const setFavoriteButtonState = (button, active, activeLabel, inactiveLabel) => {
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.classList.toggle('is-active', active);
+    const label = active ? activeLabel : inactiveLabel;
+    button.textContent = label;
+  };
+
+  const refreshFavoriteButtons = (favoritesApi, root = document) => {
+    const api = favoritesApi || getFavoritesApi();
+    if (!api) return;
+    root.querySelectorAll('[data-dx-fav-key]').forEach((button) => {
+      const key = String(button.getAttribute('data-dx-fav-key') || '').trim();
+      if (!key) return;
+      const active = api.isFavorite(key);
+      const activeLabel = String(button.getAttribute('data-dx-fav-active-label') || 'Favorited');
+      const inactiveLabel = String(button.getAttribute('data-dx-fav-inactive-label') || 'Favorite');
+      setFavoriteButtonState(button, active, activeLabel, inactiveLabel);
+    });
+  };
+
+  const bindFavoritesSignals = (favoritesApi) => {
+    if (favoritesSignalsBound) return;
+    const api = favoritesApi || getFavoritesApi();
+    if (!api) return;
+    favoritesSignalsBound = true;
+    window.addEventListener('dx:favorites:changed', () => {
+      refreshFavoriteButtons(api, document);
+    });
+    window.addEventListener('storage', (event) => {
+      const key = String(event?.key || '').trim();
+      if (!key || !key.startsWith(FAVORITES_STORAGE_PREFIX)) return;
+      refreshFavoriteButtons(api, document);
+    });
+  };
+
+  const bindFavoriteToggle = (button, favoritesApi, record, labels) => {
+    const api = favoritesApi || getFavoritesApi();
+    if (!api || !button || !record) return;
+    const activeLabel = labels?.active || 'Favorited';
+    const inactiveLabel = labels?.inactive || 'Favorite';
+    const key = api.keyFor(record);
+    if (!key) return;
+
+    button.setAttribute('data-dx-fav-key', key);
+    button.setAttribute('data-dx-fav-kind', String(record.kind || 'entry'));
+    button.setAttribute('data-dx-fav-lookup', String(record.lookupNumber || ''));
+    button.setAttribute('data-dx-fav-active-label', activeLabel);
+    button.setAttribute('data-dx-fav-inactive-label', inactiveLabel);
+
+    if (button.dataset.dxFavBound !== '1') {
+      button.dataset.dxFavBound = '1';
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        api.toggle(record);
+        refreshFavoriteButtons(api, document);
+      });
+    }
+
+    setFavoriteButtonState(button, api.isFavorite(key), activeLabel, inactiveLabel);
+  };
+
+  const buildEntryFavoriteRecord = (lookup, entryHref) => ({
+    kind: 'entry',
+    lookupNumber: String(lookup || 'Unknown lookup').trim() || 'Unknown lookup',
+    entryLookupNumber: String(lookup || 'Unknown lookup').trim() || 'Unknown lookup',
+    entryHref: normalizeLocationPath(entryHref || window.location.pathname || '/'),
+    source: 'entry-sidebar',
+  });
+
+  const buildBucketFavoriteRecord = (lookup, entryHref, bucket) => {
+    const bucketLabel = String(bucket || '').trim().toUpperCase();
+    const entryLookup = String(lookup || 'Unknown lookup').trim() || 'Unknown lookup';
+    return {
+      kind: 'bucket',
+      lookupNumber: `${entryLookup} ${bucketLabel}`,
+      entryLookupNumber: entryLookup,
+      entryHref: normalizeLocationPath(entryHref || window.location.pathname || '/'),
+      bucket: bucketLabel,
+      source: 'entry-sidebar',
+    };
+  };
+
+  const buildFileFavoriteRecord = ({ lookup, entryHref, bucket, format, fileId, type }) => {
+    const entryLookup = String(lookup || 'Unknown lookup').trim() || 'Unknown lookup';
+    const bucketLabel = String(bucket || '').trim().toUpperCase();
+    const formatKey = String(format?.key || '').trim();
+    const formatLabel = String(format?.label || formatKey || '').trim();
+    return {
+      kind: 'file',
+      lookupNumber: `${entryLookup} ${bucketLabel} [${formatLabel || formatKey || type}]`,
+      entryLookupNumber: entryLookup,
+      entryHref: normalizeLocationPath(entryHref || window.location.pathname || '/'),
+      bucket: bucketLabel,
+      formatKey,
+      formatLabel,
+      fileId: String(fileId || '').trim(),
+      source: 'entry-sidebar',
+    };
+  };
+
+  const attach = (cfg, type, btnSel, context) => {
     const btn = document.querySelector(btnSel);
     if (!btn || btn.dataset.dexBound === '1') return;
     btn.dataset.dexBound = '1';
     btn.addEventListener('click', () => {
       const formats = cfg.downloads.formats[type] || [];
       const allBuckets = ALL_BUCKETS;
-      const links = [];
+
+      const modal = document.createElement('div');
+      modal.className = 'dex-download-modal';
+      const inner = document.createElement('div');
+      inner.className = 'dex-download-modal-inner';
+      const close = document.createElement('button');
+      close.className = 'close';
+      close.setAttribute('aria-label', 'Close');
+      close.type = 'button';
+      close.textContent = '×';
+      inner.appendChild(close);
+
+      let visibleRows = 0;
       allBuckets.forEach((bucket) => {
         const fileIds = (type === 'audio' ? cfg.downloads.audioFileIds?.[bucket] : cfg.downloads.videoFileIds?.[bucket]) || {};
         const bucketAvailable = Object.values(fileIds).some(Boolean);
+
         formats.forEach((fmt) => {
           const href = buildUrl(cfg, type, bucket, fmt.key);
+          const fileId = String(fileIds?.[fmt.key] || '').trim();
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.justifyContent = 'space-between';
+          row.style.gap = '0.55rem';
+          row.style.flexWrap = 'wrap';
+
           if (href !== '#') {
-            links.push(`<a href="${href}" target="_blank" rel="noopener">${bucket} · ${fmt.label}</a>`);
+            visibleRows += 1;
+            const link = document.createElement('a');
+            link.href = href;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = `${bucket} · ${fmt.label}`;
+            row.appendChild(link);
+
+            const favoritesApi = context?.favoritesApi || getFavoritesApi();
+            if (favoritesApi) {
+              const favButton = document.createElement('button');
+              favButton.type = 'button';
+              favButton.className = 'dx-button-element--secondary dx-fav-toggle dx-fav-file-toggle';
+              const record = buildFileFavoriteRecord({
+                lookup: context?.lookup,
+                entryHref: context?.entryHref,
+                bucket,
+                format: fmt,
+                fileId,
+                type,
+              });
+              bindFavoriteToggle(favButton, favoritesApi, record, {
+                active: 'Favorited file',
+                inactive: 'Favorite file',
+              });
+              row.appendChild(favButton);
+            }
           } else if (!bucketAvailable) {
-            links.push(`<span aria-disabled="true" style="opacity:.5;cursor:not-allowed;">${bucket} · ${fmt.label} (unavailable)</span>`);
+            const disabled = document.createElement('span');
+            disabled.setAttribute('aria-disabled', 'true');
+            disabled.style.opacity = '0.5';
+            disabled.style.cursor = 'not-allowed';
+            disabled.textContent = `${bucket} · ${fmt.label} (unavailable)`;
+            row.appendChild(disabled);
+          }
+
+          if (row.childNodes.length > 0) {
+            inner.appendChild(row);
           }
         });
       });
-      const modal = document.createElement('div');
-      modal.className = 'dex-download-modal';
-      modal.innerHTML = `<div class="dex-download-modal-inner"><button class="close" aria-label="Close">×</button>${links.join('')}</div>`;
+
+      if (!visibleRows) {
+        const empty = document.createElement('p');
+        empty.style.margin = '0';
+        empty.style.opacity = '0.75';
+        empty.textContent = 'No downloads available for this entry yet.';
+        inner.appendChild(empty);
+      }
+
+      modal.appendChild(inner);
       document.body.appendChild(modal);
-      modal.querySelector('.close')?.addEventListener('click', () => modal.remove());
+      close.addEventListener('click', () => modal.remove());
       modal.addEventListener('click', (event) => {
         if (event.target === modal) modal.remove();
       });
+      refreshFavoriteButtons(context?.favoritesApi || getFavoritesApi(), modal);
     });
   };
 
@@ -234,13 +466,8 @@
     });
   };
 
-  const boot = () => {
+  const boot = async () => {
     if (document.documentElement.dataset.dexSidebarRendered === '1') return;
-
-    const globalCfg = parseJsonScript('dex-sidebar-config');
-    if (!globalCfg) return;
-    const manifest = parseJsonScript('dex-manifest');
-    if (!manifest) return;
 
     const pageJson = parseJsonScript('dex-sidebar-page-config');
     const page = pageJson || window.dexSidebarPageConfig;
@@ -249,9 +476,12 @@
       return;
     }
 
+    const globalCfg = parseJsonScript('dex-sidebar-config') || {};
+    const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
+
     const credits = page.credits || {};
     const cfg = {
-      license: globalCfg.license,
+      license: globalCfg.license || {},
       attributionSentence: page.attributionSentence,
       credits: {
         ...credits,
@@ -271,7 +501,10 @@
       },
       downloads: {
         driveBase: 'https://drive.google.com/uc?export=download&id=',
-        formats: globalCfg.downloads.formats,
+        formats: {
+          audio: Array.isArray(globalCfg?.downloads?.formats?.audio) ? globalCfg.downloads.formats.audio : [],
+          video: Array.isArray(globalCfg?.downloads?.formats?.video) ? globalCfg.downloads.formats.video : [],
+        },
         audioFileIds: manifest.audio || {},
         videoFileIds: manifest.video || {},
       },
@@ -279,15 +512,20 @@
       metadata: page.metadata || {},
     };
 
-    const lookup = page.lookupNumber || '';
+    const lookup = String(page.lookupNumber || '').trim() || 'Unknown lookup';
     const selected = normalizeBuckets(page.buckets);
-    const badgesHtml = ALL_BUCKETS
-      .map((bucket) => {
-        const cls = selected.includes(bucket) ? 'available' : 'unavailable';
-        return `<span class="badge ${cls}">${bucket}</span>`;
-      })
-      .join('');
+    const badgesHtml = buildBucketsHtml(page.buckets);
+    const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
+
     const origin = getSidebarAssetOrigin();
+    const favoritesApi = await ensureFavoritesApi(origin);
+    if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
+      try {
+        favoritesApi.migrateLegacy();
+      } catch {}
+      bindFavoritesSignals(favoritesApi);
+    }
+
     const SERIES_PATHS = {
       dex: '/assets/series/dex.png',
       index: '/assets/series/index.png',
@@ -295,8 +533,13 @@
     };
     const sk = seriesKey(page);
     const seriesSrc = new URL(SERIES_PATHS[sk] || SERIES_PATHS.dex, origin).toString();
+    const entryHref = normalizeLocationPath(window.location.pathname || '/');
+
     const overviewEl = document.querySelector('.dex-overview');
     if (overviewEl) {
+      const bucketFavoriteButtonsHtml = favoriteBuckets
+        .map((bucket) => `<button type="button" class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle" data-bucket="${bucket}">Favorite ${bucket}</button>`)
+        .join('');
       overviewEl.innerHTML = `
         <div class="overview-item">
           <span class="overview-lookup">#${lookup}</span>
@@ -310,7 +553,34 @@
           <div class="overview-badges">${badgesHtml}</div>
           <p class="p3 overview-label">Buckets</p>
         </div>
+        <div class="overview-item">
+          <button type="button" class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle">Favorite entry</button>
+          <p class="p3 overview-label">Collection</p>
+        </div>
+        <div class="overview-item">
+          <div class="overview-badges">${bucketFavoriteButtonsHtml || '<span class="badge unavailable">No buckets</span>'}</div>
+          <p class="p3 overview-label">Favorite Buckets</p>
+        </div>
       `;
+
+      if (favoritesApi) {
+        const entryFavButton = overviewEl.querySelector('.dx-fav-entry-toggle');
+        if (entryFavButton) {
+          bindFavoriteToggle(entryFavButton, favoritesApi, buildEntryFavoriteRecord(lookup, entryHref), {
+            active: 'Favorited entry',
+            inactive: 'Favorite entry',
+          });
+        }
+
+        overviewEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
+          const bucket = String(bucketButton.getAttribute('data-bucket') || '').trim().toUpperCase();
+          if (!bucket) return;
+          bindFavoriteToggle(bucketButton, favoritesApi, buildBucketFavoriteRecord(lookup, entryHref, bucket), {
+            active: `Favorited ${bucket}`,
+            inactive: `Favorite ${bucket}`,
+          });
+        });
+      }
     }
 
     render('.dex-license', 'License', `
@@ -350,7 +620,7 @@
       </div>
     `);
 
-    render('#downloads', 'Download', `<p>Please choose the asset you’d like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button>`, true);
+    render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button>`, true);
     render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
     render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
 
@@ -402,18 +672,25 @@
       });
     });
 
-    attach(cfg, 'audio', '#downloads .btn-audio');
-    attach(cfg, 'video', '#downloads .btn-video');
+    attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
+    attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });
     initPersonPins();
     installSidebarRevealMotion();
     installSidebarInteractiveMotion();
+    refreshFavoriteButtons(favoritesApi, document);
 
     document.documentElement.dataset.dexSidebarRendered = '1';
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      boot().catch((error) => {
+        console.error('[dex-sidebar] boot error', error);
+      });
+    }, { once: true });
   } else {
-    boot();
+    boot().catch((error) => {
+      console.error('[dex-sidebar] boot error', error);
+    });
   }
 })();

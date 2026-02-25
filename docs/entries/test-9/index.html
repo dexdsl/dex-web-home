@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>test-9 | dex favorites parity</title>
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/dex.css" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        padding: 2rem 1rem;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(255, 106, 0, 0.22), transparent 42%),
+          radial-gradient(circle at 86% 8%, rgba(255, 25, 16, 0.18), transparent 44%),
+          linear-gradient(180deg, #f4f2eb 0%, #efe7d7 100%);
+      }
+
+      .test-entry-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .test-entry-content {
+        padding: 1rem;
+        border-radius: 0.85rem;
+        border: 1px solid rgba(15, 15, 15, 0.14);
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(12px) saturate(130%);
+      }
+
+      .test-entry-content h1 {
+        margin: 0 0 0.75rem;
+        font-size: clamp(1.5rem, 2.2vw, 2rem);
+      }
+
+      .test-entry-content p {
+        margin: 0 0 0.85rem;
+        line-height: 1.45;
+      }
+
+      .test-entry-content .hint {
+        opacity: 0.74;
+      }
+
+      .dex-sidebar {
+        position: sticky;
+        top: 0.75rem;
+      }
+
+      @media (max-width: 960px) {
+        .test-entry-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .dex-sidebar {
+          position: static;
+        }
+      }
+    </style>
+
+    <script defer src="/assets/js/dx-favorites.js"></script>
+
+    <script id="dex-sidebar-config" type="application/json">
+      {
+        "license": {
+          "type": "CC-BY 4.0 International",
+          "licenseUrl": "https://dexdsl.org/copyright#license",
+          "termsUrl": "https://dexdsl.org/copyright#dont",
+          "additionalNotes": "Do not redistribute raw source bundles."
+        },
+        "downloads": {
+          "driveBase": "https://drive.google.com/uc?export=download&id=",
+          "formats": {
+            "audio": [
+              { "key": "mp3", "label": "MP3 (.mp3)" },
+              { "key": "wav", "label": "WAV (.wav)" }
+            ],
+            "video": [
+              { "key": "1080p", "label": "1080p Video (.mov)" },
+              { "key": "4K", "label": "4K Video (.mov)" }
+            ]
+          }
+        }
+      }
+    </script>
+
+    <script id="dex-sidebar-page-config" type="application/json">
+      {
+        "lookupNumber": "K.Hps. Su AV2023",
+        "buckets": ["A", "B", "C"],
+        "series": "dex",
+        "specialEventImage": "/assets/series/dex.png",
+        "attributionSentence": "This sample pack includes transformed acoustic and amplified sources.",
+        "credits": {
+          "artist": "Sebastian Suarez Solis",
+          "artistAlt": "Prepared harpsichord and amplified objects",
+          "instruments": ["Prepared harpsichord", "objects"],
+          "video": {
+            "director": "Dex Test Route",
+            "cinematography": "Dex Test Route",
+            "editing": "Dex Test Route"
+          },
+          "audio": {
+            "recording": "Dex Test Route",
+            "mix": "Dex Test Route",
+            "master": "Dex Test Route"
+          },
+          "year": 2026,
+          "season": "S2",
+          "location": "Dex Studio"
+        },
+        "fileSpecs": {
+          "bitDepth": 24,
+          "sampleRate": 48000,
+          "channels": "stereo",
+          "staticSizes": {
+            "A": "412 MB",
+            "B": "308 MB",
+            "C": "222 MB",
+            "D": "0 MB",
+            "E": "0 MB",
+            "X": "96 MB"
+          }
+        },
+        "metadata": {
+          "sampleLength": "58m total",
+          "tags": ["favorites-test", "harpsichord", "prepared"]
+        }
+      }
+    </script>
+
+    <script id="dex-manifest" type="application/json">
+      {
+        "audio": {
+          "A": { "mp3": "test9-a-mp3", "wav": "test9-a-wav" },
+          "B": { "mp3": "test9-b-mp3", "wav": "" },
+          "C": { "mp3": "test9-c-mp3", "wav": "test9-c-wav" },
+          "D": { "mp3": "", "wav": "" },
+          "E": { "mp3": "", "wav": "" },
+          "X": { "mp3": "test9-x-mp3", "wav": "" }
+        },
+        "video": {
+          "A": { "1080p": "test9-a-1080", "4K": "test9-a-4k" },
+          "B": { "1080p": "", "4K": "" },
+          "C": { "1080p": "test9-c-1080", "4K": "" },
+          "D": { "1080p": "", "4K": "" },
+          "E": { "1080p": "", "4K": "" },
+          "X": { "1080p": "", "4K": "" }
+        }
+      }
+    </script>
+
+    <script>
+      try {
+        window.dexSidebarPageConfig = JSON.parse(
+          document.getElementById('dex-sidebar-page-config').textContent,
+        );
+      } catch (error) {
+        console.error('[test-9] failed to parse sidebar page config', error);
+      }
+    </script>
+  </head>
+
+  <body>
+    <main class="test-entry-shell">
+      <article class="test-entry-content">
+        <h1>test-9 Favorites Lookup Parity</h1>
+        <p>
+          This public regression route is used by Playwright to validate entry, bucket, and
+          file favorites against canonical lookup numbers.
+        </p>
+        <p><strong>Lookup #:</strong> K.Hps. Su AV2023</p>
+        <p class="hint">
+          Use the sidebar controls to favorite the collection, bucket buttons, and specific
+          downloadable file formats.
+        </p>
+      </article>
+
+      <aside class="dex-sidebar" aria-label="Entry sidebar">
+        <section class="dex-overview"></section>
+        <section class="dex-license"></section>
+        <section class="dex-credits"></section>
+
+        <section class="dex-file-info">
+          <div class="file-info-tabs" role="tablist" aria-label="File information sections">
+            <button type="button" role="tab" data-tab="downloads" aria-selected="true">Download</button>
+            <button type="button" role="tab" data-tab="file-specs" aria-selected="false">File Specs</button>
+            <button type="button" role="tab" data-tab="metadata" aria-selected="false">Metadata</button>
+          </div>
+          <div class="file-info-panels">
+            <div id="downloads" role="tabpanel"></div>
+            <div id="file-specs" role="tabpanel" hidden></div>
+            <div id="metadata" role="tabpanel" hidden></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script defer src="/assets/dex-sidebar.js"></script>
+  </body>
+</html>

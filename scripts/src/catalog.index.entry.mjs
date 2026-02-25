@@ -33,7 +33,9 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   let blobResizeHandler = null;
   let drawerOpen = false;
   let seasonCarouselSeason = '';
+  let favoritesSignalsBound = false;
   const ZWNJ = '\u200C';
+  const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
 
   function redirectLegacyHashes() {
     const target = REDIRECT_HASHES[window.location.hash || ''];
@@ -219,6 +221,88 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     link.href = href || '#';
     link.textContent = label;
     return link;
+  }
+
+  function getFavoritesApi() {
+    const api = window.__dxFavorites;
+    if (!api || typeof api.list !== 'function' || typeof api.toggle !== 'function' || typeof api.isFavorite !== 'function') {
+      return null;
+    }
+    return api;
+  }
+
+  function favoriteEntryRecord(entry) {
+    const entryHref = canonicalEntryHref(entry?.entry_href) || normalizePath(entry?.entry_href || '');
+    const lookup = text(entry?.lookup_raw || entry?.title_raw || entry?.performer_raw || 'Unknown entry');
+    return {
+      kind: 'entry',
+      lookupNumber: lookup,
+      entryLookupNumber: lookup,
+      entryHref,
+      title: text(entry?.title_raw || ''),
+      performer: text(entry?.performer_raw || ''),
+      source: 'catalog',
+    };
+  }
+
+  function setFavoriteButtonState(button, active) {
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.classList.toggle('is-active', active);
+    button.textContent = active ? 'Favorited' : 'Favorite';
+  }
+
+  function syncFavoriteButtons(root = document) {
+    const api = getFavoritesApi();
+    const buttons = Array.from(root.querySelectorAll('[data-dx-fav-kind="entry"][data-dx-fav-key]'));
+    buttons.forEach((button) => {
+      const key = text(button.getAttribute('data-dx-fav-key')).trim();
+      const active = api ? api.isFavorite(key) : false;
+      setFavoriteButtonState(button, active);
+    });
+  }
+
+  function bindFavoritesSignals() {
+    if (favoritesSignalsBound) return;
+    favoritesSignalsBound = true;
+    window.addEventListener('dx:favorites:changed', () => {
+      syncFavoriteButtons(document);
+    });
+    window.addEventListener('storage', (event) => {
+      const key = text(event?.key).trim();
+      if (!key || !key.startsWith(FAVORITES_STORAGE_PREFIX)) return;
+      syncFavoriteButtons(document);
+    });
+  }
+
+  function createEntryFavoriteButton(entry) {
+    const button = create('button', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-index-row-favorite', 'Favorite');
+    button.type = 'button';
+    const record = favoriteEntryRecord(entry);
+    const api = getFavoritesApi();
+    const key = api && typeof api.keyFor === 'function'
+      ? api.keyFor(record)
+      : '';
+    if (key) button.setAttribute('data-dx-fav-key', key);
+    button.setAttribute('data-dx-fav-kind', 'entry');
+    button.setAttribute('data-dx-fav-lookup', record.lookupNumber);
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const runtime = getFavoritesApi();
+      if (!runtime) return;
+      runtime.toggle(record);
+      syncFavoriteButtons(document);
+    });
+    setFavoriteButtonState(button, api ? api.isFavorite(record) : false);
+    return button;
+  }
+
+  function normalizePath(pathname) {
+    const raw = text(pathname).trim();
+    if (!raw) return '';
+    const clean = raw.startsWith('/') ? raw.replace(/\/+/g, '/') : `/${raw.replace(/\/+/g, '/')}`;
+    if (clean === '/') return '/';
+    return clean.endsWith('/') ? clean : `${clean}/`;
   }
 
   function allEntries() {
@@ -797,11 +881,19 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
     const open = openCta(text(entry.entry_href || '#'), 'Open entry', 'secondary');
     open.classList.add('dx-catalog-index-row-open');
+    const favorite = createEntryFavoriteButton(entry);
 
     const textWrap = create('div', 'dx-catalog-index-row-text');
     textWrap.append(title, performer, meta);
 
-    row.append(code, textWrap, open);
+    const actions = create('div', 'dx-catalog-index-row-actions');
+    actions.style.display = 'flex';
+    actions.style.flexWrap = 'wrap';
+    actions.style.gap = '0.42rem';
+    actions.style.alignItems = 'center';
+    actions.append(favorite, open);
+
+    row.append(code, textWrap, actions);
     return row;
   }
 
@@ -857,6 +949,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       rootMargin: '0px 0px -8% 0px',
     });
     bindDexButtonMotion(browse);
+    syncFavoriteButtons(browse);
   }
 
   function renderError(error) {
@@ -903,6 +996,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     if (redirectLegacyHashes()) return;
 
     state = { ...DEFAULT_STATE, ...readUrlState() };
+    bindFavoritesSignals();
 
     try {
       const [loadedModel, loadedSearch] = await Promise.all([

@@ -1896,12 +1896,13 @@ tr.clickable{cursor:pointer}
 }
 </style>
 
+<script defer src="/assets/js/dx-favorites.js"></script>
 <script>
 (async function(){
   const DX_MIN_SHEEN_MS = 120;
-
-  /* ── Height fit (same pattern as other blocks) ── */
   const root = document.getElementById('dex-favorites');
+  if (!root) return;
+
   const dxFetchStartTs = performance.now();
   async function finalizeFetchState(state = 'ready'){
     const elapsed = performance.now() - dxFetchStartTs;
@@ -1911,6 +1912,7 @@ tr.clickable{cursor:pointer}
     root.setAttribute('data-dx-fetch-state', state);
     root.removeAttribute('aria-busy');
   }
+
   function fit(){
     const pad = 20;
     const top = root.getBoundingClientRect().top;
@@ -1919,30 +1921,51 @@ tr.clickable{cursor:pointer}
   window.addEventListener('resize', fit);
   fit();
 
-  /* ── Auth0 helper (same as other blocks) ── */
-  async function getAuth0Sub(timeout = 3000){
-    const t0 = Date.now();
-    while(Date.now() - t0 < timeout){
-      if (window.auth0Sub) return window.auth0Sub;
-
-      if (window.auth0 && typeof auth0.getUser === 'function') {
-        try{
-          const u = auth0.getUser();
-          const user = u && typeof u.then === 'function' ? await u : u;
-          if (user && user.sub) return user.sub;
-        } catch {}
-      }
-
-      if (window.AUTH0_USER && AUTH0_USER.sub) return AUTH0_USER.sub;
-
-      await new Promise(r => setTimeout(r, 100));
-    }
-    return '';
+  function text(value){
+    return String(value ?? '');
   }
 
-  const auth0Sub = await getAuth0Sub();
+  function esc(value){
+    return text(value)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
 
-  /* ── Shell ── */
+  function toDate(value){
+    const ms = Date.parse(text(value));
+    if (!Number.isFinite(ms)) return '';
+    try {
+      return new Date(ms).toLocaleDateString();
+    } catch {
+      return new Date(ms).toISOString().slice(0, 10);
+    }
+  }
+
+  async function waitForFavoritesApi(timeoutMs = 3500){
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs){
+      const api = window.__dxFavorites;
+      if (api && typeof api.list === 'function' && typeof api.toggle === 'function' && typeof api.resolveScope === 'function'){
+        return api;
+      }
+      await new Promise(r => setTimeout(r, 60));
+    }
+    return null;
+  }
+
+  const favoritesApi = await waitForFavoritesApi();
+  if (!favoritesApi){
+    root.innerHTML = '<div class="empty"><p><strong>Favorites runtime unavailable.</strong></p><p class="muted">Try refreshing this page.</p></div>';
+    await finalizeFetchState('error');
+    return;
+  }
+
+  const scope = favoritesApi.resolveScope();
+  try { favoritesApi.migrateLegacy({ scope }); } catch {}
+
   root.innerHTML = '';
   const panel = document.createElement('aside');
   panel.className = 'dex-sidebar';
@@ -1967,164 +1990,122 @@ tr.clickable{cursor:pointer}
   card.className = 'panel';
   body.append(card);
 
-  /* toolbar */
   const toolbar = document.createElement('div');
   toolbar.className = 'toolbar';
   toolbar.innerHTML = `
     <div class="pills" role="tablist" aria-label="Favorite type">
       <button class="pill active" data-tab="entries" type="button">Entries <span class="count-badge" id="count-entries">0</span></button>
+      <button class="pill" data-tab="buckets" type="button">Buckets <span class="count-badge" id="count-buckets">0</span></button>
       <button class="pill" data-tab="files" type="button">Files <span class="count-badge" id="count-files">0</span></button>
     </div>
-
     <div class="search-wrap">
       <input class="dex-search-input" id="dex-q" placeholder="Search favorites…" autocomplete="off" />
     </div>
   `;
   card.append(toolbar);
 
-  /* list */
   const list = document.createElement('div');
   list.className = 'table';
   card.append(list);
-
-  /* signed out */
-  if (!auth0Sub) {
-    list.innerHTML = `
-      <div class="empty">
-        <p><strong>Please sign in</strong> to view your favorites.</p>
-      </div>
-    `;
-    await finalizeFetchState('ready');
-    return;
-  }
-
-  /* ── Placeholder favorites store (wire later) ── */
-  const STORE_KEY = 'dex:favorites:' + auth0Sub;
-
-  function readStore(){
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]') || []; }
-    catch { return []; }
-  }
-  function writeStore(rows){
-    localStorage.setItem(STORE_KEY, JSON.stringify(rows || []));
-  }
-
-  /* seeded placeholder (only if empty) */
-  function maybeSeed(){
-    const existing = readStore();
-    if (existing.length) return;
-    writeStore([
-      {
-        type: 'entry',
-        title: 'Example Entry (placeholder)',
-        entryUrl: '/entry/example-entry',
-        addedAt: new Date().toISOString()
-      },
-      {
-        type: 'file',
-        title: 'Example Entry (placeholder)',
-        entryUrl: '/entry/example-entry',
-        fileLabel: 'Example File (placeholder)',
-        fileId: 'file_001',
-        fileUrl: '/entry/example-entry#file=file_001',
-        addedAt: new Date().toISOString()
-      }
-    ]);
-  }
-  maybeSeed();
-
-  /* ── UI state ── */
-  let tab = 'entries';
-  let q = '';
 
   const clearBtn = head.querySelector('#dex-clear');
   const qInput = toolbar.querySelector('#dex-q');
   const tabBtns = Array.from(toolbar.querySelectorAll('.pill'));
 
-  tabBtns.forEach(b=>{
-    b.addEventListener('click', ()=>{
-      tabBtns.forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      tab = b.getAttribute('data-tab') || 'entries';
-      render();
+  let tab = 'entries';
+  let q = '';
+
+  function records(){
+    return favoritesApi.list({ scope });
+  }
+
+  function countByKind(rows){
+    const counts = { entries: 0, buckets: 0, files: 0 };
+    rows.forEach((row) => {
+      if (row.kind === 'file') counts.files += 1;
+      else if (row.kind === 'bucket') counts.buckets += 1;
+      else counts.entries += 1;
     });
-  });
-
-  qInput.addEventListener('input', (e)=>{
-    q = (e.target.value || '').toLowerCase();
-    render();
-  });
-
-  clearBtn.addEventListener('click', ()=>{
-    if (!window.confirm('Clear all favorites?')) return;
-    writeStore([]);
-    render();
-  });
-
-  /* ── Render ── */
-  function esc(s){
-    return String(s ?? '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#039;');
+    return counts;
   }
 
-  function normalize(raw){
-    const t = (raw && raw.type) === 'file' ? 'file' : 'entry';
-    const entryUrl = raw.entryUrl || raw.url || '';
-    const addedAt = raw.addedAt || raw.ts || '';
-    const title = raw.title || raw.entryTitle || raw.lookup || 'Untitled';
-    const fileLabel = raw.fileLabel || raw.fileName || raw.sampleName || '';
-    const fileId = raw.fileId || raw.sampleId || raw.assetId || '';
-    const fileUrl = raw.fileUrl || (entryUrl ? (entryUrl + (entryUrl.includes('#') ? '&' : '#') + 'file=' + encodeURIComponent(fileId || '')) : '');
-    return { type:t, entryUrl, title, fileLabel, fileId, fileUrl, addedAt };
+  function kindLabel(kind){
+    if (kind === 'file') return 'File';
+    if (kind === 'bucket') return 'Bucket';
+    return 'Entry';
   }
 
-  function computeCounts(rows){
-    let e=0,f=0;
-    for (const r of rows){
-      if (r.type === 'file') f++;
-      else e++;
+  function rowTitle(row){
+    if (row.kind === 'file') {
+      const detail = [row.formatLabel || row.formatKey || '', row.fileId || ''].filter(Boolean).join(' · ');
+      return detail || row.title || 'File';
     }
-    toolbar.querySelector('#count-entries').textContent = String(e);
-    toolbar.querySelector('#count-files').textContent = String(f);
-    clearBtn.style.display = (e+f) ? 'inline-block' : 'none';
+    if (row.kind === 'bucket') {
+      return row.title || `Bucket ${row.bucket || ''}`.trim();
+    }
+    const entryTitle = row.title || '';
+    const performer = row.performer || '';
+    return [entryTitle, performer].filter(Boolean).join(' — ') || 'Entry';
+  }
+
+  function rowOpenUrl(row){
+    return text(row.entryHref || '/catalog/').trim() || '/catalog/';
+  }
+
+  function matchesTab(row){
+    if (tab === 'files') return row.kind === 'file';
+    if (tab === 'buckets') return row.kind === 'bucket';
+    return row.kind !== 'file' && row.kind !== 'bucket';
+  }
+
+  function matchesQuery(row){
+    const needle = q.trim().toLowerCase();
+    if (!needle) return true;
+    const hay = [
+      row.lookupNumber,
+      row.entryLookupNumber,
+      row.title,
+      row.performer,
+      row.bucket,
+      row.formatLabel,
+      row.formatKey,
+      row.fileId,
+      row.entryHref,
+    ].map((value) => text(value).toLowerCase()).join(' ');
+    return hay.includes(needle);
+  }
+
+  function removeRow(row){
+    if (!row || !row.key) return;
+    if (!favoritesApi.isFavorite(row.key, { scope })) return;
+    favoritesApi.toggle(row.key, { scope });
   }
 
   function render(){
-    const rows = readStore().map(normalize);
+    const rows = records();
+    const counts = countByKind(rows);
 
-    computeCounts(rows);
+    toolbar.querySelector('#count-entries').textContent = String(counts.entries);
+    toolbar.querySelector('#count-buckets').textContent = String(counts.buckets);
+    toolbar.querySelector('#count-files').textContent = String(counts.files);
+    clearBtn.style.display = rows.length ? 'inline-block' : 'none';
 
-    let filtered = rows.filter(r => r.type === tab.slice(0,-1)); // "entries"->"entrie"? nope
-    // robust tab filter:
-    filtered = rows.filter(r => (tab === 'files' ? r.type === 'file' : r.type === 'entry'));
-
-    if (q.trim()) {
-      filtered = filtered.filter(r => {
-        const hay = (r.type === 'file')
-          ? `${r.title} ${r.fileLabel} ${r.fileId}`.toLowerCase()
-          : `${r.title}`.toLowerCase();
-        return hay.includes(q.trim());
-      });
-    }
-
+    const filtered = rows.filter(matchesTab).filter(matchesQuery);
     list.innerHTML = '';
 
-    if (!rows.length) {
+    if (!rows.length){
       list.innerHTML = `
         <div class="empty">
           <p><strong>No favorites yet.</strong></p>
-          <p class="muted">When a user likes an <strong>entry</strong> or a specific <strong>file</strong>, it will appear here under the matching tab.</p>
+          <p class="muted">Favorite entries, buckets, or files from the catalog and entry pages to see them here.</p>
+          <p class="muted">Scope: <strong>${esc(scope)}</strong></p>
           <button class="cta-btn dx-button-element dx-button-element--primary dx-button-size--md" type="button" onclick="location.href='/catalog'">Browse Catalog</button>
         </div>
       `;
       return;
     }
 
-    if (!filtered.length) {
+    if (!filtered.length){
       list.innerHTML = `
         <div class="empty">
           <p><strong>No matches.</strong></p>
@@ -2138,32 +2119,25 @@ tr.clickable{cursor:pointer}
     tbl.innerHTML = `
       <thead>
         <tr>
-          <th style="width:10rem;">Type</th>
-          <th>Title</th>
+          <th style="width:8rem;">Type</th>
+          <th style="width:18rem;">Lookup #</th>
+          <th>Label</th>
           <th style="width:9rem;">Added</th>
           <th style="width:14rem;text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
     `;
-
     const tbody = tbl.querySelector('tbody');
 
-    filtered.forEach((r, idx)=>{
-      const added = r.addedAt ? new Date(r.addedAt).toLocaleDateString() : '';
-      const typeLabel = (r.type === 'file') ? 'File' : 'Entry';
-      const title = (r.type === 'file')
-        ? `${r.title} — ${r.fileLabel || r.fileId || 'Untitled file'}`
-        : r.title;
-
-      const openUrl = (r.type === 'file') ? (r.fileUrl || r.entryUrl) : r.entryUrl;
-
+    filtered.forEach((row) => {
       const tr = document.createElement('tr');
       tr.className = 'clickable';
       tr.innerHTML = `
-        <td><span class="count-badge">${esc(typeLabel)}</span></td>
-        <td>${esc(title)}</td>
-        <td class="muted">${esc(added)}</td>
+        <td><span class="count-badge">${esc(kindLabel(row.kind))}</span></td>
+        <td><code>${esc(row.lookupNumber || '')}</code></td>
+        <td>${esc(rowTitle(row))}</td>
+        <td class="muted">${esc(toDate(row.addedAt))}</td>
         <td>
           <div class="row-actions">
             <button class="cta-btn sm dx-button-element dx-button-element--primary dx-button-size--sm" type="button">Open</button>
@@ -2173,35 +2147,60 @@ tr.clickable{cursor:pointer}
       `;
       tbody.append(tr);
 
-      const btnOpen = tr.querySelector('.cta-btn.sm');
-      const btnRem  = tr.querySelector('.ghost-btn.sm');
+      const openBtn = tr.querySelector('.cta-btn.sm');
+      const removeBtn = tr.querySelector('.ghost-btn.sm');
+      const openUrl = rowOpenUrl(row);
 
-      btnOpen.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        if (openUrl) location.href = openUrl;
+      openBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.assign(openUrl);
       });
-
-      btnRem.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        const all = readStore().map(normalize);
-        // remove by best-effort identity
-        const next = all.filter(x => {
-          if (r.type === 'file') {
-            return !(x.type==='file' && x.entryUrl===r.entryUrl && (x.fileId||'')===(r.fileId||'') && (x.fileLabel||'')===(r.fileLabel||''));
-          }
-          return !(x.type==='entry' && x.entryUrl===r.entryUrl && (x.title||'')===(r.title||''));
-        });
-        writeStore(next);
-        render();
+      removeBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        removeRow(row);
       });
-
-      tr.addEventListener('click', ()=>{
-        if (openUrl) location.href = openUrl;
+      tr.addEventListener('click', () => {
+        window.location.assign(openUrl);
       });
     });
 
     list.append(tbl);
   }
+
+  tabBtns.forEach((button) => {
+    button.addEventListener('click', () => {
+      tabBtns.forEach((node) => node.classList.remove('active'));
+      button.classList.add('active');
+      tab = button.getAttribute('data-tab') || 'entries';
+      render();
+    });
+  });
+
+  qInput.addEventListener('input', (event) => {
+    q = text(event.target.value || '');
+    render();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!window.confirm('Clear all favorites for this scope?')) return;
+    favoritesApi.clear({ scope });
+  });
+
+  const unsubscribe = favoritesApi.subscribe((detail) => {
+    if (!detail || detail.scope !== scope) return;
+    render();
+  });
+  window.addEventListener('storage', (event) => {
+    const key = text(event.key).trim();
+    if (!key.startsWith('dex:favorites:v2:')) return;
+    if (!key.endsWith(scope)) return;
+    render();
+  });
+  window.addEventListener('pagehide', () => {
+    try { unsubscribe(); } catch {}
+  }, { once: true });
 
   render();
   await finalizeFetchState('ready');

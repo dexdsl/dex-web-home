@@ -94,6 +94,10 @@ const SYNC_MAP = [
     targets: ['assets/js/catalog.symbols.js', 'docs/assets/js/catalog.symbols.js'],
   },
   {
+    source: 'public/assets/js/dx-favorites.js',
+    targets: ['assets/js/dx-favorites.js', 'docs/assets/js/dx-favorites.js'],
+  },
+  {
     source: 'public/assets/js/call.editorial.js',
     targets: ['assets/js/call.editorial.js', 'docs/assets/js/call.editorial.js'],
   },

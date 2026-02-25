@@ -56,6 +56,9 @@ jobs:
       - name: Verify HDR contract
         run: npm run verify:hdr
 
+      - name: Verify favorites contract
+        run: npm run verify:favorites
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -76,6 +79,9 @@ jobs:
 
       - name: Achievements loading resilience test
         run: npm run test:achievements-loading
+
+      - name: Favorites lookup parity test
+        run: npm run test:favorites-lookup
 
       - name: Visual snapshot test
         run: npm run test:visual
