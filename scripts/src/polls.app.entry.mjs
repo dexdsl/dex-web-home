@@ -1,6 +1,11 @@
 (() => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (window.__dxPollsAppLoaded) return;
+  if (window.__dxPollsAppLoaded && typeof window.__dxPollsQueueBoot === 'function') {
+    try {
+      window.__dxPollsQueueBoot();
+    } catch {}
+    return;
+  }
   window.__dxPollsAppLoaded = true;
 
   const DX_MIN_SHEEN_MS = 120;
@@ -186,8 +191,52 @@
 
   function getRootElement() {
     return document.querySelector('[data-dx-polls-app]')
-      || document.getElementById('dex-console')
       || document.getElementById('dx-polls-app');
+  }
+
+  function navigateTo(targetHref, options = {}) {
+    const href = String(targetHref || '').trim();
+    if (!href) return;
+
+    const useReplace = Boolean(options.replace);
+    if (typeof window.dxNavigate === 'function') {
+      try {
+        const maybePromise = window.dxNavigate(href, {
+          pushHistory: !useReplace,
+          allowHardNavigate: true,
+        });
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          maybePromise
+            .then((handled) => {
+              if (handled === false) window.location.assign(href);
+            })
+            .catch(() => {
+              window.location.assign(href);
+            });
+          return;
+        }
+        return;
+      } catch {}
+    }
+
+    if (useReplace) {
+      window.location.replace(href);
+      return;
+    }
+    window.location.assign(href);
+  }
+
+  function bindSoftPollLinks(root) {
+    const links = root.querySelectorAll('a.dx-poll-link[href]');
+    links.forEach((link) => {
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if (link.getAttribute('data-dx-poll-link-bound') === 'true') return;
+      link.setAttribute('data-dx-poll-link-bound', 'true');
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        navigateTo(link.getAttribute('href') || '');
+      });
+    });
   }
 
   function getAuthApi() {
@@ -380,6 +429,7 @@
         </section>
       </section>
     `;
+    bindSoftPollLinks(root);
   }
 
   function renderDetail(root, poll, results, authSnapshot, saveState = 'idle') {
@@ -433,6 +483,7 @@
         </article>
       </section>
     `;
+    bindSoftPollLinks(root);
   }
 
   function renderLockedDetail(root, pollId) {
@@ -449,6 +500,7 @@
         </article>
       </section>
     `;
+    bindSoftPollLinks(root);
   }
 
   async function promptSignIn(authSnapshot) {
@@ -629,11 +681,47 @@
     }
   }
 
+  let bootPromise = null;
+  let bootQueued = false;
+
+  async function runBootLoop() {
+    do {
+      bootQueued = false;
+      // eslint-disable-next-line no-await-in-loop
+      await boot();
+    } while (bootQueued);
+  }
+
+  function queueBoot() {
+    if (bootPromise) {
+      bootQueued = true;
+      return bootPromise;
+    }
+    bootPromise = runBootLoop()
+      .catch((error) => {
+        console.error('[dx-polls] queue boot error', error);
+      })
+      .finally(() => {
+        bootPromise = null;
+      });
+    return bootPromise;
+  }
+
+  window.__dxPollsQueueBoot = queueBoot;
+
+  window.addEventListener('dx:slotready', () => {
+    queueBoot().catch(() => {});
+  });
+
+  window.addEventListener('popstate', () => {
+    queueBoot().catch(() => {});
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      boot().catch(() => {});
+      queueBoot().catch(() => {});
     }, { once: true });
   } else {
-    boot().catch(() => {});
+    queueBoot().catch(() => {});
   }
 })();

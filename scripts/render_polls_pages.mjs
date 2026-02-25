@@ -6,7 +6,7 @@ import { readPollsFile } from './lib/polls-store.mjs';
 const ROOT = process.cwd();
 const SITE_ORIGIN = 'https://dexdsl.github.io';
 const SHELL_SOURCE_PATH = path.join(ROOT, 'docs', 'index.html');
-const SHELL_FALLBACK_PATH = path.join(ROOT, 'docs', 'polls', 'index.html');
+const SHELL_FALLBACK_PATH = path.join(ROOT, 'docs', 'catalog', 'index.html');
 
 const GOOEY_MESH_MARKUP = `
       <div id="gooey-mesh-wrapper">
@@ -70,6 +70,11 @@ function readShellParts() {
 
   let preMain = source.slice(0, mainStart);
   const postMain = source.slice(mainEnd + '</main>'.length);
+  let bodySuffix = postMain;
+  const footerSectionsStart = postMain.indexOf('<footer class="sections"');
+  if (footerSectionsStart >= 0) {
+    bodySuffix = postMain.slice(footerSectionsStart);
+  }
 
   const gooStart = preMain.indexOf('<div id="gooey-mesh-wrapper">');
   if (gooStart >= 0) {
@@ -83,18 +88,39 @@ function readShellParts() {
   }
 
   const htmlPrefix = preMain.slice(0, headStart);
+  const sanitizeBodyPrefix = (value) => {
+    let next = String(value || '');
+    next = next.replace(/(<body\b[^>]*\bclass=")([^"]*)(")/i, (full, before, classValue, after) => {
+      const classes = String(classValue || '')
+        .split(/\s+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .filter((item) => item !== 'homepage');
+      return `${before}${classes.join(' ')}${after}`;
+    });
+    next = next.replace(/(<body\b[^>]*\bclass=')([^']*)(')/i, (full, before, classValue, after) => {
+      const classes = String(classValue || '')
+        .split(/\s+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .filter((item) => item !== 'homepage');
+      return `${before}${classes.join(' ')}${after}`;
+    });
+    return next;
+  };
+
   if (headEnd >= 0) {
-    const bodyPrefix = preMain.slice(headEnd + '</head>'.length);
-    return { htmlPrefix, bodyPrefix, bodySuffix: postMain };
+    const bodyPrefix = sanitizeBodyPrefix(preMain.slice(headEnd + '</head>'.length));
+    return { htmlPrefix, bodyPrefix, bodySuffix };
   }
 
   const bodyStartMatch = preMain.match(/<body\b/i);
   if (bodyStartMatch && typeof bodyStartMatch.index === 'number') {
-    const bodyPrefix = preMain.slice(bodyStartMatch.index);
-    return { htmlPrefix, bodyPrefix, bodySuffix: postMain };
+    const bodyPrefix = sanitizeBodyPrefix(preMain.slice(bodyStartMatch.index));
+    return { htmlPrefix, bodyPrefix, bodySuffix };
   }
 
-  return { htmlPrefix, bodyPrefix: '<body>', bodySuffix: postMain };
+  return { htmlPrefix, bodyPrefix: '<body>', bodySuffix };
 }
 
 function buildHead({ title, description, canonicalPath, imageSrc }) {

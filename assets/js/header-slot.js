@@ -54,7 +54,6 @@
     ['/assets/js/dexnotes.entry.js', '__dxDexnotesEntryLoaded'],
     ['/assets/js/dexnotes.index.js', '__dxDexnotesIndexLoaded'],
     ['/assets/js/dx-about.js', '__dxAboutRouteLoaded'],
-    ['/assets/js/polls.app.js', '__dxPollsAppLoaded'],
     ['/assets/js/dx-scroll-dot.js', '__dxScrollDotLoaded'],
   ]);
 
