@@ -9,7 +9,7 @@ import { DoctorScreen } from './doctor-screen.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
 import { startViewer } from '../lib/viewer-server.mjs';
-import { readPollsFile } from '../lib/polls-store.mjs';
+import { PollsManager } from './polls-manager.mjs';
 
 const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }, { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' }, { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' }];
 const PALETTE_ITEMS = ['init', 'update', 'doctor', 'polls', 'view'];
@@ -68,8 +68,6 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   const [viewerLaunchBusy, setViewerLaunchBusy] = useState(false);
   const [viewerUrl, setViewerUrl] = useState('');
   const [viewerServer, setViewerServer] = useState(null);
-  const [pollsRows, setPollsRows] = useState([]);
-  const [pollsError, setPollsError] = useState('');
 
   const cols = dimensions.cols;
   const rows = dimensions.rows;
@@ -102,27 +100,6 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
     }
   }, [viewerServer]);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (mode !== 'polls') return undefined;
-
-    (async () => {
-      try {
-        const { data } = await readPollsFile();
-        if (cancelled) return;
-        const rows = Array.isArray(data?.polls) ? data.polls : [];
-        setPollsRows(rows);
-        setPollsError('');
-      } catch (error) {
-        if (cancelled) return;
-        setPollsRows([]);
-        setPollsError(error?.message || String(error));
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [mode]);
-
   const launchViewer = async () => {
     if (viewerLaunchBusy) return;
     setViewerLaunchBusy(true);
@@ -149,11 +126,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
 
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
-    if (mode === 'init' || mode === 'update' || mode === 'doctor') return;
-    if (mode === 'polls') {
-      if (key.escape) setMode('menu');
-      return;
-    }
+    if (mode === 'init' || mode === 'update' || mode === 'doctor' || mode === 'polls') return;
 
     if (input === '?') {
       setPaletteOpen((open) => !open);
@@ -240,20 +213,11 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
           : mode === 'doctor'
             ? React.createElement(DoctorScreen, {})
             : mode === 'polls'
-              ? React.createElement(Box, { flexDirection: 'column' },
-                React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Polls catalog'),
-                pollsError
-                  ? React.createElement(Text, { color: '#ff7b72' }, `Failed to load polls: ${pollsError}`)
-                  : null,
-                ...(!pollsRows.length && !pollsError
-                  ? [React.createElement(Text, { key: 'polls-loading', color: '#8f98a8' }, 'Loading polls…')]
-                  : pollsRows.slice(0, Math.max(1, workspaceHeight - 5)).map((poll) => React.createElement(
-                    Text,
-                    { key: poll.id, color: '#d0d5df' },
-                    `${String(poll.id || '').padEnd(34)} ${String(poll.status || '').padEnd(6)} ${String(poll.visibility || '').padEnd(7)} ${String(poll.question || '')}`,
-                  ))),
-                React.createElement(Text, { color: '#8f98a8' }, 'Use `dex polls ...` for create/edit/open/close/publish. Esc returns to menu.'),
-              )
+              ? React.createElement(PollsManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
           menuWindow.start > 0 ? React.createElement(Text, { key: 'menu-up', color: '#8f98a8' }, '…') : null,
