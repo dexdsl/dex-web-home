@@ -1737,15 +1737,21 @@
       box-shadow: var(--shadow-1);
       color:#000;
     }
-    #dex-settings .nav svg{
-      width:18px;
-      height:18px;
-      fill:none;
-      stroke:currentColor;
-      stroke-width:2.4;
-      stroke-linecap:round;
-      stroke-linejoin:round;
-      overflow:visible;
+    #dex-settings .nav-chevron{
+      display:block;
+      width:10px;
+      height:10px;
+      border-top:2.25px solid currentColor;
+      border-right:2.25px solid currentColor;
+      transform-origin:50% 50%;
+    }
+    #dex-settings .nav-chevron-left{
+      transform: rotate(-135deg);
+      margin-left:4px;
+    }
+    #dex-settings .nav-chevron-right{
+      transform: rotate(45deg);
+      margin-right:4px;
     }
     #dex-settings .nav-left{ left:6px; }  #dex-settings .nav-right{ right:6px; }
 
@@ -2047,12 +2053,26 @@
 #dex-settings [hidden]{ display:none !important; }
 
 
-/* ===== Profile two-column layout (desktop) ===== */
-#dex-settings #pane-profile .twocol{ display:grid; gap:var(--gap); }
-@media (min-width: 980px){
-  #dex-settings #pane-profile .twocol{ grid-template-columns: 1fr 320px; align-items:start; }
-  #dex-settings #pane-profile .preview{ grid-column: 2 / 3; }
+/* ===== Profile 4-card layout (equal columns, variable heights) ===== */
+#dex-settings #pane-profile .twocol{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:var(--gap);
 }
+#dex-settings #pane-profile .profile-col{
+  display:grid;
+  gap:var(--gap);
+  align-content:start;
+}
+@media (min-width: 980px){
+  #dex-settings #pane-profile .twocol{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:start;
+    column-gap:var(--gap);
+    row-gap:var(--gap);
+  }
+}
+#dex-settings #pane-profile #dangerCard{ margin-top:0 !important; }
 
 /* Identity row */
 #dex-settings .ident-row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
@@ -2143,14 +2163,9 @@
   grid-template-columns: 1fr !important; /* collapse aside only for Profile */
 }
 #dex-settings[data-fit-profile="1"] #pane-profile .twocol{
-  display:grid;
-  grid-template-columns: 1fr 1fr;                 /* 2×2 */
-  grid-auto-rows: minmax(min-content, 1fr);       /* prevent overlap */
-  height: var(--profile-fit-h, auto);             /* set by JS */
-  overflow: hidden;
+  height:auto;
+  overflow:visible;
 }
-#dex-settings[data-fit-profile="1"] #pane-profile .twocol > .card{ min-height:0; }
-#dex-settings[data-fit-profile="1"] #pane-profile #dangerCard{ margin-top:0 !important; } /* kill inline gap */
 
 /* ===== Notifications: 99th-percentile switches (scoped) ===== */
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
@@ -2310,7 +2325,7 @@
   <!-- Tabs bar (board-style pills + ink + arrows) -->
   <div class="tabsbar">
     <button class="nav nav-left"  type="button" id="navPrev" aria-label="Previous tab">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6 8 12 14 18"/></svg>
+      <span class="nav-chevron nav-chevron-left" aria-hidden="true"></span>
     </button>
 
     <nav class="pills" role="tablist" aria-label="Settings sections">
@@ -2322,7 +2337,7 @@
     </nav>
 
     <button class="nav nav-right" type="button" id="navNext" aria-label="Next tab">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6 16 12 10 18"/></svg>
+      <span class="nav-chevron nav-chevron-right" aria-hidden="true"></span>
     </button>
   </div>
 
@@ -2331,74 +2346,79 @@
       <!-- PROFILE -->
       <section id="pane-profile" class="pane" role="tabpanel" aria-labelledby="tab-profile">
         <div class="twocol">
-  <!-- Identity (read-only from social) -->
-  <div class="card" id="idCard">
-    <h2>Identity</h2>
-    <div class="ident-row">
-      <img id="profAvatar" class="avatar" alt="" decoding="async" referrerpolicy="no-referrer" width="64" height="64">
-      <div class="id-fields">
-        <div class="credit-name" id="profName">—</div>
-        <div class="note">
-          <span id="profEmail">—</span>
-          <span id="emailVerif" class="badge" hidden aria-live="polite"></span>
+          <div class="profile-col profile-col-left">
+            <!-- Identity (read-only from social) -->
+            <div class="card" id="idCard">
+              <h2>Identity</h2>
+              <div class="ident-row">
+                <img id="profAvatar" class="avatar" alt="" decoding="async" referrerpolicy="no-referrer" width="64" height="64">
+                <div class="id-fields">
+                  <div class="credit-name" id="profName">—</div>
+                  <div class="note">
+                    <span id="profEmail">—</span>
+                    <span id="emailVerif" class="badge" hidden aria-live="polite"></span>
+                  </div>
+                  <div class="id-provider">
+                    <span id="provChip" class="provider-chip" aria-live="polite">—</span>
+                  </div>
+                </div>
+                <button id="refreshIdentity" class="ghost" type="button" aria-live="polite">Refresh from provider</button>
+              </div>
+              <p class="note">We don’t store your password or photo. Identity is provided by your connected provider via Auth0.</p>
+            </div>
 
+            <!-- SECURITY (moved from old tab) -->
+            <div class="card" id="securityCard">
+              <h2>Security</h2>
+              <div class="list">
+                <div class="item"><span>Last sign-in</span><span id="lastSignin" class="note">—</span></div>
+                <div class="item"><span>Auth provider</span><span id="securityProvider" class="note">—</span></div>
+                <div class="item"><span>Email verification</span><span id="securityEmailState" class="note">—</span></div>
+                <div class="item"><span>This session</span><button id="signOutCurrent" class="btn" type="button">Sign out</button></div>
+                <div class="item"><span>Other sessions</span><button id="revokeOthers" class="btn" type="button">Sign out others</button></div>
+                <div class="item"><span>Re-authenticate</span><button id="reauthNow" class="btn" type="button">Re-authenticate</button></div>
+              </div>
+              <p id="securityInlineStatus" class="note" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="profile-col profile-col-right">
+            <!-- Credits & Roles (editable) -->
+            <div class="card" id="creditsCard">
+              <div class="card-head">
+                <h2>Credits &amp; Roles</h2>
+                <div id="profStatus" class="save-status" aria-live="polite" hidden>Saved</div>
+              </div>
+
+              <div class="field">
+                <label class="label">Credit name</label>
+                <div id="creditNameRO" class="readonly">—</div>
+              </div>
+
+              <div class="field">
+                <label class="label">Roles</label>
+                <div id="roleChips" class="chips role-chips" role="group" aria-label="Select roles"></div>
+              </div>
+
+              <div class="field">
+                <label class="label">Instruments / mediums</label>
+                <div id="instrTokens" class="tokens" role="listbox" aria-label="Instruments">
+                  <input id="instrInput" type="text" autocomplete="off" placeholder="Type and press Enter">
+                  <div id="instrSuggest" class="suggestions" hidden></div>
+                </div>
+              </div>
+
+              <div id="undoWrap" class="undo" hidden>Saved · <button id="undoLast" class="linklike" type="button">Undo</button></div>
+            </div>
+
+            <!-- DANGER (moved from old tab) -->
+            <div class="card" id="dangerCard">
+              <h2>Danger zone</h2>
+              <p id="dangerNote" class="note">Delete your account (requires no active membership).</p>
+              <button id="delete" type="button" class="btn primary danger" aria-describedby="dangerNote">Delete account</button>
+            </div>
+          </div>
         </div>
-        <div class="id-provider">
-          <span id="provChip" class="provider-chip" aria-live="polite">—</span>
-        </div>
-      </div>
-      <button id="refreshIdentity" class="ghost" type="button" aria-live="polite">Refresh from provider</button>
-    </div>
-    <p class="note">We don’t store your password or photo. Identity is provided by your connected provider via Auth0.</p>
-  </div>
-
-  <!-- Credits & Roles (editable) -->
-  <div class="card" id="creditsCard">
-    <div class="card-head">
-      <h2>Credits &amp; Roles</h2>
-      <div id="profStatus" class="save-status" aria-live="polite" hidden>Saved</div>
-    </div>
-
-    <div class="field">
-      <label class="label">Credit name</label>
-      <div id="creditNameRO" class="readonly">—</div>
-    </div>
-
-    <div class="field">
-      <label class="label">Roles</label>
-      <div id="roleChips" class="chips role-chips" role="group" aria-label="Select roles"></div>
-    </div>
-
-    <div class="field">
-      <label class="label">Instruments / mediums</label>
-      <div id="instrTokens" class="tokens" role="listbox" aria-label="Instruments">
-        <input id="instrInput" type="text" autocomplete="off" placeholder="Type and press Enter">
-        <div id="instrSuggest" class="suggestions" hidden></div>
-      </div>
-    </div>
-
-    <div id="undoWrap" class="undo" hidden>Saved · <button id="undoLast" class="linklike" type="button">Undo</button></div>
-  
-    </div>
-<!-- SECURITY (moved from old tab) -->
-<div class="card" id="securityCard">
-  <h2>Security</h2>
-  <div class="list">
-    <div class="item"><span>Last sign-in</span><span id="lastSignin" class="note">—</span></div>
-    <div class="item"><span>Auth provider</span><span id="securityProvider" class="note">—</span></div>
-    <div class="item"><span>Email verification</span><span id="securityEmailState" class="note">—</span></div>
-    <div class="item"><span>This session</span><button id="signOutCurrent" class="btn" type="button">Sign out</button></div>
-    <div class="item"><span>Other sessions</span><button id="revokeOthers" class="btn" type="button">Sign out others</button></div>
-    <div class="item"><span>Re-authenticate</span><button id="reauthNow" class="btn" type="button">Re-authenticate</button></div>
-  </div>
-  <p id="securityInlineStatus" class="note" aria-live="polite"></p>
-</div>
-<!-- DANGER (moved from old tab) -->
-<div class="card" id="dangerCard">
-  <h2>Danger zone</h2>
-  <p id="dangerNote" class="note">Delete your account (requires no active membership).</p>
-  <button id="delete" type="button" class="btn primary danger" aria-describedby="dangerNote">Delete account</button>
-</div>
 
 <div id="accountDeleteModal" class="dx-delete-modal" hidden>
   <div class="dx-delete-modal-backdrop" data-dx-delete-close="true" aria-hidden="true"></div>
@@ -2998,42 +3018,16 @@ function toggleProfileAside() {
 
       // — Fit the 4 profile cards to one screen (no page scroll) using DOM geometry
 function fitProfileLayout(){
+  const twocol = document.querySelector('#pane-profile .twocol');
+  if (twocol){
+    twocol.style.removeProperty('--profile-fit-h');
+    twocol.style.removeProperty('grid-template-rows');
+  }
   if (current !== 'profile'){
     root.removeAttribute('data-fit-profile');
     return;
   }
   root.setAttribute('data-fit-profile','1');
-
-  const twocol = document.querySelector('#pane-profile .twocol');
-  if (!twocol) return;
-
-  // available vertical space for the 2 rows
-  const rect  = twocol.getBoundingClientRect();
-const frameEl = root;
-const csFrame = getComputedStyle(frameEl);
-const padB = (parseFloat(csFrame.paddingBottom) || 0) + (parseFloat(csFrame.borderBottomWidth) || 0);
-
-  const avail = Math.max(0, window.innerHeight - rect.top - padB);
-  twocol.style.setProperty('--profile-fit-h', avail + 'px');
-
-  // content-based minimums (row1 = max of Identity, Credits; row2 = max of Security, Danger)
-  const h = id => (document.getElementById(id)?.offsetHeight || 0);
-  const idH = h('idCard'), crH = h('creditsCard'), seH = h('securityCard'), daH = h('dangerCard');
-  const r1min = Math.max(idH, crH);
-  const r2min = Math.max(seH, daH);
-
-  // account for row gap
-  const cs = getComputedStyle(twocol);
-  const rowGap = parseFloat(cs.rowGap || cs.gridRowGap || cs.gap || 0);
-  const need = r1min + r2min + rowGap;
-
-  // If everything fits, lock rows to their content heights so nothing overlaps.
-  // Otherwise, fall back to equal rows (the minmax() in CSS will still avoid overlap).
-  if (need <= avail){
-    twocol.style.gridTemplateRows = `${r1min}px ${r2min}px`;
-  } else {
-    twocol.style.gridTemplateRows = `1fr 1fr`;
-  }
 }
 
 
