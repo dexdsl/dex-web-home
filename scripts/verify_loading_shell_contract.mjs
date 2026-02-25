@@ -55,6 +55,16 @@ const REQUIRED_FETCH_CLASS_MARKERS = [
   '@keyframes dx-fetch-sheen',
 ];
 
+const ACHIEVEMENTS_TIMEOUT_MARKERS = [
+  'const AUTH_READY_TIMEOUT_MS = 2500;',
+  'const JSONP_TIMEOUT_MS = 7000;',
+  'const VOTES_TIMEOUT_MS = 5000;',
+  'withTimeout(',
+  'jsonpWithTimeout(',
+  'AbortController',
+  'await finalizeFetchState(finalState);',
+];
+
 function readText(filePath) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Missing required file: ${path.relative(ROOT, filePath)}`);
@@ -126,10 +136,22 @@ function verifyCssContract(cssPath, cssLabel, failures) {
   }
 }
 
+function verifyAchievementsTimeoutContract(failures) {
+  const achievementsPath = path.join(ROOT, 'docs', 'entry', 'achievements', 'index.html');
+  const achievementsHtml = readText(achievementsPath);
+
+  for (const marker of ACHIEVEMENTS_TIMEOUT_MARKERS) {
+    if (!achievementsHtml.includes(marker)) {
+      failures.push(`docs/entry/achievements/index.html missing timeout marker: ${marker}`);
+    }
+  }
+}
+
 function main() {
   const failures = [];
 
   verifyRouteContracts(failures);
+  verifyAchievementsTimeoutContract(failures);
   verifyCssContract(FILES.baseCss, 'public/css/base.css', failures);
   verifyCssContract(FILES.dexCss, 'public/assets/css/dex.css', failures);
 

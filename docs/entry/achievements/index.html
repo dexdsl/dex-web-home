@@ -1658,6 +1658,17 @@ background:rgba(255,255,255,.6);padding:var(--space-2) var(--space-3);border-rad
 .dex-header h1{margin:0;font-family:var(--font-heading);font-size:clamp(1.5rem,4vw,2rem)}
 .nav-btn{background:none;border:none;cursor:pointer;opacity:0;transition:opacity .3s}
 .dex-header:hover .nav-btn{opacity:1}
+.achv-warning{
+  margin:0;
+  padding:var(--space-2) var(--space-3);
+  border-radius:var(--radius-sm);
+  border:1px solid rgba(204,95,48,.28);
+  background:rgba(255,147,102,.18);
+  color:#5d2916;
+  font-size:.88rem;
+  line-height:1.35;
+}
+.achv-warning[hidden]{display:none !important}
 
 .grid{flex:1;overflow:auto;display:grid;gap:var(--space-3);
 grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));position:relative}
@@ -1716,14 +1727,40 @@ white-space:pre-wrap;z-index:20;width:12rem}
 <script>
 (async function(){
 const DX_MIN_SHEEN_MS = 120;
+const AUTH_SUB_TIMEOUT_MS = 3000;
+const AUTH_READY_TIMEOUT_MS = 2500;
+const ACCESS_TOKEN_TIMEOUT_MS = 2500;
+const JSONP_TIMEOUT_MS = 7000;
+const VOTES_TIMEOUT_MS = 5000;
 
 /* —— CONFIG —— */
 const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
 const DEX_API = (window.DEX_API_BASE_URL || 'https://dex-api.spring-fog-8edd.workers.dev').replace(/\/+$/,'');
+
+function withTimeout(promiseInput, timeoutMs, fallbackValue){
+  let pending;
+  try{
+    pending = typeof promiseInput === 'function' ? promiseInput() : promiseInput;
+  }catch{
+    return Promise.resolve(fallbackValue);
+  }
+
+  let timer = null;
+  const timeoutPromise = new Promise(resolve => {
+    timer = setTimeout(() => resolve(fallbackValue), timeoutMs);
+  });
+
+  return Promise.race([
+    Promise.resolve(pending).catch(() => fallbackValue),
+    timeoutPromise
+  ]).finally(() => {
+    if (timer !== null) clearTimeout(timer);
+  });
+}
 /* —— robust user-id helper (same as messages) —— */
-async function getAuth0Sub(timeout=3000){
+async function getAuth0Sub(timeout=AUTH_SUB_TIMEOUT_MS){
   const t0=Date.now(); while(Date.now()-t0<timeout){
-    if(window.auth0Sub) return auth0Sub;
+    if(window.auth0Sub) return window.auth0Sub;
     if(window.auth0&&typeof auth0.getUser==='function'){
       try{const u=auth0.getUser();const user=u&&typeof u.then==='function'?await u:u;
         if(user&&user.sub) return user.sub;}catch{}
@@ -1739,15 +1776,101 @@ async function getAccessTokenMaybe(){
   const auth = window.DEX_AUTH || window.dexAuth || null;
   if(!auth || typeof auth.getAccessToken !== 'function') return '';
   try{
-    if (typeof auth.resolve === 'function') await auth.resolve(2500);
-    else if (auth.ready && typeof auth.ready.then === 'function') await auth.ready;
+    if (typeof auth.resolve === 'function') {
+      await withTimeout(() => auth.resolve(AUTH_READY_TIMEOUT_MS), AUTH_READY_TIMEOUT_MS, null);
+    } else if (auth.ready && typeof auth.ready.then === 'function') {
+      await withTimeout(auth.ready, AUTH_READY_TIMEOUT_MS, null);
+    }
   }catch{}
-  try{return String(await auth.getAccessToken() || '');}catch{return '';}
+  try{
+    const token = await withTimeout(() => auth.getAccessToken(), ACCESS_TOKEN_TIMEOUT_MS, '');
+    return String(token || '').trim();
+  }catch{
+    return '';
+  }
+}
+
+function jsonpWithTimeout(url, timeoutMs = JSONP_TIMEOUT_MS){
+  return new Promise((resolve, reject) => {
+    const callbackName = '_cb' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let settled = false;
+    let timer = null;
+
+    const cleanup = () => {
+      try{ delete window[callbackName]; }catch{}
+      if (timer !== null) clearTimeout(timer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+
+    const finish = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      handler(value);
+    };
+
+    window[callbackName] = (payload) => finish(resolve, payload);
+    script.onerror = () => finish(reject, new Error('JSONP_REQUEST_FAILED'));
+    timer = setTimeout(() => finish(reject, new Error('JSONP_TIMEOUT')), timeoutMs);
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+    (document.body || document.documentElement).appendChild(script);
+  });
+}
+
+async function fetchVoteSummary(token){
+  if (!token){
+    return {
+      voteCount: 0,
+      streak: 0,
+      warning: 'Poll vote metrics are temporarily unavailable.'
+    };
+  }
+
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timeoutId = setTimeout(() => {
+    if (controller) controller.abort();
+  }, VOTES_TIMEOUT_MS);
+
+  try{
+    const summaryRes = await fetch(`${DEX_API}/me/polls/votes/summary`,{
+      method:'GET',
+      headers:{ Authorization:`Bearer ${token}` },
+      mode:'cors',
+      credentials:'omit',
+      signal: controller ? controller.signal : undefined
+    });
+    if (!summaryRes.ok){
+      return {
+        voteCount: 0,
+        streak: 0,
+        warning: 'Poll vote metrics are temporarily unavailable.'
+      };
+    }
+    let summary = null;
+    try{ summary = await summaryRes.json(); }catch{ summary = null; }
+    const voteCountRaw = Number(summary && (summary.voteCount ?? summary.totalVotes ?? 0));
+    const streakRaw = Number(summary && (summary.currentStreak ?? 0));
+    return {
+      voteCount: Number.isFinite(voteCountRaw) && voteCountRaw > 0 ? voteCountRaw : 0,
+      streak: Number.isFinite(streakRaw) && streakRaw > 0 ? streakRaw : 0,
+      warning: ''
+    };
+  }catch{
+    return {
+      voteCount: 0,
+      streak: 0,
+      warning: 'Poll vote metrics are temporarily unavailable.'
+    };
+  }finally{
+    clearTimeout(timeoutId);
+  }
 }
 
 
 /* —— shell —— */
 const root=document.getElementById('dex-achv');
+if (!root) return;
 const dxFetchStartTs = performance.now();
 async function finalizeFetchState(state='ready'){
   const elapsed = performance.now() - dxFetchStartTs;
@@ -1764,6 +1887,7 @@ aside.innerHTML=`
       <button class="nav-btn" onclick="history.back()">←</button>
       <h1>Your Achievements</h1>
     </section>
+    <p class="achv-warning" id="achv-warning" hidden></p>
 
     <div class="carousel-container" style="position:relative;flex:1;display:flex;align-items:center;">
       <button class="carousel-nav prev" aria-label="Previous Page">‹</button>
@@ -1774,7 +1898,22 @@ aside.innerHTML=`
     <div class="carousel-indicators" id="page-indicators"></div>
   `;
 const grid=document.getElementById('grid');
-let bootState = 'ready';
+const warningEl = document.getElementById('achv-warning');
+let finalState = 'ready';
+let shouldRenderBadges = false;
+grid.innerHTML = `
+  <div class="dx-fetch-shell dx-fetch-shell--card" data-dx-fetch-shell-inline>
+    <div class="dx-fetch-shell-overlay" aria-hidden="true"></div>
+    <div class="dx-fetch-shell-line" style="width:34%;"></div>
+    <div class="dx-fetch-shell-line" style="width:58%;"></div>
+    <div class="dx-fetch-shell--rows">
+      <div class="dx-fetch-shell-line" style="width:100%;"></div>
+      <div class="dx-fetch-shell-line" style="width:96%;"></div>
+      <div class="dx-fetch-shell-line" style="width:90%;"></div>
+    </div>
+    <p style="margin:0;opacity:.75">Loading achievements…</p>
+  </div>
+`;
 
 /* if not signed in */
 if(!auth0Sub){
@@ -1803,12 +1942,6 @@ if(!auth0Sub){
       dotsContainer.append(dot);
     }
   }
-
-/* tiny JSONP helper */
-function jsonp(url){return new Promise((res,rej)=>{const cb='_cb'+Math.random().toString(36).slice(2);
-window[cb]=d=>{delete window[cb];s.remove();res(d)};const s=document.createElement('script');
-s.onerror=()=>{delete window[cb];s.remove();rej()};s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
-document.body.append(s);});}
 
 /* —— badge definitions —— */
 const BADGES=[
@@ -1841,18 +1974,43 @@ const BADGES=[
 /* —— fetch counts —— */
 let earned = [], progress = {};
 try {
+  const submissionsPromise = (async () => {
+    try{
+      const response = await jsonpWithTimeout(
+        `${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(auth0Sub)}`
+      );
+      if (response && response.status === 'ok' && Array.isArray(response.rows)){
+        return { rows: response.rows, warning: '' };
+      }
+      return { rows: [], warning: 'Submission metrics are temporarily unavailable.' };
+    }catch{
+      return { rows: [], warning: 'Submission metrics are temporarily unavailable.' };
+    }
+  })();
+
+  const voteSummaryPromise = (async () => {
+    const token = await getAccessTokenMaybe();
+    return fetchVoteSummary(token);
+  })();
+
+  const [submissionsResult, voteSummary] = await Promise.all([submissionsPromise, voteSummaryPromise]);
+  const warnings = [];
+  if (submissionsResult.warning) warnings.push(submissionsResult.warning);
+  if (voteSummary.warning) warnings.push(voteSummary.warning);
+  if (warnings.length && warningEl){
+    const uniqueWarnings = Array.from(new Set(warnings));
+    warningEl.hidden = false;
+    warningEl.textContent = uniqueWarnings.join(' ');
+  }
+
   // 1) Submissions count — user’s own rows
-  const subs = await jsonp(
-    `${SHEET_API}`
-    + `?action=list`
-    + `&auth0Sub=${encodeURIComponent(auth0Sub)}`
-  );
-  const subCount = subs.status==='ok' ? subs.rows.length : 0;
+  const submissionRows = submissionsResult.rows || [];
+  const subCount = submissionRows.length;
   progress['sub-count'] = subCount;
   if (subCount >= 1) earned.push('first-sub');
 
 // 1b) Release counts — total & by license
- const releasedRows = (subs.rows || []).filter(r =>
+ const releasedRows = submissionRows.filter(r =>
    (r.status || '').toLowerCase().includes('released')
  );
  // total releases
@@ -1879,39 +2037,32 @@ try {
  if (jointCount >= 1) earned.push('joint-release');
 
 // 1c) Rejection count — any “rejected” statuses
-  const rejectionCount = (subs.rows || []).filter(r =>
+  const rejectionCount = submissionRows.filter(r =>
     (r.status || '').toLowerCase().includes('rejected')
   ).length;
   progress['rejection-count'] = rejectionCount;
   if (rejectionCount >= 1) earned.push('rejection-1');
 
   // 2) Poll votes count — authenticated Worker summary
-  const token = await getAccessTokenMaybe();
-  let voteCount = 0;
-  if (token){
-    const summaryRes = await fetch(`${DEX_API}/me/polls/votes/summary`,{
-      method:'GET',
-      headers:{ Authorization:`Bearer ${token}` },
-      mode:'cors',
-      credentials:'omit'
-    });
-    if (summaryRes.ok){
-      const summary = await summaryRes.json();
-      voteCount = Number(summary.voteCount || summary.totalVotes || 0);
-      const streak = Number(summary.currentStreak || 0);
-      if (Number.isFinite(streak)) progress['poll-streak'] = streak;
-    }
-  }
+  const voteCount = Number(voteSummary.voteCount || 0);
+  const streak = Number(voteSummary.streak || 0);
   progress['vote-count'] = voteCount;
+  progress['poll-streak'] = Number.isFinite(streak) ? Math.max(0, streak) : 0;
   if (voteCount >= 1) earned.push('vote-1');
   if (voteCount >= 5) earned.push('vote-5');
   // (add more tiers as needed: vote-10, vote-50…)
 
   // 3) (future) Plays → call whatever sheet/action you use for play counts
+  shouldRenderBadges = true;
 
 } catch (e) {
   console.error('Error loading achievements', e);
-  bootState = 'error';
+  finalState = 'error';
+  if (warningEl){
+    warningEl.hidden = false;
+    warningEl.textContent = 'Unable to load achievements right now.';
+  }
+  grid.innerHTML = '<p style="padding:var(--space-3)">Unable to load achievements right now.</p>';
 }
 
 /* —— render —— */
@@ -1929,27 +2080,34 @@ function renderBadges(){
   );
 
   // build cards
-  list.forEach(b => {
-    const curr = progress[b.metric]||0;
-    const done = earned.includes(b.id) || curr >= b.need;
-    const card = document.createElement('div');
-    card.className = 'badge-card' + (done ? '' : ' locked');
-    card.innerHTML = `
-      <div class="badge-icon">${b.icon}</div>
-      <div class="badge-title">${b.title}</div>
-      <div class="progress"><div style="width:${Math.min(curr/b.need,1)*100}%"></div></div>
-      <div class="tip">${done?'Earned!':'Need '+(b.need-curr)+' more'}</div>
-    `;
-    grid.append(card);
-  });
+  if (!list.length){
+    grid.innerHTML = '<p style="padding:var(--space-3)">No achievements on this page yet.</p>';
+  } else {
+    list.forEach(b => {
+      const curr = progress[b.metric]||0;
+      const done = earned.includes(b.id) || curr >= b.need;
+      const card = document.createElement('div');
+      card.className = 'badge-card' + (done ? '' : ' locked');
+      card.innerHTML = `
+        <div class="badge-icon">${b.icon}</div>
+        <div class="badge-title">${b.title}</div>
+        <div class="progress"><div style="width:${Math.min(curr/b.need,1)*100}%"></div></div>
+        <div class="tip">${done?'Earned!':'Need '+(b.need-curr)+' more'}</div>
+      `;
+      grid.append(card);
+    });
+  }
 
   // update dots under carousel
   renderDots();
 }
 
 // first paint
-renderBadges();
-await finalizeFetchState(bootState);
+try{
+  if (shouldRenderBadges) renderBadges();
+} finally {
+  await finalizeFetchState(finalState);
+}
 
 
 })();

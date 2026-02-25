@@ -74,5 +74,8 @@ jobs:
       - name: Polls soft routing test
         run: npm run test:polls-routing
 
+      - name: Achievements loading resilience test
+        run: npm run test:achievements-loading
+
       - name: Visual snapshot test
         run: npm run test:visual
