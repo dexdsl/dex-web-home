@@ -3081,6 +3081,26 @@ function hydrateProfile(me){
         if (!Number.isFinite(sec) || sec <= 0) return '—';
         return new Date(sec * 1000).toLocaleDateString();
       }
+      function paymentMethodLabel(summary){
+        const last4Raw = String(summary?.default_payment_method_last4 || '').replace(/\D/g, '');
+        if (last4Raw.length >= 4) return `•••• ${last4Raw.slice(-4)}`;
+
+        const preview = summary?.invoice_preview && typeof summary.invoice_preview === 'object'
+          ? summary.invoice_preview
+          : null;
+        const previewLast4 = String(
+          preview?.default_payment_method_last4
+          || preview?.payment_method_last4
+          || preview?.last4
+          || ''
+        ).replace(/\D/g, '');
+        if (previewLast4.length >= 4) return `•••• ${previewLast4.slice(-4)}`;
+
+        const status = String(summary?.status || 'none').toLowerCase();
+        const hasMembershipContext = ['trialing', 'active', 'past_due', 'unpaid', 'canceled_at_period_end'].includes(status)
+          || Boolean(summary?.cancel_at_period_end);
+        return hasMembershipContext ? 'No default method on file' : 'None on file';
+      }
       function normalizeSummary(raw){
         const summary = raw && typeof raw === 'object' ? raw : {};
         const status = String(summary.status || summary.subscription_status || 'none').toLowerCase();
@@ -3214,7 +3234,7 @@ function hydrateProfile(me){
         const planName = summary.tier ? `${tierName[summary.tier] || summary.tier} ${summary.interval === 'year' ? '(Annual)' : '(Monthly)'}` : 'No active plan';
         if (statusPlan) statusPlan.textContent = planName;
         if (statusRenewal) statusRenewal.textContent = formatDate(summary.current_period_end);
-        if (statusPayment) statusPayment.textContent = summary.default_payment_method_last4 ? `•••• ${summary.default_payment_method_last4}` : 'On file in Customer Portal';
+        if (statusPayment) statusPayment.textContent = paymentMethodLabel(summary);
         if (statusCancel) statusCancel.textContent = summary.cancel_at_period_end ? `Ends ${formatDate(summary.current_period_end)}` : 'None scheduled';
       }
       function applySubUI(rawSummary){
