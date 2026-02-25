@@ -1738,12 +1738,18 @@
       color:#000;
     }
     #dex-settings .nav svg{
-      width:18px;
-      height:18px;
+      width:24px;
+      height:24px;
       display:block;
       flex:none;
       overflow:visible;
       pointer-events:none;
+    }
+    #dex-settings .nav svg.size-6{
+      width:24px !important;
+      height:24px !important;
+      min-width:24px;
+      min-height:24px;
     }
     #dex-settings .nav svg path{
       fill:none !important;
@@ -2325,8 +2331,8 @@
   <!-- Tabs bar (board-style pills + ink + arrows) -->
   <div class="tabsbar">
     <button class="nav nav-left"  type="button" id="navPrev" aria-label="Previous tab">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-        <path d="M10.5 19.5L3 12M3 12L10.5 4.5M3 12H21" />
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
       </svg>
     </button>
 
@@ -2339,8 +2345,8 @@
     </nav>
 
     <button class="nav nav-right" type="button" id="navNext" aria-label="Next tab">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-        <path d="M13.5 4.5L21 12M21 12L13.5 19.5M21 12H3" />
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
       </svg>
     </button>
   </div>
@@ -2991,6 +2997,8 @@ function mergeIdentity(profile, ident){
 
       /* Tabs + animated ink + arrows (board-style behavior) */
       const order = ['profile','membership','notifs'];
+const HEROICON_ARROW_LEFT_D = 'M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18';
+const HEROICON_ARROW_RIGHT_D = 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3';
 // Only pick real tabs with data-pane
 const tabs  = $$('#dex-settings .pills [role="tab"][data-pane]');
 
@@ -3009,6 +3017,31 @@ const panes = new Map(
 const asideWhy = document.getElementById('asideWhy');
 const asideBilling = document.getElementById('asideBilling');
 
+function ensureHeroiconNavArrow(btn, d){
+  if (!btn) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  let svg = btn.querySelector('svg');
+  if (!svg){
+    svg = document.createElementNS(NS, 'svg');
+    btn.appendChild(svg);
+  }
+  svg.setAttribute('xmlns', NS);
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('stroke-width', '1.5');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('class', 'size-6');
+  svg.setAttribute('aria-hidden', 'true');
+  let path = svg.querySelector('path');
+  if (!path){
+    path = document.createElementNS(NS, 'path');
+    svg.appendChild(path);
+  }
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('d', d);
+}
+
 function toggleProfileAside() {
   const hide = (current === 'profile');
   if (asideWhy) asideWhy.hidden = hide;
@@ -3017,6 +3050,8 @@ function toggleProfileAside() {
 
       const ink   = $('.pills .ink');
       const prev  = $('#navPrev'), next = $('#navNext');
+      ensureHeroiconNavArrow(prev, HEROICON_ARROW_LEFT_D);
+      ensureHeroiconNavArrow(next, HEROICON_ARROW_RIGHT_D);
       let current = 'profile';
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
