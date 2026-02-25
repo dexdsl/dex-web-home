@@ -1735,8 +1735,18 @@
       border:1px solid var(--glass-brd); background: var(--glass-bg);
       display:flex; align-items:center; justify-content:center; cursor:pointer;
       box-shadow: var(--shadow-1);
+      color:#000;
     }
-    #dex-settings .nav svg{ width:18px; height:18px; fill:#000; }
+    #dex-settings .nav svg{
+      width:18px;
+      height:18px;
+      fill:none;
+      stroke:currentColor;
+      stroke-width:2.4;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      overflow:visible;
+    }
     #dex-settings .nav-left{ left:6px; }  #dex-settings .nav-right{ right:6px; }
 
     /* ===== Stage/grid ===== */
@@ -1785,10 +1795,7 @@
       position:fixed;
       inset:0;
       z-index:9998;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
+      display:block;
     }
     #dex-settings .dx-delete-modal[hidden]{ display:none !important; }
     #dex-settings .dx-delete-modal-backdrop{
@@ -1797,9 +1804,14 @@
       background:rgba(16,18,23,.28);
     }
     #dex-settings .dx-delete-modal-dialog{
-      position:relative;
+      position:fixed;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
       z-index:1;
       width:min(640px, calc(100vw - 36px));
+      max-height:calc(100dvh - 36px);
+      overflow:auto;
       border:1px solid var(--glass-brd);
       border-radius:var(--radius);
       background:var(--glass-bg);
@@ -1868,6 +1880,11 @@
       border-radius:10px;
       background:rgba(178,22,22,.08);
       color:#6e0f0f;
+      font-weight:600;
+    }
+    #dex-settings #securityInlineStatus{
+      margin-top:10px;
+      min-height:1.3em;
       font-weight:600;
     }
 /* Customer Portal button — match promo .cta-primary */
@@ -2293,19 +2310,19 @@
   <!-- Tabs bar (board-style pills + ink + arrows) -->
   <div class="tabsbar">
     <button class="nav nav-left"  type="button" id="navPrev" aria-label="Previous tab">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6 8 12 14 18"/></svg>
     </button>
 
     <nav class="pills" role="tablist" aria-label="Settings sections">
-      <button class="pill" type="button" role="tab" id="tab-profile"    data-pane="profile"    aria-controls="pane-profile"    aria-selected="true">Profile</button>
-<button class="pill" type="button" role="tab" id="tab-membership" data-pane="membership" aria-controls="pane-membership" aria-selected="false">Membership</button>
-<button class="pill" type="button" role="tab" id="tab-notifs"     data-pane="notifs"     aria-controls="pane-notifs"     aria-selected="false">Notifications</button>
+      <button class="pill" type="button" role="tab" id="tab-profile"    data-pane="profile"    aria-controls="pane-profile"    aria-selected="true">PROFILE</button>
+<button class="pill" type="button" role="tab" id="tab-membership" data-pane="membership" aria-controls="pane-membership" aria-selected="false">MEMBERSHIP</button>
+<button class="pill" type="button" role="tab" id="tab-notifs"     data-pane="notifs"     aria-controls="pane-notifs"     aria-selected="false">NOTIFICATIONS</button>
 
       <span class="ink" aria-hidden="true"></span>
     </nav>
 
     <button class="nav nav-right" type="button" id="navNext" aria-label="Next tab">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.59 16.59 1.41 1.41L16 12 10 6 8.59 7.41 13.17 12z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6 16 12 10 18"/></svg>
     </button>
   </div>
 
@@ -2368,8 +2385,13 @@
   <h2>Security</h2>
   <div class="list">
     <div class="item"><span>Last sign-in</span><span id="lastSignin" class="note">—</span></div>
-    <div class="item"><span>Sign out other sessions</span><button id="revokeOthers" class="btn">Sign out</button></div>
+    <div class="item"><span>Auth provider</span><span id="securityProvider" class="note">—</span></div>
+    <div class="item"><span>Email verification</span><span id="securityEmailState" class="note">—</span></div>
+    <div class="item"><span>This session</span><button id="signOutCurrent" class="btn" type="button">Sign out</button></div>
+    <div class="item"><span>Other sessions</span><button id="revokeOthers" class="btn" type="button">Sign out others</button></div>
+    <div class="item"><span>Re-authenticate</span><button id="reauthNow" class="btn" type="button">Re-authenticate</button></div>
   </div>
+  <p id="securityInlineStatus" class="note" aria-live="polite"></p>
 </div>
 <!-- DANGER (moved from old tab) -->
 <div class="card" id="dangerCard">
@@ -2779,6 +2801,33 @@ function providerName(subOrCode){
   return map[code] || (code ? code.replace(/-/g,' ') : '');
 }
 
+function parseTimestampSeconds(value){
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0){
+    return Math.floor(value);
+  }
+  if (typeof value === 'string'){
+    const v = value.trim();
+    if (!v) return null;
+    if (/^\d+(\.\d+)?$/.test(v)){
+      const n = Number(v);
+      if (Number.isFinite(n) && n > 0) return Math.floor(n);
+    }
+    const ms = Date.parse(v);
+    if (Number.isFinite(ms) && ms > 0) return Math.floor(ms / 1000);
+  }
+  return null;
+}
+
+function firstNonEmptyString(...values){
+  for (const value of values){
+    if (typeof value === 'string'){
+      const trimmed = value.trim();
+      if (trimmed) return trimmed;
+    }
+  }
+  return '';
+}
+
 async function getClaimsIdentity(){
   // Prefer SPA client on window.auth0
   try{
@@ -2793,6 +2842,7 @@ async function getClaimsIdentity(){
           email_verified: !!u.email_verified,
           picture: u.picture || '',
           credit_name: u.name || (u.email ? u.email.split('@')[0] : ''),
+          last_signin: parseTimestampSeconds(u.updated_at),
           provider: prov ? { name: prov, display: prov, picture: u.picture || '' } : undefined
         };
       }
@@ -2812,6 +2862,7 @@ async function getClaimsIdentity(){
           email_verified: !!c.email_verified,
           picture: c.picture || '',
           credit_name: c.name || (c.email ? c.email.split('@')[0] : ''),
+          last_signin: parseTimestampSeconds(c.auth_time) || parseTimestampSeconds(c.iat),
           provider: prov ? { name: prov, display: prov, picture: c.picture || '' } : undefined
         };
       }
@@ -2831,6 +2882,7 @@ async function getClaimsIdentity(){
           email_verified: !!u.email_verified,
           picture: u.picture || '',
           credit_name: u.name || (u.email ? u.email.split('@')[0] : ''),
+          last_signin: parseTimestampSeconds(u.updated_at),
           provider: prov ? { name: prov, display: prov, picture: u.picture || '' } : undefined
         };
       }
@@ -2848,6 +2900,7 @@ async function getClaimsIdentity(){
           email_verified: !!c.email_verified,
           picture: c.picture || '',
           credit_name: c.name || (c.email ? c.email.split('@')[0] : ''),
+          last_signin: parseTimestampSeconds(c.auth_time) || parseTimestampSeconds(c.iat),
           provider: prov ? { name: prov, display: prov, picture: c.picture || '' } : undefined
         };
       }
@@ -2867,6 +2920,7 @@ async function getClaimsIdentity(){
           email_verified: !!u.email_verified,
           picture: u.picture || '',
           credit_name: u.name || (u.email ? u.email.split('@')[0] : ''),
+          last_signin: parseTimestampSeconds(u.updated_at),
           provider: prov ? { name: prov, display: prov, picture: u.picture || '' } : undefined
         };
       }
@@ -2877,13 +2931,33 @@ async function getClaimsIdentity(){
 }
 
 function mergeIdentity(profile, ident){
-  const merged = { ...(ident||{}), ...(profile||{}) }; // app fields win
-  if (!merged.provider && merged.sub){
+  const app = profile && typeof profile === 'object' ? profile : {};
+  const claims = ident && typeof ident === 'object' ? ident : {};
+  const merged = { ...app, ...claims };
+  merged.sub = firstNonEmptyString(claims.sub, app.sub);
+  merged.name = firstNonEmptyString(claims.name, app.name);
+  merged.email = firstNonEmptyString(claims.email, app.email);
+  merged.picture = firstNonEmptyString(claims.picture, app.picture);
+  const emailLocal = merged.email.includes('@') ? merged.email.split('@')[0] : '';
+  merged.credit_name = firstNonEmptyString(app.credit_name, claims.credit_name, merged.name, emailLocal, 'member');
+  if (typeof claims.email_verified === 'boolean') merged.email_verified = claims.email_verified;
+  else if (typeof app.email_verified === 'boolean') merged.email_verified = app.email_verified;
+  const lastSignin = parseTimestampSeconds(claims.last_signin)
+    || parseTimestampSeconds(app.last_signin)
+    || parseTimestampSeconds(claims.auth_time)
+    || parseTimestampSeconds(claims.iat)
+    || parseTimestampSeconds(app.auth_time)
+    || parseTimestampSeconds(app.iat);
+  if (lastSignin) merged.last_signin = lastSignin;
+  if (Array.isArray(app.roles)) merged.roles = app.roles;
+  if (Array.isArray(app.instruments)) merged.instruments = app.instruments;
+  const providerSource = claims.provider || app.provider;
+  if (providerSource && typeof providerSource === 'object'){
+    const display = firstNonEmptyString(providerSource.display, providerSource.name, providerName(merged.sub));
+    merged.provider = { ...providerSource, display, name: firstNonEmptyString(providerSource.name, display) };
+  } else if (merged.sub){
     const p = providerName(merged.sub);
     if (p) merged.provider = { name: p, display: p, picture: merged.picture || '' };
-  }
-  if (!merged.credit_name){
-    merged.credit_name = merged.name || (merged.email ? merged.email.split('@')[0] : '');
   }
   return merged;
 }
@@ -3099,11 +3173,46 @@ const elP = {
   prevRoles:  document.getElementById('prevRoles'),
   prevInstr:  document.getElementById('prevInstr'),
 };
+const securityEls = {
+  lastSignin: document.getElementById('lastSignin'),
+  provider: document.getElementById('securityProvider'),
+  emailState: document.getElementById('securityEmailState'),
+  signOutCurrent: document.getElementById('signOutCurrent'),
+  revokeOthers: document.getElementById('revokeOthers'),
+  reauthNow: document.getElementById('reauthNow'),
+  status: document.getElementById('securityInlineStatus')
+};
+const SECURITY_ENDPOINTS = {
+  revokeOthers: '/me/security/revoke-others'
+};
 
 function setStatus(state, text){
   const s = elP.status; if(!s) return;
   if(state){ s.hidden = false; s.textContent = text || state; }
   else { s.hidden = true; }
+}
+
+function setSecurityStatus(message){
+  if (!securityEls.status) return;
+  securityEls.status.textContent = String(message || '').trim();
+}
+
+function renderSecurity(me){
+  const providerLabel = me?.provider?.display || me?.provider?.name || providerName(me?.sub) || '—';
+  if (securityEls.provider) securityEls.provider.textContent = providerLabel;
+  if (securityEls.emailState){
+    if (typeof me?.email_verified === 'boolean') {
+      securityEls.emailState.textContent = me.email_verified ? 'Verified' : 'Unverified';
+    } else {
+      securityEls.emailState.textContent = 'Unknown';
+    }
+  }
+  if (securityEls.lastSignin){
+    const ts = parseTimestampSeconds(me?.last_signin)
+      || parseTimestampSeconds(me?.auth_time)
+      || parseTimestampSeconds(me?.iat);
+    securityEls.lastSignin.textContent = ts ? new Date(ts * 1000).toLocaleString() : '—';
+  }
 }
 
 function renderIdentity(me){
@@ -3131,6 +3240,7 @@ function renderIdentity(me){
 
   if (elP.prevAvatar){ elP.prevAvatar.src = pic || ''; elP.prevAvatar.alt = elP.avatar.alt; }
   if (elP.prevName)  elP.prevName.textContent = elP.name.textContent;
+  renderSecurity(me);
 }
 
 
@@ -3297,6 +3407,52 @@ elP.refresh?.addEventListener('click', async ()=>{
     setStatus('Error','Error'); setTimeout(()=> setStatus(null), 1400);
   }finally{
     elP.refresh.disabled = false;
+  }
+});
+
+securityEls.signOutCurrent?.addEventListener('click', async () => {
+  setSecurityStatus('Signing out…');
+  try {
+    if (window.DEX_AUTH?.signOut) {
+      await window.DEX_AUTH.signOut(window.location.origin);
+      return;
+    }
+    window.location.href = '/';
+  } catch (_error) {
+    setSecurityStatus('Could not sign out right now.');
+  }
+});
+
+securityEls.reauthNow?.addEventListener('click', async () => {
+  setSecurityStatus('Starting re-authentication…');
+  try {
+    if (window.DEX_AUTH?.signIn) {
+      await window.DEX_AUTH.signIn(currentReturnTo());
+      return;
+    }
+    setSecurityStatus('Sign-in bridge unavailable.');
+  } catch (_error) {
+    setSecurityStatus('Could not start re-authentication.');
+  }
+});
+
+securityEls.revokeOthers?.addEventListener('click', async () => {
+  securityEls.revokeOthers.disabled = true;
+  setSecurityStatus('Revoking other sessions…');
+  try {
+    await jfetch(api + SECURITY_ENDPOINTS.revokeOthers, {
+      method: 'POST',
+      body: JSON.stringify({ returnPath: currentReturnTo() })
+    });
+    setSecurityStatus('Other sessions revoked. This session remains active.');
+  } catch (error) {
+    if (isCompatFallbackStatus(error) || statusCodeOf(error) === 503) {
+      setSecurityStatus('Revoke endpoint unavailable. Configure Auth0 Management API scopes.');
+    } else {
+      setSecurityStatus('Could not revoke other sessions right now.');
+    }
+  } finally {
+    securityEls.revokeOthers.disabled = false;
   }
 });
 
@@ -4365,7 +4521,6 @@ function hydrateProfile(me){
             const merged = mergeIdentity(me, claims);
 
             hydrateProfile(merged);
-            if (merged?.last_signin) $('#lastSignin').textContent = new Date(merged.last_signin*1000).toLocaleString();
           }catch(_){}
 
           // keep the layout tight — throttle via rAF to avoid thrash
