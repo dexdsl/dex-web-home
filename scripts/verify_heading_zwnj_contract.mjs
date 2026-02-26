@@ -81,6 +81,8 @@ function verifyHeadingRuntime() {
     'window.__DX_HEADING_RANDOM_SEED',
     'window.__dxHeadingFx',
     'duplicateLigatureLetters',
+    'HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR',
+    'parseHeadingDuplicateExcludedWords',
     'DONATE_LABEL_CANONICAL',
     'normalizeDonateActionLabels',
     'data-dx-donate-normalized',
@@ -102,6 +104,9 @@ function verifyNoInlineHeadingRandomizers() {
     if (pattern.test(indexText)) {
       FAILURES.push(`${indexRel} contains inline h1/h2 randomization pattern: ${pattern}`);
     }
+  }
+  if (!indexText.includes('data-dx-heading-duplicate-exclude-words="RECORDING"')) {
+    FAILURES.push(`${indexRel} missing hero duplicate exclusion marker for RECORDING`);
   }
 
   const boardRel = 'docs/board/index.html';

@@ -72,6 +72,19 @@ function findInsertedCharacters(canonical: string, renderedWithoutZwnj: string):
   return inserted;
 }
 
+function hasSingleLetterDuplicateInWord(rendered: string, word: string): boolean {
+  const upperRendered = String(rendered || '').toUpperCase();
+  const upperWord = String(word || '').toUpperCase();
+  if (!upperWord.length) return false;
+
+  const chars = Array.from(upperWord);
+  for (let index = 0; index < chars.length; index += 1) {
+    const variant = `${chars.slice(0, index + 1).join('')}${chars[index]}${chars.slice(index + 1).join('')}`;
+    if (upperRendered.includes(variant)) return true;
+  }
+  return false;
+}
+
 function assertHeadingTypographyInvariants(heading: { canonical: string; rendered: string; text: string }): void {
   expect(heading.canonical.length).toBeGreaterThan(0);
   expect(heading.rendered.length).toBeGreaterThan(0);
@@ -231,6 +244,13 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
   assertHeadingTypographyInvariants(featuredTitle);
   expect(featuredTitle.canonical.toUpperCase()).toBe('FEATURED ENTRIES');
+
+  const heroTitle = await readHeadingBySelector(page, '#dexHeroCard h1');
+  expect(heroTitle.canonical.length).toBeGreaterThan(0);
+  expect(heroTitle.rendered.length).toBeGreaterThan(0);
+  expect(countZwnj(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical));
+  expect(heroTitle.canonical.toUpperCase()).toContain('RECORDING');
+  expect(hasSingleLetterDuplicateInWord(stripZwnj(heroTitle.rendered), 'RECORDING')).toBeFalsy();
 
   const donateLabels = await collectDonateLabels(page);
   expect(donateLabels.length).toBeGreaterThan(0);

@@ -59,6 +59,7 @@
   const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200C';
   const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
+  const HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR = 'data-dx-heading-duplicate-exclude-words';
   // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
   const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
@@ -454,31 +455,78 @@
     return 2;
   }
 
-  function collectEligibleDuplicateTargets(nodeValues) {
+  function buildExcludedDuplicateGlobalIndexes(nodeValues, excludedWords) {
+    if (!(excludedWords instanceof Set) || !excludedWords.size) return null;
+
+    const combinedChars = Array.from(nodeValues.map((value) => String(value || '')).join(''));
+    const canonicalChars = [];
+    const canonicalToCombinedIndex = [];
+
+    combinedChars.forEach((char, combinedIndex) => {
+      if (char === STRETCH_PRO_DUPLICATE_SEPARATOR) return;
+      canonicalChars.push(char);
+      canonicalToCombinedIndex.push(combinedIndex);
+    });
+
+    if (!canonicalChars.length) return null;
+
+    const canonicalUpper = canonicalChars.join('').toUpperCase();
+    const excludedIndexes = new Set();
+
+    for (const word of excludedWords) {
+      if (!word || !word.length) continue;
+      let fromIndex = 0;
+      while (fromIndex < canonicalUpper.length) {
+        const foundIndex = canonicalUpper.indexOf(word, fromIndex);
+        if (foundIndex < 0) break;
+        for (let offset = 0; offset < word.length; offset += 1) {
+          const combinedIndex = canonicalToCombinedIndex[foundIndex + offset];
+          if (Number.isFinite(combinedIndex)) {
+            excludedIndexes.add(combinedIndex);
+          }
+        }
+        fromIndex = foundIndex + word.length;
+      }
+    }
+
+    return excludedIndexes.size ? excludedIndexes : null;
+  }
+
+  function collectEligibleDuplicateTargets(nodeValues, options = {}) {
+    const excludedGlobalIndexes = options.excludedGlobalIndexes instanceof Set ? options.excludedGlobalIndexes : null;
     const eligible = [];
+    let globalCharIndex = 0;
     nodeValues.forEach((value, nodeIndex) => {
       const chars = Array.from(String(value || ''));
       for (let charIndex = 0; charIndex < chars.length; charIndex += 1) {
         const char = chars[charIndex];
-        if (!char || char === STRETCH_PRO_DUPLICATE_SEPARATOR) continue;
-        if (!/\S/.test(char)) continue;
-        if (!isAlphabeticCharacter(char)) continue;
-        const upper = char.toUpperCase();
-        if (!HEADING_DUPLICATE_LIGATURE_SUPPORTED.has(upper)) continue;
-        if (HEADING_DUPLICATE_EXCLUDED.has(upper)) continue;
-        eligible.push({ nodeIndex, charIndex, char });
+        const isExcluded = excludedGlobalIndexes && excludedGlobalIndexes.has(globalCharIndex);
+        if (
+          char &&
+          char !== STRETCH_PRO_DUPLICATE_SEPARATOR &&
+          !isExcluded &&
+          /\S/.test(char) &&
+          isAlphabeticCharacter(char)
+        ) {
+          const upper = char.toUpperCase();
+          if (HEADING_DUPLICATE_LIGATURE_SUPPORTED.has(upper) && !HEADING_DUPLICATE_EXCLUDED.has(upper)) {
+            eligible.push({ nodeIndex, charIndex, char });
+          }
+        }
+        globalCharIndex += 1;
       }
     });
     return eligible;
   }
 
-  function applyProbabilisticHeadingDuplicates(nodeValues, randomFn) {
+  function applyProbabilisticHeadingDuplicates(nodeValues, randomFn, options = {}) {
     if (!Array.isArray(nodeValues) || !nodeValues.length) return nodeValues;
     const nextValues = nodeValues.map((value) => String(value == null ? '' : value));
     const duplicateCount = pickProbabilisticDuplicateCount(randomFn);
     if (!duplicateCount) return nextValues;
 
-    const eligible = collectEligibleDuplicateTargets(nextValues);
+    const excludedGlobalIndexes = buildExcludedDuplicateGlobalIndexes(nextValues, options.excludedWords);
+    const eligible = collectEligibleDuplicateTargets(nextValues, { excludedGlobalIndexes });
     if (!eligible.length) return nextValues;
 
     const target = eligible[Math.floor(randomFn() * eligible.length)];
@@ -531,6 +579,17 @@
     return `${normalizePathname(window.location.pathname || '/')}${window.location.search || ''}`;
   }
 
+  function parseHeadingDuplicateExcludedWords(heading) {
+    if (!(heading instanceof HTMLElement)) return new Set();
+    const raw = String(heading.getAttribute(HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR) || '').trim();
+    if (!raw) return new Set();
+    const words = raw
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => value.length > 1);
+    return new Set(words);
+  }
+
   function decorateHeadingElement(heading, options = {}) {
     if (!(heading instanceof HTMLElement)) return false;
     const textNodes = extractHeadingTextNodes(heading);
@@ -555,7 +614,8 @@
 
     const separatedNodeValues = canonicalNodeValues.map((value) => insertCanonicalDoubleLetterSeparators(value));
     const randomFn = createHeadingRandom(signature);
-    const renderedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn);
+    const excludedWords = parseHeadingDuplicateExcludedWords(heading);
+    const renderedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn, { excludedWords });
 
     textNodes.forEach((node, index) => {
       const nextValue = renderedNodeValues[index] || '';
