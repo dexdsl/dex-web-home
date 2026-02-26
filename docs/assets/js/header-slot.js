@@ -563,6 +563,11 @@
     return nextValues;
   }
 
+  function normalizeRenderedDuplicateSeparators(nodeValues) {
+    if (!Array.isArray(nodeValues) || !nodeValues.length) return [];
+    return nodeValues.map((value) => insertCanonicalDoubleLetterSeparators(String(value == null ? '' : value)));
+  }
+
   function extractHeadingTextNodes(heading) {
     if (!(heading instanceof HTMLElement)) return [];
     if (typeof document.createTreeWalker !== 'function') return [];
@@ -640,7 +645,8 @@
     const separatedNodeValues = canonicalNodeValues.map((value) => insertCanonicalDoubleLetterSeparators(value));
     const randomFn = createHeadingRandom(signature);
     const excludedWords = parseHeadingDuplicateExcludedWords(heading);
-    const renderedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn, { excludedWords });
+    const randomizedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn, { excludedWords });
+    const renderedNodeValues = normalizeRenderedDuplicateSeparators(randomizedNodeValues);
 
     textNodes.forEach((node, index) => {
       const nextValue = renderedNodeValues[index] || '';
@@ -676,7 +682,7 @@
     const canonical = stripZwnjCharacters(source);
     const separated = insertCanonicalDoubleLetterSeparators(canonical);
     const randomFn = createHeadingRandom(options.seedKey || canonical);
-    const [rendered] = applyProbabilisticHeadingDuplicates([separated], randomFn);
+    const [rendered] = normalizeRenderedDuplicateSeparators(applyProbabilisticHeadingDuplicates([separated], randomFn));
     return rendered || separated;
   }
 

@@ -47,6 +47,33 @@ function countZwnj(value: string): number {
   return (String(value || '').match(/\u200c/g) || []).length;
 }
 
+function assertAllAdjacentDuplicateLettersJoined(rendered: string): void {
+  const chars = Array.from(String(rendered || ''));
+  let previousLetter = '';
+  let hadSeparatorSincePrevious = false;
+
+  for (const char of chars) {
+    if (char === '\u200c') {
+      hadSeparatorSincePrevious = true;
+      continue;
+    }
+
+    const isLetter = char.toLowerCase() !== char.toUpperCase();
+    if (!isLetter) {
+      previousLetter = '';
+      hadSeparatorSincePrevious = false;
+      continue;
+    }
+
+    if (previousLetter && previousLetter.toLowerCase() === char.toLowerCase()) {
+      expect(hadSeparatorSincePrevious).toBeTruthy();
+    }
+
+    previousLetter = char;
+    hadSeparatorSincePrevious = false;
+  }
+}
+
 function findInsertedCharacters(canonical: string, renderedWithoutZwnj: string): string[] {
   const base = Array.from(canonical);
   const rendered = Array.from(renderedWithoutZwnj);
@@ -106,6 +133,7 @@ function assertHeadingTypographyInvariants(heading: { canonical: string; rendere
   expect(heading.canonical.length).toBeGreaterThan(0);
   expect(heading.rendered.length).toBeGreaterThan(0);
   expect(heading.rendered).toBe(heading.text);
+  assertAllAdjacentDuplicateLettersJoined(heading.rendered);
 
   const renderedWithoutZwnj = stripZwnj(heading.rendered);
   const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
@@ -280,6 +308,7 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     expect(String(donate.href || '')).toContain('/donate');
     expect(donate.canonical).toBe('DONATE');
     expect(donate.rendered).toBe(donate.text);
+    assertAllAdjacentDuplicateLettersJoined(donate.rendered);
     const renderedWithoutZwnj = stripZwnj(donate.rendered);
     const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
     expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical) + inserted.length);
@@ -317,6 +346,10 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const settingsTitle = await readHeadingBySelector(page, '#dexs-title');
   assertHeadingTypographyInvariants(settingsTitle);
   expect(settingsTitle.canonical.toUpperCase()).toBe('SETTINGS');
-  expect(stripZwnj(settingsTitle.rendered)).toBe(settingsTitle.canonical);
+  const settingsInserted = findInsertedCharacters(settingsTitle.canonical, stripZwnj(settingsTitle.rendered));
+  expect(settingsInserted.length).toBe(1);
+  const insertedUpper = settingsInserted[0]!.toUpperCase();
+  expect(LIGATURE_DUPLICATE_SUPPORTED.has(insertedUpper)).toBeTruthy();
+  expect(new RegExp(`${insertedUpper}\\u200c${insertedUpper}`, 'i').test(settingsTitle.rendered)).toBeTruthy();
   expect(hasTripleRepeatedLetter(settingsTitle.rendered)).toBeFalsy();
 });

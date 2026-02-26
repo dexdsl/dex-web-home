@@ -77,6 +77,7 @@ function verifyHeadingRuntime() {
     'HEADING_TYPOGRAPHY_SELECTOR',
     'HEADING_DUPLICATE_LIGATURE_SUPPORTED',
     'insertCanonicalDoubleLetterSeparators',
+    'normalizeRenderedDuplicateSeparators',
     'pickProbabilisticDuplicateCount',
     'window.__DX_HEADING_RANDOM_SEED',
     'window.__dxHeadingFx',
@@ -135,9 +136,12 @@ function verifySupportFooterPadding() {
 function verifySettingsHeadingExclusion() {
   const relPath = 'docs/entry/settings/index.html';
   const text = readText(relPath);
-  assertIncludes(relPath, text, [
-    'id="dexs-title" data-dx-heading-duplicate-exclude-words="SETTINGS"',
-  ]);
+  if (!text.includes('id="dexs-title"')) {
+    FAILURES.push(`${relPath} missing settings title heading marker`);
+  }
+  if (/id="dexs-title"[^>]*data-dx-heading-duplicate-exclude-words=/i.test(text)) {
+    FAILURES.push(`${relPath} must not exclude #dexs-title from probabilistic heading duplication`);
+  }
 }
 
 function verifySupportErrorHeadingHooks() {
