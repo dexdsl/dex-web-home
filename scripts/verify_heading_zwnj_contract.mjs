@@ -75,7 +75,9 @@ function verifyHeadingRuntime() {
   const text = readText(relPath);
   assertIncludes(relPath, text, [
     'HEADING_TYPOGRAPHY_SELECTOR',
-    "const STRETCH_PRO_DUPLICATE_SEPARATOR = '\\u200D';",
+    "const STRETCH_PRO_CANONICAL_SEPARATOR = '\\u200C';",
+    "const STRETCH_PRO_DUPLICATED_SEPARATOR = '\\u200D';",
+    'isStretchDuplicateSeparator',
     'HEADING_DUPLICATE_LIGATURE_SUPPORTED',
     'insertCanonicalDoubleLetterSeparators',
     'normalizeRenderedDuplicateSeparators',

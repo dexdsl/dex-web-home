@@ -47,7 +47,7 @@ function countJoiner(value: string): number {
   return (String(value || '').match(/\u200d/g) || []).length;
 }
 
-function countLegacyNonJoiner(value: string): number {
+function countCanonicalNonJoiner(value: string): number {
   return (String(value || '').match(/\u200c/g) || []).length;
 }
 
@@ -163,12 +163,13 @@ function assertHeadingTypographyInvariants(heading: { canonical: string; rendere
   expect(heading.rendered).toBe(heading.text);
   assertAllAdjacentDuplicateLettersJoined(heading.rendered);
   assertJoinersArePlacedBetweenMatchingLetters(heading.rendered);
-  expect(countLegacyNonJoiner(heading.rendered)).toBe(0);
 
   const renderedWithoutZwnj = stripZwnj(heading.rendered);
   const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
-  const expectedZwnjCount = countCanonicalDoubleLetters(heading.canonical) + inserted.length;
-  expect(countJoiner(heading.rendered)).toBe(expectedZwnjCount);
+  const expectedCanonicalNonJoinerCount = countCanonicalDoubleLetters(heading.canonical);
+  const expectedDuplicatedJoinerCount = inserted.length;
+  expect(countCanonicalNonJoiner(heading.rendered)).toBe(expectedCanonicalNonJoinerCount);
+  expect(countJoiner(heading.rendered)).toBe(expectedDuplicatedJoinerCount);
   expect(inserted.length).toBeLessThanOrEqual(1);
   if (inserted.length > 0) {
     const firstUpper = inserted[0]!.toUpperCase();
@@ -310,8 +311,8 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(errorRendered).toBe(errorText);
   const errorRenderedText = errorRendered || '';
   const errorInserted = findInsertedCharacters(errorCanonical || '', stripZwnj(errorRenderedText));
-  expect(countLegacyNonJoiner(errorRenderedText)).toBe(0);
-  expect(countJoiner(errorRenderedText)).toBe(countCanonicalDoubleLetters(errorCanonical || '') + errorInserted.length);
+  expect(countCanonicalNonJoiner(errorRenderedText)).toBe(countCanonicalDoubleLetters(errorCanonical || ''));
+  expect(countJoiner(errorRenderedText)).toBe(errorInserted.length);
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect.poll(async () => page.locator('#featuredTitle').getAttribute('data-dx-heading-canonical')).toBeTruthy();
@@ -324,6 +325,39 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     () => (window as unknown as { __dxHeadingFx?: { separator?: string } }).__dxHeadingFx?.separator || '',
   );
   expect(headingSeparator).toBe('\u200D');
+  const headingCanonicalSeparator = await page.evaluate(
+    () => (window as unknown as { __dxHeadingFx?: { canonicalSeparator?: string } }).__dxHeadingFx?.canonicalSeparator || '',
+  );
+  expect(headingCanonicalSeparator).toBe('\u200C');
+  const headingDuplicatedSeparator = await page.evaluate(
+    () => (window as unknown as { __dxHeadingFx?: { duplicatedSeparator?: string } }).__dxHeadingFx?.duplicatedSeparator || '',
+  );
+  expect(headingDuplicatedSeparator).toBe('\u200D');
+  const spellingsSample = await page.evaluate(() => {
+    const canonical = 'SPELLINGS';
+    const runtime = (window as unknown as { __dxHeadingFx?: { renderHeadingText?: (value: string, options?: Record<string, unknown>) => string } }).__dxHeadingFx;
+    const renderHeadingText = runtime && typeof runtime.renderHeadingText === 'function'
+      ? runtime.renderHeadingText
+      : null;
+    if (!renderHeadingText) return null;
+    for (let index = 0; index < 128; index += 1) {
+      const rendered = String(renderHeadingText(canonical, { uppercase: false, seedKey: `spellings:${index}` }) || '');
+      const plain = rendered.replace(/[\u200c\u200d]/g, '');
+      if (plain !== canonical) {
+        return { canonical, rendered };
+      }
+    }
+    return { canonical, rendered: String(renderHeadingText(canonical, { uppercase: false, seedKey: 'spellings:none' }) || '') };
+  });
+  expect(spellingsSample).not.toBeNull();
+  expect(spellingsSample!.canonical).toBe('SPELLINGS');
+  const spellingsInserted = findInsertedCharacters(spellingsSample!.canonical, stripZwnj(spellingsSample!.rendered));
+  expect(spellingsInserted.length).toBeGreaterThan(0);
+  assertAllAdjacentDuplicateLettersJoined(spellingsSample!.rendered);
+  assertJoinersArePlacedBetweenMatchingLetters(spellingsSample!.rendered);
+  expect(countCanonicalNonJoiner(spellingsSample!.rendered)).toBe(1);
+  expect(countJoiner(spellingsSample!.rendered)).toBe(spellingsInserted.length);
+  expect(new RegExp(`L\\u200cL`, 'i').test(spellingsSample!.rendered)).toBeTruthy();
 
   const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
   assertHeadingTypographyInvariants(featuredTitle);
@@ -333,7 +367,8 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(heroTitle.canonical.length).toBeGreaterThan(0);
   expect(heroTitle.rendered.length).toBeGreaterThan(0);
   const heroInserted = findInsertedCharacters(heroTitle.canonical, stripZwnj(heroTitle.rendered));
-  expect(countJoiner(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical) + heroInserted.length);
+  expect(countCanonicalNonJoiner(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical));
+  expect(countJoiner(heroTitle.rendered)).toBe(heroInserted.length);
   expect(heroTitle.canonical.toUpperCase()).toContain('RECORDING');
   expect(hasSingleLetterDuplicateInWord(stripZwnj(heroTitle.rendered), 'RECORDING')).toBeFalsy();
 
@@ -346,8 +381,8 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     assertAllAdjacentDuplicateLettersJoined(donate.rendered);
     const renderedWithoutZwnj = stripZwnj(donate.rendered);
     const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
-    expect(countLegacyNonJoiner(donate.rendered)).toBe(0);
-    expect(countJoiner(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical) + inserted.length);
+    expect(countCanonicalNonJoiner(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical));
+    expect(countJoiner(donate.rendered)).toBe(inserted.length);
     expect(inserted.length).toBeLessThanOrEqual(1);
     if (inserted.length > 0) {
       const firstUpper = inserted[0]!.toUpperCase();

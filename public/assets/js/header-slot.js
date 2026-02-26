@@ -56,7 +56,8 @@
     ['/assets/js/dx-about.js', '__dxAboutRouteLoaded'],
     ['/assets/js/dx-scroll-dot.js', '__dxScrollDotLoaded'],
   ]);
-  const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200D';
+  const STRETCH_PRO_CANONICAL_SEPARATOR = '\u200C';
+  const STRETCH_PRO_DUPLICATED_SEPARATOR = '\u200D';
   const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
   const HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR = 'data-dx-heading-duplicate-exclude-words';
@@ -391,8 +392,12 @@
     return char.toLowerCase() !== char.toUpperCase();
   }
 
+  function isStretchDuplicateSeparator(char) {
+    return char === STRETCH_PRO_CANONICAL_SEPARATOR || char === STRETCH_PRO_DUPLICATED_SEPARATOR;
+  }
+
   function stripZwnjCharacters(value) {
-    // Normalize both historical ZWNJ separators and current ZWJ separators.
+    // Normalize both canonical (U+200C) and duplicated-run (U+200D) separators.
     return String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
   }
 
@@ -410,10 +415,10 @@
       const next = chars[index + 1];
       output.push(current);
       if (!next) continue;
-      if (current === STRETCH_PRO_DUPLICATE_SEPARATOR || next === STRETCH_PRO_DUPLICATE_SEPARATOR) continue;
+      if (isStretchDuplicateSeparator(current) || isStretchDuplicateSeparator(next)) continue;
       if (!isAlphabeticCharacter(current) || !isAlphabeticCharacter(next)) continue;
       if (current.toLowerCase() !== next.toLowerCase()) continue;
-      output.push(STRETCH_PRO_DUPLICATE_SEPARATOR);
+      output.push(STRETCH_PRO_CANONICAL_SEPARATOR);
       changed = true;
     }
 
@@ -463,7 +468,7 @@
     const canonicalToCombinedIndex = [];
 
     combinedChars.forEach((char, combinedIndex) => {
-      if (char === STRETCH_PRO_DUPLICATE_SEPARATOR) return;
+      if (isStretchDuplicateSeparator(char)) return;
       canonicalChars.push(char);
       canonicalToCombinedIndex.push(combinedIndex);
     });
@@ -504,14 +509,14 @@
         const currentLower = current.toLowerCase();
 
         let prevIndex = charIndex - 1;
-        while (prevIndex >= 0 && chars[prevIndex] === STRETCH_PRO_DUPLICATE_SEPARATOR) prevIndex -= 1;
+        while (prevIndex >= 0 && isStretchDuplicateSeparator(chars[prevIndex])) prevIndex -= 1;
         if (prevIndex >= 0) {
           const prev = chars[prevIndex];
           if (isAlphabeticCharacter(prev) && prev.toLowerCase() === currentLower) return true;
         }
 
         let nextIndex = charIndex + 1;
-        while (nextIndex < chars.length && chars[nextIndex] === STRETCH_PRO_DUPLICATE_SEPARATOR) nextIndex += 1;
+        while (nextIndex < chars.length && isStretchDuplicateSeparator(chars[nextIndex])) nextIndex += 1;
         if (nextIndex < chars.length) {
           const next = chars[nextIndex];
           if (isAlphabeticCharacter(next) && next.toLowerCase() === currentLower) return true;
@@ -525,7 +530,7 @@
         const isExcluded = excludedGlobalIndexes && excludedGlobalIndexes.has(globalCharIndex);
         if (
           char &&
-          char !== STRETCH_PRO_DUPLICATE_SEPARATOR &&
+          !isStretchDuplicateSeparator(char) &&
           !isExcluded &&
           !hasSameLetterNeighborAt(charIndex) &&
           /\S/.test(char) &&
@@ -556,7 +561,7 @@
     const chars = Array.from(nextValues[target.nodeIndex] || '');
     let duplicateRun = '';
     for (let index = 0; index < duplicateCount; index += 1) {
-      duplicateRun += `${STRETCH_PRO_DUPLICATE_SEPARATOR}${target.char}`;
+      duplicateRun += `${STRETCH_PRO_DUPLICATED_SEPARATOR}${target.char}`;
     }
     chars.splice(target.charIndex + 1, 0, duplicateRun);
     nextValues[target.nodeIndex] = chars.join('');
@@ -566,7 +571,54 @@
 
   function normalizeRenderedDuplicateSeparators(nodeValues) {
     if (!Array.isArray(nodeValues) || !nodeValues.length) return [];
-    return nodeValues.map((value) => insertCanonicalDoubleLetterSeparators(String(value == null ? '' : value)));
+    return nodeValues.map((value) => {
+      const raw = Array.from(String(value == null ? '' : value));
+      if (!raw.length) return '';
+
+      const cleaned = [];
+      for (let index = 0; index < raw.length; index += 1) {
+        const char = raw[index];
+        if (!isStretchDuplicateSeparator(char)) {
+          cleaned.push(char);
+          continue;
+        }
+
+        let prevIndex = cleaned.length - 1;
+        while (prevIndex >= 0 && isStretchDuplicateSeparator(cleaned[prevIndex])) prevIndex -= 1;
+        let nextIndex = index + 1;
+        while (nextIndex < raw.length && isStretchDuplicateSeparator(raw[nextIndex])) nextIndex += 1;
+        if (prevIndex < 0 || nextIndex >= raw.length) continue;
+
+        const prevChar = cleaned[prevIndex];
+        const nextChar = raw[nextIndex];
+        if (!isAlphabeticCharacter(prevChar) || !isAlphabeticCharacter(nextChar)) continue;
+        if (prevChar.toLowerCase() !== nextChar.toLowerCase()) continue;
+
+        const trailing = cleaned[cleaned.length - 1];
+        if (isStretchDuplicateSeparator(trailing)) {
+          if (trailing === STRETCH_PRO_CANONICAL_SEPARATOR && char === STRETCH_PRO_DUPLICATED_SEPARATOR) {
+            cleaned[cleaned.length - 1] = STRETCH_PRO_DUPLICATED_SEPARATOR;
+          }
+          continue;
+        }
+        cleaned.push(char);
+      }
+
+      const normalized = [];
+      for (let index = 0; index < cleaned.length; index += 1) {
+        const char = cleaned[index];
+        normalized.push(char);
+        if (isStretchDuplicateSeparator(char)) continue;
+
+        const nextChar = cleaned[index + 1];
+        if (!nextChar || isStretchDuplicateSeparator(nextChar)) continue;
+        if (!isAlphabeticCharacter(char) || !isAlphabeticCharacter(nextChar)) continue;
+        if (char.toLowerCase() !== nextChar.toLowerCase()) continue;
+        normalized.push(STRETCH_PRO_CANONICAL_SEPARATOR);
+      }
+
+      return normalized.join('');
+    });
   }
 
   function extractHeadingTextNodes(heading) {
@@ -742,7 +794,9 @@
 
   function exposeHeadingTypographyRuntime() {
     const runtime = {
-      separator: STRETCH_PRO_DUPLICATE_SEPARATOR,
+      separator: STRETCH_PRO_DUPLICATED_SEPARATOR,
+      canonicalSeparator: STRETCH_PRO_CANONICAL_SEPARATOR,
+      duplicatedSeparator: STRETCH_PRO_DUPLICATED_SEPARATOR,
       duplicateLigatureLetters: Array.from(HEADING_DUPLICATE_LIGATURE_SUPPORTED).sort().join(''),
       decorateHeading: (heading, options = {}) => decorateHeadingElement(heading, options),
       decorateHeadings: (root = document) => applyHeadingTypographyEffects(root),
