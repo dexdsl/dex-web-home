@@ -569,6 +569,31 @@ test('messages inbox degrades gracefully when system endpoint fails', async ({ p
   await expect(page.locator('[data-dx-msg-item][data-source-type="submission"]')).toHaveCount(2);
 });
 
+test('messages inbox remounts on slot-ready events after route shell swaps', async ({ page }) => {
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubSubmissionsJsonp(page);
+  await stubMessagesApi(page, 'success');
+
+  await page.goto('/entry/messages/', { waitUntil: 'domcontentloaded' });
+  await waitForMessagesReady(page);
+  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
+
+  await page.evaluate(() => {
+    const root = document.getElementById('dex-msg');
+    if (!(root instanceof HTMLElement)) return;
+    root.removeAttribute('data-dx-msg-mounted');
+    root.removeAttribute('data-dx-msg-booting');
+    root.setAttribute('data-dx-fetch-state', 'loading');
+    root.innerHTML = '<aside class="dx-msg-shell"><p class="dx-msg-empty">Loading inbox…</p></aside>';
+    try {
+      window.dispatchEvent(new CustomEvent('dx:slotready', { detail: {} }));
+    } catch {}
+  });
+
+  await waitForMessagesReady(page);
+  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
+});
+
 test('messages inbox exits loading and shows sign-in prompt for signed-out users', async ({ page }) => {
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page, 'signed-out');

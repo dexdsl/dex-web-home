@@ -146,6 +146,20 @@ test('mobile profile routes keep gooey behind content and footer compact', async
 
       const routeStyle = routeRoot ? window.getComputedStyle(routeRoot) : null;
       const routeRect = routeRoot ? routeRoot.getBoundingClientRect() : null;
+      const contentCards = routeRoot
+        ? Array.from(
+            routeRoot.querySelectorAll(
+              '.dx-msg-shell,.panel,.slide,.details,.open-card,.detail-card,.modal,.hdr,.tabsbar,.card,.savebar',
+            ),
+          ).filter((node): node is HTMLElement => node instanceof HTMLElement)
+        : [];
+      const lastCardBottom = contentCards.reduce((maxBottom, node) => {
+        const style = window.getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden') return maxBottom;
+        const rect = node.getBoundingClientRect();
+        if (rect.width < 20 || rect.height < 20) return maxBottom;
+        return Math.max(maxBottom, Math.round(rect.bottom));
+      }, routeRect ? Math.round(routeRect.top) : 0);
       const meshStyle = mesh ? window.getComputedStyle(mesh) : null;
       const scrollStyle = scrollRoot ? window.getComputedStyle(scrollRoot) : null;
       const footerStyle = footer ? window.getComputedStyle(footer) : null;
@@ -171,6 +185,7 @@ test('mobile profile routes keep gooey behind content and footer compact', async
         footerLinksDirection: footerLinksStyle ? footerLinksStyle.flexDirection : '',
         footerHeightPx: footerRect ? Math.round(footerRect.height) : 0,
         routeBottomPx: routeRect ? Math.round(routeRect.bottom) : 0,
+        lastCardBottomPx: lastCardBottom,
         footerTopPx: footerRect ? Math.round(footerRect.top) : 0,
         sealHeightPx: sealRect ? Math.round(sealRect.height) : 0,
         sealTopPx: sealRect ? Math.round(sealRect.top) : 0,
@@ -194,6 +209,7 @@ test('mobile profile routes keep gooey behind content and footer compact', async
     expect(metrics.footerHeightPx).toBeGreaterThan(0);
     expect(metrics.footerHeightPx).toBeLessThan(240);
     expect(Math.abs(metrics.footerTopPx - metrics.routeBottomPx)).toBeLessThan(28);
+    expect(Math.abs(metrics.footerTopPx - metrics.lastCardBottomPx)).toBeLessThan(56);
     expect(metrics.sealHeightPx).toBeGreaterThan(0);
     expect(metrics.sealHeightPx).toBeLessThan(60);
     expect(Math.abs(metrics.sealTopPx - metrics.socialTopPx)).toBeLessThan(60);

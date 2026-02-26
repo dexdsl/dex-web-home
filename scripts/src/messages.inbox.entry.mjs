@@ -1,9 +1,17 @@
 (() => {
-  if (typeof window === 'undefined' || window.__dxMessagesInboxRuntimeLoaded) return;
+  if (typeof window === 'undefined') return;
+  if (window.__dxMessagesInboxRuntimeLoaded) {
+    if (typeof window.__dxMessagesInboxMount === 'function') {
+      try {
+        window.__dxMessagesInboxMount();
+      } catch {}
+    }
+    return;
+  }
   window.__dxMessagesInboxRuntimeLoaded = true;
 
   const DX_MIN_SHEEN_MS = 120;
-  const AUTH_TIMEOUT_MS = 2500;
+  const AUTH_TIMEOUT_MS = 6000;
   const JSONP_TIMEOUT_MS = 6000;
   const SYSTEM_FETCH_TIMEOUT_MS = 6000;
   const ACTION_TIMEOUT_MS = 5000;
@@ -631,6 +639,15 @@
   }
 
   function bindHandlers(root, model, context) {
+    if (root.__dxMessagesEventAbortController instanceof AbortController) {
+      try {
+        root.__dxMessagesEventAbortController.abort();
+      } catch {}
+    }
+    const eventAbortController = new AbortController();
+    root.__dxMessagesEventAbortController = eventAbortController;
+    const eventOptions = { signal: eventAbortController.signal };
+
     root.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -760,7 +777,7 @@
 
         render(root, model);
       }
-    });
+    }, eventOptions);
 
     root.addEventListener('change', (event) => {
       const target = event.target;
@@ -771,7 +788,7 @@
         model.showArchived = !!target.checked;
         render(root, model);
       }
-    });
+    }, eventOptions);
   }
 
   async function renderSignedOut(root) {
@@ -789,10 +806,7 @@
     dispatchUnreadCount(0);
   }
 
-  async function boot() {
-    const root = document.getElementById('dex-msg');
-    if (!(root instanceof HTMLElement)) return;
-
+  async function boot(root) {
     const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
 
@@ -869,11 +883,53 @@
     setFetchState(root, FETCH_STATE_READY);
   }
 
+  async function mount(options = {}) {
+    const root = document.getElementById('dex-msg');
+    if (!(root instanceof HTMLElement)) return false;
+
+    const force = !!options.force;
+    const booting = root.getAttribute('data-dx-msg-booting') === 'true';
+    const mounted = root.getAttribute('data-dx-msg-mounted') === 'true';
+    if (booting) return true;
+    if (mounted && !force) return true;
+
+    root.setAttribute('data-dx-msg-booting', 'true');
+    if (force) root.removeAttribute('data-dx-msg-mounted');
+    try {
+      await boot(root);
+      root.setAttribute('data-dx-msg-mounted', 'true');
+      return true;
+    } catch {
+      setFetchState(root, FETCH_STATE_ERROR);
+      return false;
+    } finally {
+      root.removeAttribute('data-dx-msg-booting');
+    }
+  }
+
+  function scheduleMount(options = {}) {
+    mount(options).catch(() => {});
+  }
+
+  window.__dxMessagesInboxMount = () => {
+    scheduleMount();
+  };
+
+  window.addEventListener('dx:slotready', () => {
+    scheduleMount({ force: true });
+  });
+  window.addEventListener('dex-auth:ready', () => {
+    scheduleMount({ force: true });
+  });
+  window.addEventListener('dex-auth:state', () => {
+    scheduleMount({ force: true });
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      boot().catch(() => {});
+      scheduleMount({ force: true });
     }, { once: true });
   } else {
-    boot().catch(() => {});
+    scheduleMount({ force: true });
   }
 })();
