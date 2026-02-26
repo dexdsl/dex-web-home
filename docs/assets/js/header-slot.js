@@ -62,7 +62,7 @@
   // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
   const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
-  const DONATE_LABEL_CANONICAL = 'DOONATE';
+  const DONATE_LABEL_CANONICAL = 'DONATE';
   const DONATE_LABEL_SELECTOR = '.header-actions-action--cta a[href], .header-menu-cta a[href], .dx-mobile-menu-actions a[href][data-dx-mobile-menu-action="true"]';
 
   let routeAbortController = null;
@@ -606,8 +606,9 @@
     return normalizePathname(absoluteHref.pathname) === '/donate';
   }
 
-  function renderDonateLabel() {
-    return insertCanonicalDoubleLetterSeparators(String(DONATE_LABEL_CANONICAL || '').toUpperCase());
+  function renderDonateLabel(options = {}) {
+    const canonical = String(options.canonical || DONATE_LABEL_CANONICAL || '').toUpperCase();
+    return renderHeadingText(canonical, { uppercase: false, seedKey: options.seedKey || `donate:${canonical}` });
   }
 
   function normalizeDonateActionLabels(root = document) {
@@ -615,19 +616,31 @@
     if (!(scope instanceof Element || scope instanceof DocumentFragment)) return 0;
     if (typeof scope.querySelectorAll !== 'function') return 0;
 
-    const donateLabel = renderDonateLabel();
     const canonical = String(DONATE_LABEL_CANONICAL || '').toUpperCase();
+    const routeKey = normalizeHeadingRouteKey();
     let normalizedCount = 0;
 
     const anchors = Array.from(scope.querySelectorAll(DONATE_LABEL_SELECTOR));
-    for (const anchor of anchors) {
+    for (let anchorIndex = 0; anchorIndex < anchors.length; anchorIndex += 1) {
+      const anchor = anchors[anchorIndex];
       if (!(anchor instanceof HTMLAnchorElement)) continue;
       if (!isDonateAnchor(anchor)) continue;
-      if (String(anchor.textContent || '') !== donateLabel) {
-        anchor.textContent = donateLabel;
+
+      const signature = `${routeKey}|donate|${anchorIndex}|${canonical}`;
+      const currentRendered = String(anchor.textContent || '');
+      const priorSignature = String(anchor.getAttribute('data-dx-donate-signature') || '');
+      const priorRendered = String(anchor.getAttribute('data-dx-donate-rendered') || '');
+      const canReuseRendered = priorSignature === signature && priorRendered.length > 0 && currentRendered === priorRendered;
+      const nextRendered = canReuseRendered
+        ? priorRendered
+        : renderDonateLabel({ canonical, seedKey: signature });
+
+      if (currentRendered !== nextRendered) {
+        anchor.textContent = nextRendered;
       }
       anchor.setAttribute('data-dx-donate-canonical', canonical);
-      anchor.setAttribute('data-dx-donate-rendered', donateLabel);
+      anchor.setAttribute('data-dx-donate-rendered', nextRendered);
+      anchor.setAttribute('data-dx-donate-signature', signature);
       anchor.setAttribute('data-dx-donate-normalized', 'true');
       normalizedCount += 1;
     }

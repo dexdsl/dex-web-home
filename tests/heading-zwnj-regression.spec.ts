@@ -236,10 +236,17 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(donateLabels.length).toBeGreaterThan(0);
   for (const donate of donateLabels) {
     expect(String(donate.href || '')).toContain('/donate');
-    expect(donate.canonical).toBe('DOONATE');
+    expect(donate.canonical).toBe('DONATE');
     expect(donate.rendered).toBe(donate.text);
     expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical));
-    expect(stripZwnj(donate.rendered)).toBe(donate.canonical);
+    const renderedWithoutZwnj = stripZwnj(donate.rendered);
+    const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
+    expect(inserted.length).toBeLessThanOrEqual(2);
+    if (inserted.length > 0) {
+      const firstUpper = inserted[0]!.toUpperCase();
+      expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
+      expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
+    }
   }
 
   const signupTitle = await readHeadingBySelector(page, '#dex-signup .signup-heading');
