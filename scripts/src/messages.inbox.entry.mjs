@@ -14,6 +14,7 @@
   const AUTH_TIMEOUT_MS = 6000;
   const JSONP_TIMEOUT_MS = 6000;
   const SYSTEM_FETCH_TIMEOUT_MS = 6000;
+  const SUBMISSIONS_FETCH_TIMEOUT_MS = 6000;
   const ACTION_TIMEOUT_MS = 5000;
   const NON_SUB_RETENTION_DAYS = 90;
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
@@ -330,7 +331,8 @@
     const safeRows = Array.isArray(rows) ? rows : [];
     const fallbackYear = new Date().getFullYear();
     return safeRows.map((row, index) => {
-      const id = buildSubmissionId(row, index, sub);
+      const submissionId = toSafeText(row?.submissionId || row?.submission_id, '');
+      const id = submissionId || buildSubmissionId(row, index, sub);
       const state = isObject(submissionState[id]) ? submissionState[id] : {};
       const status = toSafeText(row?.status, 'Submitted');
       const createdAt = toRecordDate(row?.timestamp || row?.createdAt || row?.created_at);
@@ -340,9 +342,12 @@
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
         title: buildSubmissionLookup(row, fallbackYear),
-        body: toSafeText(row?.note, ''),
-        href: '/entry/submit/',
+        body: toSafeText(row?.notes || row?.note, ''),
+        href: submissionId
+          ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
+          : '/entry/submit/',
         metadata: {
+          submissionId,
           row: row?.row,
           status,
           license: row?.license,
@@ -357,24 +362,96 @@
     });
   }
 
-  async function loadSubmissionRecords(sub, submissionState) {
-    if (!sub) {
+  function normalizeSubmissionThreadRecords(rows, submissionState) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    return safeRows.map((row, index) => {
+      const value = isObject(row) ? row : {};
+      const submissionId = toSafeText(value.submissionId || value.submission_id, '');
+      const id = submissionId || `submission-thread-${index + 1}`;
+      const state = isObject(submissionState[id]) ? submissionState[id] : {};
+      const status = toSafeText(value.currentStatusRaw || value.current_status_raw, 'Submitted');
+      const createdAt = toRecordDate(value.updatedAt || value.updated_at || value.receivedAt || value.received_at || value.createdAt || value.created_at);
+      const lookup = toSafeText(value.lookup, '');
+      const title = lookup || toSafeText(value.title, `Submission ${index + 1}`);
+      const sourceRow = value.sourceRow || value.source_row || '';
+      const readAt = toSafeText(value.acknowledgedAt || value.acknowledged_at || state.readAt, '');
+      const archivedAt = toSafeText(value.archivedAt || value.archived_at || state.archivedAt, '');
+      return {
+        id,
+        sourceType: 'submission',
+        category: 'submissions',
+        severity: severityFromSubmissionStatus(status),
+        title,
+        body: toSafeText(value.latestPublicNote || value.latest_public_note, ''),
+        href: submissionId
+          ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
+          : '/entry/submit/',
+        metadata: {
+          submissionId,
+          row: sourceRow,
+          status,
+          license: toSafeText(value.license, ''),
+          collectionType: toSafeText(value.collectionType || value.collection_type, ''),
+        },
+        createdAt,
+        readAt,
+        archivedAt,
+        expiresAt: '',
+        permanent: true,
+      };
+    });
+  }
+
+  async function loadSubmissionRecords(apiBase, authSnapshot, submissionState) {
+    if (!authSnapshot?.authenticated || !authSnapshot?.token) {
       return {
         records: [],
         warning: '',
       };
     }
 
-    const response = await withTimeout(
+    const submissionsResponse = await fetchJsonWithTimeout(
+      `${apiBase}/me/submissions?limit=200&state=all`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${authSnapshot.token}`,
+          'content-type': 'application/json',
+        },
+      },
+      SUBMISSIONS_FETCH_TIMEOUT_MS,
+    );
+
+    if (submissionsResponse.ok) {
+      const payload = isObject(submissionsResponse.payload) ? submissionsResponse.payload : {};
+      const rows = Array.isArray(payload.threads)
+        ? payload.threads
+        : Array.isArray(payload.items)
+          ? payload.items
+          : [];
+      return {
+        records: normalizeSubmissionThreadRecords(rows, submissionState),
+        warning: '',
+      };
+    }
+
+    const sub = toSafeText(authSnapshot?.sub, '');
+    if (!sub) {
+      return {
+        records: [],
+        warning: 'Submissions are temporarily unavailable.',
+      };
+    }
+
+    const legacyResponse = await withTimeout(
       jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
       JSONP_TIMEOUT_MS + 100,
       { status: 'timeout', rows: [] },
     );
-
-    const rows = Array.isArray(response?.rows) ? response.rows : [];
+    const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
     return {
       records: normalizeSubmissionRecords(rows, sub, submissionState),
-      warning: '',
+      warning: 'Using legacy submissions feed while timeline sync catches up.',
     };
   }
 
@@ -755,20 +832,36 @@
           return;
         }
 
-        const row = Number(record.metadata?.row);
-        if (!Number.isFinite(row)) {
-          model.warnings = [...model.warnings, 'This submission cannot be acknowledged automatically.'];
-          render(root, model);
-          return;
+        let acknowledged = false;
+        const submissionId = toSafeText(record.metadata?.submissionId, '');
+        if (submissionId) {
+          const ackResult = await fetchJsonWithTimeout(
+            `${context.apiBase}/me/submissions/${encodeURIComponent(submissionId)}/ack`,
+            {
+              method: 'POST',
+              headers: {
+                authorization: `Bearer ${context.authSnapshot.token || ''}`,
+                'content-type': 'application/json',
+              },
+            },
+            ACTION_TIMEOUT_MS,
+          );
+          acknowledged = !!ackResult.ok;
         }
 
-        const response = await withTimeout(
-          jsonpWithTimeout(`${SHEET_API}?action=ack&row=${encodeURIComponent(String(row))}`, JSONP_TIMEOUT_MS),
-          JSONP_TIMEOUT_MS + 100,
-          { status: 'timeout' },
-        );
+        if (!acknowledged) {
+          const row = Number(record.metadata?.row);
+          if (Number.isFinite(row)) {
+            const legacyResponse = await withTimeout(
+              jsonpWithTimeout(`${SHEET_API}?action=ack&row=${encodeURIComponent(String(row))}`, JSONP_TIMEOUT_MS),
+              JSONP_TIMEOUT_MS + 100,
+              { status: 'timeout' },
+            );
+            acknowledged = String(legacyResponse?.status || '').toLowerCase() === 'ok';
+          }
+        }
 
-        if (String(response?.status || '').toLowerCase() === 'ok') {
+        if (acknowledged) {
           record.readAt = now;
           updateSubmissionState(context.scope, context.submissionState, record.id, { readAt: now });
         } else {
@@ -831,7 +924,7 @@
 
     try {
       const [submissionResult, systemResult] = await Promise.all([
-        loadSubmissionRecords(scope, submissionState),
+        loadSubmissionRecords(apiBase, authSnapshot, submissionState),
         loadSystemRecords(apiBase, authSnapshot),
       ]);
 

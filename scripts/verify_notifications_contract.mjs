@@ -95,9 +95,11 @@ function verifyMessagesRuntimeContract() {
     'withTimeout(',
     'jsonpWithTimeout(',
     'data-dx-msg-filter',
+    '/me/submissions?limit=200&state=all',
     "'/me/messages/read-all'",
     'dx:messages:unread-count',
     'SUBMISSION_STATE_PREFIX',
+    '/entry/messages/submission/?sid=',
   ]);
 
   for (const relPath of [
@@ -109,7 +111,9 @@ function verifyMessagesRuntimeContract() {
     assertIncludes(relPath, text, [
       '__dxMessagesInboxRuntimeLoaded',
       'dx:messages:unread-count',
+      'me/submissions?limit=200&state=all',
       'me/messages/read-all',
+      'entry/messages/submission/?sid=',
     ]);
   }
 }

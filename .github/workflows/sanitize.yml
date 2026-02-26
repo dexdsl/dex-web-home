@@ -62,6 +62,9 @@ jobs:
       - name: Verify notifications contract
         run: npm run verify:notifications
 
+      - name: Verify submission tracker contract
+        run: npm run verify:submission-tracker
+
       - name: Verify newsletter contract
         run: npm run verify:newsletter
 
@@ -103,6 +106,9 @@ jobs:
 
       - name: Messages notifications inbox test
         run: npm run test:messages-notifications
+
+      - name: Submission tracker timeline test
+        run: npm run test:submission-tracker
 
       - name: Newsletter migration test
         run: npm run test:newsletter

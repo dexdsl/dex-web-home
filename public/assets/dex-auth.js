@@ -30,6 +30,7 @@
     "/entry/favorites": true,
     "/entry/hammered-dulcimer-cameron-church": true,
     "/entry/messages": true,
+    "/entry/messages/submission": true,
     "/entry/multiperc": true,
     "/entry/no-input-mixer-jared-murphy": true,
     "/entry/prepared-bass-viol-suarez-solis": true,

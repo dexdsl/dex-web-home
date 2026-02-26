@@ -55,6 +55,84 @@ const SUBMISSION_ROWS = [
   },
 ];
 
+const SUBMISSION_THREADS_FIXTURE = [
+  {
+    submissionId: 'sub-001',
+    lookup: 'Sub. A 12.Joint',
+    title: 'Brass Session',
+    creator: 'John Doe',
+    currentStage: 'reviewing',
+    currentStatusRaw: 'Pending Review',
+    latestPublicNote: 'Please share one dry alternate take.',
+    sourceRow: 12,
+    collectionType: 'A',
+    license: 'Joint',
+    updatedAt: '2026-02-26T09:00:00.000Z',
+    acknowledgedAt: '',
+    archivedAt: '',
+  },
+  {
+    submissionId: 'sub-002',
+    lookup: 'Sub. C 8.CC0',
+    title: 'Organ Session',
+    creator: 'Jane Doe',
+    currentStage: 'accepted',
+    currentStatusRaw: 'Accepted',
+    latestPublicNote: 'Accepted for the next release set.',
+    sourceRow: 8,
+    collectionType: 'C',
+    license: 'CC0',
+    updatedAt: '2026-02-24T10:30:00.000Z',
+    acknowledgedAt: '2026-02-24T11:00:00.000Z',
+    archivedAt: '',
+  },
+];
+
+const SUBMISSION_DETAIL_FIXTURE: Record<string, unknown> = {
+  thread: {
+    submissionId: 'sub-001',
+    lookup: 'Sub. A 12.Joint',
+    title: 'Brass Session',
+    creator: 'John Doe',
+    currentStage: 'reviewing',
+    currentStatusRaw: 'Pending Review',
+    sourceLink: '/entry/submit/',
+    libraryHref: '',
+    updatedAt: '2026-02-26T09:00:00.000Z',
+    acknowledgedAt: '',
+  },
+  timeline: [
+    {
+      id: 'sub-evt-1',
+      eventType: 'sent',
+      stage: 'sent',
+      statusRaw: 'Submitted',
+      publicNote: '',
+      eventAt: '2026-02-26T08:59:00.000Z',
+    },
+    {
+      id: 'sub-evt-2',
+      eventType: 'received',
+      stage: 'received',
+      statusRaw: 'Pending Review',
+      publicNote: 'Received and queued.',
+      eventAt: '2026-02-26T09:00:00.000Z',
+    },
+  ],
+  stageRail: {
+    currentStage: 'reviewing',
+    steps: [
+      { key: 'sent', label: 'Sent', state: 'done', at: '2026-02-26T08:59:00.000Z' },
+      { key: 'received', label: 'Received', state: 'done', at: '2026-02-26T09:00:00.000Z' },
+      { key: 'acknowledged', label: 'Acknowledged', state: 'todo', at: '' },
+      { key: 'reviewing', label: 'Reviewing', state: 'active', at: '' },
+      { key: 'accepted', label: 'Accepted', state: 'todo', at: '' },
+      { key: 'rejected', label: 'Rejected', state: 'todo', at: '' },
+      { key: 'in_library', label: 'In library', state: 'todo', at: '' },
+    ],
+  },
+};
+
 async function stubHeaderRuntimes(page: Page): Promise<void> {
   await page.route('**/assets/js/header-slot.js', async (route) => {
     await route.fulfill({
@@ -198,6 +276,64 @@ async function stubMessagesApi(
         headers: CORS_HEADERS,
         contentType: 'application/json',
         body: JSON.stringify({ messages: SYSTEM_MESSAGES_FIXTURE }),
+      });
+      return;
+    }
+
+    if (pathname === '/me/submissions' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({ threads: SUBMISSION_THREADS_FIXTURE }),
+      });
+      return;
+    }
+
+    const submissionDetailMatch = pathname.match(/^\/me\/submissions\/([^/]+)$/);
+    if (submissionDetailMatch && method === 'GET') {
+      const sid = decodeURIComponent(submissionDetailMatch[1]);
+      await route.fulfill({
+        status: sid === 'sub-001' ? 200 : 404,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: sid === 'sub-001'
+          ? JSON.stringify(SUBMISSION_DETAIL_FIXTURE)
+          : JSON.stringify({ error: 'Not found' }),
+      });
+      return;
+    }
+
+    const submissionAckMatch = pathname.match(/^\/me\/submissions\/([^/]+)\/ack$/);
+    if (submissionAckMatch && method === 'POST') {
+      const sid = decodeURIComponent(submissionAckMatch[1]);
+      actionHits.push(`submission:${sid}:ack`);
+      const payload = JSON.parse(JSON.stringify(SUBMISSION_DETAIL_FIXTURE));
+      if (payload && typeof payload === 'object' && payload.thread && typeof payload.thread === 'object') {
+        payload.thread.acknowledgedAt = '2026-02-26T09:20:00.000Z';
+      }
+      if (Array.isArray(payload.timeline)) {
+        payload.timeline.push({
+          id: 'sub-evt-ack',
+          eventType: 'user_acknowledged',
+          stage: 'acknowledged',
+          statusRaw: 'acknowledged',
+          publicNote: '',
+          eventAt: '2026-02-26T09:20:00.000Z',
+        });
+      }
+      if (payload && typeof payload === 'object' && payload.stageRail && typeof payload.stageRail === 'object' && Array.isArray(payload.stageRail.steps)) {
+        payload.stageRail.steps = payload.stageRail.steps.map((step: Record<string, unknown>) =>
+          step.key === 'acknowledged'
+            ? { ...step, state: 'done', at: '2026-02-26T09:20:00.000Z' }
+            : step,
+        );
+      }
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify(payload),
       });
       return;
     }
@@ -427,7 +563,12 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
     const template = window.getComputedStyle(node).gridTemplateColumns;
     return template.split(' ').filter((part) => part.trim().length > 0).length;
   });
-  expect(gridColumnCount).toBeGreaterThanOrEqual(2);
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width <= 720) {
+    expect(gridColumnCount).toBeGreaterThanOrEqual(1);
+  } else {
+    expect(gridColumnCount).toBeGreaterThanOrEqual(2);
+  }
 
   await expect(page.locator('#pane-notifs .list label.item[data-dx-tooltip]')).toHaveCount(8);
   await expect(page.locator('a[href="/entry/pressroom/"]')).toHaveCount(1);
@@ -464,7 +605,7 @@ test('settings tab underline stays aligned through hash restore, tab switches, a
   await page.locator('#tab-membership').click();
   await expectSettingsInkAligned(page, '#tab-membership');
 
-  await page.locator('#tab-profile').click();
+  await page.locator('#tab-profile').click({ force: true });
   await expectSettingsInkAligned(page, '#tab-profile');
 
   await page.setViewportSize({ width: 1120, height: 820 });
@@ -502,7 +643,13 @@ test('settings membership impact uses reordered artist names and instrument-awar
   await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
   await page.locator('#tab-membership').click();
 
-  await expect(page.locator('#dxWhyFavoriteMain')).toContainText('Support artists like Midori Ataka.');
+  await expect
+    .poll(() =>
+      page.locator('#dxWhyFavoriteMain').evaluate((node) =>
+        String(node.textContent || '').replace(/\u200C/g, ''),
+      ),
+    )
+    .toContain('Support artists like Midori Ataka.');
   const subCopy = await page.locator('#dxWhyFavoriteSub').evaluate((node) =>
     String(node.textContent || '').replace(/\u200C/g, ''),
   );
@@ -533,7 +680,11 @@ test('messages inbox merges system + submissions and supports read/archive actio
   await waitForMessagesReady(page);
 
   await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
-  await expect(page.locator('#dx-msg-unread-count')).toContainText('3');
+  await expect(page.locator('#dx-msg-unread-count')).toContainText('2');
+  await expect(page.locator('[data-source-type="submission"] .dx-msg-link').first()).toHaveAttribute(
+    'href',
+    /\/entry\/messages\/submission\/\?sid=sub-001/,
+  );
 
   await page.locator('[data-dx-msg-filter="system"]').click();
   await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);

@@ -36,6 +36,7 @@
     '/entry/favorites',
     '/entry/submit',
     '/entry/messages',
+    '/entry/messages/submission',
     '/entry/pressroom',
     '/entry/settings',
     '/entry/achievements',
