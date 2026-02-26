@@ -35,12 +35,15 @@ function verifySettingsContract() {
   const text = readText(relPath);
 
   assertIncludes(relPath, text, [
+    'id="notifDexNotes"',
+    'id="notifDexNotes" type="checkbox" title="',
     'id="notifPolls"',
     'id="notifAchv"',
     'id="notifBill"',
     'id="notifSec"',
     'id="notifStatus"',
     'id="notifSubs"',
+    'id="notifDigest" type="checkbox" title="Email me a weekly summary every Monday at 9:00 AM local time.',
     'version: 2',
     'categories:',
     'channels:',
@@ -51,6 +54,10 @@ function verifySettingsContract() {
   ]);
 
   assertExcludes(relPath, text, [
+    'id="notifAnn"',
+    'id="notifRel"',
+    'id="quietStart"',
+    'id="quietEnd"',
     'id="notifFol"',
     'id="notifMen"',
     'id="notifProj"',

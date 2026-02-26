@@ -2183,6 +2183,30 @@
 }
 
 /* ===== Notifications: 99th-percentile switches (scoped) ===== */
+#dex-settings #pane-notifs #notCard{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+#dex-settings #pane-notifs #notCard .list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 14px;
+  max-width:none !important;
+  max-height:min(58vh,460px);
+  overflow:auto;
+  padding-right:4px;
+  align-content:start;
+}
+#dex-settings #pane-notifs #notCard .list > .item{
+  min-height:44px;
+}
+@media (max-width: 860px){
+  #dex-settings #pane-notifs #notCard .list{
+    grid-template-columns:1fr;
+    padding-right:0;
+  }
+}
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
 
 #dex-settings #pane-notifs .list input[type="checkbox"]{
@@ -2599,24 +2623,16 @@
       <div id="notStatus" class="save-status" aria-live="polite" hidden>Saved</div>
     </div>
 
-    <div class="list" style="max-width:520px;">
-      <label class="item"><span>Member announcements</span><input id="notifAnn" type="checkbox"></label>
-      <label class="item"><span>Release notes</span><input id="notifRel" type="checkbox"></label>
-      <label class="item"><span>Poll updates</span><input id="notifPolls" type="checkbox"></label>
-      <label class="item"><span>Achievement milestones</span><input id="notifAchv" type="checkbox"></label>
-      <label class="item"><span>Billing updates</span><input id="notifBill" type="checkbox"></label>
-      <label class="item"><span>Security alerts</span><input id="notifSec" type="checkbox"></label>
-      <label class="item"><span>System status incidents</span><input id="notifStatus" type="checkbox"></label>
-      <label class="item"><span>Submission messages</span><input id="notifSubs" type="checkbox"></label>
+    <div class="list">
+      <label class="item" title="Notify me whenever a new Dex Notes announcement or release note is published."><span>Dex Notes releases</span><input id="notifDexNotes" type="checkbox" title="Notify me whenever a new Dex Notes announcement or release note is published."></label>
+      <label class="item" title="Notify me when polls open, are closing soon, or close with results."><span>Poll updates</span><input id="notifPolls" type="checkbox" title="Notify me when polls open, are closing soon, or close with results."></label>
+      <label class="item" title="Notify me when achievements progress or unlock."><span>Achievement milestones</span><input id="notifAchv" type="checkbox" title="Notify me when achievements progress or unlock."></label>
+      <label class="item" title="Notify me about billing events like payment failures, recoveries, and subscription state changes."><span>Billing updates</span><input id="notifBill" type="checkbox" title="Notify me about billing events like payment failures, recoveries, and subscription state changes."></label>
+      <label class="item" title="Notify me about sign-ins and account security events."><span>Security alerts</span><input id="notifSec" type="checkbox" title="Notify me about sign-ins and account security events."></label>
+      <label class="item" title="Notify me when status incidents start, update, or resolve."><span>System status incidents</span><input id="notifStatus" type="checkbox" title="Notify me when status incidents start, update, or resolve."></label>
+      <label class="item" title="Notify me about submission acknowledgements and review updates."><span>Submission messages</span><input id="notifSubs" type="checkbox" title="Notify me about submission acknowledgements and review updates."></label>
 
-      <div class="item">
-        <span>Quiet hours</span>
-        <div>
-          <input id="quietStart" type="time"> <input id="quietEnd" type="time">
-        </div>
-      </div>
-
-      <label class="item"><span>Weekly digest email</span><input id="notifDigest" type="checkbox"></label>
+      <label class="item" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately."><span>Weekly digest email</span><input id="notifDigest" type="checkbox" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately."></label>
     </div>
   </div>
 </section>
@@ -4607,8 +4623,7 @@ function hydrateProfile(me){
   if (!pane) return;
 
   const S = {
-    ann:  document.getElementById('notifAnn'),
-    rel:  document.getElementById('notifRel'),
+    notes: document.getElementById('notifDexNotes'),
     polls: document.getElementById('notifPolls'),
     achv: document.getElementById('notifAchv'),
     bill: document.getElementById('notifBill'),
@@ -4616,8 +4631,6 @@ function hydrateProfile(me){
     status: document.getElementById('notifStatus'),
     subs: document.getElementById('notifSubs'),
     dig:  document.getElementById('notifDigest'),
-    qs:   document.getElementById('quietStart'),
-    qe:   document.getElementById('quietEnd'),
     badge:document.getElementById('notStatus'),
   };
 
@@ -4647,8 +4660,8 @@ function hydrateProfile(me){
         digestEmail: digestEnabled
       },
       categories: {
-        announcements: !!S.ann?.checked,
-        releaseNotes: !!S.rel?.checked,
+        announcements: !!S.notes?.checked,
+        releaseNotes: !!S.notes?.checked,
         polls: !!S.polls?.checked,
         achievements: !!S.achv?.checked,
         billing: !!S.bill?.checked,
@@ -4657,8 +4670,8 @@ function hydrateProfile(me){
         submissions: !!S.subs?.checked
       },
       quietHours: {
-        start: S.qs?.value || '',
-        end: S.qe?.value || '',
+        start: '',
+        end: '',
         timezone
       },
       digest: {
@@ -4671,14 +4684,14 @@ function hydrateProfile(me){
 
     // Keep legacy keys for backward compatibility while worker rollout catches up.
     return {
-      announcements: v2.categories.announcements,
+      announcements: v2.categories.releaseNotes,
       releases: v2.categories.releaseNotes,
       followers: false,
       mentions: false,
       projects: v2.categories.polls,
       digestWeekly: v2.channels.digestEmail,
-      quietStart: v2.quietHours.start,
-      quietEnd: v2.quietHours.end,
+      quietStart: '',
+      quietEnd: '',
       ...v2
     };
   }
@@ -4688,10 +4701,16 @@ function hydrateProfile(me){
     const categories = (root.categories && typeof root.categories === 'object') ? root.categories : {};
     const channels = (root.channels && typeof root.channels === 'object') ? root.channels : {};
     const digest = (root.digest && typeof root.digest === 'object') ? root.digest : {};
-    const quietHours = (root.quietHours && typeof root.quietHours === 'object') ? root.quietHours : {};
 
-    if (S.ann) S.ann.checked = !!(categories.announcements ?? root.announcements);
-    if (S.rel) S.rel.checked = !!(categories.releaseNotes ?? root.releases);
+    if (S.notes) {
+      const notesCandidates = [
+        categories.releaseNotes,
+        categories.announcements,
+        root.releases,
+        root.announcements,
+      ];
+      S.notes.checked = notesCandidates.some((value) => value === true);
+    }
     if (S.polls) S.polls.checked = !!(categories.polls ?? root.projects);
     if (S.achv) S.achv.checked = !!categories.achievements;
     if (S.bill) S.bill.checked = !!categories.billing;
@@ -4699,8 +4718,6 @@ function hydrateProfile(me){
     if (S.status) S.status.checked = !!categories.status;
     if (S.subs) S.subs.checked = !!(categories.submissions ?? true);
     if (S.dig) S.dig.checked = !!(channels.digestEmail ?? digest.enabled ?? root.digestWeekly);
-    if (S.qs)  S.qs.value   = String(quietHours.start ?? root.quietStart ?? '');
-    if (S.qe)  S.qe.value   = String(quietHours.end ?? root.quietEnd ?? '');
   }
 
   async function load(){
@@ -4732,9 +4749,6 @@ function hydrateProfile(me){
   // Only listen inside the notifications pane
   pane.addEventListener('change', e=>{
     if (e.target instanceof HTMLInputElement) schedule();
-  });
-  pane.addEventListener('input', e=>{
-    if (e.target === S.qs || e.target === S.qe) schedule();
   });
 
   // hydrate without touching the global boot flow
