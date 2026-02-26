@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { spawn } from 'node:child_process';
 import prompts from 'prompts';
 import { fileURLToPath } from 'node:url';
 import {
@@ -242,6 +243,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'polls', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'newsletter') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'newsletter', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
@@ -402,6 +407,284 @@ async function runPollsCommand(rest = []) {
   throw new Error(`Unknown polls command: ${subcommand}`);
 }
 
+function parseCsvRow(line) {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  values.push(current.trim());
+  return values;
+}
+
+async function parseCsvFile(filePath) {
+  const source = await fs.readFile(path.resolve(filePath), 'utf8');
+  const lines = source
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return [];
+
+  const headers = parseCsvRow(lines[0]).map((value) => value.toLowerCase());
+  const rows = [];
+  for (let index = 1; index < lines.length; index += 1) {
+    const values = parseCsvRow(lines[index]);
+    const row = {};
+    for (let headerIndex = 0; headerIndex < headers.length; headerIndex += 1) {
+      const key = headers[headerIndex];
+      if (!key) continue;
+      row[key] = values[headerIndex] || '';
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseJsonFlag(raw) {
+  const source = String(raw || '').trim();
+  if (!source) return {};
+  return JSON.parse(source);
+}
+
+async function resolveNewsletterVars(flags) {
+  const varsInline = flags.get('--vars');
+  const varsFile = flags.get('--vars-file');
+  if (varsFile) {
+    const source = await fs.readFile(path.resolve(varsFile), 'utf8');
+    return parseJsonFlag(source);
+  }
+  if (varsInline) return parseJsonFlag(varsInline);
+  return {};
+}
+
+function openLocalFile(targetPath) {
+  const absolute = path.resolve(targetPath);
+  const command = process.platform === 'darwin'
+    ? { cmd: 'open', args: [absolute] }
+    : process.platform === 'win32'
+      ? { cmd: 'cmd', args: ['/c', 'start', '', absolute] }
+      : { cmd: 'xdg-open', args: [absolute] };
+  spawn(command.cmd, command.args, { stdio: 'ignore', detached: true }).unref();
+}
+
+function printNewsletterUsage() {
+  console.log('Usage: dex newsletter <templates|preview|draft|test-send|schedule|send|stats|segment-estimate|import> [args]');
+  console.log('Examples:');
+  console.log('  dex newsletter draft create --template release-notes --vars \'{"headline":"Dex Notes #042"}\'');
+  console.log('  dex newsletter preview --template announcement --vars-file ./vars.json');
+  console.log('  dex newsletter test-send <campaignId> --to you@example.com');
+}
+
+async function runNewsletterCommand(rest = []) {
+  const {
+    createNewsletterCampaign,
+    estimateNewsletterSegment,
+    getNewsletterCampaignStats,
+    importNewsletterSubscribers,
+    listNewsletterCampaigns,
+    patchNewsletterCampaign,
+    scheduleNewsletterCampaign,
+    sendNowNewsletterCampaign,
+    testSendNewsletterCampaign,
+  } = await import('./lib/newsletter-api.mjs');
+  const {
+    describeNewsletterTemplates,
+    renderNewsletterTemplate,
+  } = await import('./lib/newsletter-render.mjs');
+
+  if (!rest.length) {
+    if (process.stdout.isTTY && process.stdin.isTTY) {
+      const { runDashboard } = await import('./ui/dashboard.mjs');
+      await runDashboard({ initialMode: 'newsletter', version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev' });
+      return;
+    }
+    printNewsletterUsage();
+    return;
+  }
+
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+
+  if (subcommand === 'templates') {
+    console.log(describeNewsletterTemplates());
+    return;
+  }
+
+  if (subcommand === 'preview') {
+    const templateKey = flags.get('--template') || 'announcement';
+    const variables = await resolveNewsletterVars(flags);
+    const rendered = renderNewsletterTemplate({ templateKey, variables });
+    const outPath = path.resolve(flags.get('--out') || path.join(PROJECT_ROOT, 'tmp', `newsletter-preview-${Date.now()}.html`));
+    await fs.mkdir(path.dirname(outPath), { recursive: true });
+    await fs.writeFile(outPath, rendered.html, 'utf8');
+    if (String(flags.get('--open') || 'true').toLowerCase() !== 'false') {
+      openLocalFile(outPath);
+    }
+    console.log(`newsletter:preview wrote ${outPath}`);
+    return;
+  }
+
+  if (subcommand === 'draft') {
+    const action = (values[0] || 'list').toLowerCase();
+
+    if (action === 'list') {
+      const payload = await listNewsletterCampaigns({ limit: Number(flags.get('--limit') || 50) });
+      const campaigns = Array.isArray(payload?.campaigns) ? payload.campaigns : [];
+      campaigns.forEach((campaign) => {
+        console.log(`${campaign.id}  [${campaign.status}]  ${campaign.audienceSegment}  ${campaign.subject}`);
+      });
+      if (!campaigns.length) console.log('No newsletter campaigns found.');
+      return;
+    }
+
+    if (action === 'create') {
+      const templateKey = flags.get('--template') || 'announcement';
+      const variables = await resolveNewsletterVars(flags);
+      const rendered = renderNewsletterTemplate({ templateKey, variables });
+      const name = flags.get('--name') || `Dex Newsletter ${new Date().toISOString().slice(0, 10)}`;
+      const audienceSegment = flags.get('--segment') || 'all_subscribers';
+      const payload = await createNewsletterCampaign({
+        name,
+        templateKey: rendered.templateKey,
+        subject: flags.get('--subject') || rendered.subject,
+        preheader: flags.get('--preheader') || rendered.preheader,
+        audienceSegment,
+        variables: rendered.variables,
+        html: rendered.html,
+        text: rendered.text,
+      });
+      const campaign = payload?.campaign;
+      console.log(`newsletter:draft:create wrote ${campaign?.id || 'unknown'}`);
+      return;
+    }
+
+    if (action === 'edit') {
+      const campaignId = values[1] || flags.get('--id');
+      if (!campaignId) throw new Error('newsletter:draft:edit requires campaign id');
+
+      const patch = {};
+      if (flags.has('--name')) patch.name = flags.get('--name');
+      if (flags.has('--subject')) patch.subject = flags.get('--subject');
+      if (flags.has('--preheader')) patch.preheader = flags.get('--preheader');
+      if (flags.has('--segment')) patch.audienceSegment = flags.get('--segment');
+
+      if (flags.has('--template') || flags.has('--vars') || flags.has('--vars-file')) {
+        const rendered = renderNewsletterTemplate({
+          templateKey: flags.get('--template') || 'announcement',
+          variables: await resolveNewsletterVars(flags),
+        });
+        patch.templateKey = rendered.templateKey;
+        patch.variables = rendered.variables;
+        patch.html = rendered.html;
+        patch.text = rendered.text;
+        if (!patch.subject) patch.subject = rendered.subject;
+        if (!patch.preheader) patch.preheader = rendered.preheader;
+      }
+
+      const payload = await patchNewsletterCampaign(campaignId, patch);
+      console.log(`newsletter:draft:edit wrote ${payload?.campaign?.id || campaignId}`);
+      return;
+    }
+
+    throw new Error(`Unknown newsletter draft action: ${action}`);
+  }
+
+  if (subcommand === 'test-send') {
+    const campaignId = values[0] || flags.get('--id');
+    if (!campaignId) throw new Error('newsletter:test-send requires campaign id');
+    const to = flags.get('--to') || process.env.DEX_NEWSLETTER_TEST_EMAIL;
+    if (!to) throw new Error('newsletter:test-send requires --to or DEX_NEWSLETTER_TEST_EMAIL');
+    const payload = await testSendNewsletterCampaign(campaignId, to);
+    console.log(`newsletter:test-send queued ${campaignId} -> ${to} (${payload?.id || 'ok'})`);
+    return;
+  }
+
+  if (subcommand === 'schedule') {
+    const campaignId = values[0] || flags.get('--id');
+    if (!campaignId) throw new Error('newsletter:schedule requires campaign id');
+    const at = flags.get('--at') || new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    await scheduleNewsletterCampaign(campaignId, at);
+    console.log(`newsletter:schedule wrote ${campaignId} at ${at}`);
+    return;
+  }
+
+  if (subcommand === 'send') {
+    const campaignId = values[0] || flags.get('--id');
+    if (!campaignId) throw new Error('newsletter:send requires campaign id');
+    await sendNowNewsletterCampaign(campaignId);
+    console.log(`newsletter:send queued ${campaignId}`);
+    return;
+  }
+
+  if (subcommand === 'stats') {
+    const campaignId = values[0] || flags.get('--id');
+    if (!campaignId) throw new Error('newsletter:stats requires campaign id');
+    const payload = await getNewsletterCampaignStats(campaignId);
+    const stats = payload?.stats || {};
+    console.log(`campaign=${campaignId} queued=${stats.queued || 0} sent=${stats.sent || 0} failed=${stats.failed || 0} delivered=${stats.delivered || 0} bounced=${stats.bounced || 0} complaints=${stats.complaints || 0} opens=${stats.opens || 0} clicks=${stats.clicks || 0}`);
+    return;
+  }
+
+  if (subcommand === 'segment-estimate') {
+    const segment = values[0] || flags.get('--segment') || 'all_subscribers';
+    const payload = await estimateNewsletterSegment(segment);
+    const estimate = payload?.estimate || {};
+    console.log(`segment=${estimate.segment || segment} count=${estimate.count || 0}`);
+    return;
+  }
+
+  if (subcommand === 'import') {
+    const csvPath = flags.get('--csv');
+    if (!csvPath) throw new Error('newsletter:import requires --csv <path>');
+    const source = flags.get('--source') || 'mailchimp';
+    const consentMode = flags.get('--consent-mode') || 'verified';
+    const rows = await parseCsvFile(csvPath);
+    const mapped = rows.map((row) => {
+      const tags = [];
+      if (String(row.contributor || '').trim().toLowerCase() === 'true') tags.push('contributor');
+      if (String(row.status_watcher || '').trim().toLowerCase() === 'true') tags.push('status-watcher');
+      if (String(row.tags || '').trim()) {
+        String(row.tags).split(/[|,]/).map((value) => value.trim()).filter(Boolean).forEach((tag) => tags.push(tag));
+      }
+      return {
+        email: row.email || row['email address'] || '',
+        auth0Sub: row.auth0_sub || row.auth0sub || '',
+        timezone: row.timezone || 'UTC',
+        tags,
+        consentVerified: String(row.consent_verified || '').trim().toLowerCase() === 'true' || consentMode === 'verified',
+        consentEvidence: {
+          sourceRow: row,
+        },
+      };
+    });
+    const payload = await importNewsletterSubscribers({
+      source,
+      consentMode,
+      rows: mapped,
+    });
+    console.log(`newsletter:import imported=${payload?.imported || 0} skipped=${payload?.skipped || 0}`);
+    return;
+  }
+
+  printNewsletterUsage();
+}
+
 const topLevel = parseTopLevelMode(process.argv);
 const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
 const { runDashboard } = await import('./ui/dashboard.mjs');
@@ -474,6 +757,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'view') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'polls') {
   await runPollsCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'newsletter') {
+  await runNewsletterCommand(topLevel.rest);
   process.exit(0);
 }
 

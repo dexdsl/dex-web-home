@@ -29,4 +29,6 @@ jobs:
           CF_WORKER_NAME: dex-api
           EVENT_INGEST_TOKEN_ROTATED_AT: ${{ vars.EVENT_INGEST_TOKEN_ROTATED_AT }}
           RESEND_API_KEY_ROTATED_AT: ${{ vars.RESEND_API_KEY_ROTATED_AT }}
+          NEWSLETTER_ADMIN_TOKEN_ROTATED_AT: ${{ vars.NEWSLETTER_ADMIN_TOKEN_ROTATED_AT }}
+          RESEND_WEBHOOK_SECRET_ROTATED_AT: ${{ vars.RESEND_WEBHOOK_SECRET_ROTATED_AT }}
         run: node scripts/verify_cloudflare_secret_rotation.mjs

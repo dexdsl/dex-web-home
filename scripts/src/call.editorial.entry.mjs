@@ -8,6 +8,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
 
   const APP_SELECTOR = '[data-call-editorial-app]';
   const DATA_URL = '/data/call.data.json';
+  const DEFAULT_NEWSLETTER_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SECTION_STEPS = [
     ['call-hero', 'PROGRAM BRIEF'],
     ['call-status', 'CURRENT STATUS'],
@@ -600,7 +601,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
 
     const feedback = create('p', 'dx-call-newsletter-feedback');
 
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const emailValue = text(input.value).trim();
       if (!emailValue || !/^\S+@\S+\.\S+$/.test(emailValue)) {
@@ -608,9 +609,57 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
         return;
       }
 
-      const mailto = `mailto:info@dexdsl.com?subject=${encodeURIComponent('NEWSLETTER JOIN REQUEST')}&body=${encodeURIComponent(`Please add ${emailValue} to the dex newsletter list.`)}`;
-      window.location.href = mailto;
-      feedback.textContent = 'OPENING EMAIL APP...';
+      const apiBase = String(window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_NEWSLETTER_API).replace(/\/+$/, '');
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timeoutMs = 8000;
+      const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : 0;
+
+      button.disabled = true;
+      feedback.textContent = 'SUBMITTING...';
+
+      try {
+        const response = await fetch(`${apiBase}/newsletter/subscribe`, {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: emailValue,
+            source: 'call-page',
+            timezone: (() => {
+              try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+              } catch {
+                return 'UTC';
+              }
+            })(),
+          }),
+          signal: controller ? controller.signal : undefined,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error || `HTTP ${response.status}`);
+        }
+
+        if (String(payload?.state || '').toLowerCase() === 'active') {
+          feedback.textContent = 'ALREADY SUBSCRIBED.';
+        } else {
+          feedback.textContent = 'CHECK YOUR EMAIL TO CONFIRM SUBSCRIPTION.';
+        }
+        input.value = '';
+      } catch (error) {
+        const message = String(error?.message || '').toLowerCase();
+        if (message.includes('abort')) {
+          feedback.textContent = 'REQUEST TIMED OUT. TRY AGAIN.';
+        } else {
+          feedback.textContent = 'SUBSCRIBE FAILED. TRY AGAIN LATER.';
+        }
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+        button.disabled = false;
+      }
     });
 
     form.append(input, button);

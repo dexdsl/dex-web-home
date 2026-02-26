@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Confirm Newsletter Subscription</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="/assets/css/dex.css" />
+  <style>
+    :root{--dx-bg:#232323;--dx-fg:#f5f5f5;--dx-muted:#c7c7c7;--dx-card:rgba(255,255,255,.08);--dx-border:rgba(255,255,255,.24)}
+    body{margin:0;min-height:100vh;background:var(--dx-bg);color:var(--dx-fg);font-family:'Courier Prime','Courier New',monospace;display:grid;place-items:center;padding:24px}
+    #dx-newsletter-confirm{width:min(640px,100%);border:1px solid var(--dx-border);border-radius:14px;background:var(--dx-card);padding:22px;display:grid;gap:12px}
+    #dx-newsletter-confirm h1{margin:0;font-size:1.5rem}
+    #dx-newsletter-confirm p{margin:0;color:var(--dx-muted);line-height:1.45}
+    #dx-newsletter-confirm a{color:var(--dx-fg)}
+  </style>
+</head>
+<body>
+  <main id="dx-newsletter-confirm" data-dx-newsletter-state="loading" aria-busy="true">
+    <h1>Confirming subscription…</h1>
+    <p>Please wait while we verify your newsletter token.</p>
+  </main>
+  <script>
+    (() => {
+      const root = document.getElementById('dx-newsletter-confirm');
+      const token = new URL(window.location.href).searchParams.get('token') || '';
+      const apiBase = String(window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || 'https://dex-api.spring-fog-8edd.workers.dev').replace(/\/+$/, '');
+
+      function setState(state, title, body){
+        root.dataset.dxNewsletterState = state;
+        if (state === 'loading') root.setAttribute('aria-busy', 'true');
+        else root.removeAttribute('aria-busy');
+        root.innerHTML = `<h1>${title}</h1><p>${body}</p><p><a href="/">Return home</a></p>`;
+      }
+
+      if (!token) {
+        setState('error', 'Missing token', 'The confirmation token is missing from this link.');
+        return;
+      }
+
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
+
+      fetch(`${apiBase}/newsletter/confirm`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ token }),
+        signal: controller ? controller.signal : undefined,
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || `HTTP ${response.status}`);
+          }
+          setState('ready', 'Subscription confirmed', 'You are now subscribed to Dex newsletters.');
+        })
+        .catch((error) => {
+          setState('error', 'Confirmation failed', error.message || 'The token is invalid or expired.');
+        })
+        .finally(() => {
+          if (timeoutId) clearTimeout(timeoutId);
+        });
+    })();
+  </script>
+</body>
+</html>
