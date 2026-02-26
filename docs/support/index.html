@@ -1694,269 +1694,236 @@
       })();
     </script>
 
-    <style id="dx-support-footer-layout">
-      .dex-footer .footer-grid {
-        display: grid;
+    <!-- File: footer.html (surface-aware + horizontal Candid seal, no card) -->
+    <style>
+      :root{
+        --space-3:   1rem;
+        --space-4:   1.5rem;
+        --radius-md: 4px;
+        --shadow-md: 0 8px 24px rgba(0,0,0,.12);
+        --font-body: 'Courier New', monospace;
+        --dex-accent:#ff1910;
+        --ease:      .3s ease-out;
+        --badge-size:   2.5rem;
+        --badge-radius: 0.75rem;
+        --liquid-bg:     rgba(255,255,255,.18);
+        --liquid-border: rgba(255,255,255,.35);
+        --seal-height: 4.5rem;
+        --dex-footer-text: #232323;
+      }
+
+      .dex-footer{
+        background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        backdrop-filter: saturate(1.8) blur(18px);
+        -webkit-backdrop-filter: saturate(1.8) blur(18px);
+        border-radius: var(--radius-md);
+        box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        padding: var(--space-4) var(--space-3);
+        color: var(--dex-footer-text);
+        font-family: var(--font-body);
+      }
+
+      .footer-grid{
+        display:grid;
         grid-template-columns: auto 1fr auto auto;
-        align-items: center;
-        gap: var(--space-4, 1.5rem);
+        align-items:center;
+        gap:var(--space-4);
       }
 
-      .dex-footer .footer-logo-column {
-        justify-self: start;
-        text-align: center;
+      .footer-logo-column{ justify-self:start; text-align:center; }
+      .footer-logo{ display:grid; }
+      .footer-logo img{ width:8rem; height:auto; display:none; margin:0; }
+
+      .footer-attribution{
+        justify-self:center; text-align:center;
+        font-size:.85rem; line-height:1.2;
       }
 
-      .dex-footer .footer-logo {
-        display: grid;
+      .footer-seal-column{ justify-self:center; }
+      .candid-seal{
+        margin-right: calc(var(--space-4) + 5.5rem);
+        display:inline-block;
+        padding:0; background:none; border:0; box-shadow:none;
+        line-height:0; text-decoration:none; transition:none;
+      }
+      .candid-seal img{ height:var(--seal-height); width:auto; display:block; }
+
+      .footer-links-column{
+        justify-self:end; align-self:stretch;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:var(--space-3);
       }
 
-      .dex-footer .footer-logo img {
-        width: 8rem;
-        height: auto;
-        display: none;
-        margin: 0;
+      .footer-social{ display:flex; gap:var(--space-3); }
+      .footer-social a{
+        width:var(--badge-size); height:var(--badge-size);
+        display:inline-flex; align-items:center; justify-content:center;
+        border-radius:var(--badge-radius);
+        box-shadow:0 2px 6px rgba(0,0,0,.2);
+        color:#fff; transition: transform var(--ease), background var(--ease);
+      }
+      .footer-social a:hover{ transform:scale(1.1); }
+      .footer-social svg{ width:1.1rem; height:1.1rem; display:block; fill:currentColor; }
+      .footer-social a.youtube   { background:#FF0000; }
+      .footer-social a.instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%); }
+      .footer-social a.tiktok    { background:#000; }
+      .footer-social a.twitter   { background:#1DA1F2; }
+
+      .footer-nav{ display:flex; gap:var(--space-3); font-size:.85rem; flex-wrap:wrap; justify-content:center; }
+      .footer-nav a{ color:var(--dex-footer-text); text-decoration:none; transition:color var(--ease); white-space:nowrap; }
+      .footer-nav a:hover{ color:var(--dex-accent); }
+
+      .dex-footer[data-surface="dark"]  { --dex-footer-text:#232323; }
+      .dex-footer[data-surface="dark"]  .footer-logo .logo--dark { display:block; }
+      .dex-footer[data-surface="light"] { --dex-footer-text:#232323; }
+      .dex-footer[data-surface="light"] .footer-logo .logo--light{ display:block; }
+
+      @media (prefers-color-scheme: dark){
+        .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
+        .dex-footer:not([data-surface]) .footer-logo .logo--dark{ display:block; }
+      }
+      @media (prefers-color-scheme: light){
+        .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
+        .dex-footer:not([data-surface]) .footer-logo .logo--light{ display:block; }
       }
 
-      .dex-footer .footer-attribution {
-        justify-self: center;
-        text-align: center;
-        font-size: 0.85rem;
-        line-height: 1.2;
-      }
-
-      .dex-footer .footer-seal-column {
-        justify-self: center;
-      }
-
-      .dex-footer .candid-seal {
-        margin-right: calc(var(--space-4, 1.5rem) + 5.5rem);
-        display: inline-block;
-        padding: 0;
-        background: none;
-        border: 0;
-        box-shadow: none;
-        line-height: 0;
-        text-decoration: none;
-        transition: none;
-      }
-
-      .dex-footer .candid-seal img {
-        height: 4.5rem;
-        width: auto;
-        display: block;
-      }
-
-      .dex-footer .footer-links-column {
-        justify-self: end;
-        align-self: stretch;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-3, 1rem);
-      }
-
-      .dex-footer[data-surface="dark"] .footer-logo .logo--dark {
-        display: block;
-      }
-
-      .dex-footer[data-surface="light"] .footer-logo .logo--light {
-        display: block;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .dex-footer:not([data-surface]) .footer-logo .logo--dark {
-          display: block;
+      @media (max-width:600px){
+        .footer-grid{
+          grid-template-columns:1fr;
+          justify-items:center; width:100%;
+          max-width: calc(100% - 2 * var(--space-3)); margin:0 auto; gap:var(--space-3);
         }
-      }
-
-      @media (prefers-color-scheme: light) {
-        .dex-footer:not([data-surface]) .footer-logo .logo--light {
-          display: block;
+        .footer-logo-column, .footer-attribution, .footer-seal-column, .footer-links-column{
+          justify-self:center; text-align:center;
         }
-      }
-
-      @media (max-width: 600px) {
-        .dex-footer .footer-grid {
-          grid-template-columns: 1fr;
-          justify-items: center;
-          width: 100%;
-          max-width: calc(100% - 2 * var(--space-3, 1rem));
-          margin: 0 auto;
-          gap: var(--space-3, 1rem);
-        }
-
-        .dex-footer .footer-logo-column,
-        .dex-footer .footer-attribution,
-        .dex-footer .footer-seal-column,
-        .dex-footer .footer-links-column {
-          justify-self: center;
-          text-align: center;
-        }
-
-        .dex-footer .footer-links-column {
-          flex-direction: column;
-        }
-
-        .dex-footer .candid-seal {
-          margin-right: 0;
-        }
+        .footer-links-column{ flex-direction:column; }
       }
     </style>
 
-    <footer class="sections" id="footer-sections" data-footer-sections>
-      <div class="dex-footer" role="contentinfo">
-        <div class="footer-grid">
-          <div class="footer-logo-column">
-            <div class="footer-logo">
-              <img
-                class="logo--dark"
-                src="/assets/img/129ade86338e9c3d8b90.png"
-                alt="Dex Footer Logo (white)"
-                loading="lazy"
-                decoding="async"
-              >
-              <img
-                class="logo--light"
-                src="/assets/img/00d69f478de645e095e6.png"
-                alt="Dex Footer Logo (black)"
-                loading="lazy"
-                decoding="async"
-              >
-            </div>
+    <footer class="dex-footer"><!-- script will set data-surface="dark|light" -->
+      <div class="footer-grid">
+        <div class="footer-logo-column">
+          <div class="footer-logo">
+            <img class="logo--dark" src="/assets/img/4471b81e48dd98fdcc7c.png" alt="Dex Footer Logo (white)" loading="lazy" decoding="async">
+            <img class="logo--light" src="/assets/img/4471b81e48dd98fdcc7c.png" alt="Dex Footer Logo (black)" loading="lazy" decoding="async">
           </div>
+        </div>
 
-          <div class="footer-attribution">
-            © 2023–2026 DEX CO-OP CORP (EIN 92-3509152)<br>
-            dba Dex Digital Sample Library. All rights reserved.
-          </div>
+        <div class="footer-attribution">
+          © 2023–2026 DEX CO-OP CORP (EIN 92-3509152)<br>
+          dba Dex Digital Sample Library. All rights reserved.
+        </div>
 
-          <div class="footer-seal-column">
-            <a
-              class="candid-seal"
-              href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile"
-            >
-              <img
-                src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg"
-                alt="Candid (GuideStar) Transparency Seal"
-              >
+        <div class="footer-seal-column">
+          <a class="candid-seal" href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152" target="_blank" rel="noopener noreferrer" aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile">
+            <img src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg" alt="Candid (GuideStar) Transparency Seal">
+          </a>
+        </div>
+
+        <div class="footer-links-column">
+          <div class="footer-social">
+            <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube" target="_blank" rel="noopener noreferrer">
+              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
+            </a>
+            <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram" target="_blank" rel="noopener noreferrer">
+              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
+            </a>
+            <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok" target="_blank" rel="noopener noreferrer">
+              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
+            </a>
+            <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter" target="_blank" rel="noopener noreferrer">
+              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
             </a>
           </div>
-
-          <div class="footer-links-column">
-            <div class="footer-social">
-              <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube">
-                <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
-              </a>
-              <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram">
-                <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
-              </a>
-              <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok">
-                <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
-              </a>
-              <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter">
-                <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
-              </a>
-            </div>
-            <nav class="footer-nav">
-              <a href="/privacy/">Privacy</a>
-              <a href="/contact/">Contact</a>
-              <a href="/copyright/">Copyright</a>
-            </nav>
-          </div>
+          <nav class="footer-nav">
+            <a href="/privacy/">Privacy</a>
+            <a href="/contact/">Contact</a>
+            <a href="/copyright/">Copyright</a>
+          </nav>
         </div>
       </div>
     </footer>
 
     <script id="dex-footer-surface">
-      (() => {
-        const clamp01 = (n) => Math.max(0, Math.min(1, n));
-        const parseRGB = (value) => {
-          if (!value) return { r: 255, g: 255, b: 255, a: 1 };
-          if (value === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
-          const match = value.match(/rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9.]+)\s*)?\)/i);
-          if (match) {
-            return {
-              r: Number(match[1]),
-              g: Number(match[2]),
-              b: Number(match[3]),
-              a: match[4] == null ? 1 : Number(match[4]),
-            };
-          }
-          return { r: 255, g: 255, b: 255, a: 1 };
-        };
-        const isTransparent = (value) => parseRGB(value).a < 0.01;
-        const relLum = ({ r, g, b }) => {
-          const srgb = [r, g, b].map((entry) => clamp01(entry / 255));
-          const linear = srgb.map((entry) => (entry <= 0.03928 ? entry / 12.92 : Math.pow((entry + 0.055) / 1.055, 2.4)));
-          return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
-        };
-        const median = (values) => {
-          const sorted = values.slice().sort((a, b) => a - b);
-          const mid = Math.floor(sorted.length / 2);
-          return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        };
-        const nearestBgColor = (node) => {
-          let current = node;
-          while (current) {
-            const style = getComputedStyle(current);
-            const bg = style.backgroundColor;
-            if (bg && !isTransparent(bg)) return bg;
-            current = current.parentElement;
-          }
-          return getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
-        };
-        const measureFooter = (footer) => {
-          const rect = footer.getBoundingClientRect();
-          if (rect.width <= 0 || rect.height <= 0) return;
-          const points = [
-            [rect.left + rect.width / 2, rect.top + rect.height / 2],
-            [rect.left + 8, rect.top + rect.height / 2],
-            [rect.right - 8, rect.top + rect.height / 2],
-            [rect.left + rect.width / 2, rect.top + 6],
-            [rect.left + rect.width / 2, rect.bottom - 6],
-          ].map(([x, y]) => [
-            Math.min(innerWidth - 1, Math.max(0, x)),
-            Math.min(innerHeight - 1, Math.max(0, y)),
-          ]);
-          const previousPointerEvents = footer.style.pointerEvents;
-          footer.style.pointerEvents = 'none';
-          const lums = points.map(([x, y]) => {
-            const under = document.elementFromPoint(x, y) || document.body;
-            return relLum(parseRGB(nearestBgColor(under)));
+    (() => {
+      const clamp01 = n => Math.max(0, Math.min(1, n));
+      const parseRGB = s => {
+        if (!s) return { r:255, g:255, b:255, a:1 };
+        if (s === 'transparent') return { r:0, g:0, b:0, a:0 };
+        const m = s.match(/rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9.]+)\s*)?\)/i);
+        if (m) return { r:+m[1], g:+m[2], b:+m[3], a: m[4] == null ? 1 : +m[4] };
+        return { r:255, g:255, b:255, a:1 };
+      };
+      const isTransparent = s => parseRGB(s).a < 0.01;
+      const relLum = ({r,g,b}) => {
+        const srgb = [r,g,b].map(v => clamp01(v/255));
+        const lin = srgb.map(c => (c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4)));
+        return 0.2126*lin[0] + 0.7152*lin[1] + 0.0722*lin[2];
+      };
+      const median = arr => {
+        const a = arr.slice().sort((x,y)=>x-y);
+        const i = Math.floor(a.length/2);
+        return a.length % 2 ? a[i] : (a[i-1] + a[i]) / 2;
+      };
+      const nearestBgColor = (el) => {
+        let n = el;
+        while (n) {
+          const cs = getComputedStyle(n);
+          const bg = cs.backgroundColor;
+          if (bg && !isTransparent(bg)) return bg;
+          n = n.parentElement;
+        }
+        return getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
+      };
+      const measureFooter = (footer) => {
+        const rect = footer.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const pts = [
+          [rect.left + rect.width/2, rect.top + rect.height/2],
+          [rect.left + 8,            rect.top + rect.height/2],
+          [rect.right - 8,           rect.top + rect.height/2],
+          [rect.left + rect.width/2, rect.top + 6],
+          [rect.left + rect.width/2, rect.bottom - 6]
+        ].map(([x,y]) => [
+          Math.min(innerWidth  - 1, Math.max(0, x)),
+          Math.min(innerHeight - 1, Math.max(0, y))
+        ]);
+        const prevPE = footer.style.pointerEvents;
+        footer.style.pointerEvents = 'none';
+        const lums = pts.map(([x,y]) => {
+          const under = document.elementFromPoint(x,y) || document.body;
+          const bg    = nearestBgColor(under);
+          return relLum(parseRGB(bg));
+        });
+        footer.style.pointerEvents = prevPE;
+        const L = median(lums);
+        const surface = L >= 0.5 ? 'light' : 'dark';
+        if (footer.getAttribute('data-surface') !== surface) {
+          footer.setAttribute('data-surface', surface);
+          footer.dataset.surfaceL = L.toFixed(3);
+        }
+      };
+      const footers = [...document.querySelectorAll('.dex-footer')];
+      if (!footers.length) return;
+      const io = new IntersectionObserver(entries => {
+        for (const e of entries) if (e.isIntersecting) measureFooter(e.target);
+      }, { threshold: 0.01 });
+      footers.forEach(f => io.observe(f));
+      const schedule = (() => {
+        let raf = 0;
+        return () => {
+          if (raf) cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => {
+            footers.forEach(measureFooter);
+            raf = 0;
           });
-          footer.style.pointerEvents = previousPointerEvents;
-          const surface = median(lums) >= 0.5 ? 'light' : 'dark';
-          if (footer.getAttribute('data-surface') !== surface) {
-            footer.setAttribute('data-surface', surface);
-          }
         };
-        const footers = Array.from(document.querySelectorAll('.dex-footer'));
-        if (!footers.length) return;
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) measureFooter(entry.target);
-          });
-        }, { threshold: 0.01 });
-        footers.forEach((footer) => observer.observe(footer));
-        const schedule = (() => {
-          let raf = 0;
-          return () => {
-            if (raf) cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(() => {
-              footers.forEach(measureFooter);
-              raf = 0;
-            });
-          };
-        })();
-        addEventListener('resize', schedule, { passive: true });
-        addEventListener('orientationchange', schedule);
-        addEventListener('load', schedule);
       })();
+      addEventListener('resize', schedule, { passive:true });
+      addEventListener('orientationchange', schedule);
+      addEventListener('load', schedule);
+    })();
     </script>
     <script>
       (function () {
