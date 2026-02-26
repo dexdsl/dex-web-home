@@ -19,13 +19,9 @@
     <link rel="stylesheet" href="/assets/css/dex.css">
     <style>
       :root {
-        --dx-support-bg: #0a0f18;
-        --dx-support-card: rgba(9, 15, 26, 0.84);
-        --dx-support-border: rgba(255, 255, 255, 0.16);
-        --dx-support-border-strong: rgba(255, 255, 255, 0.24);
-        --dx-support-shadow: 0 22px 48px rgba(0, 0, 0, 0.36);
-        --dx-support-copy: rgba(231, 238, 247, 0.92);
-        --dx-support-muted: rgba(193, 202, 218, 0.86);
+        --dx-support-bg: #232323;
+        --dx-support-copy: rgba(255, 255, 255, 0.95);
+        --dx-support-muted: rgba(241, 241, 241, 0.82);
       }
 
       html,
@@ -37,6 +33,53 @@
       body {
         background: var(--dx-support-bg);
         color: var(--dx-support-copy);
+        position: relative;
+      }
+
+      .dx-support-mesh {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
+
+      .dx-support-blob {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(58px);
+        opacity: 0.38;
+        mix-blend-mode: screen;
+      }
+
+      .dx-support-blob--a {
+        width: 38vw;
+        height: 38vw;
+        min-width: 240px;
+        min-height: 240px;
+        left: -10vw;
+        top: -14vh;
+        background: radial-gradient(circle, rgba(80, 131, 214, 0.75), rgba(80, 131, 214, 0));
+      }
+
+      .dx-support-blob--b {
+        width: 32vw;
+        height: 32vw;
+        min-width: 220px;
+        min-height: 220px;
+        right: -8vw;
+        top: 18vh;
+        background: radial-gradient(circle, rgba(86, 202, 171, 0.58), rgba(86, 202, 171, 0));
+      }
+
+      .dx-support-blob--c {
+        width: 44vw;
+        height: 44vw;
+        min-width: 260px;
+        min-height: 260px;
+        left: 28vw;
+        bottom: -22vh;
+        background: radial-gradient(circle, rgba(238, 154, 118, 0.54), rgba(238, 154, 118, 0));
       }
 
       .dx-support-shell {
@@ -45,13 +88,15 @@
         grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 0.8rem;
         padding: 0.8rem;
+        position: relative;
+        z-index: 1;
       }
 
       .dx-support-card {
-        border: 1px solid var(--dx-support-border);
+        border: 1px solid var(--dx-glass-shell-rim, rgba(255, 255, 255, 0.16));
         border-radius: 16px;
-        background: var(--dx-support-card);
-        box-shadow: var(--dx-support-shadow);
+        background: var(--dx-glass-shell-bg, rgba(22, 22, 22, 0.72));
+        box-shadow: var(--dx-glass-shell-shadow, 0 18px 38px rgba(0, 0, 0, 0.35));
         padding: clamp(0.95rem, 2vw, 1.35rem);
       }
 
@@ -112,7 +157,7 @@
       .dx-support-section {
         border: 1px solid rgba(255, 255, 255, 0.13);
         border-radius: 13px;
-        background: rgba(6, 11, 20, 0.8);
+        background: var(--dx-glass-shell-bg, rgba(20, 20, 20, 0.72));
         padding: 0.9rem;
       }
 
@@ -139,7 +184,7 @@
         gap: 0.5rem;
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 12px;
-        background: rgba(9, 14, 24, 0.9);
+        background: transparent;
         padding: 0.8rem;
         margin-top: 0.75rem;
       }
@@ -240,7 +285,7 @@
       .dx-support-component {
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 12px;
-        background: rgba(8, 13, 22, 0.86);
+        background: transparent;
         padding: 0.7rem;
       }
 
@@ -258,14 +303,18 @@
 
       .dx-support-sparkline {
         margin-top: 0.6rem;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(5px, 1fr));
+        display: flex;
+        align-items: flex-end;
         gap: 2px;
+        overflow-x: auto;
+        padding-bottom: 2px;
       }
 
       .dx-support-sparkline-block {
-        height: 13px;
-        border-radius: 2px;
+        width: 3px;
+        min-width: 3px;
+        height: 17px;
+        border-radius: 1px;
         background: rgba(255, 255, 255, 0.14);
       }
 
@@ -293,7 +342,7 @@
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 12px;
         padding: 0.7rem;
-        background: rgba(8, 13, 22, 0.86);
+        background: transparent;
       }
 
       .dx-support-incident-head {
@@ -329,7 +378,7 @@
         padding: 0.82rem;
         text-decoration: none;
         color: inherit;
-        background: rgba(7, 12, 21, 0.86);
+        background: transparent;
       }
 
       .dx-support-card-link h3 {
@@ -402,6 +451,12 @@
           align-items: flex-start;
           flex-direction: column;
         }
+
+        .dx-support-sparkline-block {
+          width: 2px;
+          min-width: 2px;
+          height: 15px;
+        }
       }
     </style>
     <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
@@ -411,6 +466,11 @@
     <script defer src="/assets/js/support-status.js"></script>
   </head>
   <body>
+    <div class="dx-support-mesh" aria-hidden="true">
+      <span class="dx-support-blob dx-support-blob--a"></span>
+      <span class="dx-support-blob dx-support-blob--b"></span>
+      <span class="dx-support-blob dx-support-blob--c"></span>
+    </div>
     <main id="page" class="dx-support-shell" tabindex="-1">
       <section class="dx-support-card dx-support-card--top">
         <div class="dx-support-top">

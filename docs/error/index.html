@@ -48,6 +48,13 @@
       .dx-utility-copy {
         margin: 0;
       }
+      .dx-utility-auth-mount {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        min-height: 40px;
+        margin-bottom: 0.55rem;
+      }
       .dx-utility-actions {
         display: flex;
         flex-wrap: wrap;
@@ -106,6 +113,7 @@
         </div>
         <section class="dx-utility-panel" aria-live="polite">
           <p class="dx-utility-kicker">system message</p>
+          <div class="dx-utility-auth-mount" data-dx-auth-mount></div>
           <h1 id="dx-error-title" class="dx-utility-title">Something went wrong</h1>
           <p id="dx-error-message" class="dx-utility-copy">We could not complete that request. Try again or open support.</p>
           <div class="dx-utility-actions">

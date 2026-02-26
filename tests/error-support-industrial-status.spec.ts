@@ -7,7 +7,7 @@ const LIVE_STATUS_FIXTURE = {
   generatedAt: '2026-02-26T00:00:00.000Z',
   overall: {
     state: 'operational',
-    message: 'No incidents reported since launch on February 26, 2026. Longer uptime windows are initializing.',
+    message: 'No incidents reported yet. Historical uptime windows are initializing.',
   },
   components: [
     {
@@ -17,7 +17,6 @@ const LIVE_STATUS_FIXTURE = {
       uptime: { h24: 100, d7: null, d30: null },
       latencyMs: 144,
       updatedAt: '2026-02-26T00:00:00.000Z',
-      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'operational')),
     },
     {
       id: 'api',
@@ -26,7 +25,6 @@ const LIVE_STATUS_FIXTURE = {
       uptime: { h24: 100, d7: null, d30: null },
       latencyMs: 199,
       updatedAt: '2026-02-26T00:00:00.000Z',
-      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'operational')),
     },
   ],
   incidents: [],
@@ -36,7 +34,7 @@ const FALLBACK_STATUS_FIXTURE = {
   generatedAt: '2026-02-26T00:00:00.000Z',
   overall: {
     state: 'degraded',
-    message: 'Live status feed is unavailable. Showing fallback snapshot from launch window telemetry.',
+    message: 'Live status feed is unavailable. Showing fallback launch snapshot.',
   },
   components: [
     {
@@ -46,7 +44,6 @@ const FALLBACK_STATUS_FIXTURE = {
       uptime: { h24: 99.8, d7: null, d30: null },
       latencyMs: 322,
       updatedAt: '2026-02-26T00:00:00.000Z',
-      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'degraded')),
     },
   ],
   incidents: [],
@@ -187,7 +184,7 @@ test('support route renders live status and baseline support sections', async ({
   await expect(page.locator('h2', { hasText: 'Get unstuck fast' })).toBeVisible();
   await expect(page.locator('#dx-support-status-meta')).toContainText('Live source');
   await expect(page.locator('#dx-support-status .dx-support-component-list')).toBeVisible();
-  await expect(page.locator('#dx-support-status .dx-support-sparkline-block')).toHaveCount(84);
+  await expect(page.locator('#dx-support-status .dx-support-sparkline-block')).toHaveCount(60);
   await expect(page.locator('#dx-support-status')).toContainText('No incidents reported yet');
   await expect(page.locator('#dx-support-account')).toContainText('Sign in to access account-specific support shortcuts.');
 

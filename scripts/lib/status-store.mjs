@@ -11,8 +11,8 @@ const INCIDENTS_ROOT = path.join(ROOT, 'docs', 'status', 'incidents');
 const STATUS_STATES = ['operational', 'degraded', 'outage', 'maintenance', 'unknown'];
 const INCIDENT_STATES = ['investigating', 'identified', 'monitoring', 'resolved'];
 const INCIDENT_IMPACTS = ['none', 'minor', 'major', 'critical'];
-const DEFAULT_LIVE_MESSAGE = 'No incidents reported since launch on February 26, 2026. Longer uptime windows are initializing.';
-const DEFAULT_FALLBACK_MESSAGE = 'Live status feed is unavailable. Showing fallback snapshot from launch window telemetry.';
+const DEFAULT_LIVE_MESSAGE = 'No incidents reported yet. Historical uptime windows are initializing.';
+const DEFAULT_FALLBACK_MESSAGE = 'Live status feed is unavailable. Showing fallback launch snapshot.';
 
 export const statusFilePaths = {
   live: STATUS_LIVE_PATH,

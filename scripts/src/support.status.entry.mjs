@@ -9,6 +9,7 @@
   const STATUS_TIMEOUT_MS = 5000;
   const DEFAULT_STATUS_LIVE_PATH = '/data/status.live.json';
   const DEFAULT_STATUS_FALLBACK_PATH = '/data/status.fallback.json';
+  const STATUS_HISTORY_DAYS = 30;
   const DEFAULT_POLL_MS = 60000;
   const MAX_BACKOFF_MS = 300000;
 
@@ -259,6 +260,11 @@
     return Number.isFinite(number) ? number : null;
   }
 
+  function parseTimestamp(value) {
+    const parsed = Date.parse(String(value || ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
   function normalizeStatusState(value) {
     const state = String(value || '').trim().toLowerCase();
     if (state === 'operational' || state === 'degraded' || state === 'outage' || state === 'maintenance' || state === 'unknown') {
@@ -298,11 +304,30 @@
         history: Array.isArray(value.history)
           ? value.history
             .map((entry) => {
-              if (typeof entry === 'string') return normalizeStatusState(entry);
-              if (isObject(entry)) return normalizeStatusState(entry.state);
-              return 'unknown';
+              if (typeof entry === 'string') {
+                return {
+                  state: normalizeStatusState(entry),
+                  date: '',
+                  reason: '',
+                  downtimeMin: null,
+                };
+              }
+              if (isObject(entry)) {
+                return {
+                  state: normalizeStatusState(entry.state),
+                  date: sanitizeToken(entry.date || entry.day || '', 32, ''),
+                  reason: sanitizeToken(entry.reason || entry.summary || '', 220, ''),
+                  downtimeMin: toFiniteNumber(entry.downtimeMin || entry.downtimeMinutes),
+                };
+              }
+              return {
+                state: 'unknown',
+                date: '',
+                reason: '',
+                downtimeMin: null,
+              };
             })
-            .filter(Boolean)
+            .filter((entry) => !!entry && !!entry.state)
           : [],
       };
     });
@@ -391,7 +416,7 @@
   }
 
   function formatDateLabel(value) {
-    const parsed = Date.parse(String(value || ''));
+    const parsed = parseTimestamp(value);
     if (!Number.isFinite(parsed)) return 'Unknown';
     try {
       return new Date(parsed).toLocaleString();
@@ -405,6 +430,168 @@
     while (node.firstChild) {
       node.removeChild(node.firstChild);
     }
+  }
+
+  function formatDayLabel(dayMs) {
+    try {
+      return new Date(dayMs).toLocaleDateString();
+    } catch {
+      return new Date(dayMs).toISOString().slice(0, 10);
+    }
+  }
+
+  function localStartOfDayMs(timestampMs) {
+    const date = new Date(timestampMs);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  }
+
+  function severityForState(state) {
+    const normalized = normalizeStatusState(state);
+    if (normalized === 'outage') return 5;
+    if (normalized === 'degraded') return 4;
+    if (normalized === 'maintenance') return 3;
+    if (normalized === 'unknown') return 2;
+    return 1;
+  }
+
+  function incidentImpactToStatusState(incident) {
+    const impact = String(incident && incident.impact ? incident.impact : '').trim().toLowerCase();
+    const incidentState = normalizeIncidentState(incident && incident.state);
+    if (impact === 'critical' || impact === 'major') return 'outage';
+    if (impact === 'minor') return 'degraded';
+    if (incidentState === 'monitoring') return 'maintenance';
+    if (incidentState === 'investigating' || incidentState === 'identified') return 'degraded';
+    return 'maintenance';
+  }
+
+  function overlapsRange(startA, endA, startB, endB) {
+    return startA < endB && endA > startB;
+  }
+
+  function deriveSourceUpdatedAt(status) {
+    const candidates = [parseTimestamp(status.generatedAt)];
+    status.components.forEach((component) => {
+      candidates.push(parseTimestamp(component.updatedAt));
+    });
+    status.incidents.forEach((incident) => {
+      candidates.push(parseTimestamp(incident.startedAt));
+      candidates.push(parseTimestamp(incident.updatedAt));
+      candidates.push(parseTimestamp(incident.resolvedAt));
+    });
+    const valid = candidates.filter((value) => Number.isFinite(value));
+    if (valid.length === 0) return '';
+    return new Date(Math.max(...valid)).toISOString();
+  }
+
+  function historyOverridesByDay(component) {
+    const overrides = new Map();
+    if (!component || !Array.isArray(component.history)) {
+      return overrides;
+    }
+
+    component.history.forEach((entry) => {
+      if (!entry || !isObject(entry)) return;
+      const dayRaw = String(entry.date || '').trim();
+      const dayMs = parseTimestamp(dayRaw);
+      if (!Number.isFinite(dayMs)) return;
+      const dayStart = localStartOfDayMs(dayMs);
+      overrides.set(dayStart, {
+        state: normalizeStatusState(entry.state),
+        reason: sanitizeToken(entry.reason || '', 220, ''),
+        downtimeMin: toFiniteNumber(entry.downtimeMin),
+      });
+    });
+
+    return overrides;
+  }
+
+  function deriveDailyHistory(component, status, checkedAtIso) {
+    const nowMs = parseTimestamp(checkedAtIso) || Date.now();
+    const startTodayMs = localStartOfDayMs(nowMs);
+    const launchMs = parseTimestamp(status.generatedAt);
+    const launchDayMs = Number.isFinite(launchMs) ? localStartOfDayMs(launchMs) : null;
+    const componentId = String(component.id || '').toLowerCase();
+    const overrides = historyOverridesByDay(component);
+    const timeline = [];
+
+    for (let dayOffset = STATUS_HISTORY_DAYS - 1; dayOffset >= 0; dayOffset -= 1) {
+      const dayStart = startTodayMs - (dayOffset * 24 * 60 * 60 * 1000);
+      const dayEnd = dayStart + (24 * 60 * 60 * 1000);
+      const dayLabel = formatDayLabel(dayStart);
+
+      let state = 'operational';
+      let reason = '';
+      let downtimeMin = 0;
+
+      if (launchDayMs !== null && dayEnd <= launchDayMs) {
+        state = 'unknown';
+        reason = 'No telemetry before status launch.';
+      } else {
+        const relevantIncidents = status.incidents.filter((incident) => {
+          const incidentComponents = Array.isArray(incident.components) ? incident.components : [];
+          if (incidentComponents.length > 0) {
+            const normalizedComponents = incidentComponents.map((entry) => String(entry || '').toLowerCase());
+            if (!normalizedComponents.includes(componentId)) return false;
+          }
+
+          const incidentStart = parseTimestamp(incident.startedAt) || parseTimestamp(incident.updatedAt) || dayStart;
+          const incidentEnd = parseTimestamp(incident.resolvedAt) || parseTimestamp(incident.updatedAt) || nowMs;
+          return overlapsRange(incidentStart, incidentEnd, dayStart, dayEnd);
+        });
+
+        if (relevantIncidents.length > 0) {
+          let winningIncident = null;
+          relevantIncidents.forEach((incident) => {
+            const incidentState = incidentImpactToStatusState(incident);
+            if (!winningIncident || severityForState(incidentState) > severityForState(winningIncident.state)) {
+              winningIncident = {
+                state: incidentState,
+                incident,
+              };
+            }
+
+            const incidentStart = parseTimestamp(incident.startedAt) || parseTimestamp(incident.updatedAt) || dayStart;
+            const incidentEnd = parseTimestamp(incident.resolvedAt) || parseTimestamp(incident.updatedAt) || nowMs;
+            const overlapStart = Math.max(dayStart, incidentStart);
+            const overlapEnd = Math.min(dayEnd, incidentEnd);
+            const overlapMinutes = Math.max(0, Math.round((overlapEnd - overlapStart) / 60000));
+            downtimeMin += overlapMinutes;
+          });
+
+          if (winningIncident) {
+            state = winningIncident.state;
+            reason = sanitizeToken(winningIncident.incident.title || winningIncident.incident.summary || '', 220, '');
+          }
+        } else if (dayOffset === 0 && normalizeStatusState(component.state) !== 'operational') {
+          state = normalizeStatusState(component.state);
+          reason = `${component.name} currently ${formatStateLabel(component.state).toLowerCase()}.`;
+        }
+      }
+
+      const override = overrides.get(dayStart);
+      if (override) {
+        state = normalizeStatusState(override.state);
+        if (override.reason) reason = override.reason;
+        if (Number.isFinite(override.downtimeMin)) downtimeMin = Math.max(0, Math.round(override.downtimeMin));
+      }
+
+      const detailText = state === 'operational'
+        ? `${dayLabel}: Operational`
+        : state === 'unknown'
+          ? `${dayLabel}: No telemetry available`
+          : `${dayLabel}: ${formatStateLabel(state)} · Downtime ${downtimeMin} min${reason ? ` · ${reason}` : ''}`;
+
+      timeline.push({
+        dayLabel,
+        dayStart,
+        state,
+        downtimeMin,
+        reason,
+        title: detailText,
+      });
+    }
+
+    return timeline;
   }
 
   function getStatusLivePath() {
@@ -422,38 +609,48 @@
 
   async function loadSupportStatus() {
     const livePath = getStatusLivePath();
+    const checkedAt = new Date().toISOString();
 
     try {
       const liveJson = await fetchJsonWithTimeout(livePath, STATUS_TIMEOUT_MS);
+      const status = normalizeStatusPayload(liveJson, 'All systems are operational.');
       return {
-        status: normalizeStatusPayload(liveJson, 'All systems are operational.'),
+        status,
         source: 'live',
         warning: '',
+        checkedAt,
+        sourceUpdatedAt: deriveSourceUpdatedAt(status),
       };
     } catch {
       try {
         const fallbackJson = await fetchJsonWithTimeout(DEFAULT_STATUS_FALLBACK_PATH, STATUS_TIMEOUT_MS);
+        const status = normalizeStatusPayload(fallbackJson, 'Fallback status snapshot loaded.');
         return {
-          status: normalizeStatusPayload(fallbackJson, 'Fallback status snapshot loaded.'),
+          status,
           source: 'fallback',
           warning: 'Live status endpoint unavailable; displaying fallback status data.',
+          checkedAt,
+          sourceUpdatedAt: deriveSourceUpdatedAt(status),
         };
       } catch {
-        return {
-          status: normalizeStatusPayload(
-            {
-              generatedAt: new Date().toISOString(),
-              overall: {
-                state: 'unknown',
-                message: 'Status is temporarily unavailable.',
-              },
-              components: [],
-              incidents: [],
+        const status = normalizeStatusPayload(
+          {
+            generatedAt: new Date().toISOString(),
+            overall: {
+              state: 'unknown',
+              message: 'Status is temporarily unavailable.',
             },
-            'Status is temporarily unavailable.',
-          ),
+            components: [],
+            incidents: [],
+          },
+          'Status is temporarily unavailable.',
+        );
+        return {
+          status,
           source: 'unavailable',
           warning: 'Both live and fallback status sources are unavailable.',
+          checkedAt,
+          sourceUpdatedAt: deriveSourceUpdatedAt(status),
         };
       }
     }
@@ -471,10 +668,15 @@
         ? 'Fallback'
         : 'Unavailable';
 
-    const statusMeta = [
-      `${sourceLabel} source`,
-      `Updated ${formatDateLabel(status.generatedAt)}`,
-    ];
+    const statusMeta = [`${sourceLabel} source`];
+    if (statusBundle.checkedAt) {
+      statusMeta.push(`Last checked ${formatDateLabel(statusBundle.checkedAt)}`);
+    }
+    if (statusBundle.sourceUpdatedAt) {
+      statusMeta.push(`Source updated ${formatDateLabel(statusBundle.sourceUpdatedAt)}`);
+    } else {
+      statusMeta.push(`Source updated ${formatDateLabel(status.generatedAt)}`);
+    }
     if (statusBundle.warning) {
       statusMeta.push(statusBundle.warning);
     }
@@ -524,6 +726,10 @@
       item.textContent = label;
       legend.appendChild(item);
     });
+    const legendNote = document.createElement('span');
+    legendNote.className = 'dx-support-legend-item';
+    legendNote.textContent = 'Each block = 1 day';
+    legend.appendChild(legendNote);
     statusRoot.appendChild(legend);
 
     if (status.components.length > 0) {
@@ -551,16 +757,13 @@
         sparkline.className = 'dx-support-sparkline';
         sparkline.setAttribute('role', 'img');
         sparkline.setAttribute('aria-label', `${component.name} recent status history`);
-        const history = Array.isArray(component.history) ? component.history.slice(-72) : [];
-        const historyValues = history.length > 0
-          ? history
-          : Array.from({ length: 72 }, () => normalizeStatusState(component.state || 'unknown'));
-        historyValues.forEach((stateValue) => {
-          const normalizedState = normalizeStatusState(stateValue);
+        const history = deriveDailyHistory(component, status, statusBundle.checkedAt);
+        history.forEach((entry) => {
           const block = document.createElement('span');
           block.className = 'dx-support-sparkline-block';
-          block.setAttribute('data-state', normalizedState);
-          block.setAttribute('title', formatStateLabel(normalizedState));
+          block.setAttribute('data-state', normalizeStatusState(entry.state));
+          block.setAttribute('title', entry.title);
+          block.setAttribute('aria-label', entry.title);
           sparkline.appendChild(block);
         });
 
@@ -589,7 +792,7 @@
     if (status.incidents.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'dx-support-incidents-empty';
-      empty.textContent = 'No incidents reported yet. This status page launched recently, so historical trends will build over time.';
+      empty.textContent = 'No incidents reported yet. Historical trends will populate as telemetry accrues.';
       statusRoot.appendChild(empty);
       return;
     }

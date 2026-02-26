@@ -28,6 +28,7 @@ function verifyRoutes() {
   assertIncludes(errorRel, errorText, [
     'id="dx-error"',
     'data-dx-fetch-state="loading"',
+    'data-dx-auth-mount',
     'data-dx-error-action="retry"',
     'data-dx-error-action="home"',
     'data-dx-error-action="support"',
