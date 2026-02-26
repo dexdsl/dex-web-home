@@ -1,120 +1,150 @@
 import React from 'react';
+import { Section, Text } from '@react-email/components';
+import {
+  DEFAULT_LOGO_URL,
+  normalizeObjectList,
+  normalizeStringList,
+  normalizeText,
+  normalizeUrl,
+  renderFrame,
+  renderPrimaryButton,
+  renderStandardTextFooter,
+  textStyle,
+} from './shared.mjs';
 
-function bodyStyle() {
-  return {
-    margin: 0,
-    padding: '24px',
-    backgroundColor: '#f3f4f6',
-    color: '#111827',
-    fontFamily: "'Courier New', Courier, monospace",
-  };
-}
+const badgeStyle = {
+  margin: '0 0 10px',
+  display: 'inline-block',
+  borderRadius: '999px',
+  border: '1px solid #334155',
+  backgroundColor: '#0f172a',
+  color: '#93c5fd',
+  padding: '4px 10px',
+  fontSize: '11px',
+  fontWeight: 700,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+};
 
-function shellStyle() {
-  return {
-    margin: '0 auto',
-    maxWidth: '680px',
-    borderRadius: '12px',
-    border: '1px solid #d4d4d8',
-    padding: '24px',
-    backgroundColor: '#ffffff',
-  };
-}
+const blockStyle = {
+  margin: '0 0 12px',
+  borderRadius: '12px',
+  border: '1px solid #2a3240',
+  backgroundColor: '#111827',
+  padding: '12px 14px',
+};
+
+const areaStyle = {
+  margin: '0 0 5px',
+  color: '#f8fafc',
+  fontSize: '14px',
+  lineHeight: '20px',
+  fontWeight: 700,
+};
+
+const detailStyle = {
+  margin: 0,
+  color: '#dbe2ef',
+  fontSize: '13px',
+  lineHeight: '20px',
+};
+
+const bulletStyle = {
+  margin: '0 0 10px',
+  color: '#dbe2ef',
+  fontSize: '13px',
+  lineHeight: '20px',
+};
 
 export const releaseNotesTemplate = {
   key: 'release-notes',
   label: 'Release Notes',
   defaultSubject: 'Dex Notes release',
-  defaultPreheader: 'New entries, fixes, and updates this week',
+  defaultPreheader: 'Latest product and platform release notes from Dex',
   defaultVariables: {
+    kicker: 'RELEASE NOTES',
     headline: 'Dex Notes release',
     releaseLabel: 'Issue #001',
-    intro: 'This release contains updates across catalog, routing reliability, and member tooling.',
-    items: [
-      { title: 'Catalog', detail: 'Added deep favorites support and parity fixes.' },
-      { title: 'Support', detail: 'Shipped industrial error/support routes with status resilience.' },
-      { title: 'Messages', detail: 'Unified inbox for submissions and system notifications.' },
+    subtitle: 'Platform reliability, routing parity, and member inbox upgrades.',
+    intro: 'This release focuses on production hardening and parity during the dexdsl.org to dexdsl.github.io migration.',
+    highlights: [
+      'Support and error surfaces now include industrial status fallback behavior.',
+      'Achievements and polls soft-routing deadlocks are covered by regression tests.',
+      'Favorites v2 now supports canonical lookup IDs for entries, buckets, and files.',
     ],
-    ctaLabel: 'Open Dex Notes',
-    ctaHref: 'https://dexdsl.github.io/dex-notes/',
+    changes: [
+      { area: 'Routing', detail: 'Added regressions for soft-navigation mismatches and ensured fetch-state finalization paths.' },
+      { area: 'Notifications', detail: 'Settings now map to real categories and `/entry/messages` is worker-backed for system events.' },
+      { area: 'Operational readiness', detail: 'Added D1 backup automation, migration bootstrapping, and CI secret scanning.' },
+    ],
+    ctaLabel: 'Read full Dex Notes',
+    ctaHref: 'https://dexdsl.github.io/dexnotes/',
     unsubscribeUrl: '{{unsubscribeUrl}}',
+    logoUrl: DEFAULT_LOGO_URL,
   },
   render({ variables }) {
-    const headline = String(variables.headline || 'Dex Notes release').trim();
-    const releaseLabel = String(variables.releaseLabel || '').trim();
-    const intro = String(variables.intro || '').trim();
-    const items = Array.isArray(variables.items) ? variables.items : [];
-    const ctaLabel = String(variables.ctaLabel || 'Open Dex Notes').trim();
-    const ctaHref = String(variables.ctaHref || 'https://dexdsl.github.io/dex-notes/').trim();
-    const unsubscribeUrl = String(variables.unsubscribeUrl || '{{unsubscribeUrl}}').trim();
+    const kicker = normalizeText(variables.kicker, 'RELEASE NOTES', 120);
+    const headline = normalizeText(variables.headline, 'Dex Notes release', 160);
+    const releaseLabel = normalizeText(variables.releaseLabel, '', 120);
+    const subtitle = normalizeText(variables.subtitle, '', 320);
+    const intro = normalizeText(variables.intro, '', 600);
+    const highlights = normalizeStringList(variables.highlights, []);
+    const changes = normalizeObjectList(variables.changes);
+    const ctaLabel = normalizeText(variables.ctaLabel, 'Read full Dex Notes', 120);
+    const ctaHref = normalizeUrl(variables.ctaHref, 'https://dexdsl.github.io/dexnotes/');
+    const unsubscribeUrl = normalizeUrl(variables.unsubscribeUrl, '{{unsubscribeUrl}}');
+    const logoUrl = normalizeUrl(variables.logoUrl, DEFAULT_LOGO_URL);
 
-    return React.createElement(
-      'html',
-      { lang: 'en' },
-      React.createElement(
-        'body',
-        { style: bodyStyle() },
-        React.createElement(
-          'section',
-          { style: shellStyle() },
-          React.createElement('p', { style: { margin: '0 0 8px 0', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#71717a' } }, 'DEX NOTES RELEASE'),
-          React.createElement('h1', { style: { margin: '0 0 6px 0', fontSize: '28px', lineHeight: 1.15 } }, headline),
-          releaseLabel ? React.createElement('p', { style: { margin: '0 0 14px 0', fontSize: '14px', color: '#4b5563' } }, releaseLabel) : null,
-          intro ? React.createElement('p', { style: { margin: '0 0 18px 0', fontSize: '15px', lineHeight: 1.5 } }, intro) : null,
-          React.createElement(
-            'ul',
-            { style: { margin: '0 0 20px 0', paddingLeft: '18px' } },
-            ...items.map((item, index) => React.createElement(
-              'li',
-              { key: `${String(item?.title || 'item')}-${index}`, style: { marginBottom: '10px' } },
-              React.createElement('strong', null, String(item?.title || 'Update').trim()),
-              ': ',
-              String(item?.detail || '').trim(),
-            )),
-          ),
-          React.createElement(
-            'p',
-            { style: { margin: '0 0 22px 0' } },
-            React.createElement(
-              'a',
-              {
-                href: ctaHref,
-                style: {
-                  display: 'inline-block',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #111827',
-                  textDecoration: 'none',
-                  color: '#111827',
-                  fontWeight: 700,
-                },
-              },
-              ctaLabel,
-            ),
-          ),
-          React.createElement('hr', { style: { border: 0, borderTop: '1px solid #e4e4e7', margin: '0 0 14px 0' } }),
-          React.createElement('p', { style: { margin: 0, fontSize: '12px', color: '#52525b' } },
-            'Manage your subscription: ',
-            React.createElement('a', { href: unsubscribeUrl, style: { color: '#111827' } }, unsubscribeUrl),
-          ),
-        ),
-      ),
-    );
+    const children = [
+      releaseLabel ? React.createElement(Text, { key: 'badge', style: badgeStyle }, releaseLabel) : null,
+      intro ? React.createElement(Text, { key: 'intro', style: textStyle() }, intro) : null,
+      ...highlights.map((line, index) => React.createElement(
+        Text,
+        { key: `highlight-${index}`, style: bulletStyle },
+        `- ${line}`,
+      )),
+      renderPrimaryButton(ctaLabel, ctaHref),
+      ...changes.map((change, index) => {
+        const area = normalizeText(change.area, `Area ${index + 1}`, 140);
+        const detail = normalizeText(change.detail, '', 700);
+        return React.createElement(
+          Section,
+          { key: `change-${index}`, style: blockStyle },
+          React.createElement(Text, { style: areaStyle }, area),
+          React.createElement(Text, { style: detailStyle }, detail),
+        );
+      }),
+    ].filter(Boolean);
+
+    return renderFrame({
+      preview: normalizeText(variables.preview, 'Dex Notes release', 240),
+      kicker,
+      title: headline,
+      subtitle,
+      logoUrl,
+      unsubscribeUrl,
+      children,
+    });
   },
   renderText(variables) {
-    const headline = String(variables.headline || 'Dex Notes release').trim();
-    const releaseLabel = String(variables.releaseLabel || '').trim();
-    const intro = String(variables.intro || '').trim();
-    const items = Array.isArray(variables.items) ? variables.items : [];
-    const ctaLabel = String(variables.ctaLabel || 'Open Dex Notes').trim();
-    const ctaHref = String(variables.ctaHref || 'https://dexdsl.github.io/dex-notes/').trim();
-    const unsubscribeUrl = String(variables.unsubscribeUrl || '{{unsubscribeUrl}}').trim();
+    const headline = normalizeText(variables.headline, 'Dex Notes release', 160);
+    const releaseLabel = normalizeText(variables.releaseLabel, '', 120);
+    const intro = normalizeText(variables.intro, '', 600);
+    const highlights = normalizeStringList(variables.highlights, []);
+    const changes = normalizeObjectList(variables.changes);
+    const ctaLabel = normalizeText(variables.ctaLabel, 'Read full Dex Notes', 120);
+    const ctaHref = normalizeUrl(variables.ctaHref, 'https://dexdsl.github.io/dexnotes/');
+    const footer = renderStandardTextFooter(variables.unsubscribeUrl);
 
     const lines = [headline, releaseLabel, '', intro, ''];
-    items.forEach((item) => {
-      lines.push(`- ${String(item?.title || 'Update').trim()}: ${String(item?.detail || '').trim()}`);
+    highlights.forEach((line) => lines.push(`- ${line}`));
+    lines.push('', `${ctaLabel}: ${ctaHref}`, '');
+    changes.forEach((change, index) => {
+      const area = normalizeText(change.area, `Area ${index + 1}`, 140);
+      const detail = normalizeText(change.detail, '', 700);
+      lines.push(`${area}: ${detail}`);
     });
-    lines.push('', `${ctaLabel}: ${ctaHref}`, '', `Manage your subscription: ${unsubscribeUrl}`);
+    lines.push('', ...footer);
     return lines.filter(Boolean).join('\n');
   },
 };

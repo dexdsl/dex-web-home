@@ -54,7 +54,7 @@
     "catalog:all": "npm run catalog:extract && npm run catalog:build && npm run catalog:sync && npm run catalog:verify",
     "support-status:build": "node scripts/build-support-status.mjs",
     "messages:build": "node scripts/build-messages.mjs",
-    "newsletter:preview": "node scripts/dex.mjs newsletter preview --template announcement",
+    "newsletter:preview": "node scripts/dex.mjs newsletter preview --template newsletter",
     "favorites:build": "node scripts/build-favorites.mjs",
     "verify:favorites": "node scripts/verify_favorites_contract.mjs",
     "verify:notifications": "node scripts/verify_notifications_contract.mjs",
@@ -109,6 +109,7 @@
     "playwright": "^1.58.2"
   },
   "dependencies": {
+    "@react-email/components": "^0.5.7",
     "@auth0/auth0-spa-js": "^2.16.0",
     "@fontsource/courier-prime": "^5.2.8",
     "chalk": "^5.6.2",

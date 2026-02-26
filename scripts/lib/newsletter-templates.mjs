@@ -1,7 +1,8 @@
 import { announcementTemplate } from '../newsletter/templates/announcement.mjs';
+import { newsletterTemplate } from '../newsletter/templates/newsletter.mjs';
 import { releaseNotesTemplate } from '../newsletter/templates/release-notes.mjs';
 
-const TEMPLATE_LIST = [announcementTemplate, releaseNotesTemplate];
+const TEMPLATE_LIST = [newsletterTemplate, announcementTemplate, releaseNotesTemplate];
 const TEMPLATE_MAP = new Map(TEMPLATE_LIST.map((template) => [template.key, template]));
 
 export function listNewsletterTemplates() {
@@ -16,7 +17,7 @@ export function listNewsletterTemplates() {
 
 export function getNewsletterTemplate(templateKey) {
   const key = String(templateKey || '').trim();
-  if (!key) return TEMPLATE_MAP.get('announcement') || TEMPLATE_LIST[0];
+  if (!key) return TEMPLATE_MAP.get('newsletter') || TEMPLATE_MAP.get('announcement') || TEMPLATE_LIST[0];
   return TEMPLATE_MAP.get(key) || null;
 }
 

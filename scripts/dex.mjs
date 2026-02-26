@@ -487,7 +487,7 @@ function printNewsletterUsage() {
   console.log('Usage: dex newsletter <templates|preview|draft|test-send|schedule|send|stats|segment-estimate|import> [args]');
   console.log('Examples:');
   console.log('  dex newsletter draft create --template release-notes --vars \'{"headline":"Dex Notes #042"}\'');
-  console.log('  dex newsletter preview --template announcement --vars-file ./vars.json');
+  console.log('  dex newsletter preview --template newsletter --vars-file ./vars.json');
   console.log('  dex newsletter test-send <campaignId> --to you@example.com');
 }
 
@@ -527,7 +527,7 @@ async function runNewsletterCommand(rest = []) {
   }
 
   if (subcommand === 'preview') {
-    const templateKey = flags.get('--template') || 'announcement';
+    const templateKey = flags.get('--template') || 'newsletter';
     const variables = await resolveNewsletterVars(flags);
     const rendered = renderNewsletterTemplate({ templateKey, variables });
     const outPath = path.resolve(flags.get('--out') || path.join(PROJECT_ROOT, 'tmp', `newsletter-preview-${Date.now()}.html`));
@@ -554,7 +554,7 @@ async function runNewsletterCommand(rest = []) {
     }
 
     if (action === 'create') {
-      const templateKey = flags.get('--template') || 'announcement';
+      const templateKey = flags.get('--template') || 'newsletter';
       const variables = await resolveNewsletterVars(flags);
       const rendered = renderNewsletterTemplate({ templateKey, variables });
       const name = flags.get('--name') || `Dex Newsletter ${new Date().toISOString().slice(0, 10)}`;
@@ -586,7 +586,7 @@ async function runNewsletterCommand(rest = []) {
 
       if (flags.has('--template') || flags.has('--vars') || flags.has('--vars-file')) {
         const rendered = renderNewsletterTemplate({
-          templateKey: flags.get('--template') || 'announcement',
+          templateKey: flags.get('--template') || 'newsletter',
           variables: await resolveNewsletterVars(flags),
         });
         patch.templateKey = rendered.templateKey;

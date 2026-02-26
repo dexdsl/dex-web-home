@@ -82,11 +82,51 @@ async function verifyCliWiring() {
   ]);
 }
 
+async function verifyBimiAssets() {
+  const bimiReadmeRel = 'docs/.well-known/bimi/README.md';
+  const bimiReadme = await readText(bimiReadmeRel);
+  assertIncludes(bimiReadmeRel, bimiReadme, [
+    'default._bimi.updates.dexdsl.com',
+    'dex-logo.svg',
+  ]);
+
+  const bimiSvgRel = 'docs/.well-known/bimi/dex-logo.svg';
+  const bimiSvg = await readText(bimiSvgRel);
+  assertIncludes(bimiSvgRel, bimiSvg, [
+    'baseProfile="tiny-ps"',
+    '<title>Dex Digital Sample Library</title>',
+  ]);
+}
+
+async function verifyTemplateStack() {
+  const registryRel = 'scripts/lib/newsletter-templates.mjs';
+  const registry = await readText(registryRel);
+  assertIncludes(registryRel, registry, [
+    'newsletterTemplate',
+    "TEMPLATE_MAP.get('newsletter')",
+  ]);
+
+  const newsletterRel = 'scripts/newsletter/templates/newsletter.mjs';
+  const newsletterSource = await readText(newsletterRel);
+  assertIncludes(newsletterRel, newsletterSource, [
+    "key: 'newsletter'",
+    'Dex Weekly Digest',
+  ]);
+
+  const sharedRel = 'scripts/newsletter/templates/shared.mjs';
+  const sharedSource = await readText(sharedRel);
+  assertIncludes(sharedRel, sharedSource, [
+    'Dex Digital Sample Library, Los Angeles, CA 90021',
+  ]);
+}
+
 async function main() {
   await verifyCallRuntime();
   await verifyRoutePages();
   await verifyLegacyRemoval();
   await verifyCliWiring();
+  await verifyBimiAssets();
+  await verifyTemplateStack();
 
   if (FAILURES.length) {
     console.error(`verify:newsletter failed with ${FAILURES.length} issue(s):`);

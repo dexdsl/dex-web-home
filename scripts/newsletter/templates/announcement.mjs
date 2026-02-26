@@ -1,106 +1,140 @@
 import React from 'react';
+import { Link, Section, Text } from '@react-email/components';
+import {
+  DEFAULT_LOGO_URL,
+  normalizeStringList,
+  normalizeText,
+  normalizeUrl,
+  renderFrame,
+  renderPrimaryButton,
+  renderStandardTextFooter,
+  textStyle,
+} from './shared.mjs';
 
-function bodyStyle() {
-  return {
-    margin: 0,
-    padding: '24px',
-    backgroundColor: '#f4f4f5',
-    color: '#111827',
-    fontFamily: "'Courier New', Courier, monospace",
-  };
-}
+const calloutStyle = {
+  margin: '0 0 14px',
+  borderRadius: '12px',
+  border: '1px solid #2a3240',
+  backgroundColor: '#111827',
+  padding: '12px 14px',
+};
 
-function cardStyle() {
-  return {
-    margin: '0 auto',
-    maxWidth: '620px',
-    borderRadius: '12px',
-    border: '1px solid #e4e4e7',
-    padding: '24px',
-    backgroundColor: '#ffffff',
-  };
-}
+const calloutHeadlineStyle = {
+  margin: '0 0 6px',
+  color: '#f8fafc',
+  fontSize: '16px',
+  lineHeight: '24px',
+  fontWeight: 700,
+};
+
+const calloutBodyStyle = {
+  margin: 0,
+  color: '#dbe2ef',
+  fontSize: '13px',
+  lineHeight: '20px',
+};
+
+const bulletStyle = {
+  margin: '0 0 10px',
+  color: '#dbe2ef',
+  fontSize: '13px',
+  lineHeight: '20px',
+};
+
+const linkStyle = {
+  color: '#93c5fd',
+  fontSize: '13px',
+  textDecoration: 'underline',
+};
 
 export const announcementTemplate = {
   key: 'announcement',
   label: 'Announcement',
   defaultSubject: 'Dex announcement',
-  defaultPreheader: 'Latest Dex update from the Dex team',
+  defaultPreheader: 'Major update from Dex Digital Sample Library',
   defaultVariables: {
+    kicker: 'ANNOUNCEMENT',
     headline: 'Dex announcement',
-    intro: 'We shipped a new update in Dex and wanted to share it with you first.',
-    body: 'Review the details, then jump into Dex Notes for the full breakdown and links.',
+    subtitle: 'Latest product and catalog updates from Dex Digital Sample Library.',
+    intro: 'We shipped a major update across member surfaces and reliability infrastructure.',
+    body: 'Review the rollout notes below, then open Dex Notes for detailed context and links.',
+    highlights: [
+      'Unified inbox now merges submissions and system notifications.',
+      'Support + error routes are status-aware with graceful fallback behavior.',
+      'Favorites parity now supports entry, bucket, and file-level records.',
+    ],
     ctaLabel: 'Read Dex Notes',
-    ctaHref: 'https://dexdsl.github.io/dex-notes/',
+    ctaHref: 'https://dexdsl.github.io/dexnotes/',
+    secondaryCtaLabel: 'Open Support',
+    secondaryCtaHref: 'https://dexdsl.github.io/support/',
     unsubscribeUrl: '{{unsubscribeUrl}}',
+    logoUrl: DEFAULT_LOGO_URL,
   },
   render({ variables }) {
-    const headline = String(variables.headline || 'Dex announcement').trim();
-    const intro = String(variables.intro || '').trim();
-    const body = String(variables.body || '').trim();
-    const ctaLabel = String(variables.ctaLabel || 'Read Dex Notes').trim();
-    const ctaHref = String(variables.ctaHref || 'https://dexdsl.github.io/dex-notes/').trim();
-    const unsubscribeUrl = String(variables.unsubscribeUrl || '{{unsubscribeUrl}}').trim();
+    const kicker = normalizeText(variables.kicker, 'ANNOUNCEMENT', 120);
+    const headline = normalizeText(variables.headline, 'Dex announcement', 160);
+    const subtitle = normalizeText(variables.subtitle, '', 320);
+    const intro = normalizeText(variables.intro, '', 600);
+    const body = normalizeText(variables.body, '', 900);
+    const highlights = normalizeStringList(variables.highlights, []);
+    const ctaLabel = normalizeText(variables.ctaLabel, 'Read Dex Notes', 120);
+    const ctaHref = normalizeUrl(variables.ctaHref, 'https://dexdsl.github.io/dexnotes/');
+    const secondaryCtaLabel = normalizeText(variables.secondaryCtaLabel, '', 120);
+    const secondaryCtaHref = normalizeUrl(variables.secondaryCtaHref, '');
+    const unsubscribeUrl = normalizeUrl(variables.unsubscribeUrl, '{{unsubscribeUrl}}');
+    const logoUrl = normalizeUrl(variables.logoUrl, DEFAULT_LOGO_URL);
 
-    return React.createElement(
-      'html',
-      { lang: 'en' },
-      React.createElement(
-        'body',
-        { style: bodyStyle() },
-        React.createElement(
-          'main',
-          { style: cardStyle() },
-          React.createElement('p', { style: { margin: '0 0 8px 0', letterSpacing: '0.08em', fontSize: '12px', textTransform: 'uppercase', color: '#71717a' } }, 'DEX NEWSLETTER'),
-          React.createElement('h1', { style: { margin: '0 0 16px 0', fontSize: '30px', lineHeight: 1.1 } }, headline),
-          intro ? React.createElement('p', { style: { margin: '0 0 12px 0', fontSize: '15px', lineHeight: 1.5 } }, intro) : null,
-          body ? React.createElement('p', { style: { margin: '0 0 22px 0', fontSize: '15px', lineHeight: 1.5 } }, body) : null,
-          React.createElement(
-            'p',
-            { style: { margin: '0 0 24px 0' } },
-            React.createElement(
-              'a',
-              {
-                href: ctaHref,
-                style: {
-                  display: 'inline-block',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #111827',
-                  textDecoration: 'none',
-                  color: '#111827',
-                  fontWeight: 700,
-                },
-              },
-              ctaLabel,
-            ),
-          ),
-          React.createElement('hr', { style: { border: 0, borderTop: '1px solid #e4e4e7', margin: '0 0 16px 0' } }),
-          React.createElement('p', { style: { margin: 0, fontSize: '12px', color: '#52525b' } },
-            'Manage your subscription: ',
-            React.createElement('a', { href: unsubscribeUrl, style: { color: '#111827' } }, unsubscribeUrl),
-          ),
-        ),
-      ),
-    );
+    const children = [
+      intro ? React.createElement(Text, { key: 'intro', style: textStyle() }, intro) : null,
+      body
+        ? React.createElement(
+            Section,
+            { key: 'body', style: calloutStyle },
+            React.createElement(Text, { style: calloutHeadlineStyle }, 'What changed'),
+            React.createElement(Text, { style: calloutBodyStyle }, body),
+          )
+        : null,
+      ...highlights.map((line, index) => React.createElement(
+        Text,
+        { key: `highlight-${index}`, style: bulletStyle },
+        `- ${line}`,
+      )),
+      renderPrimaryButton(ctaLabel, ctaHref),
+      secondaryCtaHref && secondaryCtaLabel
+        ? React.createElement(
+            Text,
+            { key: 'secondary-link', style: { ...textStyle(), marginTop: '-4px' } },
+            React.createElement(Link, { href: secondaryCtaHref, style: linkStyle }, secondaryCtaLabel),
+          )
+        : null,
+    ].filter(Boolean);
+
+    return renderFrame({
+      preview: normalizeText(variables.preview, 'Dex announcement', 240),
+      kicker,
+      title: headline,
+      subtitle,
+      logoUrl,
+      unsubscribeUrl,
+      children,
+    });
   },
   renderText(variables) {
-    const headline = String(variables.headline || 'Dex announcement').trim();
-    const intro = String(variables.intro || '').trim();
-    const body = String(variables.body || '').trim();
-    const ctaLabel = String(variables.ctaLabel || 'Read Dex Notes').trim();
-    const ctaHref = String(variables.ctaHref || 'https://dexdsl.github.io/dex-notes/').trim();
-    const unsubscribeUrl = String(variables.unsubscribeUrl || '{{unsubscribeUrl}}').trim();
-    return [
-      headline,
-      '',
-      intro,
-      '',
-      body,
-      '',
-      `${ctaLabel}: ${ctaHref}`,
-      '',
-      `Manage your subscription: ${unsubscribeUrl}`,
-    ].filter(Boolean).join('\n');
+    const headline = normalizeText(variables.headline, 'Dex announcement', 160);
+    const intro = normalizeText(variables.intro, '', 600);
+    const body = normalizeText(variables.body, '', 900);
+    const highlights = normalizeStringList(variables.highlights, []);
+    const ctaLabel = normalizeText(variables.ctaLabel, 'Read Dex Notes', 120);
+    const ctaHref = normalizeUrl(variables.ctaHref, 'https://dexdsl.github.io/dexnotes/');
+    const secondaryCtaLabel = normalizeText(variables.secondaryCtaLabel, '', 120);
+    const secondaryCtaHref = normalizeUrl(variables.secondaryCtaHref, '');
+    const footer = renderStandardTextFooter(variables.unsubscribeUrl);
+
+    const lines = [headline, '', intro, '', body, ''];
+    highlights.forEach((line) => lines.push(`- ${line}`));
+    lines.push('', `${ctaLabel}: ${ctaHref}`);
+    if (secondaryCtaLabel && secondaryCtaHref) lines.push(`${secondaryCtaLabel}: ${secondaryCtaHref}`);
+    lines.push('', ...footer);
+    return lines.filter(Boolean).join('\n');
   },
 };
