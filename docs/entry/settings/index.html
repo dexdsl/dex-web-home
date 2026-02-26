@@ -3639,6 +3639,11 @@ function renderIdentity(me){
   if (elP.prevAvatar){ elP.prevAvatar.src = pic || ''; elP.prevAvatar.alt = elP.avatar.alt; }
   if (elP.prevName)  elP.prevName.textContent = elP.name.textContent;
   renderSecurity(me);
+  try {
+    window.dispatchEvent(new CustomEvent('dx:settings:identity-hydrated', {
+      detail: { email: String(me?.email || '').trim() }
+    }));
+  } catch {}
 }
 
 
@@ -4879,6 +4884,12 @@ function hydrateProfile(me){
     return String(value || '').trim().toLowerCase();
   }
 
+  function isLikelyEmail(value){
+    const normalized = normalizeEmail(value);
+    if (!normalized || normalized === '—') return '';
+    return normalized.includes('@') ? normalized : '';
+  }
+
   function setNewsletterStatus(text){
     if (!S.newsletterStatusLine) return;
     S.newsletterStatusLine.textContent = String(text || '');
@@ -4886,7 +4897,7 @@ function hydrateProfile(me){
 
   function setNewsletterBusy(nextBusy){
     newsletterBusy = !!nextBusy;
-    const email = normalizeEmail(resolveNewsletterEmailFromUi());
+    const email = isLikelyEmail(resolveNewsletterEmailFromUi());
     const disabled = newsletterBusy || !email;
     if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
   }
@@ -4902,17 +4913,60 @@ function hydrateProfile(me){
 
   function resolveNewsletterEmailFromUi(){
     const identityEmail = String(document.getElementById('profEmail')?.textContent || '').trim();
-    if (identityEmail && identityEmail !== '—') {
+    if (isLikelyEmail(identityEmail)) {
       return identityEmail;
     }
-    const fallbackAuthEmail = String(window.AUTH0_USER?.email || '').trim();
+    const fallbackAuthEmail = isLikelyEmail(window.AUTH0_USER?.email);
     if (fallbackAuthEmail) return fallbackAuthEmail;
+    return '';
+  }
+
+  async function withTimeout(promise, timeoutMs){
+    if (!(promise && typeof promise.then === 'function')) return null;
+    return Promise.race([
+      promise.catch(() => null),
+      new Promise((resolve) => setTimeout(() => resolve(null), Math.max(250, Number(timeoutMs) || 1200)))
+    ]);
+  }
+
+  function emailFromUserCandidate(candidate){
+    return isLikelyEmail(candidate && typeof candidate === 'object' ? candidate.email : '');
+  }
+
+  async function resolveNewsletterEmailAsync(){
+    const uiEmail = isLikelyEmail(resolveNewsletterEmailFromUi());
+    if (uiEmail) return uiEmail;
+
+    const authUserEmail = isLikelyEmail(window.AUTH0_USER?.email);
+    if (authUserEmail) return authUserEmail;
+
+    const authGetters = [];
+    if (window.DEX_AUTH?.getUser) authGetters.push(() => window.DEX_AUTH.getUser());
+    if (window.dexAuth?.getUser && window.dexAuth !== window.DEX_AUTH) authGetters.push(() => window.dexAuth.getUser());
+    if (window.auth0?.getUser) authGetters.push(() => window.auth0.getUser());
+    if (window.auth0Client?.getUser) authGetters.push(() => window.auth0Client.getUser());
+
+    for (const getter of authGetters) {
+      const user = await withTimeout(getter(), 1200);
+      const candidate = emailFromUserCandidate(user);
+      if (candidate) return candidate;
+    }
+
+    try {
+      const profile = await jfetch(notificationsApiBase() + '/me/profile', {
+        timeoutMs: 2500,
+        __skipAuthGuard: true
+      });
+      const profileEmail = isLikelyEmail(profile?.email);
+      if (profileEmail) return profileEmail;
+    } catch {}
+
     return '';
   }
 
   function prefillNewsletterIdentity(email){
     if (!(S.newsletterEmailValue instanceof Element)) return;
-    const normalized = normalizeEmail(email);
+    const normalized = isLikelyEmail(email);
     if (normalized) {
       S.newsletterEmailValue.textContent = normalized;
       if (S.newsletterSendLinkBtn && !newsletterBusy) S.newsletterSendLinkBtn.disabled = false;
@@ -4936,7 +4990,7 @@ function hydrateProfile(me){
     try {
       setNewsletterBusy(true);
       if (action === 'send-link') {
-        const email = normalizeEmail(resolveNewsletterEmailFromUi());
+        const email = isLikelyEmail(await resolveNewsletterEmailAsync());
         if (!email || !email.includes('@')) {
           prefillNewsletterIdentity('');
           setNewsletterStatus('Could not resolve your account email. Sign in and refresh, then try again.');
@@ -5051,7 +5105,8 @@ function hydrateProfile(me){
       if (authGate?.status !== 'authenticated') return;
       const d = await jfetch(notificationsApiBase() + '/me/notifications');
       hydrate(d||{});
-      prefillNewsletterIdentity(resolveNewsletterEmailFromUi());
+      const email = await resolveNewsletterEmailAsync();
+      prefillNewsletterIdentity(email || resolveNewsletterEmailFromUi());
     }catch(_){ /* non-fatal */ }
     finally { markSettingsCardReady('notCard'); }
   }
@@ -5089,6 +5144,12 @@ function hydrateProfile(me){
   });
 
   S.newsletterSendLinkBtn?.setAttribute('data-dx-newsletter-action', 'send-link');
+
+  window.addEventListener('dx:settings:identity-hydrated', (event) => {
+    const detail = event && typeof event === 'object' && 'detail' in event ? event.detail : null;
+    const email = isLikelyEmail(detail && typeof detail === 'object' ? detail.email : '');
+    prefillNewsletterIdentity(email || resolveNewsletterEmailFromUi());
+  });
 
   // hydrate without touching the global boot flow
   load();
