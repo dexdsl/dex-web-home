@@ -16,6 +16,7 @@ import {
   toText,
   writeJson,
 } from './lib/dexnotes-pipeline.mjs';
+import { emitAnnouncementPublishHooks, resolveEventsEnv } from './lib/worker-hooks.mjs';
 
 const ROOT = process.cwd();
 
@@ -273,7 +274,7 @@ function readOrInitCommentsConfig() {
   return { ...DEFAULT_COMMENTS_CONFIG };
 }
 
-function main() {
+async function main() {
   const files = listMarkdownPostFiles();
   if (files.length === 0) {
     throw new Error('No markdown posts found in content/dexnotes/posts. Run dexnotes:migrate or dexnotes:new.');
@@ -353,10 +354,22 @@ function main() {
   console.log(`dexnotes:build-data wrote ${path.relative(ROOT, DEXNOTES_INDEX_DATA_PATH)}`);
   console.log(`dexnotes:build-data wrote ${path.relative(ROOT, DEXNOTES_ENTRIES_DATA_PATH)}`);
   console.log(`dexnotes:build-data wrote ${path.relative(ROOT, DEXNOTES_COMMENTS_DATA_PATH)}`);
+
+  try {
+    const events = await emitAnnouncementPublishHooks({
+      env: resolveEventsEnv(process.env.DEX_DEXNOTES_EVENTS_ENV || process.env.DEX_EVENTS_ENV || 'prod'),
+      entries,
+    });
+    console.log(
+      `dexnotes:build-data events attempted=${events.attempted} sent=${events.sent} skipped=${events.skipped} failed=${events.failed}`,
+    );
+  } catch (error) {
+    console.warn(`dexnotes:build-data events failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   console.error(`dexnotes:build-data failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);

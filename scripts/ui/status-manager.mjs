@@ -12,6 +12,7 @@ import {
   writeIncidentPage,
   writeStatusBundle,
 } from '../lib/status-store.mjs';
+import { emitStatusIncidentHook, resolveEventsEnv } from '../lib/worker-hooks.mjs';
 
 function safeMessage(error) {
   if (!error) return 'Unknown error';
@@ -40,7 +41,16 @@ function formatState(value) {
   return String(value || 'unknown').replace(/^\w/, (letter) => letter.toUpperCase());
 }
 
+function resolveStatusEventsEnv() {
+  try {
+    return resolveEventsEnv(process.env.DEX_STATUS_EVENTS_ENV || process.env.DEX_EVENTS_ENV || 'prod');
+  } catch {
+    return 'prod';
+  }
+}
+
 export function StatusManager({ onExit, width = 100, height = 24 }) {
+  const statusEventsEnv = resolveStatusEventsEnv();
   const [bundle, setBundle] = useState(null);
   const [busy, setBusy] = useState(false);
   const [statusLine, setStatusLine] = useState('Loading status files…');
@@ -105,13 +115,24 @@ export function StatusManager({ onExit, width = 100, height = 24 }) {
       setBundle(written);
       setSelectedIncidentIndex(0);
       closeEditor();
-      setStatusLine(`Created ${incident.id} and generated ${page.href}`);
+      const hookResult = await emitStatusIncidentHook({
+        env: statusEventsEnv,
+        incident,
+        state: incident.state,
+      });
+      if (hookResult.ok) {
+        setStatusLine(`Created ${incident.id}, generated ${page.href}, and published status event.`);
+      } else if (hookResult.skipped) {
+        setStatusLine(`Created ${incident.id} and generated ${page.href} (status hook skipped: ${hookResult.reason || 'not configured'}).`);
+      } else {
+        setStatusLine(`Created ${incident.id} and generated ${page.href} (status hook failed).`);
+      }
     } catch (error) {
       setStatusLine(`Incident create failed: ${safeMessage(error)}`);
     } finally {
       setBusy(false);
     }
-  }, [bundle, busy, closeEditor, editor]);
+  }, [bundle, busy, closeEditor, editor, statusEventsEnv]);
 
   const resolveSelectedIncident = useCallback(async () => {
     if (!bundle || !selectedIncident || busy) return;
@@ -132,6 +153,21 @@ export function StatusManager({ onExit, width = 100, height = 24 }) {
       const updatedIncident = updatedBundle.live.incidents.find((incident) => incident.id === selectedIncident.id);
       if (updatedIncident) {
         await writeIncidentPage(updatedIncident);
+        const hookResult = await emitStatusIncidentHook({
+          env: statusEventsEnv,
+          incident: updatedIncident,
+          state: 'resolved',
+        });
+        if (hookResult.ok) {
+          setStatusLine(`Resolved incident ${selectedIncident.id} and published status event.`);
+          return;
+        }
+        if (hookResult.skipped) {
+          setStatusLine(`Resolved incident ${selectedIncident.id} (status hook skipped: ${hookResult.reason || 'not configured'}).`);
+          return;
+        }
+        setStatusLine(`Resolved incident ${selectedIncident.id} (status hook failed).`);
+        return;
       }
       setStatusLine(`Resolved incident ${selectedIncident.id}.`);
     } catch (error) {
@@ -139,7 +175,7 @@ export function StatusManager({ onExit, width = 100, height = 24 }) {
     } finally {
       setBusy(false);
     }
-  }, [bundle, busy, selectedIncident]);
+  }, [bundle, busy, selectedIncident, statusEventsEnv]);
 
   const regenerateSelectedIncidentPage = useCallback(async () => {
     if (!selectedIncident || busy) return;

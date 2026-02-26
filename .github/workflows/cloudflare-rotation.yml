@@ -1,0 +1,32 @@
+name: cloudflare-secret-rotation
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  rotation-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Cloudflare worker secret rotation
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN_ROTATION_CHECK }}
+          CF_WORKER_NAME: dex-api
+          EVENT_INGEST_TOKEN_ROTATED_AT: ${{ vars.EVENT_INGEST_TOKEN_ROTATED_AT }}
+          RESEND_API_KEY_ROTATED_AT: ${{ vars.RESEND_API_KEY_ROTATED_AT }}
+        run: node scripts/verify_cloudflare_secret_rotation.mjs

@@ -1,4 +1,5 @@
 import { readPollsFile } from './polls-store.mjs';
+import { emitPollLifecycleHooks, resolveEventsEnv } from './worker-hooks.mjs';
 
 const DEFAULT_API_BY_ENV = {
   prod: 'https://dex-api.spring-fog-8edd.workers.dev',
@@ -77,10 +78,23 @@ export async function publishPolls({ env = 'test', filePath } = {}) {
     );
   }
 
+  let events = null;
+  try {
+    events = await emitPollLifecycleHooks({
+      env: resolveEventsEnv(process.env.DEX_POLLS_EVENTS_ENV || env),
+      polls: Array.isArray(data.polls) ? data.polls : [],
+      updatedAt: data.updatedAt,
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    events = { attempted: 0, sent: 0, failed: 1, skipped: 0, error: reason };
+  }
+
   return {
     env: normalizeEnv(env),
     apiBase,
     count: Array.isArray(data.polls) ? data.polls.length : 0,
     payload,
+    events,
   };
 }

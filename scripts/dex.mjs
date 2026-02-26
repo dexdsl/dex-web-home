@@ -319,7 +319,10 @@ async function runPollsCommand(rest = []) {
       if (action === 'publish-test' || action === 'publish-prod') {
         const env = action === 'publish-prod' ? 'prod' : 'test';
         const result = await publishPolls({ env });
-        console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}`);
+        const eventSummary = result.events
+          ? ` events sent=${result.events.sent || 0} failed=${result.events.failed || 0} skipped=${result.events.skipped || 0}`
+          : '';
+        console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}${eventSummary}`);
         return;
       }
     }
@@ -338,7 +341,10 @@ async function runPollsCommand(rest = []) {
     const env = flags.get('--env') || flags.get('--target') || 'test';
     const filePath = flags.get('--file');
     const result = await publishPolls({ env, filePath });
-    console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}`);
+    const eventSummary = result.events
+      ? ` events sent=${result.events.sent || 0} failed=${result.events.failed || 0} skipped=${result.events.skipped || 0}`
+      : '';
+    console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}${eventSummary}`);
     return;
   }
 

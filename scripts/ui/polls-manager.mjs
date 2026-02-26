@@ -300,7 +300,11 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     try {
       const result = await publishPolls({ env });
       const synced = Number(result?.payload?.synced || result?.payload?.count || result?.count || 0);
-      setStatusLine(`Published ${synced || result.count} polls to ${result.env} (${result.apiBase}).`);
+      const events = result?.events || null;
+      const eventSuffix = events
+        ? ` Events sent:${events.sent || 0} failed:${events.failed || 0} skipped:${events.skipped || 0}.`
+        : '';
+      setStatusLine(`Published ${synced || result.count} polls to ${result.env} (${result.apiBase}).${eventSuffix}`);
     } catch (error) {
       setStatusLine(`Publish ${env} failed: ${safeMessage(error)}`);
     } finally {
