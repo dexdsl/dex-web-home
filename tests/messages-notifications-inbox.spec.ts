@@ -346,10 +346,20 @@ test('settings notifications migrate v1 payload into v2 contract on save', async
     '#notifDigest',
   ];
   for (const selector of toggleIds) {
-    const title = await page.locator(selector).getAttribute('title');
-    expect(Boolean(title && title.trim().length > 12)).toBe(true);
+    const details = await page.locator(selector).evaluate((input) => {
+      const label = input.closest('label');
+      return {
+        title: input.getAttribute('title'),
+        tooltip: label ? label.getAttribute('data-dx-tooltip') : '',
+      };
+    });
+    expect(details.title).toBeNull();
+    expect(Boolean(details.tooltip && details.tooltip.trim().length > 12)).toBe(true);
   }
-  await expect(page.locator('#notifDigest')).toHaveAttribute('title', /Monday at 9:00 AM local time/i);
+  await expect(page.locator('#notifDigest').locator('xpath=ancestor::label[1]')).toHaveAttribute(
+    'data-dx-tooltip',
+    /Monday at 9:00 AM local time/i,
+  );
 
   await expect(page.locator('#notifDexNotes')).toBeChecked();
   await expect(page.locator('#notifPolls')).toBeChecked();

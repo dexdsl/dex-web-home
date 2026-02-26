@@ -37,14 +37,14 @@ function verifySettingsContract() {
   assertIncludes(relPath, text, [
     'id="notifDexNotes"',
     'data-dx-tooltip="Notify me whenever a new Dex Notes announcement or release note is published."',
-    'id="notifDexNotes" type="checkbox" title="',
     'id="notifPolls"',
     'id="notifAchv"',
     'id="notifBill"',
     'id="notifSec"',
     'id="notifStatus"',
     'id="notifSubs"',
-    'id="notifDigest" type="checkbox" title="Email me a weekly summary every Monday at 9:00 AM local time.',
+    'data-dx-tooltip="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."',
+    'id="notifDigest" type="checkbox"',
     'class="dx-newsletter-block"',
     'id="notifNewsletterEmail"',
     'id="notifNewsletterConfirmToken"',
@@ -74,6 +74,14 @@ function verifySettingsContract() {
     'New followers',
     'Mentions &amp; replies',
     'Project updates',
+    'id="notifDexNotes" type="checkbox" title="',
+    'id="notifPolls" type="checkbox" title="',
+    'id="notifAchv" type="checkbox" title="',
+    'id="notifBill" type="checkbox" title="',
+    'id="notifSec" type="checkbox" title="',
+    'id="notifStatus" type="checkbox" title="',
+    'id="notifSubs" type="checkbox" title="',
+    'id="notifDigest" type="checkbox" title="',
   ]);
 }
 
