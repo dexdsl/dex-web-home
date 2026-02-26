@@ -136,7 +136,13 @@ async function stubSubmissionsJsonp(page: Page): Promise<void> {
   });
 }
 
-async function stubMessagesApi(page: Page, mode: SystemMode, notificationPatchBodies: unknown[] = [], actionHits: string[] = []): Promise<void> {
+async function stubMessagesApi(
+  page: Page,
+  mode: SystemMode,
+  notificationPatchBodies: unknown[] = [],
+  actionHits: string[] = [],
+  newsletterHits: string[] = [],
+): Promise<void> {
   await page.route('https://dex-api.spring-fog-8edd.workers.dev/**', async (route) => {
     const request = route.request();
     const method = request.method().toUpperCase();
@@ -225,6 +231,40 @@ async function stubMessagesApi(page: Page, mode: SystemMode, notificationPatchBo
         headers: CORS_HEADERS,
         contentType: 'application/json',
         body: JSON.stringify({ count: 2 }),
+      });
+      return;
+    }
+
+    if (pathname === '/newsletter/subscribe' && method === 'POST') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      newsletterHits.push(`subscribe:${String(body.email || '')}`);
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, state: 'pending_confirmation' }),
+      });
+      return;
+    }
+
+    if (pathname === '/newsletter/confirm' && method === 'POST') {
+      newsletterHits.push('confirm');
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, state: 'active' }),
+      });
+      return;
+    }
+
+    if (pathname === '/newsletter/unsubscribe' && method === 'POST') {
+      newsletterHits.push('unsubscribe');
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, state: 'unsubscribed' }),
       });
       return;
     }
@@ -331,6 +371,49 @@ test('settings notifications migrate v1 payload into v2 contract on save', async
   expect(payload.announcements).toBe(true);
   expect(payload.releases).toBe(true);
   expect(payload.projects).toBe(true);
+});
+
+test('settings notifications exposes newsletter controls, tooltips, and internal scrolling layout', async ({ page }) => {
+  const newsletterHits: string[] = [];
+
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success', [], [], newsletterHits);
+
+  await page.goto('/entry/settings/#notifs', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-notifs').click();
+
+  await expect(page.locator('#notCard .dx-not-scroll')).toBeVisible();
+  const scrollMeta = await page.locator('#notCard .dx-not-scroll').evaluate((node) => {
+    const style = window.getComputedStyle(node);
+    return { overflowY: style.overflowY, maxHeight: style.maxHeight };
+  });
+  expect(['auto', 'scroll', 'overlay']).toContain(scrollMeta.overflowY);
+  expect(scrollMeta.maxHeight).not.toBe('none');
+
+  const gridColumnCount = await page.locator('#notCard .list').evaluate((node) => {
+    const template = window.getComputedStyle(node).gridTemplateColumns;
+    return template.split(' ').filter((part) => part.trim().length > 0).length;
+  });
+  expect(gridColumnCount).toBeGreaterThanOrEqual(2);
+
+  await expect(page.locator('#pane-notifs .list label.item[data-dx-tooltip]')).toHaveCount(8);
+  await expect(page.locator('a[href="/entry/pressroom/"]')).toHaveCount(1);
+
+  await page.fill('#notifNewsletterEmail', 'notify@example.com');
+  await page.click('#notifNewsletterSubscribe');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/check your email|subscription request sent/i);
+  await expect.poll(() => newsletterHits.includes('subscribe:notify@example.com')).toBe(true);
+
+  await page.fill('#notifNewsletterConfirmToken', 'confirm-test-token');
+  await page.click('#notifNewsletterConfirm');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/confirmed/i);
+  await expect.poll(() => newsletterHits.includes('confirm')).toBe(true);
+
+  await page.fill('#notifNewsletterUnsubToken', 'unsub-test-token');
+  await page.click('#notifNewsletterUnsubscribe');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribed/i);
+  await expect.poll(() => newsletterHits.includes('unsubscribe')).toBe(true);
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {

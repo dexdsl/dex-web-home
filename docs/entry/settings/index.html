@@ -2182,32 +2182,206 @@
   overflow:visible;
 }
 
+/* ===== Membership persuasion aside ===== */
+#dex-settings #asideWhy{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  border:1px solid rgba(0,0,0,.14);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.96), rgba(255,255,255,.74)),
+    linear-gradient(140deg, rgba(255,255,255,.86), rgba(255,255,255,.66));
+}
+#dex-settings #asideWhy::before{
+  content:"";
+  position:absolute;
+  inset:-36% -24% auto;
+  height:64%;
+  background:
+    radial-gradient(closest-side, rgba(255,107,61,.2), rgba(255,107,61,0) 70%),
+    radial-gradient(closest-side, rgba(255,186,55,.15), rgba(255,186,55,0) 74%);
+  transform:translate3d(0,0,0);
+  pointer-events:none;
+  z-index:0;
+  animation:dx-why-sheen 10s ease-in-out infinite alternate;
+}
+#dex-settings #asideWhy .dx-why-shell{
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:12px;
+}
+#dex-settings #asideWhy .dx-why-kicker{
+  margin:0;
+  font:700 11px/1 var(--font-heading,system-ui);
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  opacity:.72;
+}
+#dex-settings #asideWhy h2{
+  margin:0;
+  font-size:clamp(1.05rem,1.3vw,1.2rem);
+}
+#dex-settings #asideWhy .dx-why-hook{
+  margin:0;
+  font:600 13px/1.5 var(--font-body,system-ui);
+}
+#dex-settings #asideWhy .dx-why-grid{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+#dex-settings #asideWhy .dx-why-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  padding:6px 0;
+}
+#dex-settings #asideWhy .dx-why-icon{
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(0,0,0,.14);
+  background:rgba(255,255,255,.8);
+}
+#dex-settings #asideWhy .dx-why-icon svg{
+  width:16px;
+  height:16px;
+}
+#dex-settings #asideWhy .dx-why-copy{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+#dex-settings #asideWhy .dx-why-copy strong{
+  margin:0;
+  font:700 13px/1.25 var(--font-heading,system-ui);
+}
+#dex-settings #asideWhy .dx-why-copy span{
+  margin:0;
+  font:600 12px/1.35 var(--font-body,system-ui);
+  color:rgba(0,0,0,.74);
+}
+#dex-settings #asideWhy .dx-why-personal{
+  display:grid;
+  gap:4px;
+  padding:9px 10px;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,.14);
+  background:rgba(255,255,255,.82);
+}
+#dex-settings #asideWhy .dx-why-personal-label{
+  font:700 10px/1 var(--font-heading,system-ui);
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  opacity:.72;
+}
+#dex-settings #asideWhy .dx-why-personal-main{
+  font:700 13px/1.35 var(--font-body,system-ui);
+}
+#dex-settings #asideWhy .dx-why-personal-sub{
+  font:600 11px/1.35 var(--font-body,system-ui);
+  color:rgba(0,0,0,.72);
+}
+#dex-settings #asideWhy .dx-why-cta{
+  width:100%;
+}
+@keyframes dx-why-sheen{
+  0%{ transform:translate3d(-8%,0,0) scale(1); opacity:.9; }
+  100%{ transform:translate3d(8%,-6%,0) scale(1.04); opacity:1; }
+}
+
 /* ===== Notifications: 99th-percentile switches (scoped) ===== */
 #dex-settings #pane-notifs #notCard{
   display:flex;
   flex-direction:column;
   min-height:0;
+  max-height:min(74vh,720px);
+  overflow:hidden;
+}
+#dex-settings #pane-notifs #notCard .dx-not-scroll{
+  display:grid;
+  gap:12px;
+  max-height:min(62vh,540px);
+  overflow:auto;
+  padding-right:4px;
+  align-content:start;
 }
 #dex-settings #pane-notifs #notCard .list{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:10px 14px;
   max-width:none !important;
-  max-height:min(58vh,460px);
-  overflow:auto;
-  padding-right:4px;
+  max-height:none;
+  overflow:visible;
+  padding-right:0;
   align-content:start;
 }
 #dex-settings #pane-notifs #notCard .list > .item{
   min-height:44px;
 }
-@media (max-width: 860px){
+@media (max-width: 720px){
   #dex-settings #pane-notifs #notCard .list{
     grid-template-columns:1fr;
-    padding-right:0;
+  }
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-block{
+  border:1px solid var(--glass-brd);
+  border-radius:8px;
+  padding:12px;
+  background:var(--glass-bg);
+  display:grid;
+  gap:10px;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-head h3{
+  margin:0;
+  font:700 1rem/1.2 var(--font-heading,system-ui);
+  letter-spacing:.01em;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+@media (max-width: 720px){
+  #dex-settings #pane-notifs #notCard .dx-newsletter-actions{
+    grid-template-columns:1fr;
   }
 }
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
+#dex-settings #pane-notifs .list label.item[data-dx-tooltip]{
+  position:relative;
+}
+@media (hover:hover){
+  #dex-settings #pane-notifs .list label.item[data-dx-tooltip]:hover::before,
+  #dex-settings #pane-notifs .list label.item[data-dx-tooltip]:focus-within::before{
+    content:attr(data-dx-tooltip);
+    position:absolute;
+    right:0;
+    top:calc(100% + 8px);
+    width:min(280px, 92vw);
+    z-index:12;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,.12);
+    background:rgba(255,255,255,.98);
+    color:#111;
+    font:600 11px/1.35 var(--font-body,system-ui);
+    box-shadow:0 8px 18px rgba(0,0,0,.16);
+    pointer-events:none;
+  }
+}
 
 #dex-settings #pane-notifs .list input[type="checkbox"]{
   /* Hide native look, keep accessibility & keyboard */
@@ -2622,17 +2796,35 @@
       <h2>Notifications</h2>
       <div id="notStatus" class="save-status" aria-live="polite" hidden>Saved</div>
     </div>
+    <div class="dx-not-scroll">
+      <div class="list">
+        <label class="item" title="Notify me whenever a new Dex Notes announcement or release note is published." data-dx-tooltip="Notify me whenever a new Dex Notes announcement or release note is published."><span>Dex Notes releases</span><input id="notifDexNotes" type="checkbox" title="Notify me whenever a new Dex Notes announcement or release note is published."></label>
+        <label class="item" title="Notify me when polls open, are closing soon, or close with results." data-dx-tooltip="Notify me when polls open, are closing soon, or close with results."><span>Poll updates</span><input id="notifPolls" type="checkbox" title="Notify me when polls open, are closing soon, or close with results."></label>
+        <label class="item" title="Notify me when achievements progress or unlock." data-dx-tooltip="Notify me when achievements progress or unlock."><span>Achievement milestones</span><input id="notifAchv" type="checkbox" title="Notify me when achievements progress or unlock."></label>
+        <label class="item" title="Notify me about billing events like payment failures, recoveries, and subscription state changes." data-dx-tooltip="Notify me about billing events like payment failures, recoveries, and subscription state changes."><span>Billing updates</span><input id="notifBill" type="checkbox" title="Notify me about billing events like payment failures, recoveries, and subscription state changes."></label>
+        <label class="item" title="Notify me about sign-ins and account security events." data-dx-tooltip="Notify me about sign-ins and account security events."><span>Security alerts</span><input id="notifSec" type="checkbox" title="Notify me about sign-ins and account security events."></label>
+        <label class="item" title="Notify me when status incidents start, update, or resolve." data-dx-tooltip="Notify me when status incidents start, update, or resolve."><span>System status incidents</span><input id="notifStatus" type="checkbox" title="Notify me when status incidents start, update, or resolve."></label>
+        <label class="item" title="Notify me about submission acknowledgements and review updates." data-dx-tooltip="Notify me about submission acknowledgements and review updates."><span>Submission messages</span><input id="notifSubs" type="checkbox" title="Notify me about submission acknowledgements and review updates."></label>
 
-    <div class="list">
-      <label class="item" title="Notify me whenever a new Dex Notes announcement or release note is published."><span>Dex Notes releases</span><input id="notifDexNotes" type="checkbox" title="Notify me whenever a new Dex Notes announcement or release note is published."></label>
-      <label class="item" title="Notify me when polls open, are closing soon, or close with results."><span>Poll updates</span><input id="notifPolls" type="checkbox" title="Notify me when polls open, are closing soon, or close with results."></label>
-      <label class="item" title="Notify me when achievements progress or unlock."><span>Achievement milestones</span><input id="notifAchv" type="checkbox" title="Notify me when achievements progress or unlock."></label>
-      <label class="item" title="Notify me about billing events like payment failures, recoveries, and subscription state changes."><span>Billing updates</span><input id="notifBill" type="checkbox" title="Notify me about billing events like payment failures, recoveries, and subscription state changes."></label>
-      <label class="item" title="Notify me about sign-ins and account security events."><span>Security alerts</span><input id="notifSec" type="checkbox" title="Notify me about sign-ins and account security events."></label>
-      <label class="item" title="Notify me when status incidents start, update, or resolve."><span>System status incidents</span><input id="notifStatus" type="checkbox" title="Notify me when status incidents start, update, or resolve."></label>
-      <label class="item" title="Notify me about submission acknowledgements and review updates."><span>Submission messages</span><input id="notifSubs" type="checkbox" title="Notify me about submission acknowledgements and review updates."></label>
+        <label class="item" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns." data-dx-tooltip="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."><span>Weekly digest email</span><input id="notifDigest" type="checkbox" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."></label>
+      </div>
 
-      <label class="item" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."><span>Weekly digest email</span><input id="notifDigest" type="checkbox" title="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."></label>
+      <section class="dx-newsletter-block" aria-label="Newsletter controls">
+        <div class="dx-newsletter-head">
+          <h3>Newsletter</h3>
+        </div>
+        <p class="note">Marketing newsletter is separate from account notifications and weekly digest.</p>
+        <input id="notifNewsletterEmail" type="email" class="field-input" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Newsletter email">
+        <input id="notifNewsletterConfirmToken" type="text" class="field-input" autocomplete="off" placeholder="Confirmation token (from email)" aria-label="Confirmation token">
+        <input id="notifNewsletterUnsubToken" type="text" class="field-input" autocomplete="off" placeholder="Unsubscribe token (from email)" aria-label="Unsubscribe token">
+        <div class="dx-newsletter-actions">
+          <button id="notifNewsletterSubscribe" type="button" class="btn">Subscribe</button>
+          <button id="notifNewsletterConfirm" type="button" class="btn">Confirm</button>
+          <button id="notifNewsletterUnsubscribe" type="button" class="btn">Unsubscribe</button>
+          <a class="btn" href="/entry/pressroom/">Submit release pitch</a>
+        </div>
+        <p id="notifNewsletterStatusLine" class="note" aria-live="polite"></p>
+      </section>
     </div>
   </div>
 </section>
@@ -2642,13 +2834,46 @@
 
     <aside aria-label="Context">
   <div id="asideWhy" class="card">
-    <h2>Why membership matters</h2>
-    <ul class="list">
-      <li class="item"><span>CC-BY library stays open</span><span>🌐</span></li>
-      <li class="item"><span>Fund new sessions</span><span>🎙️</span></li>
-      <li class="item"><span>Badge on Achievements</span><span>🏅</span></li>
-      <li class="item"><span>Early access</span><span>✨</span></li>
-    </ul>
+    <div class="dx-why-shell">
+      <p class="dx-why-kicker">Membership impact</p>
+      <h2>Why membership matters</h2>
+      <p id="dxWhyHook" class="dx-why-hook">Fund new recording sessions and keep every release open access for everyone.</p>
+      <ul class="dx-why-grid">
+        <li class="dx-why-row">
+          <span class="dx-why-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12Zm9-4v8m-4-4h8"/></svg>
+          </span>
+          <span class="dx-why-copy">
+            <strong>Keep it open</strong>
+            <span>Membership offsets hosting and bandwidth for the CC-BY archive.</span>
+          </span>
+        </li>
+        <li class="dx-why-row">
+          <span class="dx-why-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v8m0 0 3-3m-3 3-3-3M6 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+          </span>
+          <span class="dx-why-copy">
+            <strong>More sessions</strong>
+            <span>Your plan directly funds new artist captures and faster publishing.</span>
+          </span>
+        </li>
+        <li class="dx-why-row">
+          <span class="dx-why-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.6 6.7 19l1-5.8L3.5 9.2l5.9-.9L12 3Z"/></svg>
+          </span>
+          <span class="dx-why-copy">
+            <strong>Member signal</strong>
+            <span>Show support in achievements and priority member-only update lanes.</span>
+          </span>
+        </li>
+      </ul>
+      <div class="dx-why-personal" role="status" aria-live="polite">
+        <span class="dx-why-personal-label">Personal focus</span>
+        <span id="dxWhyFavoriteMain" class="dx-why-personal-main">Support artists like your favorites.</span>
+        <span id="dxWhyFavoriteSub" class="dx-why-personal-sub">Add favorites to personalize this line even more.</span>
+      </div>
+      <a id="dxWhyJoinCta" class="cta dx-why-cta" href="/entry/settings#membership">Support with membership</a>
+    </div>
   </div>
 
   <div id="asideBilling" class="card" style="margin-top:var(--gap);">
@@ -4632,14 +4857,123 @@ function hydrateProfile(me){
     subs: document.getElementById('notifSubs'),
     dig:  document.getElementById('notifDigest'),
     badge:document.getElementById('notStatus'),
+    newsletterEmail: document.getElementById('notifNewsletterEmail'),
+    newsletterConfirmToken: document.getElementById('notifNewsletterConfirmToken'),
+    newsletterUnsubToken: document.getElementById('notifNewsletterUnsubToken'),
+    newsletterSubscribeBtn: document.getElementById('notifNewsletterSubscribe'),
+    newsletterConfirmBtn: document.getElementById('notifNewsletterConfirm'),
+    newsletterUnsubscribeBtn: document.getElementById('notifNewsletterUnsubscribe'),
+    newsletterStatusLine: document.getElementById('notifNewsletterStatusLine'),
   };
 
   let to = null, debounceMs = 400;
+  let newsletterBusy = false;
 
   function setBadge(txt){
     if (!S.badge) return;
     if (txt){ S.badge.hidden = false; S.badge.textContent = txt; }
     else { S.badge.hidden = true; }
+  }
+
+  function notificationsApiBase() {
+    return String((pane.closest('#dex-settings')?.dataset.api || '/api') || '/api').replace(/\/+$/, '');
+  }
+
+  function normalizeEmail(value){
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function setNewsletterStatus(text){
+    if (!S.newsletterStatusLine) return;
+    S.newsletterStatusLine.textContent = String(text || '');
+  }
+
+  function setNewsletterBusy(nextBusy){
+    newsletterBusy = !!nextBusy;
+    const disabled = newsletterBusy;
+    if (S.newsletterSubscribeBtn) S.newsletterSubscribeBtn.disabled = disabled;
+    if (S.newsletterConfirmBtn) S.newsletterConfirmBtn.disabled = disabled;
+    if (S.newsletterUnsubscribeBtn) S.newsletterUnsubscribeBtn.disabled = disabled;
+  }
+
+  function resolveTimezone(){
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return String(tz || '').trim() || 'UTC';
+    } catch {
+      return 'UTC';
+    }
+  }
+
+  function prefillNewsletterEmail(){
+    if (!(S.newsletterEmail instanceof HTMLInputElement)) return;
+    if (S.newsletterEmail.value.trim()) return;
+    const identityEmail = String(document.getElementById('profEmail')?.textContent || '').trim();
+    if (identityEmail && identityEmail !== '—') {
+      S.newsletterEmail.value = identityEmail;
+      return;
+    }
+    const fallbackAuthEmail = String(window.AUTH0_USER?.email || '').trim();
+    if (fallbackAuthEmail) S.newsletterEmail.value = fallbackAuthEmail;
+  }
+
+  async function postNewsletter(path, payload){
+    return jfetch(`${notificationsApiBase()}${path}`, {
+      method:'POST',
+      body: JSON.stringify(payload),
+      timeoutMs: 12000,
+      __skipAuthGuard: true
+    });
+  }
+
+  async function handleNewsletterAction(action){
+    if (newsletterBusy) return;
+    try {
+      setNewsletterBusy(true);
+      if (action === 'subscribe') {
+        const email = normalizeEmail(S.newsletterEmail?.value);
+        if (!email || !email.includes('@')) {
+          setNewsletterStatus('Enter a valid email to subscribe.');
+          return;
+        }
+        const payload = await postNewsletter('/newsletter/subscribe', {
+          email,
+          source: 'settings-notifications',
+          timezone: resolveTimezone()
+        });
+        const state = String(payload?.state || '').toLowerCase();
+        if (state === 'active') setNewsletterStatus('Already subscribed.');
+        else if (state === 'pending_confirmation') setNewsletterStatus('Check your email to confirm subscription.');
+        else setNewsletterStatus('Subscription request sent.');
+        return;
+      }
+      if (action === 'confirm') {
+        const token = String(S.newsletterConfirmToken?.value || '').trim();
+        if (!token) {
+          setNewsletterStatus('Paste a confirmation token from your email first.');
+          return;
+        }
+        await postNewsletter('/newsletter/confirm', { token });
+        setNewsletterStatus('Subscription confirmed.');
+        if (S.newsletterConfirmToken instanceof HTMLInputElement) S.newsletterConfirmToken.value = '';
+        return;
+      }
+      if (action === 'unsubscribe') {
+        const token = String(S.newsletterUnsubToken?.value || '').trim();
+        if (!token) {
+          setNewsletterStatus('Paste an unsubscribe token from your email first.');
+          return;
+        }
+        await postNewsletter('/newsletter/unsubscribe', { token });
+        setNewsletterStatus('Newsletter unsubscribed.');
+        if (S.newsletterUnsubToken instanceof HTMLInputElement) S.newsletterUnsubToken.value = '';
+      }
+    } catch (error) {
+      const detail = String(error?.message || '').trim();
+      setNewsletterStatus(detail ? `Newsletter action failed: ${detail}` : 'Newsletter action failed. Try again.');
+    } finally {
+      setNewsletterBusy(false);
+    }
   }
 
   function read(){
@@ -4724,8 +5058,9 @@ function hydrateProfile(me){
     try{
       const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: false, timeoutMs: 2500 });
       if (authGate?.status !== 'authenticated') return;
-      const d = await jfetch((pane.closest('#dex-settings')?.dataset.api || '/api') + '/me/notifications');
+      const d = await jfetch(notificationsApiBase() + '/me/notifications');
       hydrate(d||{});
+      prefillNewsletterEmail();
     }catch(_){ /* non-fatal */ }
     finally { markSettingsCardReady('notCard'); }
   }
@@ -4733,7 +5068,7 @@ function hydrateProfile(me){
   async function save(){
     try{
       setBadge('Saving…');
-      await jfetch((pane.closest('#dex-settings')?.dataset.api || '/api') + '/me/notifications', {
+      await jfetch(notificationsApiBase() + '/me/notifications', {
         method:'PATCH',
         body: JSON.stringify(read())
       });
@@ -4748,15 +5083,146 @@ function hydrateProfile(me){
 
   // Only listen inside the notifications pane
   pane.addEventListener('change', e=>{
-    if (e.target instanceof HTMLInputElement) schedule();
+    if (!(e.target instanceof HTMLInputElement)) return;
+    if (e.target.type !== 'checkbox') return;
+    schedule();
   });
+
+  pane.addEventListener('click', e=>{
+    const target = e.target instanceof Element ? e.target.closest('[data-dx-newsletter-action]') : null;
+    if (!target) return;
+    const action = String(target.getAttribute('data-dx-newsletter-action') || '').trim();
+    if (!action) return;
+    e.preventDefault();
+    void handleNewsletterAction(action);
+  });
+
+  S.newsletterSubscribeBtn?.setAttribute('data-dx-newsletter-action', 'subscribe');
+  S.newsletterConfirmBtn?.setAttribute('data-dx-newsletter-action', 'confirm');
+  S.newsletterUnsubscribeBtn?.setAttribute('data-dx-newsletter-action', 'unsubscribe');
 
   // hydrate without touching the global boot flow
   load();
 })();
 
-      /* Initial boot */
-      (async function boot(){
+(() => {
+  const aside = document.getElementById('asideWhy');
+  if (!aside) return;
+  const hook = document.getElementById('dxWhyHook');
+  const main = document.getElementById('dxWhyFavoriteMain');
+  const sub = document.getElementById('dxWhyFavoriteSub');
+  const cta = document.getElementById('dxWhyJoinCta');
+  const FAVORITES_PREFIX = 'dex:favorites:v2:';
+
+  function toText(value){
+    return String(value ?? '').trim();
+  }
+
+  function toTitleCase(text){
+    return toText(text)
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  function slugToArtist(entryHref){
+    const href = toText(entryHref);
+    if (!href) return '';
+    const parts = href.split('/').filter(Boolean);
+    if (!parts.length) return '';
+    const slug = parts[parts.length - 1];
+    if (!slug) return '';
+    const tokens = slug.split('-').filter(Boolean);
+    if (tokens.length < 2) return '';
+    const last = tokens[tokens.length - 1];
+    const secondLast = tokens[tokens.length - 2];
+    return toTitleCase(`${secondLast} ${last}`.replace(/\b[a-z]\b/g, ''));
+  }
+
+  function readFavoritesRaw(){
+    const keys = [];
+    const directScope = toText(window.auth0Sub);
+    const authScope = toText(window.AUTH0_USER?.sub);
+    if (directScope) keys.push(`${FAVORITES_PREFIX}${directScope}`);
+    if (authScope && authScope !== directScope) keys.push(`${FAVORITES_PREFIX}${authScope}`);
+    keys.push(`${FAVORITES_PREFIX}anon`);
+    try {
+      for (let i = 0; i < window.localStorage.length; i += 1){
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith(FAVORITES_PREFIX) && !keys.includes(key)) keys.push(key);
+      }
+    } catch {}
+    for (const key of keys){
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      } catch {}
+    }
+    return [];
+  }
+
+  function resolveFavoriteSignal(){
+    const api = window.__dxFavorites;
+    let rows = [];
+    if (api && typeof api.list === 'function') {
+      try {
+        rows = api.list() || [];
+      } catch {}
+    }
+    if (!Array.isArray(rows) || rows.length === 0) rows = readFavoritesRaw();
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const first = rows.find((row) => toText(row.performer) || toText(row.title) || toText(row.entryHref) || toText(row.lookupNumber)) || rows[0];
+    if (!first || typeof first !== 'object') return null;
+    const performer = toText(first.performer);
+    const title = toText(first.title);
+    const lookup = toText(first.lookupNumber || first.entryLookupNumber);
+    const artist = performer || slugToArtist(first.entryHref);
+    return {
+      artist,
+      title,
+      lookup,
+      kind: toText(first.kind || 'entry'),
+    };
+  }
+
+  function renderFavoriteSignal(){
+    const signal = resolveFavoriteSignal();
+    if (!signal){
+      if (hook) hook.textContent = 'Fund new recording sessions and keep every release open access for everyone.';
+      if (main) main.textContent = 'Support artists like your favorites.';
+      if (sub) sub.textContent = 'Add favorites to personalize this line even more.';
+      return;
+    }
+    const focus = signal.artist || signal.title || signal.lookup || 'your top favorite';
+    if (hook) hook.textContent = `Support artists like ${focus} and help publish more sessions without paywalls.`;
+    if (main) main.textContent = `Support artists like ${focus}.`;
+    const label = signal.lookup ? `Lookup ${signal.lookup}` : `Favorite type: ${signal.kind || 'entry'}`;
+    if (sub) sub.textContent = `${label} is part of what your membership keeps online.`;
+  }
+
+  cta?.addEventListener('click', (event) => {
+    const href = cta.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('/entry/settings')) {
+      event.preventDefault();
+      const membershipTab = document.getElementById('tab-membership');
+      if (membershipTab instanceof HTMLButtonElement) {
+        membershipTab.click();
+        return;
+      }
+      window.location.assign('/entry/settings#membership');
+    }
+  });
+
+  renderFavoriteSignal();
+  window.addEventListener('dx:favorites:changed', renderFavoriteSignal);
+})();
+
+	      /* Initial boot */
+	      (async function boot(){
         let routeState = 'ready';
         let shouldFinalize = true;
         try{

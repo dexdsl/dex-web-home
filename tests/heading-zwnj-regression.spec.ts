@@ -85,6 +85,23 @@ function hasSingleLetterDuplicateInWord(rendered: string, word: string): boolean
   return false;
 }
 
+function hasTripleRepeatedLetter(value: string): boolean {
+  const source = stripZwnj(value);
+  const chars = Array.from(source);
+  for (let index = 0; index < chars.length - 2; index += 1) {
+    const a = chars[index];
+    const b = chars[index + 1];
+    const c = chars[index + 2];
+    if (!a || !b || !c) continue;
+    const aAlpha = a.toLowerCase() !== a.toUpperCase();
+    const bAlpha = b.toLowerCase() !== b.toUpperCase();
+    const cAlpha = c.toLowerCase() !== c.toUpperCase();
+    if (!aAlpha || !bAlpha || !cAlpha) continue;
+    if (a.toLowerCase() === b.toLowerCase() && b.toLowerCase() === c.toLowerCase()) return true;
+  }
+  return false;
+}
+
 function assertHeadingTypographyInvariants(heading: { canonical: string; rendered: string; text: string }): void {
   expect(heading.canonical.length).toBeGreaterThan(0);
   expect(heading.rendered.length).toBeGreaterThan(0);
@@ -93,7 +110,7 @@ function assertHeadingTypographyInvariants(heading: { canonical: string; rendere
 
   const renderedWithoutZwnj = stripZwnj(heading.rendered);
   const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
-  expect(inserted.length).toBeLessThanOrEqual(2);
+  expect(inserted.length).toBeLessThanOrEqual(1);
   if (inserted.length > 0) {
     const firstUpper = inserted[0]!.toUpperCase();
     expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
@@ -261,7 +278,7 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical));
     const renderedWithoutZwnj = stripZwnj(donate.rendered);
     const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
-    expect(inserted.length).toBeLessThanOrEqual(2);
+    expect(inserted.length).toBeLessThanOrEqual(1);
     if (inserted.length > 0) {
       const firstUpper = inserted[0]!.toUpperCase();
       expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
@@ -287,4 +304,12 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const boardOverview = await readHeadingBySelector(page, '#p1-overview');
   assertHeadingTypographyInvariants(boardOverview);
   expect(boardOverview.canonical.toUpperCase()).toBe('OVERVIEW');
+
+  await page.goto('/entry/settings/', { waitUntil: 'domcontentloaded' });
+  await expect.poll(async () => page.locator('#dexs-title').getAttribute('data-dx-heading-canonical')).toBeTruthy();
+
+  const settingsTitle = await readHeadingBySelector(page, '#dexs-title');
+  assertHeadingTypographyInvariants(settingsTitle);
+  expect(settingsTitle.canonical.toUpperCase()).toBe('SETTINGS');
+  expect(hasTripleRepeatedLetter(settingsTitle.rendered)).toBeFalsy();
 });

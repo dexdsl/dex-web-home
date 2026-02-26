@@ -450,9 +450,8 @@
 
   function pickProbabilisticDuplicateCount(randomFn) {
     const roll = randomFn();
-    if (roll < 0.4) return 0;
-    if (roll < 0.8) return 1;
-    return 2;
+    if (roll < 0.5) return 0;
+    return 1;
   }
 
   function buildExcludedDuplicateGlobalIndexes(nodeValues, excludedWords) {
@@ -498,6 +497,28 @@
     let globalCharIndex = 0;
     nodeValues.forEach((value, nodeIndex) => {
       const chars = Array.from(String(value || ''));
+      function hasSameLetterNeighborAt(charIndex) {
+        const current = chars[charIndex];
+        if (!current || !isAlphabeticCharacter(current)) return false;
+        const currentLower = current.toLowerCase();
+
+        let prevIndex = charIndex - 1;
+        while (prevIndex >= 0 && chars[prevIndex] === STRETCH_PRO_DUPLICATE_SEPARATOR) prevIndex -= 1;
+        if (prevIndex >= 0) {
+          const prev = chars[prevIndex];
+          if (isAlphabeticCharacter(prev) && prev.toLowerCase() === currentLower) return true;
+        }
+
+        let nextIndex = charIndex + 1;
+        while (nextIndex < chars.length && chars[nextIndex] === STRETCH_PRO_DUPLICATE_SEPARATOR) nextIndex += 1;
+        if (nextIndex < chars.length) {
+          const next = chars[nextIndex];
+          if (isAlphabeticCharacter(next) && next.toLowerCase() === currentLower) return true;
+        }
+
+        return false;
+      }
+
       for (let charIndex = 0; charIndex < chars.length; charIndex += 1) {
         const char = chars[charIndex];
         const isExcluded = excludedGlobalIndexes && excludedGlobalIndexes.has(globalCharIndex);
@@ -505,6 +526,7 @@
           char &&
           char !== STRETCH_PRO_DUPLICATE_SEPARATOR &&
           !isExcluded &&
+          !hasSameLetterNeighborAt(charIndex) &&
           /\S/.test(char) &&
           isAlphabeticCharacter(char)
         ) {
