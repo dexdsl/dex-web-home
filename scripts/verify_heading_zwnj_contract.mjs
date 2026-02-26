@@ -150,6 +150,11 @@ function verifySettingsHeadingExclusion() {
   if (!/id="dexs-title"[^>]*data-dx-heading-duplicate-exclude-letters=/i.test(text)) {
     FAILURES.push(`${relPath} missing duplicate-letter guard for #dexs-title`);
   }
+  assertIncludes(relPath, text, [
+    '#dex-settings .hdr h1',
+    'letter-spacing: 0;',
+    'font-feature-settings: "liga" 1, "clig" 1, "calt" 1;',
+  ]);
 }
 
 function verifySupportErrorHeadingHooks() {

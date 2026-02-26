@@ -1692,7 +1692,11 @@
       font-weight:800;
       font-size: clamp(18px, 2.6vw, 28px);
       text-transform: uppercase;
-      letter-spacing: .02em;
+      letter-spacing: 0;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+      font-feature-settings: "liga" 1, "clig" 1, "calt" 1;
+      text-rendering: optimizeLegibility;
     }
     #dex-settings .hdr .sub{ margin:6px 0 0 0; color:var(--muted); font-size:12.5px; }
 

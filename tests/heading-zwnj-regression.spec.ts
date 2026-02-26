@@ -417,6 +417,16 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const settingsTitle = await readHeadingBySelector(page, '#dexs-title');
   assertHeadingTypographyInvariants(settingsTitle);
   expect(settingsTitle.canonical.toUpperCase()).toBe('SETTINGS');
+  const settingsTitleStyles = await page.locator('#dexs-title').evaluate((el) => {
+    const styles = window.getComputedStyle(el);
+    return {
+      letterSpacing: styles.letterSpacing,
+      fontVariantLigatures: styles.fontVariantLigatures,
+      fontFeatureSettings: styles.fontFeatureSettings,
+    };
+  });
+  expect(['0px', 'normal']).toContain(settingsTitleStyles.letterSpacing);
+  expect(String(settingsTitleStyles.fontVariantLigatures || '').toLowerCase()).not.toBe('none');
   const settingsExcludeLetters = await page.locator('#dexs-title').getAttribute('data-dx-heading-duplicate-exclude-letters');
   expect(settingsExcludeLetters).toBe('G,S,N,I');
   const settingsInserted = findInsertedCharacters(settingsTitle.canonical, stripZwnj(settingsTitle.rendered));
