@@ -352,7 +352,7 @@ export async function writeIncidentPage(incident) {
   <head>
     <meta charset=\"utf-8\" />
     <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\" />
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\" />
     <title>${escapeHtml(normalized.title)} &mdash; dex status</title>
     <meta name=\"robots\" content=\"index, follow\" />
     <link rel=\"canonical\" href=\"${href}\" />

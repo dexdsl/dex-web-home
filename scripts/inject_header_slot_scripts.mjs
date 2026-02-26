@@ -40,6 +40,41 @@ const CONTENT_HINTS = [
   'header-announcement-bar-wrapper',
 ];
 
+function normalizeViewportMetaContent(content) {
+  const raw = String(content || '').trim();
+  if (!raw) return 'width=device-width, initial-scale=1, viewport-fit=cover';
+  const segments = raw
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .filter((segment) => !/^viewport-fit\s*=/i.test(segment));
+  if (!segments.some((segment) => /^width\s*=/i.test(segment))) {
+    segments.unshift('width=device-width');
+  }
+  if (!segments.some((segment) => /^initial-scale\s*=/i.test(segment))) {
+    segments.push('initial-scale=1');
+  }
+  segments.push('viewport-fit=cover');
+  return segments.join(', ');
+}
+
+function ensureViewportFitCoverMeta(html) {
+  const viewportRegex = /<meta\s+name=(['"])viewport\1\s+content=(['"])([^'"]*)\2\s*\/?>/i;
+  const match = html.match(viewportRegex);
+  if (!match) {
+    const headCloseIndex = html.indexOf('</head>');
+    if (headCloseIndex < 0) return html;
+    const tag = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">';
+    return `${html.slice(0, headCloseIndex)}${tag}\n${html.slice(headCloseIndex)}`;
+  }
+
+  const [full, nameQuote, contentQuote, content] = match;
+  const normalized = normalizeViewportMetaContent(content);
+  const normalizedTag = `<meta name=${nameQuote}viewport${nameQuote} content=${contentQuote}${normalized}${contentQuote}>`;
+  if (full === normalizedTag) return html;
+  return html.replace(full, normalizedTag);
+}
+
 function listHtmlFiles(dirPath, out = []) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
   for (const entry of entries) {
@@ -140,9 +175,11 @@ function main() {
   for (const absolutePath of htmlFiles) {
     const relativePath = path.relative(DOCS_DIR, absolutePath);
     const html = fs.readFileSync(absolutePath, 'utf8');
-    if (!shouldInject(relativePath, html)) continue;
+    const withViewport = ensureViewportFitCoverMeta(html);
+    const requiresInjection = shouldInject(relativePath, withViewport);
+    if (!requiresInjection && withViewport === html) continue;
 
-    const next = injectTag(html, relativePath);
+    const next = requiresInjection ? injectTag(withViewport, relativePath) : withViewport;
     if (next === html) continue;
 
     fs.writeFileSync(absolutePath, next, 'utf8');
