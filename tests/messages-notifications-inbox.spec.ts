@@ -325,6 +325,28 @@ async function waitForMessagesReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+async function expectSettingsInkAligned(page: Page, tabSelector: string): Promise<void> {
+  await expect.poll(async () => {
+    return page.evaluate((selector) => {
+      const tab = document.querySelector(selector);
+      const pills = document.querySelector('#dex-settings .pills');
+      const ink = document.querySelector('#dex-settings .pills .ink');
+      if (!(tab instanceof HTMLElement) || !(pills instanceof HTMLElement) || !(ink instanceof HTMLElement)) {
+        return false;
+      }
+      const selected = tab.getAttribute('aria-selected') === 'true';
+      const tabRect = tab.getBoundingClientRect();
+      const pillsRect = pills.getBoundingClientRect();
+      const inkRect = ink.getBoundingClientRect();
+      const tabX = tabRect.left - pillsRect.left;
+      const inkX = inkRect.left - pillsRect.left;
+      const xDiff = Math.abs(tabX - inkX);
+      const widthDiff = Math.abs(tabRect.width - inkRect.width);
+      return selected && xDiff <= 4 && widthDiff <= 4;
+    }, tabSelector);
+  }, { timeout: 8_000 }).toBe(true);
+}
+
 test('settings notifications migrate v1 payload into v2 contract on save', async ({ page }) => {
   const patchBodies: unknown[] = [];
 
@@ -429,6 +451,74 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
 
   await page.click('#notifNewsletterUnsubscribeLink');
   await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribe link sent/i);
+});
+
+test('settings tab underline stays aligned through hash restore, tab switches, and resize', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+
+  await page.goto('/entry/settings/#notifs', { waitUntil: 'domcontentloaded' });
+  await expectSettingsInkAligned(page, '#tab-notifs');
+
+  await page.locator('#tab-membership').click();
+  await expectSettingsInkAligned(page, '#tab-membership');
+
+  await page.locator('#tab-profile').click();
+  await expectSettingsInkAligned(page, '#tab-profile');
+
+  await page.setViewportSize({ width: 1120, height: 820 });
+  await expectSettingsInkAligned(page, '#tab-profile');
+
+  await page.locator('#tab-notifs').click();
+  await expectSettingsInkAligned(page, '#tab-notifs');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expectSettingsInkAligned(page, '#tab-notifs');
+});
+
+test('settings membership impact uses reordered artist names and instrument-aware patronage copy', async ({ page }) => {
+  await page.addInitScript(() => {
+    const key = 'dex:favorites:v2:auth0|messages-e2e';
+    const rows = [
+      {
+        kind: 'entry',
+        lookupNumber: 'K.Org. At AV2023 S1',
+        entryLookupNumber: 'K.Org. At AV2023',
+        entryHref: '/entries/test-9/',
+        performer: 'ataka, midori',
+        title: 'Test Entry',
+        addedAt: '2026-02-26T06:00:00.000Z',
+        source: 'test',
+      },
+    ];
+    window.localStorage.setItem(key, JSON.stringify(rows));
+  });
+
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+
+  await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxWhyFavoriteMain')).toContainText('Support artists like Midori Ataka.');
+  const subCopy = await page.locator('#dxWhyFavoriteSub').evaluate((node) =>
+    String(node.textContent || '').replace(/\u200C/g, ''),
+  );
+  expect(subCopy).toContain('Your patronage is part of what helps us record more organ sessions season after season.');
+
+  const zwnjState = await page.evaluate(() => {
+    const main = document.getElementById('dxWhyFavoriteMain')?.textContent || '';
+    const sub = document.getElementById('dxWhyFavoriteSub')?.textContent || '';
+    const rowTitles = Array.from(document.querySelectorAll('#asideWhy .dx-why-copy strong'))
+      .map((node) => node.textContent || '');
+    const hasMainZwnj = main.includes('\u200C');
+    const hasSubZwnj = sub.includes('\u200C');
+    const hasRowZwnj = rowTitles.some((value) => value.includes('\u200C'));
+    return { hasMainZwnj, hasSubZwnj, hasRowZwnj };
+  });
+  expect(zwnjState.hasMainZwnj || zwnjState.hasSubZwnj || zwnjState.hasRowZwnj).toBe(true);
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {

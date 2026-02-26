@@ -2887,7 +2887,7 @@
       <div class="dx-why-personal" role="status" aria-live="polite">
         <span class="dx-why-personal-label">Personal focus</span>
         <span id="dxWhyFavoriteMain" class="dx-why-personal-main">Support artists like your favorites.</span>
-        <span id="dxWhyFavoriteSub" class="dx-why-personal-sub">Add favorites to personalize this line even more.</span>
+        <span id="dxWhyFavoriteSub" class="dx-why-personal-sub">Your patronage is part of what helps us record more artist-led sessions season after season.</span>
       </div>
       <a id="dxWhyJoinCta" class="cta dx-why-cta" href="/entry/settings#membership">Support with membership</a>
     </div>
@@ -3398,8 +3398,33 @@ function fitProfileLayout(){
           ink.style.transform = 'translateX(' + x + 'px)';
         }
       }
+      function getActiveTab(){
+        return tabs.find((tab) => tab.dataset.pane === current)
+          || tabs.find((tab) => tab.getAttribute('aria-selected') === 'true')
+          || tabs[0]
+          || null;
+      }
+      let inkSyncRaf = 0;
+      function syncInk(immediate = true){
+        const activeTab = getActiveTab();
+        if (!activeTab || !ink) return;
+        moveInk(activeTab, immediate);
+      }
+      function queueInkSync(immediate = true){
+        if (inkSyncRaf) cancelAnimationFrame(inkSyncRaf);
+        inkSyncRaf = requestAnimationFrame(() => {
+          inkSyncRaf = 0;
+          syncInk(immediate);
+        });
+      }
       function showPane(name, dirHint){
-        if (!panes.get(name) || name===current) return;
+        if (!panes.get(name)) return;
+        if (name===current){
+          fitProfileLayout();
+          toggleProfileAside();
+          queueInkSync(true);
+          return;
+        }
         const to = panes.get(name);
         tabs.forEach(b => b.setAttribute('aria-selected', b.dataset.pane===name ? 'true' : 'false'));
         tabs.forEach(b => b.tabIndex = (b.dataset.pane===name ? 0 : -1));
@@ -3480,8 +3505,32 @@ function fitProfileLayout(){
 
   fitProfileLayout();
   toggleProfileAside();
-  requestAnimationFrame(() => moveInk(first, true));
+  queueInkSync(true);
 })();
+
+      window.addEventListener('resize', () => queueInkSync(true), { passive: true });
+      window.addEventListener('orientationchange', () => queueInkSync(true), { passive: true });
+
+      window.addEventListener('hashchange', () => {
+        const hash = (location.hash || '').replace('#', '');
+        const target = tabs.find((tab) =>
+          tab.id === hash || (`tab-${tab.dataset.pane}`) === hash || tab.dataset.pane === hash
+        );
+        if (target?.dataset?.pane && target.dataset.pane !== current) {
+          showPane(target.dataset.pane, 0);
+        }
+        queueInkSync(true);
+      });
+
+      if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function'){
+        document.fonts.ready.then(() => queueInkSync(true)).catch(() => {});
+      }
+      const pillsEl = document.querySelector('#dex-settings .pills');
+      if (typeof ResizeObserver === 'function' && pillsEl){
+        const inkObserver = new ResizeObserver(() => queueInkSync(true));
+        inkObserver.observe(pillsEl);
+        tabs.forEach((tab) => inkObserver.observe(tab));
+      }
 
 
       /* Profile — identity from social + autosave (roles, instruments) */
@@ -4889,8 +4938,7 @@ function hydrateProfile(me){
   let to = null, debounceMs = 400;
   let newsletterBusy = false;
   const NEWSLETTER_ACTION_COOLDOWN_MS = 20 * 1000;
-  let newsletterCooldownUntil = 0;
-  let newsletterCooldownTimer = null;
+  const newsletterActionCooldowns = new Map();
 
   function setBadge(txt){
     if (!S.badge) return;
@@ -4917,14 +4965,14 @@ function hydrateProfile(me){
     S.newsletterStatusLine.textContent = String(text || '');
   }
 
-  function clearNewsletterCooldownTimer(){
-    if (!newsletterCooldownTimer) return;
-    clearTimeout(newsletterCooldownTimer);
-    newsletterCooldownTimer = null;
+  function cooldownKey(action){
+    return String(action || '').trim() || 'send-link';
   }
 
-  function newsletterCooldownRemainingMs(){
-    return Math.max(0, newsletterCooldownUntil - Date.now());
+  function newsletterCooldownRemainingMs(action){
+    const key = cooldownKey(action);
+    const until = Number(newsletterActionCooldowns.get(key) || 0);
+    return Math.max(0, until - Date.now());
   }
 
   function formatWaitSeconds(ms){
@@ -4932,23 +4980,20 @@ function hydrateProfile(me){
     return String(seconds);
   }
 
-  function setNewsletterCooldown(ms){
+  function setNewsletterCooldown(ms, action){
     const nextMs = Math.max(0, Number(ms) || 0);
-    clearNewsletterCooldownTimer();
-    newsletterCooldownUntil = nextMs > 0 ? Date.now() + nextMs : 0;
-    if (nextMs > 0) {
-      newsletterCooldownTimer = setTimeout(() => {
-        newsletterCooldownUntil = 0;
-        newsletterCooldownTimer = null;
-        setNewsletterBusy(false);
-      }, nextMs + 40);
+    const key = cooldownKey(action);
+    if (nextMs <= 0) {
+      newsletterActionCooldowns.delete(key);
+      return;
     }
+    newsletterActionCooldowns.set(key, Date.now() + nextMs);
   }
 
   function setNewsletterBusy(nextBusy){
     newsletterBusy = !!nextBusy;
     const email = isLikelyEmail(resolveNewsletterEmailFromUi());
-    const disabled = newsletterBusy || newsletterCooldownRemainingMs() > 0 || !email;
+    const disabled = newsletterBusy || !email;
     if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
     if (S.newsletterPauseLinkBtn) S.newsletterPauseLinkBtn.disabled = disabled;
     if (S.newsletterUnsubscribeLinkBtn) S.newsletterUnsubscribeLinkBtn.disabled = disabled;
@@ -5039,7 +5084,7 @@ function hydrateProfile(me){
 
   async function handleNewsletterAction(action){
     if (newsletterBusy) return;
-    const cooldownMs = newsletterCooldownRemainingMs();
+    const cooldownMs = newsletterCooldownRemainingMs(action);
     if (cooldownMs > 0) {
       setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
       setNewsletterBusy(false);
@@ -5071,7 +5116,7 @@ function hydrateProfile(me){
           timezone: resolveTimezone(),
           auth0Sub: String(window.auth0Sub || '')
         });
-        setNewsletterCooldown(NEWSLETTER_ACTION_COOLDOWN_MS);
+        setNewsletterCooldown(NEWSLETTER_ACTION_COOLDOWN_MS, action);
         const state = String(payload?.state || '').toLowerCase();
         if (action === 'pause-link') {
           setNewsletterStatus('Pause link sent. Check your inbox to pause newsletter delivery.');
@@ -5097,7 +5142,7 @@ function hydrateProfile(me){
         } catch {}
       }
       if (status === 429) {
-        setNewsletterCooldown(60 * 1000);
+        setNewsletterCooldown(60 * 1000, action);
         setNewsletterStatus('Too many requests right now. Please wait a minute and retry (provider protection can take up to 1 hour to fully clear).');
       } else {
         setNewsletterStatus(detail ? `Newsletter action failed: ${detail}` : 'Newsletter action failed. Try again.');
@@ -5252,9 +5297,45 @@ function hydrateProfile(me){
   const sub = document.getElementById('dxWhyFavoriteSub');
   const cta = document.getElementById('dxWhyJoinCta');
   const FAVORITES_PREFIX = 'dex:favorites:v2:';
+  const ZWNJ = '\u200C';
+  const INSTRUMENT_CODE_MAP = Object.freeze({
+    ORG: 'organ',
+    HPS: 'harpsichord',
+    PNO: 'piano',
+    VLN: 'violin',
+    VLA: 'viola',
+    VCL: 'cello',
+    CB: 'double bass',
+    FL: 'flute',
+    CLA: 'clarinet',
+    OBO: 'oboe',
+    BSN: 'bassoon',
+    SAX: 'saxophone',
+    TRP: 'trumpet',
+    TBN: 'trombone',
+    GTR: 'guitar',
+    VOX: 'voice',
+    CHR: 'choir',
+    SYN: 'synth',
+    PERC: 'percussion',
+    DRM: 'drums',
+  });
 
   function toText(value){
     return String(value ?? '').trim();
+  }
+
+  function stripZwnj(text){
+    return String(text ?? '').replace(/\u200C/g, '');
+  }
+
+  function withCanonicalDoubleLetterZwnj(text){
+    return stripZwnj(text).replace(/([A-Za-z])\1/g, `$1${ZWNJ}$1`);
+  }
+
+  function setJoinedText(node, text){
+    if (!(node instanceof Element)) return;
+    node.textContent = withCanonicalDoubleLetterZwnj(toText(text));
   }
 
   function toTitleCase(text){
@@ -5263,6 +5344,18 @@ function hydrateProfile(me){
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
+  }
+
+  function normalizeArtistName(value){
+    const clean = stripZwnj(toText(value)).replace(/\s+/g, ' ');
+    if (!clean) return '';
+    const commaParts = clean.split(',').map((part) => part.trim()).filter(Boolean);
+    if (commaParts.length >= 2) {
+      const firstNames = commaParts.slice(1).join(' ');
+      const surname = commaParts[0];
+      return toTitleCase(`${firstNames} ${surname}`.replace(/\s+/g, ' ').trim());
+    }
+    return toTitleCase(clean);
   }
 
   function slugToArtist(entryHref){
@@ -5276,7 +5369,108 @@ function hydrateProfile(me){
     if (tokens.length < 2) return '';
     const last = tokens[tokens.length - 1];
     const secondLast = tokens[tokens.length - 2];
-    return toTitleCase(`${secondLast} ${last}`.replace(/\b[a-z]\b/g, ''));
+    return normalizeArtistName(`${secondLast} ${last}`.replace(/\b[a-z]\b/g, ''));
+  }
+
+  function normalizeInstrumentText(value){
+    const clean = stripZwnj(toText(value)).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!clean) return '';
+    return clean.toLowerCase();
+  }
+
+  function instrumentFromLookup(lookup){
+    const clean = stripZwnj(toText(lookup));
+    if (!clean) return '';
+    const codeMatch = clean.match(/\b[A-Z]\.([A-Za-z]{2,8})\./);
+    if (!codeMatch) return '';
+    const code = codeMatch[1].toUpperCase();
+    if (INSTRUMENT_CODE_MAP[code]) return INSTRUMENT_CODE_MAP[code];
+    const fallback = codeMatch[1].replace(/[^A-Za-z]/g, '');
+    return fallback ? fallback.toLowerCase() : '';
+  }
+
+  function instrumentFromRecord(record){
+    if (!record || typeof record !== 'object') return '';
+    const directCandidates = [
+      record.instrument,
+      record.instrumentName,
+      record.primaryInstrument,
+      record.family,
+      record.section,
+    ];
+    for (const candidate of directCandidates){
+      const normalized = normalizeInstrumentText(candidate);
+      if (normalized) return normalized;
+    }
+
+    const listCandidates = [
+      Array.isArray(record.instruments) ? record.instruments : [],
+      Array.isArray(record.instrumentNames) ? record.instrumentNames : [],
+    ];
+    for (const list of listCandidates){
+      for (const candidate of list){
+        const normalized = normalizeInstrumentText(candidate);
+        if (normalized) return normalized;
+      }
+    }
+
+    const metadata = record.metadata && typeof record.metadata === 'object' ? record.metadata : null;
+    if (metadata){
+      const metadataCandidates = [
+        metadata.instrument,
+        metadata.instrumentName,
+        metadata.primaryInstrument,
+      ];
+      for (const candidate of metadataCandidates){
+        const normalized = normalizeInstrumentText(candidate);
+        if (normalized) return normalized;
+      }
+      if (Array.isArray(metadata.instruments)){
+        for (const candidate of metadata.instruments){
+          const normalized = normalizeInstrumentText(candidate);
+          if (normalized) return normalized;
+        }
+      }
+    }
+
+    const lookupCandidates = [
+      record.lookupNumber,
+      record.entryLookupNumber,
+      record.lookup,
+      record.entryLookup,
+      record.title,
+    ];
+    for (const lookup of lookupCandidates){
+      const inferred = instrumentFromLookup(lookup);
+      if (inferred) return inferred;
+    }
+    return '';
+  }
+
+  function resolveInstrument(rows, primary){
+    const candidates = [];
+    if (primary) candidates.push(primary);
+    if (Array.isArray(rows)) {
+      rows.forEach((row) => {
+        if (row && row !== primary) candidates.push(row);
+      });
+    }
+    for (const row of candidates){
+      const instrument = instrumentFromRecord(row);
+      if (instrument) return instrument;
+    }
+    return '';
+  }
+
+  function decorateWhyCopy(){
+    const targets = aside.querySelectorAll(
+      '.dx-why-kicker, h2, #dxWhyHook, .dx-why-copy strong, .dx-why-copy span, .dx-why-personal-label, #dxWhyFavoriteMain, #dxWhyFavoriteSub, #dxWhyJoinCta',
+    );
+    targets.forEach((node) => {
+      const canonical = stripZwnj(node.getAttribute('data-dx-why-canonical') || node.textContent || '');
+      node.setAttribute('data-dx-why-canonical', canonical);
+      node.textContent = withCanonicalDoubleLetterZwnj(canonical);
+    });
   }
 
   function readFavoritesRaw(){
@@ -5318,28 +5512,30 @@ function hydrateProfile(me){
     const performer = toText(first.performer);
     const title = toText(first.title);
     const lookup = toText(first.lookupNumber || first.entryLookupNumber);
-    const artist = performer || slugToArtist(first.entryHref);
+    const artist = normalizeArtistName(performer) || slugToArtist(first.entryHref);
+    const instrument = resolveInstrument(rows, first);
     return {
       artist,
       title,
       lookup,
       kind: toText(first.kind || 'entry'),
+      instrument,
     };
   }
 
   function renderFavoriteSignal(){
     const signal = resolveFavoriteSignal();
     if (!signal){
-      if (hook) hook.textContent = 'Fund new recording sessions and keep every release open access for everyone.';
-      if (main) main.textContent = 'Support artists like your favorites.';
-      if (sub) sub.textContent = 'Add favorites to personalize this line even more.';
+      setJoinedText(hook, 'Fund new recording sessions and keep every release open access for everyone.');
+      setJoinedText(main, 'Support artists like your favorites.');
+      setJoinedText(sub, 'Your patronage is part of what helps us record more artist-led sessions season after season.');
       return;
     }
     const focus = signal.artist || signal.title || signal.lookup || 'your top favorite';
-    if (hook) hook.textContent = `Support artists like ${focus} and help publish more sessions without paywalls.`;
-    if (main) main.textContent = `Support artists like ${focus}.`;
-    const label = signal.lookup ? `Lookup ${signal.lookup}` : `Favorite type: ${signal.kind || 'entry'}`;
-    if (sub) sub.textContent = `${label} is part of what your membership keeps online.`;
+    const instrumentLabel = signal.instrument || 'artist-led';
+    setJoinedText(hook, `Support artists like ${focus} and help publish more sessions without paywalls.`);
+    setJoinedText(main, `Support artists like ${focus}.`);
+    setJoinedText(sub, `Your patronage is part of what helps us record more ${instrumentLabel} sessions season after season.`);
   }
 
   cta?.addEventListener('click', (event) => {
@@ -5356,6 +5552,7 @@ function hydrateProfile(me){
     }
   });
 
+  decorateWhyCopy();
   renderFavoriteSignal();
   window.addEventListener('dx:favorites:changed', renderFavoriteSignal);
 })();
