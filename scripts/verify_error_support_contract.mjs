@@ -44,7 +44,6 @@ function verifyRoutes() {
     'data-dx-fetch-state="loading"',
     'id="dx-support-status"',
     'id="dx-support-account"',
-    'data-dx-auth-mount',
     'data-dx-support-refresh',
     'dx-support-shell',
     'dx-support-card--body',

@@ -19,7 +19,6 @@
     <link rel="stylesheet" href="/assets/css/dex.css">
     <style>
       :root {
-        --dx-support-bg: #232323;
         --dx-support-copy: rgba(255, 255, 255, 0.95);
         --dx-support-muted: rgba(241, 241, 241, 0.82);
       }
@@ -31,55 +30,60 @@
       }
 
       body {
-        background: var(--dx-support-bg);
         color: var(--dx-support-copy);
         position: relative;
       }
 
-      .dx-support-mesh {
+      #scroll-gradient-bg {
+        position: fixed;
+        inset: 0;
+        background: #fcfcfc;
+        transition: background 0.25s linear;
+        pointer-events: none;
+      }
+
+      #gooey-mesh-wrapper {
         position: fixed;
         inset: 0;
         pointer-events: none;
-        z-index: 0;
-        overflow: hidden;
+        opacity: 0.66;
       }
 
-      .dx-support-blob {
+      #gooey-mesh-wrapper::before {
+        content: "";
         position: absolute;
-        border-radius: 999px;
-        filter: blur(58px);
-        opacity: 0.38;
-        mix-blend-mode: screen;
+        inset: 0;
+        filter: url("#noise");
+        opacity: 0.8;
       }
 
-      .dx-support-blob--a {
-        width: 38vw;
-        height: 38vw;
-        min-width: 240px;
-        min-height: 240px;
-        left: -10vw;
-        top: -14vh;
-        background: radial-gradient(circle, rgba(80, 131, 214, 0.75), rgba(80, 131, 214, 0));
+      #gooey-mesh-wrapper .gooey-stage {
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        filter: url("#goo");
       }
 
-      .dx-support-blob--b {
-        width: 32vw;
-        height: 32vw;
-        min-width: 220px;
-        min-height: 220px;
-        right: -8vw;
-        top: 18vh;
-        background: radial-gradient(circle, rgba(86, 202, 171, 0.58), rgba(86, 202, 171, 0));
+      #gooey-mesh-wrapper .gooey-blob {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--d);
+        height: var(--d);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        background:
+          radial-gradient(circle at 30% 30%, var(--g1a) 0%, var(--g1b) 45%, transparent 75%),
+          radial-gradient(circle at 70% 70%, var(--g2a) 0%, var(--g2b) 45%, transparent 75%);
+        filter: blur(34px) saturate(150%);
+        will-change: transform;
+        opacity: 0.62;
       }
 
-      .dx-support-blob--c {
-        width: 44vw;
-        height: 44vw;
-        min-width: 260px;
-        min-height: 260px;
-        left: 28vw;
-        bottom: -22vh;
-        background: radial-gradient(circle, rgba(238, 154, 118, 0.54), rgba(238, 154, 118, 0));
+      #gooey-mesh-wrapper svg#goo-filter {
+        position: absolute;
+        width: 0;
+        height: 0;
       }
 
       .dx-support-shell {
@@ -144,14 +148,6 @@
       .dx-support-copy {
         margin: 0.55rem 0 0;
         color: var(--dx-support-muted);
-      }
-
-      .dx-support-auth-mount {
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-        min-height: 40px;
-        min-width: min(292px, 100%);
       }
 
       .dx-support-section {
@@ -441,12 +437,6 @@
           padding: 0.8rem;
         }
 
-        .dx-support-auth-mount {
-          justify-content: flex-start;
-          width: 100%;
-          min-width: 0;
-        }
-
         .dx-support-bottom {
           align-items: flex-start;
           flex-direction: column;
@@ -466,11 +456,964 @@
     <script defer src="/assets/js/support-status.js"></script>
   </head>
   <body>
-    <div class="dx-support-mesh" aria-hidden="true">
-      <span class="dx-support-blob dx-support-blob--a"></span>
-      <span class="dx-support-blob dx-support-blob--b"></span>
-      <span class="dx-support-blob dx-support-blob--c"></span>
+<div class="dx-announcement-bar-dropzone"></div>
+
+    <div class="header-announcement-bar-wrapper">
+      
+      <a
+        href="#page"
+        class="header-skip-link dx-button-element--primary"
+      >
+        Skip to Content
+      </a>
+      
+
+
+<style>
+    @supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+        .header-blur-background {
+            
+                -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+            
+            
+        }
+    }
+</style>
+      <div
+        class="header-border"
+        data-header-style="solid"
+        data-header-border="false"
+        data-test="header-border"
+        style="
+
+
+
+
+"
+      ></div>
+      <div
+        class="header-dropshadow"
+        data-header-style="solid"
+        data-header-dropshadow="true"
+        data-test="header-dropshadow"
+        style="
+  box-shadow: 0px 12px 48px 12px;
+"
+      ></div>
+      
+      
+        <div  class="header-blur-background" data-test="header-blur-background" >
+          <div
+            class="header-background-solid"
+            data-header-style="solid"
+            data-test="header-background-solid"
+            
+            
+            style="opacity: calc(50 * .01)"
+          ></div>
+        </div>
+      
+
+      <div class='header-inner container--fluid
+        
+        
+        
+        
+         header-mobile-layout-logo-center-nav-right
+        
+        
+        
+        
+         header-layout-branding-center-nav-center
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        '
+        data-test="header-inner"
+        >
+        <!-- Background -->
+        <div class="header-background theme-bg--primary"></div>
+
+        <div class="header-display-desktop" data-content-field="site-title">
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+            
+            <!-- Social -->
+            
+              
+                <div class="header-actions header-actions--left">
+                  <div class="header-actions-action header-actions-action--social">
+                    
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ" target="_blank" aria-label="YouTube">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#youtube-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="http://instagram.com/dexdsl" target="_blank" aria-label="Instagram">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#instagram-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.tiktok.com/@dexdsl" target="_blank" aria-label="TikTok">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#tiktok-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://twitter.com/dexdsl" target="_blank" aria-label="Twitter">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#twitter-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                    
+                  </div>
+                </div>
+              
+            
+          
+            
+            <!-- Title and nav wrapper -->
+            <div class="header-title-nav-wrapper">
+              
+
+              
+
+              
+                
+                <!-- Title -->
+                
+                  <div
+                    class="
+                      header-title
+                      
+                    "
+                    data-animation-role="header-element"
+                  >
+                    
+                      <div class="header-title-logo">
+                        <a href="/" data-animation-role="header-element">
+                        
+<img elementtiming="nbf-header-logo-desktop" src="/assets/img/21fad4e13609600d109e.png" alt="dex digital sample library" style="display:block" fetchpriority="high" loading="eager" decoding="async" data-loader="raw">
+
+                        </a>
+                      </div>
+
+                    
+                    
+                  </div>
+                
+              
+                
+                <!-- Nav -->
+                <div class="header-nav">
+                  <div class="header-nav-wrapper">
+                    <nav class="header-nav-list">
+                      
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/catalog/"
+        data-animation-role="header-element"
+        
+         
+        
+      >
+        CATALOG
+      </a>
     </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/call/"
+        data-animation-role="header-element"
+        
+      >
+        IN DEX
+      </a>
+    </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/dexnotes/"
+        data-animation-role="header-element"
+        
+      >
+        DEX NOTES
+      </a>
+    </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/about/"
+        data-animation-role="header-element"
+        
+      >
+        ABOUT
+      </a>
+    </div>
+  
+  
+  
+
+
+
+                    </nav>
+                  </div>
+                </div>
+              
+              
+            </div>
+          
+            
+            <!-- Actions -->
+            <div class="header-actions header-actions--right">
+              
+                
+                  <div class="user-accounts-link header-nav-item header-nav-item--collection customerAccountLoginDesktop" data-controller="UserAccountLink" data-animation-role="header-element">
+                    <a class="user-accounts-text-link header-nav-item" href="#" data-animation-role="header-element">
+  <span class="unauth">Login</span>
+  <span class="auth">Account</span>
+</a>
+                  </div>
+                
+              
+              
+                
+                
+              
+
+              
+
+            
+            
+
+              
+              <div class="showOnMobile">
+                
+              </div>
+
+              
+              <div class="showOnDesktop">
+                
+              </div>
+
+              
+                <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
+                  <a
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
+                    href="/donate/"
+                    
+                  >
+                    DOONATE
+                  </a>
+                </div>
+              
+            </div>
+          
+            
+
+
+<style>
+  .top-bun, 
+  .patty, 
+  .bottom-bun {
+    height: 2px;
+  }
+</style>
+
+<!-- Burger -->
+<div class="header-burger
+
+  menu-overlay-has-visible-non-navigation-items
+
+" data-animation-role="header-element">
+  <button class="header-burger-btn burger" data-test="header-burger">
+    <span hidden class="js-header-burger-open-title visually-hidden">Open Menu</span>
+    <span hidden class="js-header-burger-close-title visually-hidden">Close Menu</span>
+    <div class="burger-box">
+      <div class="burger-inner header-menu-icon-tripleLineHamburger">
+        <div class="top-bun"></div>
+        <div class="patty"></div>
+        <div class="bottom-bun"></div>
+      </div>
+    </div>
+  </button>
+</div>
+
+          
+          
+          
+          
+          
+
+        </div>
+        <div class="header-display-mobile" data-content-field="site-title">
+          
+          
+            
+            <!-- Social -->
+            
+              
+                <div class="header-actions header-actions--left">
+                  <div class="header-actions-action header-actions-action--social">
+                    
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ" target="_blank" aria-label="YouTube">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#youtube-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="http://instagram.com/dexdsl" target="_blank" aria-label="Instagram">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#instagram-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.tiktok.com/@dexdsl" target="_blank" aria-label="TikTok">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#tiktok-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://twitter.com/dexdsl" target="_blank" aria-label="Twitter">
+                          <svg viewBox="23 23 64 64">
+                            <use xlink:href="#twitter-unauth-icon" width="110" height="110"></use>
+                          </svg>
+                        </a>
+                      
+                    
+                  </div>
+                </div>
+              
+            
+          
+            
+            <!-- Actions -->
+            <div class="header-actions header-actions--right">
+              
+                
+                  <div class="user-accounts-link header-nav-item header-nav-item--collection customerAccountLoginDesktop" data-controller="UserAccountLink" data-animation-role="header-element">
+                    <a class="user-accounts-text-link header-nav-item" href="#" data-animation-role="header-element">
+  <span class="unauth">Login</span>
+  <span class="auth">Account</span>
+</a>
+                  </div>
+                
+              
+              
+                
+                
+              
+
+              
+
+            
+            
+
+              
+              <div class="showOnMobile">
+                
+              </div>
+
+              
+              <div class="showOnDesktop">
+                
+              </div>
+
+              
+                <div class="header-actions-action header-actions-action--cta" data-animation-role="header-element">
+                  <a
+                    class="btn theme-btn--primary dx-button-element dx-button-element--primary dx-button-size--md"
+                    href="/donate/"
+                    
+                  >
+                    DOONATE
+                  </a>
+                </div>
+              
+            </div>
+          
+            
+            <!-- Title and nav wrapper -->
+            <div class="header-title-nav-wrapper">
+              
+
+              
+
+              
+                
+                <!-- Title -->
+                
+                  <div
+                    class="
+                      header-title
+                      
+                    "
+                    data-animation-role="header-element"
+                  >
+                    
+                      <div class="header-title-logo">
+                        <a href="/" data-animation-role="header-element">
+                        
+<img elementtiming="nbf-header-logo-desktop" src="/assets/img/21fad4e13609600d109e.png" alt="dex digital sample library" style="display:block" fetchpriority="high" loading="eager" decoding="async" data-loader="raw">
+
+                        </a>
+                      </div>
+
+                    
+                    
+                  </div>
+                
+              
+                
+                <!-- Nav -->
+                <div class="header-nav">
+                  <div class="header-nav-wrapper">
+                    <nav class="header-nav-list">
+                      
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/catalog/"
+        data-animation-role="header-element"
+        
+         
+        
+      >
+        CATALOG
+      </a>
+    </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/call/"
+        data-animation-role="header-element"
+        
+      >
+        IN DEX
+      </a>
+    </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/dexnotes/"
+        data-animation-role="header-element"
+        
+      >
+        DEX NOTES
+      </a>
+    </div>
+  
+  
+  
+
+
+  
+    <div class="header-nav-item header-nav-item--collection">
+      <a
+        href="/about/"
+        data-animation-role="header-element"
+        
+      >
+        ABOUT
+      </a>
+    </div>
+  
+  
+  
+
+
+
+                    </nav>
+                  </div>
+                </div>
+              
+              
+            </div>
+          
+            
+
+
+<style>
+  .top-bun, 
+  .patty, 
+  .bottom-bun {
+    height: 2px;
+  }
+</style>
+
+<!-- Burger -->
+<div class="header-burger
+
+  menu-overlay-has-visible-non-navigation-items
+
+" data-animation-role="header-element">
+  <button class="header-burger-btn burger" data-test="header-burger">
+    <span hidden class="js-header-burger-open-title visually-hidden">Open Menu</span>
+    <span hidden class="js-header-burger-close-title visually-hidden">Close Menu</span>
+    <div class="burger-box">
+      <div class="burger-inner header-menu-icon-tripleLineHamburger">
+        <div class="top-bun"></div>
+        <div class="patty"></div>
+        <div class="bottom-bun"></div>
+      </div>
+    </div>
+  </button>
+</div>
+
+          
+          
+          
+          
+        </div>
+      </div>
+    </div>
+    <!-- (Mobile) Menu Navigation -->
+    <div class="header-menu header-menu--folder-list
+      white-bold
+      
+      
+      
+      
+      "
+      data-section-theme="white-bold"
+      data-current-styles="{
+            &quot;layout&quot;: &quot;brandingCenterNavCenter&quot;,
+            &quot;action&quot;: {
+              &quot;href&quot;: &quot;/donate&quot;,
+              &quot;buttonText&quot;: &quot;DOONATE&quot;,
+              &quot;newWindow&quot;: false
+            },
+            &quot;showSocial&quot;: true,
+            &quot;socialOptions&quot;: {
+              &quot;socialBorderShape&quot;: &quot;none&quot;,
+              &quot;socialBorderStyle&quot;: &quot;outline&quot;,
+              &quot;socialBorderThickness&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 1.0
+              }
+            },
+            &quot;sectionTheme&quot;: &quot;white&quot;,
+            &quot;menuOverlayTheme&quot;: &quot;white-bold&quot;,
+            &quot;menuOverlayAnimation&quot;: &quot;fade&quot;,
+            &quot;cartStyle&quot;: &quot;cart&quot;,
+            &quot;cartText&quot;: &quot;Cart&quot;,
+            &quot;showEmptyCartState&quot;: true,
+            &quot;cartOptions&quot;: {
+              &quot;iconType&quot;: &quot;stroke-1&quot;,
+              &quot;cartBorderShape&quot;: &quot;none&quot;,
+              &quot;cartBorderStyle&quot;: &quot;outline&quot;,
+              &quot;cartBorderThickness&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 1.0
+              }
+            },
+            &quot;showButton&quot;: true,
+            &quot;showCart&quot;: false,
+            &quot;showAccountLogin&quot;: true,
+            &quot;headerStyle&quot;: &quot;solid&quot;,
+            &quot;languagePicker&quot;: {
+              &quot;enabled&quot;: false,
+              &quot;iconEnabled&quot;: false,
+              &quot;iconType&quot;: &quot;globe&quot;,
+              &quot;flagShape&quot;: &quot;shiny&quot;,
+              &quot;languageFlags&quot;: [ ]
+            },
+            &quot;iconOptions&quot;: {
+              &quot;desktopDropdownIconOptions&quot;: {
+                &quot;size&quot;: {
+                  &quot;unit&quot;: &quot;em&quot;,
+                  &quot;value&quot;: 1.0
+                },
+                &quot;iconSpacing&quot;: {
+                  &quot;unit&quot;: &quot;em&quot;,
+                  &quot;value&quot;: 0.35
+                },
+                &quot;strokeWidth&quot;: {
+                  &quot;unit&quot;: &quot;px&quot;,
+                  &quot;value&quot;: 1.5
+                },
+                &quot;endcapType&quot;: &quot;square&quot;,
+                &quot;folderDropdownIcon&quot;: &quot;none&quot;,
+                &quot;languagePickerIcon&quot;: &quot;openArrowHead&quot;
+              },
+              &quot;mobileDropdownIconOptions&quot;: {
+                &quot;size&quot;: {
+                  &quot;unit&quot;: &quot;em&quot;,
+                  &quot;value&quot;: 1.0
+                },
+                &quot;iconSpacing&quot;: {
+                  &quot;unit&quot;: &quot;em&quot;,
+                  &quot;value&quot;: 0.15
+                },
+                &quot;strokeWidth&quot;: {
+                  &quot;unit&quot;: &quot;px&quot;,
+                  &quot;value&quot;: 0.5
+                },
+                &quot;endcapType&quot;: &quot;square&quot;,
+                &quot;folderDropdownIcon&quot;: &quot;openArrowHead&quot;,
+                &quot;languagePickerIcon&quot;: &quot;openArrowHead&quot;
+              }
+            },
+            &quot;mobileOptions&quot;: {
+              &quot;layout&quot;: &quot;logoCenterNavRight&quot;,
+              &quot;menuIconOptions&quot;: {
+                &quot;style&quot;: &quot;tripleLineHamburger&quot;,
+                &quot;thickness&quot;: {
+                  &quot;unit&quot;: &quot;px&quot;,
+                  &quot;value&quot;: 2.0
+                }
+              }
+            },
+            &quot;solidOptions&quot;: {
+              &quot;headerOpacity&quot;: {
+                &quot;unit&quot;: &quot;%&quot;,
+                &quot;value&quot;: 50.0
+              },
+              &quot;blurBackground&quot;: {
+                &quot;enabled&quot;: true,
+                &quot;blurRadius&quot;: {
+                  &quot;unit&quot;: &quot;px&quot;,
+                  &quot;value&quot;: 8.0
+                }
+              },
+              &quot;backgroundColor&quot;: {
+                &quot;type&quot;: &quot;CUSTOM_COLOR&quot;,
+                &quot;customColor&quot;: {
+                  &quot;hslaValue&quot;: {
+                    &quot;hue&quot;: 0.0,
+                    &quot;saturation&quot;: 0.0,
+                    &quot;lightness&quot;: 0.92,
+                    &quot;alpha&quot;: 1.0
+                  },
+                  &quot;userFormat&quot;: &quot;hex&quot;
+                }
+              },
+              &quot;navigationColor&quot;: {
+                &quot;type&quot;: &quot;CUSTOM_COLOR&quot;,
+                &quot;customColor&quot;: {
+                  &quot;hslaValue&quot;: {
+                    &quot;hue&quot;: 0.0,
+                    &quot;saturation&quot;: 0.0,
+                    &quot;lightness&quot;: 0.14,
+                    &quot;alpha&quot;: 1.0
+                  },
+                  &quot;userFormat&quot;: &quot;hex&quot;
+                }
+              }
+            },
+            &quot;gradientOptions&quot;: {
+              &quot;gradientType&quot;: &quot;faded&quot;,
+              &quot;headerOpacity&quot;: {
+                &quot;unit&quot;: &quot;%&quot;,
+                &quot;value&quot;: 90.0
+              },
+              &quot;blurBackground&quot;: {
+                &quot;enabled&quot;: false,
+                &quot;blurRadius&quot;: {
+                  &quot;unit&quot;: &quot;px&quot;,
+                  &quot;value&quot;: 12.0
+                }
+              },
+              &quot;backgroundColor&quot;: {
+                &quot;type&quot;: &quot;SITE_PALETTE_COLOR&quot;,
+                &quot;sitePaletteColor&quot;: {
+                  &quot;colorName&quot;: &quot;white&quot;,
+                  &quot;alphaModifier&quot;: 1.0
+                }
+              },
+              &quot;navigationColor&quot;: {
+                &quot;type&quot;: &quot;SITE_PALETTE_COLOR&quot;,
+                &quot;sitePaletteColor&quot;: {
+                  &quot;colorName&quot;: &quot;black&quot;,
+                  &quot;alphaModifier&quot;: 1.0
+                }
+              }
+            },
+            &quot;dropShadowOptions&quot;: {
+              &quot;enabled&quot;: true,
+              &quot;blur&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 48.0
+              },
+              &quot;spread&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 12.0
+              },
+              &quot;distance&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 12.0
+              },
+              &quot;color&quot;: {
+                &quot;type&quot;: &quot;SITE_PALETTE_COLOR&quot;,
+                &quot;sitePaletteColor&quot;: {
+                  &quot;colorName&quot;: &quot;black&quot;,
+                  &quot;alphaModifier&quot;: 1.0
+                }
+              }
+            },
+            &quot;borderOptions&quot;: {
+              &quot;enabled&quot;: false,
+              &quot;position&quot;: &quot;bottom&quot;,
+              &quot;thickness&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 1.0
+              },
+              &quot;color&quot;: {
+                &quot;type&quot;: &quot;CUSTOM_COLOR&quot;,
+                &quot;customColor&quot;: {
+                  &quot;hslaValue&quot;: {
+                    &quot;hue&quot;: 0.0,
+                    &quot;saturation&quot;: 0.0,
+                    &quot;lightness&quot;: 1.0,
+                    &quot;alpha&quot;: 0.75
+                  },
+                  &quot;userFormat&quot;: &quot;rgb&quot;
+                }
+              }
+            },
+            &quot;showPromotedElement&quot;: false,
+            &quot;buttonVariant&quot;: &quot;primary&quot;,
+            &quot;blurBackground&quot;: {
+              &quot;enabled&quot;: true,
+              &quot;blurRadius&quot;: {
+                &quot;unit&quot;: &quot;px&quot;,
+                &quot;value&quot;: 12.0
+              }
+            },
+            &quot;headerOpacity&quot;: {
+              &quot;unit&quot;: &quot;%&quot;,
+              &quot;value&quot;: 88.0
+            }
+          }"
+      data-section-id="overlay-nav"
+      data-show-account-login="true"
+      data-test="header-menu">
+      <div class="header-menu-bg theme-bg--primary"></div>
+      <div class="header-menu-nav">
+        <nav class="header-menu-nav-list">
+          <div data-folder="root" class="header-menu-nav-folder">
+            <div class="header-menu-nav-folder-content">
+              <!-- Menu Navigation -->
+<div class="header-menu-nav-wrapper">
+  
+    
+      
+        
+          
+            <div class="container header-menu-nav-item header-menu-nav-item--collection header-menu-nav-item--active">
+              <a
+                href="/catalog/"
+                
+                 
+                
+              >
+                <div class="header-menu-nav-item-content">
+                  CATALOG
+                </div>
+              </a>
+            </div>
+          
+        
+      
+    
+      
+        
+          
+            <div class="container header-menu-nav-item header-menu-nav-item--collection">
+              <a
+                href="/call/"
+                
+              >
+                <div class="header-menu-nav-item-content">
+                  IN DEX
+                </div>
+              </a>
+            </div>
+          
+        
+      
+    
+      
+        
+          
+            <div class="container header-menu-nav-item header-menu-nav-item--collection">
+              <a
+                href="/dexnotes/"
+                
+              >
+                <div class="header-menu-nav-item-content">
+                  DEX NOTES
+                </div>
+              </a>
+            </div>
+          
+        
+      
+    
+      
+        
+          
+            <div class="container header-menu-nav-item header-menu-nav-item--collection">
+              <a
+                href="/about/"
+                
+              >
+                <div class="header-menu-nav-item-content">
+                  ABOUT
+                </div>
+              </a>
+            </div>
+          
+        
+      
+    
+  
+</div>
+
+              
+                
+                  <div
+                    class="user-accounts-link header-menu-nav-item header-nav-item--collection customerAccountLoginMobile"
+                    data-controller="UserAccountLink"
+                    data-animation-role="header-element"
+                  >
+                    <a class="user-accounts-text-link header-nav-item" href="#" data-animation-role="header-element">
+  <span class="unauth">Login</span>
+  <span class="auth">Account</span>
+</a>
+                </div>
+                
+              
+            </div>
+            
+              <div class="header-menu-actions social-accounts">
+                
+                  
+                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
+                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ" target="_blank" aria-label="YouTube">
+                        <svg viewBox="23 23 64 64">
+                          <use xlink:href="#youtube-unauth-icon" width="110" height="110"></use>
+                        </svg>
+                      </a>
+                    </div>
+                  
+                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
+                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="http://instagram.com/dexdsl" target="_blank" aria-label="Instagram">
+                        <svg viewBox="23 23 64 64">
+                          <use xlink:href="#instagram-unauth-icon" width="110" height="110"></use>
+                        </svg>
+                      </a>
+                    </div>
+                  
+                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
+                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://www.tiktok.com/@dexdsl" target="_blank" aria-label="TikTok">
+                        <svg viewBox="23 23 64 64">
+                          <use xlink:href="#tiktok-unauth-icon" width="110" height="110"></use>
+                        </svg>
+                      </a>
+                    </div>
+                  
+                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
+                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline"  href="https://twitter.com/dexdsl" target="_blank" aria-label="Twitter">
+                        <svg viewBox="23 23 64 64">
+                          <use xlink:href="#twitter-unauth-icon" width="110" height="110"></use>
+                        </svg>
+                      </a>
+                    </div>
+                  
+                
+              </div>
+            
+            
+            
+            <div class="header-menu-cta">
+              <a
+                class="theme-btn--primary btn dx-button-element dx-button-element--primary dx-button-size--md"
+                href="/donate/"
+                
+              >
+                DOONATE
+              </a>
+            </div>
+            
+          </div>
+        </nav>
+      </div>
+    </div>
+  </header>
+    <div id="scroll-gradient-bg"></div>
+
+    <div id="gooey-mesh-wrapper" aria-hidden="true">
+      <div class="gooey-stage">
+        <div class="gooey-blob" style="--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7"></div>
+        <div class="gooey-blob" style="--d:32vmax;--g1a:#7F00FF;--g1b:#E100FF;--g2a:#00DBDE;--g2b:#FC00FF"></div>
+        <div class="gooey-blob" style="--d:33vmax;--g1a:#FFD452;--g1b:#FFB347;--g2a:#FF8456;--g2b:#FF5E62"></div>
+        <div class="gooey-blob" style="--d:37vmax;--g1a:#13F1FC;--g1b:#0470DC;--g2a:#A1FFCE;--g2b:#FAFFD1"></div>
+        <div class="gooey-blob" style="--d:27vmax;--g1a:#F9516D;--g1b:#FF9A44;--g2a:#FA8BFF;--g2b:#6F7BF7"></div>
+      </div>
+      <svg id="goo-filter" aria-hidden="true">
+        <defs>
+          <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur"></feGaussianBlur>
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -8" result="goo"></feColorMatrix>
+            <feBlend in="SourceGraphic" in2="goo" mode="normal"></feBlend>
+          </filter>
+        </defs>
+      </svg>
+    </div>
+
     <main id="page" class="dx-support-shell" tabindex="-1">
       <section class="dx-support-card dx-support-card--top">
         <div class="dx-support-top">
@@ -480,7 +1423,6 @@
               <h1 class="dx-support-title">Support and reliability status</h1>
               <p class="dx-support-copy">Transparent uptime and incident reporting for dexdsl.github.io staging and production routes.</p>
             </div>
-            <div class="dx-support-auth-mount" data-dx-auth-mount></div>
           </div>
         </div>
       </section>
@@ -557,5 +1499,100 @@
         </div>
       </section>
     </main>
+    <script>
+      (function () {
+        if (typeof window === 'undefined') return;
+        if (window.__dxSupportBackgroundRuntimeLoaded) return;
+        window.__dxSupportBackgroundRuntimeLoaded = true;
+
+        const blobs = Array.from(document.querySelectorAll('#gooey-mesh-wrapper .gooey-blob'));
+        if (blobs.length) {
+          const viewWidth = () => window.innerWidth || document.documentElement.clientWidth;
+          const viewHeight = () => window.innerHeight || document.documentElement.clientHeight;
+          blobs.forEach((blob) => {
+            const speed = 60 + Math.random() * 60;
+            const angle = Math.random() * Math.PI * 2;
+            blob._rad = blob.offsetWidth / 2;
+            blob._x = viewWidth() / 2;
+            blob._y = viewHeight() / 2;
+            blob._vx = Math.cos(angle) * speed * 0.25;
+            blob._vy = Math.sin(angle) * speed * 0.25;
+          });
+
+          let rafId = 0;
+          let last = performance.now();
+          const tick = (now) => {
+            const dt = (now - last) / 1000;
+            last = now;
+            const width = viewWidth();
+            const height = viewHeight();
+            blobs.forEach((blob) => {
+              blob._x += blob._vx * dt;
+              blob._y += blob._vy * dt;
+              if ((blob._x - blob._rad <= 0 && blob._vx < 0) || (blob._x + blob._rad >= width && blob._vx > 0)) blob._vx *= -1;
+              if ((blob._y - blob._rad <= 0 && blob._vy < 0) || (blob._y + blob._rad >= height && blob._vy > 0)) blob._vy *= -1;
+              blob.style.transform = 'translate(' + blob._x + 'px, ' + blob._y + 'px) translate(-50%, -50%)';
+            });
+            rafId = window.requestAnimationFrame(tick);
+          };
+
+          rafId = window.requestAnimationFrame(tick);
+
+          const onResize = () => {
+            const width = viewWidth();
+            const height = viewHeight();
+            blobs.forEach((blob) => {
+              blob._x = Math.min(Math.max(blob._rad, blob._x), width - blob._rad);
+              blob._y = Math.min(Math.max(blob._rad, blob._y), height - blob._rad);
+            });
+          };
+
+          window.addEventListener('resize', onResize, { passive: true });
+
+          window.addEventListener('dx:route-transition-out:start', () => {
+            if (rafId) {
+              window.cancelAnimationFrame(rafId);
+              rafId = 0;
+            }
+            window.removeEventListener('resize', onResize);
+            window.__dxSupportBackgroundRuntimeLoaded = false;
+          }, { once: true });
+        }
+
+        const gradient = document.getElementById('scroll-gradient-bg');
+        if (!gradient) return;
+
+        const start = [252, 252, 252];
+        const end = [35, 35, 35];
+        const lerp = (a, b, t) => a + (b - a) * t;
+        let gradientRaf = 0;
+
+        const paintGradient = () => {
+          const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          const t = Math.min(Math.max(window.scrollY / max, 0), 1);
+          const rgb = start.map((value, index) => Math.round(lerp(value, end[index], t)));
+          gradient.style.background = 'rgb(' + rgb.join(',') + ')';
+          gradientRaf = 0;
+        };
+
+        const onScroll = () => {
+          if (!gradientRaf) {
+            gradientRaf = window.requestAnimationFrame(paintGradient);
+          }
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        paintGradient();
+
+        window.addEventListener('dx:route-transition-out:start', () => {
+          window.removeEventListener('scroll', onScroll);
+          if (gradientRaf) {
+            window.cancelAnimationFrame(gradientRaf);
+            gradientRaf = 0;
+          }
+        }, { once: true });
+      })();
+    </script>
+
   </body>
 </html>
