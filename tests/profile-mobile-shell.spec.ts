@@ -133,8 +133,9 @@ test('mobile profile routes keep gooey behind content and footer compact', async
       const scrollRoot = document.getElementById('dx-slot-scroll-root');
       const footer = document.querySelector('.dex-footer') as HTMLElement | null;
       const footerGrid = footer?.querySelector('.footer-grid') as HTMLElement | null;
-      const footerLogo = footer?.querySelector('.footer-logo-column') as HTMLElement | null;
-      const footerAttribution = footer?.querySelector('.footer-attribution') as HTMLElement | null;
+      const footerLinksColumn = footer?.querySelector('.footer-links-column') as HTMLElement | null;
+      const footerSocial = footer?.querySelector('.footer-social') as HTMLElement | null;
+      const footerNav = footer?.querySelector('.footer-nav') as HTMLElement | null;
       const sealImage = footer?.querySelector('.candid-seal img') as HTMLElement | null;
 
       const toZ = (value: string | null | undefined) => {
@@ -143,13 +144,16 @@ test('mobile profile routes keep gooey behind content and footer compact', async
       };
 
       const routeStyle = routeRoot ? window.getComputedStyle(routeRoot) : null;
+      const routeRect = routeRoot ? routeRoot.getBoundingClientRect() : null;
       const meshStyle = mesh ? window.getComputedStyle(mesh) : null;
       const scrollStyle = scrollRoot ? window.getComputedStyle(scrollRoot) : null;
       const footerStyle = footer ? window.getComputedStyle(footer) : null;
       const footerGridStyle = footerGrid ? window.getComputedStyle(footerGrid) : null;
-      const footerLogoStyle = footerLogo ? window.getComputedStyle(footerLogo) : null;
-      const footerAttributionStyle = footerAttribution ? window.getComputedStyle(footerAttribution) : null;
+      const footerLinksStyle = footerLinksColumn ? window.getComputedStyle(footerLinksColumn) : null;
+      const footerSocialRect = footerSocial ? footerSocial.getBoundingClientRect() : null;
+      const footerNavRect = footerNav ? footerNav.getBoundingClientRect() : null;
       const sealRect = sealImage ? sealImage.getBoundingClientRect() : null;
+      const footerRect = footer ? footer.getBoundingClientRect() : null;
 
       return {
         routeRootPosition: routeStyle ? routeStyle.position : '',
@@ -159,9 +163,14 @@ test('mobile profile routes keep gooey behind content and footer compact', async
         scrollInsetBottom: scrollStyle ? scrollStyle.bottom : '',
         footerPosition: footerStyle ? footerStyle.position : '',
         footerGridDisplay: footerGridStyle ? footerGridStyle.display : '',
-        footerLogoDisplay: footerLogoStyle ? footerLogoStyle.display : '',
-        footerAttributionDisplay: footerAttributionStyle ? footerAttributionStyle.display : '',
+        footerLinksDirection: footerLinksStyle ? footerLinksStyle.flexDirection : '',
+        footerHeightPx: footerRect ? Math.round(footerRect.height) : 0,
+        routeBottomPx: routeRect ? Math.round(routeRect.bottom) : 0,
+        footerTopPx: footerRect ? Math.round(footerRect.top) : 0,
         sealHeightPx: sealRect ? Math.round(sealRect.height) : 0,
+        sealTopPx: sealRect ? Math.round(sealRect.top) : 0,
+        socialTopPx: footerSocialRect ? Math.round(footerSocialRect.top) : 0,
+        navTopPx: footerNavRect ? Math.round(footerNavRect.top) : 0,
       };
     });
 
@@ -171,10 +180,14 @@ test('mobile profile routes keep gooey behind content and footer compact', async
     expect(metrics.routeRootZ).toBeGreaterThan(metrics.meshZ);
 
     expect(metrics.footerPosition).toBe('relative');
-    expect(metrics.footerGridDisplay).toBe('flex');
-    expect(metrics.footerLogoDisplay).toBe('none');
-    expect(metrics.footerAttributionDisplay).toBe('none');
+    expect(metrics.footerGridDisplay).toBe('grid');
+    expect(metrics.footerLinksDirection).toBe('column');
+    expect(metrics.footerHeightPx).toBeGreaterThan(0);
+    expect(metrics.footerHeightPx).toBeLessThan(240);
+    expect(Math.abs(metrics.footerTopPx - metrics.routeBottomPx)).toBeLessThan(28);
     expect(metrics.sealHeightPx).toBeGreaterThan(0);
     expect(metrics.sealHeightPx).toBeLessThan(60);
+    expect(Math.abs(metrics.sealTopPx - metrics.socialTopPx)).toBeLessThan(60);
+    expect(Math.abs(metrics.sealTopPx - metrics.navTopPx)).toBeLessThan(70);
   }
 });
