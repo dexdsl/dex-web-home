@@ -56,6 +56,9 @@
     ['/assets/js/dx-about.js', '__dxAboutRouteLoaded'],
     ['/assets/js/dx-scroll-dot.js', '__dxScrollDotLoaded'],
   ]);
+  const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200C';
+  const STRETCH_PRO_FONT_PATTERN = /stretch\s*pro/i;
+  const STRETCH_PRO_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
 
   let routeAbortController = null;
   let isNavigating = false;
@@ -372,6 +375,82 @@
         link.setAttribute('href', '/');
         link.setAttribute('data-dx-home-link', 'true');
       }
+    }
+  }
+
+  function isAlphabeticCharacter(char) {
+    if (!char) return false;
+    return char.toLowerCase() !== char.toUpperCase();
+  }
+
+  function insertStretchProDuplicateSeparators(value) {
+    const source = String(value == null ? '' : value);
+    if (!source) return source;
+
+    const chars = Array.from(source);
+    if (chars.length < 2) return source;
+
+    let changed = false;
+    const output = [];
+    for (let index = 0; index < chars.length; index += 1) {
+      const current = chars[index];
+      const next = chars[index + 1];
+      output.push(current);
+      if (!next) continue;
+      if (current === STRETCH_PRO_DUPLICATE_SEPARATOR || next === STRETCH_PRO_DUPLICATE_SEPARATOR) continue;
+      if (!isAlphabeticCharacter(current) || !isAlphabeticCharacter(next)) continue;
+      if (current.toLowerCase() !== next.toLowerCase()) continue;
+      output.push(STRETCH_PRO_DUPLICATE_SEPARATOR);
+      changed = true;
+    }
+
+    return changed ? output.join('') : source;
+  }
+
+  function elementUsesStretchProFont(element, cache) {
+    if (!(element instanceof HTMLElement)) return false;
+    if (cache.has(element)) return cache.get(element);
+
+    let usesStretchPro = false;
+    try {
+      const fontFamily = String(window.getComputedStyle(element).fontFamily || '');
+      usesStretchPro = STRETCH_PRO_FONT_PATTERN.test(fontFamily);
+    } catch {
+      usesStretchPro = false;
+    }
+
+    cache.set(element, usesStretchPro);
+    return usesStretchPro;
+  }
+
+  function applyStretchProDuplicateLetterSeparators(root = document) {
+    if (typeof document.createTreeWalker !== 'function' || typeof window.getComputedStyle !== 'function') return;
+
+    const scope = root instanceof Document ? (root.body || root.documentElement) : root;
+    if (!(scope instanceof Node)) return;
+
+    const fontCache = new WeakMap();
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node || !node.nodeValue || !/\S/.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        const parent = node.parentElement;
+        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
+        if (parent.closest(STRETCH_PRO_TEXT_IGNORE_SELECTOR)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    let textNode = walker.nextNode();
+    while (textNode) {
+      const parent = textNode.parentElement;
+      if (parent instanceof HTMLElement && elementUsesStretchProFont(parent, fontCache)) {
+        const originalValue = textNode.nodeValue || '';
+        const nextValue = insertStretchProDuplicateSeparators(originalValue);
+        if (nextValue !== originalValue) {
+          textNode.nodeValue = nextValue;
+        }
+      }
+      textNode = walker.nextNode();
     }
   }
 
@@ -1849,6 +1928,7 @@
     clearRouteScripts();
     await loadRouteScripts(scripts);
     loadInlineRouteScripts(inlineScripts);
+    applyStretchProDuplicateLetterSeparators(document);
 
     if (meshState) {
       restoreGooeyMeshState(meshState);
@@ -1869,6 +1949,7 @@
     scheduleProfileViewportMetricsSync();
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
+      applyStretchProDuplicateLetterSeparators(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
     });
@@ -2050,6 +2131,7 @@
     document.body.classList.add(BODY_CLASS);
     syncProfileProtectedRouteState(window.location.pathname);
     normalizeHeaderWordmarkLinks();
+    applyStretchProDuplicateLetterSeparators(document);
     syncProfileRouteGlassFromHeader(document);
 
     window.dxGetSlotScrollRoot = () => document.getElementById(SLOT_SCROLL_ID);
@@ -2070,6 +2152,7 @@
       dispatchSlotReady(scrollRoot, foregroundRoot);
       installHomeHeroAligner();
       normalizeMobileBurgerHooks(document);
+      applyStretchProDuplicateLetterSeparators(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
       persistScrollState(scrollRoot);

@@ -22,6 +22,12 @@
         --dx-support-copy: #17191f;
         --dx-support-muted: rgba(28, 32, 41, 0.74);
         --dx-support-header-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
+        --dx-support-glass-bg: linear-gradient(
+          120deg,
+          rgba(255, 255, 255, 0.82) 0%,
+          rgba(248, 249, 251, 0.76) 55%,
+          rgba(242, 244, 247, 0.72) 100%
+        );
       }
 
       html,
@@ -100,7 +106,7 @@
       .dx-support-card {
         border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
@@ -157,7 +163,7 @@
       .dx-support-section {
         border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.9rem;
@@ -186,7 +192,7 @@
         gap: 0.5rem;
         border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.8rem;
@@ -291,7 +297,7 @@
       .dx-support-component {
         border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.7rem;
@@ -350,7 +356,7 @@
         border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
         padding: 0.7rem;
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
       }
@@ -388,7 +394,7 @@
         padding: 0.82rem;
         text-decoration: none;
         color: inherit;
-        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        background: var(--dx-support-glass-bg, rgba(255, 255, 255, 0.78));
         -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
       }
