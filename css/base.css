@@ -176,6 +176,29 @@ body {
   }
 }
 
+html.dx-ios-safari,
+html.dx-ios-safari body {
+  min-height: -webkit-fill-available;
+}
+
+html.dx-ios-safari body.dx-slot-enabled #dx-slot-scroll-root {
+  inset: 0 !important;
+  height: var(--dx-ios-viewport-height, 100dvh);
+  min-height: -webkit-fill-available;
+}
+
+html.dx-ios-safari body.dx-slot-enabled #dx-slot-foreground-root {
+  min-height: max(100%, var(--dx-ios-viewport-height, 100dvh));
+  padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset) + var(--dx-ios-viewport-offset-top, 0px));
+  padding-bottom: max(var(--dx-space-lg), var(--dx-safe-bottom), var(--dx-ios-home-indicator, 0px));
+}
+
+html.dx-ios-safari body #scroll-gradient-bg,
+html.dx-ios-safari body #gooey-mesh-wrapper {
+  top: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-top), var(--dx-ios-viewport-offset-top, 0px))) * -1) !important;
+  bottom: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-bottom), var(--dx-ios-home-indicator, 0px))) * -1) !important;
+}
+
 body.dx-slot-enabled {
   overflow: hidden !important;
   padding-top: 0 !important;

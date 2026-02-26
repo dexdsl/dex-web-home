@@ -21,6 +21,10 @@
   const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
   const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
   const PROFILE_FOOTER_PORTALED_CLASS = 'dx-profile-footer-portaled';
+  const IOS_SAFARI_CLASS = 'dx-ios-safari';
+  const IOS_VIEWPORT_HEIGHT_VAR = '--dx-ios-viewport-height';
+  const IOS_VIEWPORT_OFFSET_TOP_VAR = '--dx-ios-viewport-offset-top';
+  const IOS_HOME_INDICATOR_VAR = '--dx-ios-home-indicator';
   const PROFILE_PROTECTED_ROUTES = new Set([
     '/press',
     '/favorites',
@@ -84,6 +88,8 @@
   let mobileMenuBuildSequence = 0;
   let profileViewportMetricsInstalled = false;
   let profileViewportMetricsRafId = 0;
+  let iosSafariViewportSyncInstalled = false;
+  let iosSafariViewportSyncRafId = 0;
   let profileFooterPortalState = { footer: null, anchor: null };
   const headingCanonicalTextByNode = new WeakMap();
   const headingRenderedTextByNode = new WeakMap();
@@ -359,6 +365,94 @@
     }
 
     viewportMeta.setAttribute('content', `${cleaned}, viewport-fit=cover`);
+  }
+
+  function isLikelyIosFamily() {
+    const ua = String(navigator.userAgent || '');
+    const platform = String(navigator.platform || '');
+    const touchPoints = Number(navigator.maxTouchPoints || 0);
+    return /iPad|iPhone|iPod/i.test(ua) || (platform === 'MacIntel' && touchPoints > 1);
+  }
+
+  function isSafariEngine() {
+    const ua = String(navigator.userAgent || '');
+    if (!/AppleWebKit/i.test(ua) || !/Safari/i.test(ua)) return false;
+    return !/(CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|YaBrowser|SamsungBrowser)/i.test(ua);
+  }
+
+  function isIosSafariBrowser() {
+    return isLikelyIosFamily() && isSafariEngine();
+  }
+
+  function clearIosSafariViewportVars() {
+    const rootStyle = document.documentElement && document.documentElement.style;
+    if (!rootStyle) return;
+    rootStyle.removeProperty(IOS_VIEWPORT_HEIGHT_VAR);
+    rootStyle.removeProperty(IOS_VIEWPORT_OFFSET_TOP_VAR);
+    rootStyle.removeProperty(IOS_HOME_INDICATOR_VAR);
+  }
+
+  function syncIosSafariClassAndVarsNow() {
+    const enabled = isIosSafariBrowser();
+    const html = document.documentElement;
+    if (html) {
+      html.classList.toggle(IOS_SAFARI_CLASS, enabled);
+      html.setAttribute('data-dx-ios-safari', enabled ? 'true' : 'false');
+    }
+    if (document.body) {
+      document.body.classList.toggle(IOS_SAFARI_CLASS, enabled);
+      document.body.setAttribute('data-dx-ios-safari', enabled ? 'true' : 'false');
+    }
+    if (!enabled) {
+      clearIosSafariViewportVars();
+      return;
+    }
+
+    const rootStyle = document.documentElement && document.documentElement.style;
+    if (!rootStyle) return;
+
+    const layoutHeight = Math.max(
+      Math.round(window.innerHeight || 0),
+      Math.round(document.documentElement ? document.documentElement.clientHeight : 0)
+    );
+    const viewport = window.visualViewport;
+    const viewportHeight = viewport ? Math.max(0, Math.round(viewport.height || 0)) : layoutHeight;
+    const viewportOffsetTop = viewport ? Math.max(0, Math.round(viewport.offsetTop || 0)) : 0;
+    const occludedBottom = viewport
+      ? Math.max(0, Math.round(layoutHeight - (viewport.height || 0) - (viewport.offsetTop || 0)))
+      : 0;
+
+    rootStyle.setProperty(IOS_VIEWPORT_HEIGHT_VAR, `${Math.max(layoutHeight, viewportHeight)}px`);
+    rootStyle.setProperty(IOS_VIEWPORT_OFFSET_TOP_VAR, `${viewportOffsetTop}px`);
+    rootStyle.setProperty(IOS_HOME_INDICATOR_VAR, `${occludedBottom}px`);
+  }
+
+  function scheduleIosSafariViewportSync() {
+    if (iosSafariViewportSyncRafId) {
+      cancelAnimationFrame(iosSafariViewportSyncRafId);
+      iosSafariViewportSyncRafId = 0;
+    }
+    iosSafariViewportSyncRafId = requestAnimationFrame(() => {
+      iosSafariViewportSyncRafId = 0;
+      syncIosSafariClassAndVarsNow();
+    });
+  }
+
+  function installIosSafariViewportSync() {
+    if (iosSafariViewportSyncInstalled) return;
+    iosSafariViewportSyncInstalled = true;
+    scheduleIosSafariViewportSync();
+
+    window.addEventListener('resize', scheduleIosSafariViewportSync, { passive: true });
+    window.addEventListener('orientationchange', scheduleIosSafariViewportSync);
+    window.addEventListener('pageshow', scheduleIosSafariViewportSync);
+    window.addEventListener('focus', scheduleIosSafariViewportSync);
+    window.addEventListener('dx:slotready', scheduleIosSafariViewportSync);
+
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', scheduleIosSafariViewportSync, { passive: true });
+      window.visualViewport.addEventListener('scroll', scheduleIosSafariViewportSync, { passive: true });
+    }
   }
 
   function normalizeRouteKey(url) {
@@ -2570,6 +2664,7 @@
 
   function init() {
     ensureViewportFitCover();
+    installIosSafariViewportSync();
 
     const headerElement = getHeaderElement(document);
     if (!headerElement) return;

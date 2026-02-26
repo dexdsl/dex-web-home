@@ -77,6 +77,20 @@ function stripLeadingViewportAndMobileMeta(html) {
   return next;
 }
 
+function stripMetaTagEverywhere(html, name) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const globalMetaRegex = new RegExp(`\\s*<meta\\s+name=(['"])${escapedName}\\1[^>]*>\\s*`, 'ig');
+  return html.replace(globalMetaRegex, '\n');
+}
+
+function stripViewportAndMobileMetaEverywhere(html) {
+  let next = stripMetaTagEverywhere(html, 'viewport');
+  for (const tag of MOBILE_META_TAGS) {
+    next = stripMetaTagEverywhere(next, tag.name);
+  }
+  return next;
+}
+
 function normalizeViewportMetaContent(content) {
   const raw = String(content || '').trim();
   if (!raw) return 'width=device-width, initial-scale=1, viewport-fit=cover';
@@ -268,6 +282,7 @@ function main() {
     const relativePath = path.relative(DOCS_DIR, absolutePath);
     const html = fs.readFileSync(absolutePath, 'utf8');
     let next = stripLeadingViewportAndMobileMeta(html);
+    next = stripViewportAndMobileMetaEverywhere(next);
     next = ensureViewportFitCoverMeta(next);
     next = ensureMobileMetaTags(next);
     const requiresInjection = shouldInject(relativePath, next);

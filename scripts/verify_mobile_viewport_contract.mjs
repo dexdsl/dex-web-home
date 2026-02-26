@@ -5,6 +5,7 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const DOCS_DIR = path.join(ROOT, 'docs');
 const BASE_CSS_PATH = path.join(ROOT, 'public/css/base.css');
+const HEADER_SLOT_PATH = path.join(ROOT, 'public/assets/js/header-slot.js');
 
 function listHtmlFiles(dirPath, out = []) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -70,12 +71,38 @@ function verifySafeAreaCss() {
   if (!/@supports\s+not\s+\(height:\s*100dvh\)\s*\{[\s\S]*min-height:\s*100vh;/m.test(css)) {
     failures.push('public/css/base.css: missing 100vh fallback for non-dvh browsers');
   }
+  if (!/html\.dx-ios-safari/m.test(css)) {
+    failures.push('public/css/base.css: missing iOS Safari-specific class rules');
+  }
+  if (!/--dx-ios-viewport-height/m.test(css)) {
+    failures.push('public/css/base.css: missing iOS Safari viewport variable usage');
+  }
+
+  return failures;
+}
+
+function verifyIosSafariRuntimeHook() {
+  const js = fs.readFileSync(HEADER_SLOT_PATH, 'utf8');
+  const failures = [];
+
+  if (!js.includes("const IOS_SAFARI_CLASS = 'dx-ios-safari';")) {
+    failures.push('public/assets/js/header-slot.js: missing IOS_SAFARI_CLASS marker');
+  }
+  if (!js.includes('function isIosSafariBrowser()')) {
+    failures.push('public/assets/js/header-slot.js: missing isIosSafariBrowser() detection hook');
+  }
+  if (!js.includes('function installIosSafariViewportSync()')) {
+    failures.push('public/assets/js/header-slot.js: missing installIosSafariViewportSync() hook');
+  }
+  if (!js.includes('installIosSafariViewportSync();')) {
+    failures.push('public/assets/js/header-slot.js: init() must call installIosSafariViewportSync()');
+  }
 
   return failures;
 }
 
 function main() {
-  const failures = [...verifyViewportMeta(), ...verifySafeAreaCss()];
+  const failures = [...verifyViewportMeta(), ...verifySafeAreaCss(), ...verifyIosSafariRuntimeHook()];
   if (failures.length) {
     console.error('mobile viewport contract failed:');
     for (const failure of failures) {
