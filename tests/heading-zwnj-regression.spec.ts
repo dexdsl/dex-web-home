@@ -1,6 +1,7 @@
 import { expect, test, type Page } from 'playwright/test';
 
 const SEEDED_HEADING_KEY = 'dx-zwnj-seed-2';
+const LIGATURE_DUPLICATE_SUPPORTED = new Set(Array.from('ABCDEFGHJKLMNOPQRSTUWZ'));
 
 const LIVE_STATUS_FIXTURE = {
   generatedAt: '2026-02-26T00:00:00.000Z',
@@ -44,6 +45,58 @@ function countCanonicalDoubleLetters(value: string): number {
 
 function countZwnj(value: string): number {
   return (String(value || '').match(/\u200c/g) || []).length;
+}
+
+function findInsertedCharacters(canonical: string, renderedWithoutZwnj: string): string[] {
+  const base = Array.from(canonical);
+  const rendered = Array.from(renderedWithoutZwnj);
+  const inserted: string[] = [];
+
+  let baseIndex = 0;
+  let renderedIndex = 0;
+  while (baseIndex < base.length && renderedIndex < rendered.length) {
+    if (base[baseIndex] === rendered[renderedIndex]) {
+      baseIndex += 1;
+      renderedIndex += 1;
+      continue;
+    }
+    inserted.push(rendered[renderedIndex]);
+    renderedIndex += 1;
+  }
+
+  while (renderedIndex < rendered.length) {
+    inserted.push(rendered[renderedIndex]);
+    renderedIndex += 1;
+  }
+
+  return inserted;
+}
+
+function assertHeadingTypographyInvariants(heading: { canonical: string; rendered: string; text: string }): void {
+  expect(heading.canonical.length).toBeGreaterThan(0);
+  expect(heading.rendered.length).toBeGreaterThan(0);
+  expect(heading.rendered).toBe(heading.text);
+  expect(countZwnj(heading.rendered)).toBe(countCanonicalDoubleLetters(heading.canonical));
+
+  const renderedWithoutZwnj = stripZwnj(heading.rendered);
+  const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
+  expect(inserted.length).toBeLessThanOrEqual(2);
+  if (inserted.length > 0) {
+    const firstUpper = inserted[0]!.toUpperCase();
+    expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
+    expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
+  }
+}
+
+async function readHeadingBySelector(page: Page, selector: string) {
+  return page.locator(selector).evaluate((node) => {
+    const element = node as HTMLElement;
+    return {
+      text: element.textContent || '',
+      canonical: element.getAttribute('data-dx-heading-canonical') || '',
+      rendered: element.getAttribute('data-dx-heading-rendered') || '',
+    };
+  });
 }
 
 async function seedHeadingRuntime(page: Page): Promise<void> {
@@ -119,10 +172,7 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   let changedCount = 0;
   let unchangedCount = 0;
   for (const heading of supportHeadings) {
-    expect(heading.canonical.length).toBeGreaterThan(0);
-    expect(heading.rendered.length).toBeGreaterThan(0);
-    expect(heading.rendered).toBe(heading.text);
-    expect(countZwnj(heading.rendered)).toBe(countCanonicalDoubleLetters(heading.canonical));
+    assertHeadingTypographyInvariants(heading);
 
     if (stripZwnj(heading.rendered) === heading.canonical) unchangedCount += 1;
     else changedCount += 1;
@@ -157,4 +207,35 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(errorRendered).toBeTruthy();
   expect(errorRendered).toBe(errorText);
   expect(countZwnj(errorRendered || '')).toBe(countCanonicalDoubleLetters(errorCanonical || ''));
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect.poll(async () => page.locator('#featuredTitle').getAttribute('data-dx-heading-canonical')).toBeTruthy();
+
+  const duplicateLigatureLetters = await page.evaluate(
+    () => (window as unknown as { __dxHeadingFx?: { duplicateLigatureLetters?: string } }).__dxHeadingFx?.duplicateLigatureLetters || '',
+  );
+  expect(duplicateLigatureLetters).toBe('ABCDEFGHJKLMNOPQRSTUWZ');
+
+  const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
+  assertHeadingTypographyInvariants(featuredTitle);
+  expect(featuredTitle.canonical.toUpperCase()).toBe('FEATURED ENTRIES');
+
+  const signupTitle = await readHeadingBySelector(page, '#dex-signup .signup-heading');
+  assertHeadingTypographyInvariants(signupTitle);
+  expect(signupTitle.canonical.toUpperCase()).toBe('SIGN-UP FOR FREE ACCESS');
+
+  const faqTitle = await readHeadingBySelector(page, '#dex-faq-head');
+  assertHeadingTypographyInvariants(faqTitle);
+  expect(faqTitle.canonical.toUpperCase()).toBe('FREQUENTLY ASKED QUESTIONS');
+
+  await page.goto('/board/', { waitUntil: 'domcontentloaded' });
+  await expect.poll(async () => page.locator('#dexb-title').getAttribute('data-dx-heading-canonical')).toBeTruthy();
+
+  const boardTitle = await readHeadingBySelector(page, '#dexb-title');
+  assertHeadingTypographyInvariants(boardTitle);
+  expect(boardTitle.canonical.toUpperCase()).toBe('FOUNDING EXPANSION BOARD');
+
+  const boardOverview = await readHeadingBySelector(page, '#p1-overview');
+  assertHeadingTypographyInvariants(boardOverview);
+  expect(boardOverview.canonical.toUpperCase()).toBe('OVERVIEW');
 });

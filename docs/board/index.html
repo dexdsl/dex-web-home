@@ -2176,9 +2176,7 @@ const EXCLUDED = new Set("LTIAWMK&VYH?!@#$%-1234567890".split(''));
 window.randomizeTitle = randomizeTitle;
 window.randomizetitle = randomizeTitle;
 
-// call it directly (no fallback to any older function)
-["dexb-title","p1-overview","p1-process","p1-nominate","h2-a","h2-b","h2-c","h2-d","h2-e"]
-  .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = randomizeTitle(el.textContent); });
+// h1/h2 are handled by the shared heading runtime to preserve canonical spellings.
 
 
 

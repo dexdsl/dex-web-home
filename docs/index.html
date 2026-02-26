@@ -2011,7 +2011,7 @@ document.addEventListener('DOMContentLoaded', function(){
           font:700 clamp(1.5rem,4vw,2rem)/1.2 var(--font-heading,'Typefesse',sans-serif);
           text-transform:uppercase;
           color:inherit;
-        "><script>document.write(randomizeTitle("FEATURED ENTRIES"))</script></h2>
+        ">FEATURED ENTRIES</h2>
       </section>
       <div class="dex-body" style="
         flex:1 1 auto;
@@ -2239,7 +2239,7 @@ function loadYT(){
     h1.className='carousel-title';
     const a=document.createElement('a');
     a.href=it.url;
-    a.textContent=randomizeTitle(`${it.artist} – ${it.instrument}`);
+    a.textContent=`${it.artist} – ${it.instrument}`;
     h1.appendChild(a);
     card.appendChild(h1);
 
@@ -3820,7 +3820,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   <!-- copy + CTA -->
   <div class="signup-body">
     <h2 class="signup-heading">
-      SIGN-UP FOR FR‎E‎E AC‎C‎E‎S‎SSS
+      SIGN-UP FOR FREE ACCESS
     </h2>
 
     <p class="signup-tag">
@@ -3888,15 +3888,9 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 </style>
 
 <script>
-/* Insert blank char (\u200c) between duplicate letters, then RandomizeTitle() */
 (function(){
-  const BLANK = '\u200c';
-  function insertBlanks(str){
-    return str.replace(/([A-Za-z])\1/g, (m, p)=>p+BLANK+p);
-  }
-  const rand = window.randomizeTitle || (t=>t);
   const h = document.querySelector('#dex-signup .signup-heading');
-  h.textContent = rand(insertBlanks('Sign up for Free Access'));
+  if (h) h.textContent = 'SIGN-UP FOR FREE ACCESS';
 })();
 </script>
 
@@ -4271,14 +4265,13 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   <!-- SCRIPT (keeps your data + single-open behaviour; removes old hue/holo) -->
   <script>
   (() => {
-    /* Reuse site randomizer if present (Board sets window.randomizeTitle) */
+    /* Reuse site randomizer for non-heading CTA labels only. */
     const rTitle = window.randomizeTitle || (txt => (txt||'').toUpperCase());
 
-    // Build headline (keep your playful two-line scheme, but Typefesse caps)
+    // Keep h2 canonical; heading runtime applies probabilistic styling.
     const head = document.getElementById('dex-faq-head');
     if (head){
-      head.innerHTML =
-        rTitle('Frequently Asked') + '<br>' + rTitle('Questions');
+      head.textContent = 'FREQUENTLY ASKED QUESTIONS';
     }
 
     // Label text (randomized like Board if available)
@@ -4293,7 +4286,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
     // FAQ data (unchanged content)
     const FAQ = [
       { q:'What is Dex?',           a:'Dex is an open-access sample library powered by artists. Every asset is released under CC-BY 4.0 so you can use it commercially—as long as you credit the creator.' },
-      { q:'Is everything really FRE\u200cE?', a:'Yes. No paywalls, no watermarks. We’re funded by donors and volunteers so the catalog stays open for everyone.' },
+      { q:'Is everything really FREE?', a:'Yes. No paywalls, no watermarks. We’re funded by donors and volunteers so the catalog stays open for everyone.' },
       { q:'How do I credit Dex?',   a:'Add “Samples courtesy of Dex Digital Sample Library (dexdsl.com) + Artist Name” in your liner notes, video description, or end credits.' },
       { q:'Can I contribute?',      a:'Absolutely. Click “Submit Your Work” above and we’ll walk you through the CC-BY 4.0 release and ingest specs.' },
       { q:'Do you accept video?',   a:'Yes. We encourage audiovisual loops, performance clips, and field recordings alongside pure audio.' }

@@ -59,6 +59,8 @@
   const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200C';
   const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
+  // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
+  const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
 
   let routeAbortController = null;
@@ -459,7 +461,9 @@
         if (!char || char === STRETCH_PRO_DUPLICATE_SEPARATOR) continue;
         if (!/\S/.test(char)) continue;
         if (!isAlphabeticCharacter(char)) continue;
-        if (HEADING_DUPLICATE_EXCLUDED.has(char.toUpperCase())) continue;
+        const upper = char.toUpperCase();
+        if (!HEADING_DUPLICATE_LIGATURE_SUPPORTED.has(upper)) continue;
+        if (HEADING_DUPLICATE_EXCLUDED.has(upper)) continue;
         eligible.push({ nodeIndex, charIndex, char });
       }
     });
@@ -592,6 +596,7 @@
   function exposeHeadingTypographyRuntime() {
     const runtime = {
       separator: STRETCH_PRO_DUPLICATE_SEPARATOR,
+      duplicateLigatureLetters: Array.from(HEADING_DUPLICATE_LIGATURE_SUPPORTED).sort().join(''),
       decorateHeading: (heading, options = {}) => decorateHeadingElement(heading, options),
       decorateHeadings: (root = document) => applyHeadingTypographyEffects(root),
       renderHeadingText: (value, options = {}) => renderHeadingText(value, options),

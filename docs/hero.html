@@ -10,7 +10,7 @@
     const hero = document.getElementById('dex-hero');
     injectTypeStyles();
     hero.prepend(
-      el('h1','dex-hero-title',{ 'aria-label':'DEX DIGITAL LIBRARY' },randomizeTitle('DEX DIGITAL LIBRARY')),
+      el('h1','dex-hero-title',{ 'aria-label':'DEX DIGITAL LIBRARY' },'DEX DIGITAL LIBRARY'),
       el('p','dex-hero-tag',{},'a free archive of people, not sounds')
     );
     const video = hero.querySelector('.dex-bg');

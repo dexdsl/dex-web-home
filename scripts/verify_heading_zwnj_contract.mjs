@@ -75,14 +75,43 @@ function verifyHeadingRuntime() {
   const text = readText(relPath);
   assertIncludes(relPath, text, [
     'HEADING_TYPOGRAPHY_SELECTOR',
+    'HEADING_DUPLICATE_LIGATURE_SUPPORTED',
     'insertCanonicalDoubleLetterSeparators',
     'pickProbabilisticDuplicateCount',
     'window.__DX_HEADING_RANDOM_SEED',
     'window.__dxHeadingFx',
+    'duplicateLigatureLetters',
     "data-dx-heading-canonical",
     "data-dx-heading-rendered",
     'applyHeadingTypographyAndSupportHooks',
   ]);
+}
+
+function verifyNoInlineHeadingRandomizers() {
+  const indexRel = 'docs/index.html';
+  const indexText = readText(indexRel);
+  const indexBlocked = [
+    /<h[12][^>]*>\s*<script[^>]*>\s*document\.write\s*\(\s*randomizeTitle\(/i,
+    /const\s+h1\s*=\s*document\.createElement\(['"]h1['"]\)[\s\S]{0,600}?randomizeTitle\s*\(/i,
+    /insertBlanks\s*\(\s*['"]Sign up for Free Access['"]\s*\)/i,
+  ];
+  for (const pattern of indexBlocked) {
+    if (pattern.test(indexText)) {
+      FAILURES.push(`${indexRel} contains inline h1/h2 randomization pattern: ${pattern}`);
+    }
+  }
+
+  const boardRel = 'docs/board/index.html';
+  const boardText = readText(boardRel);
+  if (/textContent\s*=\s*randomizeTitle\s*\(\s*el\.textContent\s*\)/i.test(boardText)) {
+    FAILURES.push(`${boardRel} still randomizes existing heading text nodes inline`);
+  }
+
+  const heroRel = 'docs/hero.html';
+  const heroText = readText(heroRel);
+  if (/el\s*\(\s*['"]h1['"][\s\S]{0,250}?randomizeTitle\s*\(/i.test(heroText)) {
+    FAILURES.push(`${heroRel} still randomizes h1 text inline`);
+  }
 }
 
 function verifySupportFooterPadding() {
@@ -116,6 +145,7 @@ function verifySupportErrorHeadingHooks() {
 function main() {
   verifyNoAuthoredZwnj();
   verifyHeadingRuntime();
+  verifyNoInlineHeadingRandomizers();
   verifySupportFooterPadding();
   verifySupportErrorHeadingHooks();
 
