@@ -9,7 +9,7 @@
       "id": "web",
       "name": "Web App",
       "state": "operational",
-      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "uptime": { "h24": 100, "d7": 0, "d30": 0 },
       "latencyMs": 171,
       "updatedAt": "2026-02-25T16:00:00.000Z"
     },
@@ -17,7 +17,7 @@
       "id": "auth",
       "name": "Auth Runtime",
       "state": "degraded",
-      "uptime": { "h24": 99.72, "d7": null, "d30": null },
+      "uptime": { "h24": 99.72, "d7": 0, "d30": 0 },
       "latencyMs": 338,
       "updatedAt": "2026-02-25T16:00:00.000Z"
     },
@@ -25,7 +25,7 @@
       "id": "api",
       "name": "API",
       "state": "operational",
-      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "uptime": { "h24": 100, "d7": 0, "d30": 0 },
       "latencyMs": 246,
       "updatedAt": "2026-02-25T16:00:00.000Z"
     },
@@ -33,7 +33,7 @@
       "id": "media",
       "name": "Media Delivery",
       "state": "operational",
-      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "uptime": { "h24": 100, "d7": 0, "d30": 0 },
       "latencyMs": 158,
       "updatedAt": "2026-02-25T16:00:00.000Z"
     },
@@ -41,7 +41,7 @@
       "id": "downloads",
       "name": "Downloads",
       "state": "operational",
-      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "uptime": { "h24": 100, "d7": 0, "d30": 0 },
       "latencyMs": 259,
       "updatedAt": "2026-02-25T16:00:00.000Z"
     }
