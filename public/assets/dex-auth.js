@@ -4,6 +4,8 @@
   var AUTH_UI_ID = "auth-ui";
   var DROPDOWN_OPEN_CLASS = "is-open";
   var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
+  var DEFAULT_MESSAGES_API = "https://dex-api.spring-fog-8edd.workers.dev";
+  var MESSAGES_BADGE_ID = "auth-ui-messages-badge";
   var PROTECTED_PATHS = {
     "/press": true,
     "/favorites": true,
@@ -208,11 +210,14 @@
     return icons[iconName] || "";
   }
 
-  function getMenuLinkMarkup(href, label, iconName) {
+  function getMenuLinkMarkup(href, label, iconName, options) {
+    var extraClass = options && options.extraClass ? (" " + options.extraClass) : "";
+    var extraHtml = options && options.extraHtml ? String(options.extraHtml) : "";
     return ''
-      + '<a class="dex-menu-item" href="' + href + '" role="menuitem">'
+      + '<a class="dex-menu-item' + extraClass + '" href="' + href + '" role="menuitem">'
       + '  <span class="dex-menu-icon-wrap" aria-hidden="true">' + getMenuIcon(iconName) + '</span>'
       + '  <span class="dex-menu-label">' + label + '</span>'
+      + extraHtml
       + '</a>';
   }
 
@@ -242,7 +247,10 @@
       + getMenuLinkMarkup("/polls", "Polls", "polls")
       + '    <div class="dex-menu-sep" role="separator"></div>'
       + getMenuLinkMarkup("/entry/submit/", "Submit Samples", "submit")
-      + getMenuLinkMarkup("/entry/messages/", "Messages", "messages")
+      + getMenuLinkMarkup("/entry/messages/", "Messages", "messages", {
+        extraClass: "has-badge",
+        extraHtml: '<span id="' + MESSAGES_BADGE_ID + '" class="dex-menu-pill" hidden>0</span>'
+      })
       + getMenuLinkMarkup("/entry/pressroom/", "Press Room", "press")
       + '    <div class="dex-menu-sep" role="separator"></div>'
       + getMenuLinkMarkup("/entry/settings/", "Settings", "settings")
@@ -509,9 +517,11 @@
         + "#auth-ui-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:min(292px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:none;overflow:visible;border:1px solid var(--dex-glass-border);border-top-color:var(--dex-glass-border-strong);border-radius:calc(var(--dex-radius) + 2px);background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);padding:var(--dex-space-2);z-index:1200;opacity:0;visibility:hidden;pointer-events:none;backdrop-filter:var(--dex-glass-filter)!important;-webkit-backdrop-filter:var(--dex-glass-webkit-filter)!important;transition:opacity .2s ease,visibility .2s ease;}"
         + "#auth-ui-dropdown." + DROPDOWN_OPEN_CLASS + "{opacity:1;visibility:visible;pointer-events:auto;}"
         + "#auth-ui .dex-menu-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:9px;width:100%;max-width:100%;border:1px solid var(--dex-glass-border);border-radius:max(6px,calc(var(--dex-radius) - 2px));background:var(--dex-glass-bg);box-shadow:var(--dex-glass-shadow);padding:9px 11px;margin:0 0 6px;color:var(--dex-text);text-shadow:var(--dex-text-shadow);text-decoration:none;font-size:13px;line-height:1.25;cursor:pointer;overflow:hidden;backdrop-filter:var(--dex-glass-filter)!important;-webkit-backdrop-filter:var(--dex-glass-webkit-filter)!important;transition:transform .18s ease,border-color .18s ease,background .18s ease,filter .18s ease;}"
+        + "#auth-ui .dex-menu-item.has-badge{grid-template-columns:16px minmax(0,1fr) auto;}"
         + "#auth-ui .dex-menu-icon-wrap{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;opacity:.92;}"
         + "#auth-ui .dex-menu-icon{width:16px;height:16px;display:block;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;fill:none;}"
         + "#auth-ui .dex-menu-label{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
+        + "#auth-ui .dex-menu-pill{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:999px;background:#ff1910;color:#fff;font-size:11px;line-height:1;padding:0 6px;font-weight:700;}"
         + "#auth-ui .dex-menu-item:hover{transform:translateY(-1px);border-color:var(--dex-glass-border-strong);background:var(--dex-glass-bg);}"
         + "#auth-ui .dex-menu-sep{height:1px;background:linear-gradient(90deg,transparent,var(--dex-glass-border-strong),transparent);margin:8px 2px 10px;}"
         + "#auth-ui .dex-menu-item.is-logout,#auth-ui #auth-ui-logout{margin-bottom:0;color:var(--dex-text);background:var(--dex-glass-bg);border-color:var(--dex-glass-border);}"
@@ -772,6 +782,7 @@
       if (user && user.name) {
         profileToggle.title = user.name;
       }
+      syncMessagesUnreadCount();
     } else {
       signInBtn.hidden = false;
       signInBtn.removeAttribute("hidden");
@@ -782,7 +793,92 @@
       profileWrap.hidden = true;
       profileWrap.setAttribute("hidden", "hidden");
       closeDropdown();
+      setMessagesUnreadBadge(0);
     }
+  }
+
+  function setMessagesUnreadBadge(count) {
+    var badge = document.getElementById(MESSAGES_BADGE_ID);
+    if (!badge) return;
+    var safeCount = Number(count);
+    if (!isFinite(safeCount) || safeCount < 0) safeCount = 0;
+    badge.textContent = safeCount > 99 ? "99+" : String(Math.round(safeCount));
+    if (safeCount > 0) {
+      badge.hidden = false;
+      badge.removeAttribute("hidden");
+    } else {
+      badge.hidden = true;
+      badge.setAttribute("hidden", "hidden");
+    }
+  }
+
+  function getMessagesApiBase() {
+    var configured = window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_MESSAGES_API;
+    return String(configured || DEFAULT_MESSAGES_API).trim().replace(/\/+$/, "");
+  }
+
+  function parseMessagesUnreadCount(payload) {
+    if (!payload || typeof payload !== "object") return 0;
+    if (typeof payload.count !== "undefined") {
+      var direct = Number(payload.count);
+      return isFinite(direct) ? Math.max(0, Math.round(direct)) : 0;
+    }
+    if (payload.data && typeof payload.data === "object" && typeof payload.data.count !== "undefined") {
+      var nested = Number(payload.data.count);
+      return isFinite(nested) ? Math.max(0, Math.round(nested)) : 0;
+    }
+    return 0;
+  }
+
+  function syncMessagesUnreadCount() {
+    if (!authReadyState || !authReadyState.isAuthenticated) {
+      setMessagesUnreadBadge(0);
+      return Promise.resolve(0);
+    }
+    if (!window.DEX_AUTH || typeof window.DEX_AUTH.getAccessToken !== "function") {
+      return Promise.resolve(0);
+    }
+    return window.DEX_AUTH.getAccessToken()
+      .then(function (token) {
+        if (!token) {
+          setMessagesUnreadBadge(0);
+          return 0;
+        }
+        return fetch(getMessagesApiBase() + "/me/messages/unread-count", {
+          method: "GET",
+          headers: {
+            authorization: "Bearer " + token,
+            "content-type": "application/json"
+          }
+        }).then(function (response) {
+          if (!response.ok) return null;
+          return response.json().catch(function () { return null; });
+        }).then(function (payload) {
+          var count = parseMessagesUnreadCount(payload);
+          setMessagesUnreadBadge(count);
+          return count;
+        });
+      })
+      .catch(function () {
+        return 0;
+      });
+  }
+
+  function bindMessagesUnreadEvents() {
+    if (document.documentElement.dataset.dexAuthUnreadBound) {
+      return;
+    }
+    document.documentElement.dataset.dexAuthUnreadBound = "1";
+
+    window.addEventListener("dx:messages:unread-count", function (event) {
+      var detail = event && event.detail;
+      setMessagesUnreadBadge(detail && detail.count);
+    });
+
+    window.addEventListener("focus", function () {
+      if (!authReadyState || !authReadyState.isAuthenticated) return;
+      syncMessagesUnreadCount();
+    });
   }
 
   function closeDropdown() {
@@ -1329,6 +1425,7 @@
       if (!cfg) {
         logError("Missing host Auth0 configuration; auth features disabled.");
         bindUiEvents(cfg);
+        bindMessagesUnreadEvents();
         bindClickGuard();
         publishAuthState(false, null);
         return;
@@ -1337,6 +1434,7 @@
         if (!createAuth0Client) {
           logError("Auth0 SPA SDK missing; expected createAuth0Client global.");
           bindUiEvents(cfg);
+          bindMessagesUnreadEvents();
           bindClickGuard();
           publishAuthState(false, null);
           return;
@@ -1396,6 +1494,7 @@
         }
         setUiState(false, null);
         bindUiEvents(cfg);
+        bindMessagesUnreadEvents();
         bindClickGuard();
         return;
       }
@@ -1408,6 +1507,7 @@
       }
       setUiState(isAuthenticated, user);
       bindUiEvents(cfg);
+      bindMessagesUnreadEvents();
       bindClickGuard();
       publishAuthState(isAuthenticated, user);
     } catch (err) {

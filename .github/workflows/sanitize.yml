@@ -59,6 +59,9 @@ jobs:
       - name: Verify favorites contract
         run: npm run verify:favorites
 
+      - name: Verify notifications contract
+        run: npm run verify:notifications
+
       - name: Verify error/support contract
         run: npm run verify:error-support
 
@@ -88,6 +91,9 @@ jobs:
 
       - name: Favorites lookup parity test
         run: npm run test:favorites-lookup
+
+      - name: Messages notifications inbox test
+        run: npm run test:messages-notifications
 
       - name: Error/support reliability test
         run: npm run test:error-support

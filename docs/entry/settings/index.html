@@ -2602,10 +2602,12 @@
     <div class="list" style="max-width:520px;">
       <label class="item"><span>Member announcements</span><input id="notifAnn" type="checkbox"></label>
       <label class="item"><span>Release notes</span><input id="notifRel" type="checkbox"></label>
-
-      <label class="item"><span>New followers</span><input id="notifFol" type="checkbox"></label>
-      <label class="item"><span>Mentions &amp; replies</span><input id="notifMen" type="checkbox"></label>
-      <label class="item"><span>Project updates</span><input id="notifProj" type="checkbox"></label>
+      <label class="item"><span>Poll updates</span><input id="notifPolls" type="checkbox"></label>
+      <label class="item"><span>Achievement milestones</span><input id="notifAchv" type="checkbox"></label>
+      <label class="item"><span>Billing updates</span><input id="notifBill" type="checkbox"></label>
+      <label class="item"><span>Security alerts</span><input id="notifSec" type="checkbox"></label>
+      <label class="item"><span>System status incidents</span><input id="notifStatus" type="checkbox"></label>
+      <label class="item"><span>Submission messages</span><input id="notifSubs" type="checkbox"></label>
 
       <div class="item">
         <span>Quiet hours</span>
@@ -4607,9 +4609,12 @@ function hydrateProfile(me){
   const S = {
     ann:  document.getElementById('notifAnn'),
     rel:  document.getElementById('notifRel'),
-    fol:  document.getElementById('notifFol'),
-    men:  document.getElementById('notifMen'),
-    proj: document.getElementById('notifProj'),
+    polls: document.getElementById('notifPolls'),
+    achv: document.getElementById('notifAchv'),
+    bill: document.getElementById('notifBill'),
+    sec: document.getElementById('notifSec'),
+    status: document.getElementById('notifStatus'),
+    subs: document.getElementById('notifSubs'),
     dig:  document.getElementById('notifDigest'),
     qs:   document.getElementById('quietStart'),
     qe:   document.getElementById('quietEnd'),
@@ -4625,27 +4630,77 @@ function hydrateProfile(me){
   }
 
   function read(){
+    const digestEnabled = !!S.dig?.checked;
+    const timezone = (() => {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return String(tz || '').trim() || 'UTC';
+      } catch {
+        return 'UTC';
+      }
+    })();
+
+    const v2 = {
+      version: 2,
+      channels: {
+        inbox: true,
+        digestEmail: digestEnabled
+      },
+      categories: {
+        announcements: !!S.ann?.checked,
+        releaseNotes: !!S.rel?.checked,
+        polls: !!S.polls?.checked,
+        achievements: !!S.achv?.checked,
+        billing: !!S.bill?.checked,
+        security: !!S.sec?.checked,
+        status: !!S.status?.checked,
+        submissions: !!S.subs?.checked
+      },
+      quietHours: {
+        start: S.qs?.value || '',
+        end: S.qe?.value || '',
+        timezone
+      },
+      digest: {
+        enabled: digestEnabled,
+        cadence: 'weekly',
+        day: 'monday',
+        localHour: 9
+      }
+    };
+
+    // Keep legacy keys for backward compatibility while worker rollout catches up.
     return {
-      announcements: !!S.ann?.checked,
-      releases:      !!S.rel?.checked,
-      followers:     !!S.fol?.checked,
-      mentions:      !!S.men?.checked,
-      projects:      !!S.proj?.checked,
-      digestWeekly:  !!S.dig?.checked,
-      quietStart:    S.qs?.value || '',
-      quietEnd:      S.qe?.value || ''
+      announcements: v2.categories.announcements,
+      releases: v2.categories.releaseNotes,
+      followers: false,
+      mentions: false,
+      projects: v2.categories.polls,
+      digestWeekly: v2.channels.digestEmail,
+      quietStart: v2.quietHours.start,
+      quietEnd: v2.quietHours.end,
+      ...v2
     };
   }
 
   function hydrate(d={}){
-    if (S.ann) S.ann.checked = !!d.announcements;
-    if (S.rel) S.rel.checked = !!d.releases;
-    if (S.fol) S.fol.checked = !!d.followers;
-    if (S.men) S.men.checked = !!d.mentions;
-    if (S.proj) S.proj.checked = !!d.projects;
-    if (S.dig) S.dig.checked = !!d.digestWeekly;
-    if (S.qs)  S.qs.value   = d.quietStart || '';
-    if (S.qe)  S.qe.value   = d.quietEnd   || '';
+    const root = (d && typeof d === 'object') ? d : {};
+    const categories = (root.categories && typeof root.categories === 'object') ? root.categories : {};
+    const channels = (root.channels && typeof root.channels === 'object') ? root.channels : {};
+    const digest = (root.digest && typeof root.digest === 'object') ? root.digest : {};
+    const quietHours = (root.quietHours && typeof root.quietHours === 'object') ? root.quietHours : {};
+
+    if (S.ann) S.ann.checked = !!(categories.announcements ?? root.announcements);
+    if (S.rel) S.rel.checked = !!(categories.releaseNotes ?? root.releases);
+    if (S.polls) S.polls.checked = !!(categories.polls ?? root.projects);
+    if (S.achv) S.achv.checked = !!categories.achievements;
+    if (S.bill) S.bill.checked = !!categories.billing;
+    if (S.sec) S.sec.checked = !!categories.security;
+    if (S.status) S.status.checked = !!categories.status;
+    if (S.subs) S.subs.checked = !!(categories.submissions ?? true);
+    if (S.dig) S.dig.checked = !!(channels.digestEmail ?? digest.enabled ?? root.digestWeekly);
+    if (S.qs)  S.qs.value   = String(quietHours.start ?? root.quietStart ?? '');
+    if (S.qe)  S.qe.value   = String(quietHours.end ?? root.quietEnd ?? '');
   }
 
   async function load(){
