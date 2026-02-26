@@ -107,5 +107,8 @@ jobs:
       - name: Heading ZWNJ regression test
         run: npm run test:heading-zwnj
 
+      - name: Mobile profile shell regression test
+        run: npm run test:profile-mobile-shell
+
       - name: Visual snapshot test
         run: npm run test:visual

@@ -212,6 +212,10 @@
   function syncProfileFooterPlacementNow() {
     const isProtectedRoute = document.body && document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
     if (isProtectedRoute) {
+      if (isMobileViewport()) {
+        restoreProfileFooterFromPortal();
+        return;
+      }
       portalProfileFooterIfNeeded();
       return;
     }
@@ -250,6 +254,10 @@
     }
 
     syncProfileFooterPlacementNow();
+    if (isMobileViewport()) {
+      document.documentElement.style.removeProperty(PROFILE_FOOTER_HEIGHT_VAR);
+      return;
+    }
     const footer = getProfileFooterElement(document);
     const footerRect = footer ? footer.getBoundingClientRect() : null;
     const footerHeight = footerRect ? Math.max(0, Math.round(footerRect.height)) : 0;
