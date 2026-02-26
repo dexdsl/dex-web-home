@@ -23,7 +23,7 @@ const LIVE_STATUS_FIXTURE = {
 };
 
 function stripZwnj(value: string): string {
-  return String(value || '').replace(/\u200c/g, '');
+  return String(value || '').replace(/[\u200c\u200d]/g, '');
 }
 
 function countCanonicalDoubleLetters(value: string): number {
@@ -43,8 +43,16 @@ function countCanonicalDoubleLetters(value: string): number {
   return count;
 }
 
-function countZwnj(value: string): number {
+function countJoiner(value: string): number {
+  return (String(value || '').match(/\u200d/g) || []).length;
+}
+
+function countLegacyNonJoiner(value: string): number {
   return (String(value || '').match(/\u200c/g) || []).length;
+}
+
+function isHeadingJoiner(char: string): boolean {
+  return char === '\u200c' || char === '\u200d';
 }
 
 function assertAllAdjacentDuplicateLettersJoined(rendered: string): void {
@@ -53,7 +61,7 @@ function assertAllAdjacentDuplicateLettersJoined(rendered: string): void {
   let hadSeparatorSincePrevious = false;
 
   for (const char of chars) {
-    if (char === '\u200c') {
+    if (isHeadingJoiner(char)) {
       hadSeparatorSincePrevious = true;
       continue;
     }
@@ -71,6 +79,26 @@ function assertAllAdjacentDuplicateLettersJoined(rendered: string): void {
 
     previousLetter = char;
     hadSeparatorSincePrevious = false;
+  }
+}
+
+function assertJoinersArePlacedBetweenMatchingLetters(rendered: string): void {
+  const chars = Array.from(String(rendered || ''));
+  for (let index = 0; index < chars.length; index += 1) {
+    if (!isHeadingJoiner(chars[index])) continue;
+
+    let prevIndex = index - 1;
+    while (prevIndex >= 0 && isHeadingJoiner(chars[prevIndex])) prevIndex -= 1;
+    let nextIndex = index + 1;
+    while (nextIndex < chars.length && isHeadingJoiner(chars[nextIndex])) nextIndex += 1;
+
+    const prev = prevIndex >= 0 ? chars[prevIndex] : '';
+    const next = nextIndex < chars.length ? chars[nextIndex] : '';
+    const prevIsLetter = prev.toLowerCase() !== prev.toUpperCase();
+    const nextIsLetter = next.toLowerCase() !== next.toUpperCase();
+    expect(prevIsLetter).toBeTruthy();
+    expect(nextIsLetter).toBeTruthy();
+    expect(prev.toLowerCase()).toBe(next.toLowerCase());
   }
 }
 
@@ -134,17 +162,19 @@ function assertHeadingTypographyInvariants(heading: { canonical: string; rendere
   expect(heading.rendered.length).toBeGreaterThan(0);
   expect(heading.rendered).toBe(heading.text);
   assertAllAdjacentDuplicateLettersJoined(heading.rendered);
+  assertJoinersArePlacedBetweenMatchingLetters(heading.rendered);
+  expect(countLegacyNonJoiner(heading.rendered)).toBe(0);
 
   const renderedWithoutZwnj = stripZwnj(heading.rendered);
   const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
   const expectedZwnjCount = countCanonicalDoubleLetters(heading.canonical) + inserted.length;
-  expect(countZwnj(heading.rendered)).toBe(expectedZwnjCount);
+  expect(countJoiner(heading.rendered)).toBe(expectedZwnjCount);
   expect(inserted.length).toBeLessThanOrEqual(1);
   if (inserted.length > 0) {
     const firstUpper = inserted[0]!.toUpperCase();
     expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
     expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
-    expect(new RegExp(`${firstUpper}\\u200c${firstUpper}`, 'i').test(heading.rendered)).toBeTruthy();
+    expect(new RegExp(`${firstUpper}\\u200d${firstUpper}`, 'i').test(heading.rendered)).toBeTruthy();
   }
 }
 
@@ -280,7 +310,8 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(errorRendered).toBe(errorText);
   const errorRenderedText = errorRendered || '';
   const errorInserted = findInsertedCharacters(errorCanonical || '', stripZwnj(errorRenderedText));
-  expect(countZwnj(errorRenderedText)).toBe(countCanonicalDoubleLetters(errorCanonical || '') + errorInserted.length);
+  expect(countLegacyNonJoiner(errorRenderedText)).toBe(0);
+  expect(countJoiner(errorRenderedText)).toBe(countCanonicalDoubleLetters(errorCanonical || '') + errorInserted.length);
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect.poll(async () => page.locator('#featuredTitle').getAttribute('data-dx-heading-canonical')).toBeTruthy();
@@ -289,6 +320,10 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     () => (window as unknown as { __dxHeadingFx?: { duplicateLigatureLetters?: string } }).__dxHeadingFx?.duplicateLigatureLetters || '',
   );
   expect(duplicateLigatureLetters).toBe('ABCDEFGHJKLMNOPQRSTUWZ');
+  const headingSeparator = await page.evaluate(
+    () => (window as unknown as { __dxHeadingFx?: { separator?: string } }).__dxHeadingFx?.separator || '',
+  );
+  expect(headingSeparator).toBe('\u200D');
 
   const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
   assertHeadingTypographyInvariants(featuredTitle);
@@ -298,7 +333,7 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(heroTitle.canonical.length).toBeGreaterThan(0);
   expect(heroTitle.rendered.length).toBeGreaterThan(0);
   const heroInserted = findInsertedCharacters(heroTitle.canonical, stripZwnj(heroTitle.rendered));
-  expect(countZwnj(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical) + heroInserted.length);
+  expect(countJoiner(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical) + heroInserted.length);
   expect(heroTitle.canonical.toUpperCase()).toContain('RECORDING');
   expect(hasSingleLetterDuplicateInWord(stripZwnj(heroTitle.rendered), 'RECORDING')).toBeFalsy();
 
@@ -311,13 +346,14 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     assertAllAdjacentDuplicateLettersJoined(donate.rendered);
     const renderedWithoutZwnj = stripZwnj(donate.rendered);
     const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
-    expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical) + inserted.length);
+    expect(countLegacyNonJoiner(donate.rendered)).toBe(0);
+    expect(countJoiner(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical) + inserted.length);
     expect(inserted.length).toBeLessThanOrEqual(1);
     if (inserted.length > 0) {
       const firstUpper = inserted[0]!.toUpperCase();
       expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
       expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
-      expect(new RegExp(`${firstUpper}\\u200c${firstUpper}`, 'i').test(donate.rendered)).toBeTruthy();
+      expect(new RegExp(`${firstUpper}\\u200d${firstUpper}`, 'i').test(donate.rendered)).toBeTruthy();
     }
   }
 
@@ -350,6 +386,12 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(settingsInserted.length).toBe(1);
   const insertedUpper = settingsInserted[0]!.toUpperCase();
   expect(LIGATURE_DUPLICATE_SUPPORTED.has(insertedUpper)).toBeTruthy();
-  expect(new RegExp(`${insertedUpper}\\u200c${insertedUpper}`, 'i').test(settingsTitle.rendered)).toBeTruthy();
+  expect(new RegExp(`${insertedUpper}\\u200d${insertedUpper}`, 'i').test(settingsTitle.rendered)).toBeTruthy();
   expect(hasTripleRepeatedLetter(settingsTitle.rendered)).toBeFalsy();
+
+  const settingsHeadings = await collectHeadingMetadata(page, 'main h1, main h2');
+  expect(settingsHeadings.length).toBeGreaterThan(0);
+  for (const heading of settingsHeadings) {
+    assertHeadingTypographyInvariants(heading);
+  }
 });

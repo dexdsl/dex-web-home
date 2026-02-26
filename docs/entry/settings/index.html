@@ -5297,7 +5297,7 @@ function hydrateProfile(me){
   const sub = document.getElementById('dxWhyFavoriteSub');
   const cta = document.getElementById('dxWhyJoinCta');
   const FAVORITES_PREFIX = 'dex:favorites:v2:';
-  const ZWNJ = '\u200C';
+  const HEADING_JOINER = '\u200D';
   const INSTRUMENT_CODE_MAP = Object.freeze({
     ORG: 'organ',
     HPS: 'harpsichord',
@@ -5326,11 +5326,11 @@ function hydrateProfile(me){
   }
 
   function stripZwnj(text){
-    return String(text ?? '').replace(/\u200C/g, '');
+    return String(text ?? '').replace(/[\u200C\u200D]/g, '');
   }
 
   function withCanonicalDoubleLetterZwnj(text){
-    return stripZwnj(text).replace(/([A-Za-z])\1/g, `$1${ZWNJ}$1`);
+    return stripZwnj(text).replace(/([A-Za-z])\1/g, `$1${HEADING_JOINER}$1`);
   }
 
   function setJoinedText(node, text){

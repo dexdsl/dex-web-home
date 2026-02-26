@@ -56,7 +56,7 @@
     ['/assets/js/dx-about.js', '__dxAboutRouteLoaded'],
     ['/assets/js/dx-scroll-dot.js', '__dxScrollDotLoaded'],
   ]);
-  const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200C';
+  const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200D';
   const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
   const HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR = 'data-dx-heading-duplicate-exclude-words';
@@ -392,7 +392,8 @@
   }
 
   function stripZwnjCharacters(value) {
-    return String(value == null ? '' : value).replace(/\u200C/g, '');
+    // Normalize both historical ZWNJ separators and current ZWJ separators.
+    return String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
   }
 
   function insertCanonicalDoubleLetterSeparators(value) {
