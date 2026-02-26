@@ -640,7 +640,9 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(payload?.error || `HTTP ${response.status}`);
+          const failure = new Error(payload?.error || `HTTP ${response.status}`);
+          failure.status = response.status;
+          throw failure;
         }
 
         if (String(payload?.state || '').toLowerCase() === 'active') {
@@ -651,8 +653,13 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
         input.value = '';
       } catch (error) {
         const message = String(error?.message || '').toLowerCase();
+        const status = Number(error?.status || 0);
         if (message.includes('abort')) {
           feedback.textContent = 'REQUEST TIMED OUT. TRY AGAIN.';
+        } else if (status === 503 || message.includes('public endpoint disabled')) {
+          feedback.textContent = 'NEWSLETTER SIGNUP OPENS SOON. CHECK BACK SHORTLY.';
+        } else if (status === 429 || message.includes('rate limit')) {
+          feedback.textContent = 'TOO MANY ATTEMPTS. TRY AGAIN IN A FEW MINUTES.';
         } else {
           feedback.textContent = 'SUBSCRIBE FAILED. TRY AGAIN LATER.';
         }
