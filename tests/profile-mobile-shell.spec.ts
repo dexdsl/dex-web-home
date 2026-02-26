@@ -162,6 +162,7 @@ test('mobile profile routes keep gooey behind content and footer compact', async
       }, routeRect ? Math.round(routeRect.top) : 0);
       const meshStyle = mesh ? window.getComputedStyle(mesh) : null;
       const scrollStyle = scrollRoot ? window.getComputedStyle(scrollRoot) : null;
+      const scrollRect = scrollRoot ? scrollRoot.getBoundingClientRect() : null;
       const footerStyle = footer ? window.getComputedStyle(footer) : null;
       const footerGridStyle = footerGrid ? window.getComputedStyle(footerGrid) : null;
       const footerLinksStyle = footerLinksColumn ? window.getComputedStyle(footerLinksColumn) : null;
@@ -180,6 +181,8 @@ test('mobile profile routes keep gooey behind content and footer compact', async
         gradientParentId: gradient?.parentElement ? gradient.parentElement.id : '',
         scrollOverflowY: scrollStyle ? scrollStyle.overflowY : '',
         scrollInsetBottom: scrollStyle ? scrollStyle.bottom : '',
+        scrollTopPx: scrollRect ? Math.round(scrollRect.top) : null,
+        scrollBottomGapPx: scrollRect ? Math.round(window.innerHeight - scrollRect.bottom) : null,
         footerPosition: footerStyle ? footerStyle.position : '',
         footerGridDisplay: footerGridStyle ? footerGridStyle.display : '',
         footerLinksDirection: footerLinksStyle ? footerLinksStyle.flexDirection : '',
@@ -196,6 +199,8 @@ test('mobile profile routes keep gooey behind content and footer compact', async
 
     expect(['auto', 'scroll']).toContain(metrics.scrollOverflowY);
     expect(metrics.scrollInsetBottom).toBe('0px');
+    expect(metrics.scrollTopPx).toBe(0);
+    expect(Math.abs(Number(metrics.scrollBottomGapPx ?? 0))).toBeLessThanOrEqual(1);
     expect(metrics.routeRootPosition).toBe('relative');
     expect(metrics.routeRootZ).toBeGreaterThan(metrics.meshZ);
     expect(metrics.meshParentTag).toBe('BODY');

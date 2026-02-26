@@ -1540,14 +1540,22 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   body.dx-slot-enabled.dx-route-profile-protected #dx-slot-scroll-root {
     overflow-y: auto !important;
     overscroll-behavior-y: auto !important;
-    inset: var(--dx-slot-top) 0 0 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
+    inset: 0 !important;
+    padding-bottom: 0 !important;
+    scroll-padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset) + var(--dx-space-xs, 8px)) !important;
   }
 
   body.dx-slot-enabled.dx-route-profile-protected #dx-slot-foreground-root {
     position: relative !important;
     z-index: calc(var(--dx-layer-foreground) + 1) !important;
     isolation: isolate !important;
+    padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset)) !important;
+    padding-bottom: max(var(--dx-space-lg, 24px), env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body.dx-route-profile-protected #siteWrapper,
+  body.dx-route-profile-protected .site-wrapper {
+    background: transparent !important;
   }
 
   body.dx-route-profile-protected #scroll-gradient-bg,
