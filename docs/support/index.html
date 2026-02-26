@@ -1694,6 +1694,117 @@
       })();
     </script>
 
+    <style id="dx-support-footer-layout">
+      .dex-footer .footer-grid {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: var(--space-4, 1.5rem);
+      }
+
+      .dex-footer .footer-logo-column {
+        justify-self: start;
+        text-align: center;
+      }
+
+      .dex-footer .footer-logo {
+        display: grid;
+      }
+
+      .dex-footer .footer-logo img {
+        width: 8rem;
+        height: auto;
+        display: none;
+        margin: 0;
+      }
+
+      .dex-footer .footer-attribution {
+        justify-self: center;
+        text-align: center;
+        font-size: 0.85rem;
+        line-height: 1.2;
+      }
+
+      .dex-footer .footer-seal-column {
+        justify-self: center;
+      }
+
+      .dex-footer .candid-seal {
+        margin-right: calc(var(--space-4, 1.5rem) + 5.5rem);
+        display: inline-block;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+        line-height: 0;
+        text-decoration: none;
+        transition: none;
+      }
+
+      .dex-footer .candid-seal img {
+        height: 4.5rem;
+        width: auto;
+        display: block;
+      }
+
+      .dex-footer .footer-links-column {
+        justify-self: end;
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3, 1rem);
+      }
+
+      .dex-footer[data-surface="dark"] .footer-logo .logo--dark {
+        display: block;
+      }
+
+      .dex-footer[data-surface="light"] .footer-logo .logo--light {
+        display: block;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .dex-footer:not([data-surface]) .footer-logo .logo--dark {
+          display: block;
+        }
+      }
+
+      @media (prefers-color-scheme: light) {
+        .dex-footer:not([data-surface]) .footer-logo .logo--light {
+          display: block;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .dex-footer .footer-grid {
+          grid-template-columns: 1fr;
+          justify-items: center;
+          width: 100%;
+          max-width: calc(100% - 2 * var(--space-3, 1rem));
+          margin: 0 auto;
+          gap: var(--space-3, 1rem);
+        }
+
+        .dex-footer .footer-logo-column,
+        .dex-footer .footer-attribution,
+        .dex-footer .footer-seal-column,
+        .dex-footer .footer-links-column {
+          justify-self: center;
+          text-align: center;
+        }
+
+        .dex-footer .footer-links-column {
+          flex-direction: column;
+        }
+
+        .dex-footer .candid-seal {
+          margin-right: 0;
+        }
+      }
+    </style>
+
     <footer class="sections" id="footer-sections" data-footer-sections>
       <div class="dex-footer" role="contentinfo">
         <div class="footer-grid">
