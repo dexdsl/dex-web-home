@@ -417,10 +417,14 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const settingsTitle = await readHeadingBySelector(page, '#dexs-title');
   assertHeadingTypographyInvariants(settingsTitle);
   expect(settingsTitle.canonical.toUpperCase()).toBe('SETTINGS');
+  const settingsExcludeLetters = await page.locator('#dexs-title').getAttribute('data-dx-heading-duplicate-exclude-letters');
+  expect(settingsExcludeLetters).toBe('G,S,N,I');
   const settingsInserted = findInsertedCharacters(settingsTitle.canonical, stripZwnj(settingsTitle.rendered));
   expect(settingsInserted.length).toBe(1);
   const insertedUpper = settingsInserted[0]!.toUpperCase();
   expect(LIGATURE_DUPLICATE_SUPPORTED.has(insertedUpper)).toBeTruthy();
+  expect(['G', 'S', 'N', 'I']).not.toContain(insertedUpper);
+  expect(insertedUpper).toBe('E');
   expect(new RegExp(`${insertedUpper}\\u200d${insertedUpper}`, 'i').test(settingsTitle.rendered)).toBeTruthy();
   expect(hasTripleRepeatedLetter(settingsTitle.rendered)).toBeFalsy();
 

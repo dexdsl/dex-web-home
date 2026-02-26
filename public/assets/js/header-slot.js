@@ -61,6 +61,7 @@
   const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
   const HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR = 'data-dx-heading-duplicate-exclude-words';
+  const HEADING_DUPLICATE_EXCLUDE_LETTERS_ATTR = 'data-dx-heading-duplicate-exclude-letters';
   // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
   const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
@@ -499,6 +500,7 @@
 
   function collectEligibleDuplicateTargets(nodeValues, options = {}) {
     const excludedGlobalIndexes = options.excludedGlobalIndexes instanceof Set ? options.excludedGlobalIndexes : null;
+    const excludedLetters = options.excludedLetters instanceof Set ? options.excludedLetters : null;
     const eligible = [];
     let globalCharIndex = 0;
     nodeValues.forEach((value, nodeIndex) => {
@@ -537,7 +539,11 @@
           isAlphabeticCharacter(char)
         ) {
           const upper = char.toUpperCase();
-          if (HEADING_DUPLICATE_LIGATURE_SUPPORTED.has(upper) && !HEADING_DUPLICATE_EXCLUDED.has(upper)) {
+          if (
+            HEADING_DUPLICATE_LIGATURE_SUPPORTED.has(upper) &&
+            !HEADING_DUPLICATE_EXCLUDED.has(upper) &&
+            !(excludedLetters && excludedLetters.has(upper))
+          ) {
             eligible.push({ nodeIndex, charIndex, char });
           }
         }
@@ -554,7 +560,10 @@
     if (!duplicateCount) return nextValues;
 
     const excludedGlobalIndexes = buildExcludedDuplicateGlobalIndexes(nextValues, options.excludedWords);
-    const eligible = collectEligibleDuplicateTargets(nextValues, { excludedGlobalIndexes });
+    const eligible = collectEligibleDuplicateTargets(nextValues, {
+      excludedGlobalIndexes,
+      excludedLetters: options.excludedLetters,
+    });
     if (!eligible.length) return nextValues;
 
     const target = eligible[Math.floor(randomFn() * eligible.length)];
@@ -673,6 +682,19 @@
     return new Set(words);
   }
 
+  function parseHeadingDuplicateExcludedLetters(heading) {
+    if (!(heading instanceof HTMLElement)) return new Set();
+    const raw = String(heading.getAttribute(HEADING_DUPLICATE_EXCLUDE_LETTERS_ATTR) || '').trim();
+    if (!raw) return new Set();
+    const letters = raw
+      .split(/[\s,]+/g)
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => value.length > 0)
+      .flatMap((value) => Array.from(value))
+      .filter((char) => /^[A-Z]$/.test(char));
+    return new Set(letters);
+  }
+
   function decorateHeadingElement(heading, options = {}) {
     if (!(heading instanceof HTMLElement)) return false;
     const textNodes = extractHeadingTextNodes(heading);
@@ -698,7 +720,11 @@
     const separatedNodeValues = canonicalNodeValues.map((value) => insertCanonicalDoubleLetterSeparators(value));
     const randomFn = createHeadingRandom(signature);
     const excludedWords = parseHeadingDuplicateExcludedWords(heading);
-    const randomizedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn, { excludedWords });
+    const excludedLetters = parseHeadingDuplicateExcludedLetters(heading);
+    const randomizedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn, {
+      excludedWords,
+      excludedLetters,
+    });
     const renderedNodeValues = normalizeRenderedDuplicateSeparators(randomizedNodeValues);
 
     textNodes.forEach((node, index) => {

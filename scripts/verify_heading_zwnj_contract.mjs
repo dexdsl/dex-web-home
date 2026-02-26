@@ -87,6 +87,8 @@ function verifyHeadingRuntime() {
     'duplicateLigatureLetters',
     'HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR',
     'parseHeadingDuplicateExcludedWords',
+    'HEADING_DUPLICATE_EXCLUDE_LETTERS_ATTR',
+    'parseHeadingDuplicateExcludedLetters',
     'DONATE_LABEL_CANONICAL',
     'normalizeDonateActionLabels',
     'data-dx-donate-normalized',
@@ -144,6 +146,9 @@ function verifySettingsHeadingExclusion() {
   }
   if (/id="dexs-title"[^>]*data-dx-heading-duplicate-exclude-words=/i.test(text)) {
     FAILURES.push(`${relPath} must not exclude #dexs-title from probabilistic heading duplication`);
+  }
+  if (!/id="dexs-title"[^>]*data-dx-heading-duplicate-exclude-letters=/i.test(text)) {
+    FAILURES.push(`${relPath} missing duplicate-letter guard for #dexs-title`);
   }
 }
 
