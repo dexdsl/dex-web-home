@@ -946,6 +946,36 @@
     }
   }
 
+  function ensureBackdropLayersOutsideForeground() {
+    if (!document.body) return;
+
+    const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
+    const ids = ['scroll-gradient-bg', 'gooey-mesh-wrapper'];
+
+    for (const id of ids) {
+      const nodes = Array.from(document.querySelectorAll(`#${id}`)).filter((node) => node instanceof HTMLElement);
+      if (!nodes.length) continue;
+
+      const primary = nodes[nodes.length - 1];
+      for (const node of nodes) {
+        if (node === primary) continue;
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      }
+
+      if (primary.parentElement !== document.body) {
+        if (scrollRoot && scrollRoot.parentElement === document.body) {
+          document.body.insertBefore(primary, scrollRoot);
+        } else {
+          document.body.appendChild(primary);
+        }
+      }
+
+      primary.setAttribute('data-dx-slot-preserve', 'true');
+    }
+  }
+
   function extractForegroundNodes(sourceDocument) {
     const sourceHeader = getHeaderElement(sourceDocument);
     let sourceContainer = (sourceHeader && sourceHeader.parentElement) || sourceDocument.body;
@@ -2341,6 +2371,7 @@
     const { fragment: nextFragment, inlineScripts } = buildForegroundFragment(sourceDocument);
     clearChildren(foregroundRoot);
     foregroundRoot.appendChild(nextFragment);
+    ensureBackdropLayersOutsideForeground();
 
     const scripts = collectRouteScripts(sourceDocument, targetUrl.href);
     const meshState = captureGooeyMeshState();
@@ -2369,6 +2400,7 @@
     scheduleProfileViewportMetricsSync();
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
+      ensureBackdropLayersOutsideForeground();
       applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
@@ -2547,6 +2579,7 @@
     const { scrollRoot, foregroundRoot } = ensureSlotRoots(container, headerElement);
 
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
+    ensureBackdropLayersOutsideForeground();
 
     document.body.classList.add(BODY_CLASS);
     syncProfileProtectedRouteState(window.location.pathname);
@@ -2565,6 +2598,7 @@
     installMobileMenu();
 
     requestAnimationFrame(() => {
+      ensureBackdropLayersOutsideForeground();
       if (initialScroll > 0) {
         scrollRoot.scrollTop = initialScroll;
       }

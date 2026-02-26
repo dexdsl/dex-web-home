@@ -130,6 +130,7 @@ test('mobile profile routes keep gooey behind content and footer compact', async
         '#dex-favorites,#dex-msg,#dex-submit,#dex-press,#dex-achv,#dex-console,#dex-settings',
       ) as HTMLElement | null;
       const mesh = document.getElementById('gooey-mesh-wrapper');
+      const gradient = document.getElementById('scroll-gradient-bg');
       const scrollRoot = document.getElementById('dx-slot-scroll-root');
       const footer = document.querySelector('.dex-footer') as HTMLElement | null;
       const footerGrid = footer?.querySelector('.footer-grid') as HTMLElement | null;
@@ -159,6 +160,10 @@ test('mobile profile routes keep gooey behind content and footer compact', async
         routeRootPosition: routeStyle ? routeStyle.position : '',
         routeRootZ: toZ(routeStyle ? routeStyle.zIndex : ''),
         meshZ: toZ(meshStyle ? meshStyle.zIndex : ''),
+        meshParentTag: mesh?.parentElement ? mesh.parentElement.tagName : '',
+        meshParentId: mesh?.parentElement ? mesh.parentElement.id : '',
+        gradientParentTag: gradient?.parentElement ? gradient.parentElement.tagName : '',
+        gradientParentId: gradient?.parentElement ? gradient.parentElement.id : '',
         scrollOverflowY: scrollStyle ? scrollStyle.overflowY : '',
         scrollInsetBottom: scrollStyle ? scrollStyle.bottom : '',
         footerPosition: footerStyle ? footerStyle.position : '',
@@ -178,6 +183,10 @@ test('mobile profile routes keep gooey behind content and footer compact', async
     expect(metrics.scrollInsetBottom).toBe('0px');
     expect(metrics.routeRootPosition).toBe('relative');
     expect(metrics.routeRootZ).toBeGreaterThan(metrics.meshZ);
+    expect(metrics.meshParentTag).toBe('BODY');
+    expect(metrics.meshParentId).toBe('');
+    expect(['', 'BODY']).toContain(metrics.gradientParentTag);
+    expect(metrics.gradientParentId).not.toBe('dx-slot-foreground-root');
 
     expect(metrics.footerPosition).toBe('relative');
     expect(metrics.footerGridDisplay).toBe('grid');
