@@ -605,16 +605,17 @@ body.homepage #dexCombined {
   }
 
   body.homepage #dexHeroSide {
-    flex: 1 1 0 !important;
+    flex: 0 1 clamp(340px, 43%, 620px) !important;
+    max-width: clamp(340px, 46vw, 640px) !important;
     min-width: 0 !important;
   }
 
   body.homepage #dexFeaturedSide {
     --dx-featured-tab-size: clamp(2.9rem, 3.4vw, 3.3rem);
     display: flex !important;
-    flex: 0 1 clamp(360px, 42%, 520px) !important;
-    min-width: clamp(340px, 36vw, 500px) !important;
-    max-width: clamp(360px, 42vw, 520px) !important;
+    flex: 1 1 clamp(420px, 57%, 760px) !important;
+    min-width: clamp(390px, 48vw, 700px) !important;
+    max-width: clamp(420px, 58vw, 780px) !important;
     padding: clamp(10px, 1vw, 14px) !important;
     box-sizing: border-box !important;
     align-self: stretch !important;
