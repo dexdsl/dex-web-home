@@ -409,21 +409,15 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
 
   await expect(page.locator('#pane-notifs .list label.item[data-dx-tooltip]')).toHaveCount(8);
   await expect(page.locator('a[href="/entry/pressroom/"]')).toHaveCount(1);
+  await expect(page.locator('#notifNewsletterEmail')).toHaveCount(0);
+  await expect(page.locator('#notifNewsletterConfirmToken')).toHaveCount(0);
+  await expect(page.locator('#notifNewsletterUnsubToken')).toHaveCount(0);
+  await expect(page.locator('#notifNewsletterEmailValue')).toContainText('messages-e2e@example.com');
+  await expect(page.locator('#notifNewsletterSendLink')).toBeVisible();
 
-  await page.fill('#notifNewsletterEmail', 'notify@example.com');
-  await page.click('#notifNewsletterSubscribe');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/check your email|subscription request sent/i);
-  await expect.poll(() => newsletterHits.includes('subscribe:notify@example.com')).toBe(true);
-
-  await page.fill('#notifNewsletterConfirmToken', 'confirm-test-token');
-  await page.click('#notifNewsletterConfirm');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/confirmed/i);
-  await expect.poll(() => newsletterHits.includes('confirm')).toBe(true);
-
-  await page.fill('#notifNewsletterUnsubToken', 'unsub-test-token');
-  await page.click('#notifNewsletterUnsubscribe');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribed/i);
-  await expect.poll(() => newsletterHits.includes('unsubscribe')).toBe(true);
+  await page.click('#notifNewsletterSendLink');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/check your inbox|newsletter email sent/i);
+  await expect.poll(() => newsletterHits.includes('subscribe:messages-e2e@example.com')).toBe(true);
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {

@@ -3195,3 +3195,13 @@ border: 0;
   outline: none;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) inset, 0 0 0 4px rgba(255, 25, 16, 0.25), 0 10px 30px rgba(255, 0, 80, 0.25) !important;
 }
+
+/* Keep Stretch Pro duplicate shaping stable for runtime-decorated headings/buttons. */
+h1[data-dx-heading-rendered],
+h2[data-dx-heading-rendered],
+a[data-dx-donate-rendered] {
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}

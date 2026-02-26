@@ -2814,13 +2814,13 @@
           <h3>Newsletter</h3>
         </div>
         <p class="note">Marketing newsletter is separate from account notifications and weekly digest.</p>
-        <input id="notifNewsletterEmail" type="email" class="field-input" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Newsletter email">
-        <input id="notifNewsletterConfirmToken" type="text" class="field-input" autocomplete="off" placeholder="Confirmation token (from email)" aria-label="Confirmation token">
-        <input id="notifNewsletterUnsubToken" type="text" class="field-input" autocomplete="off" placeholder="Unsubscribe token (from email)" aria-label="Unsubscribe token">
+        <div class="dx-newsletter-identity">
+          <span class="dx-newsletter-identity-label">Account email</span>
+          <strong id="notifNewsletterEmailValue">Resolving…</strong>
+        </div>
+        <p class="note">We send links to your account email for confirmation and unsubscribe. No token entry needed in Settings.</p>
         <div class="dx-newsletter-actions">
-          <button id="notifNewsletterSubscribe" type="button" class="btn">Subscribe</button>
-          <button id="notifNewsletterConfirm" type="button" class="btn">Confirm</button>
-          <button id="notifNewsletterUnsubscribe" type="button" class="btn">Unsubscribe</button>
+          <button id="notifNewsletterSendLink" type="button" class="btn">Email confirmation/manage link</button>
           <a class="btn" href="/entry/pressroom/">Submit release pitch</a>
         </div>
         <p id="notifNewsletterStatusLine" class="note" aria-live="polite"></p>
@@ -4857,12 +4857,8 @@ function hydrateProfile(me){
     subs: document.getElementById('notifSubs'),
     dig:  document.getElementById('notifDigest'),
     badge:document.getElementById('notStatus'),
-    newsletterEmail: document.getElementById('notifNewsletterEmail'),
-    newsletterConfirmToken: document.getElementById('notifNewsletterConfirmToken'),
-    newsletterUnsubToken: document.getElementById('notifNewsletterUnsubToken'),
-    newsletterSubscribeBtn: document.getElementById('notifNewsletterSubscribe'),
-    newsletterConfirmBtn: document.getElementById('notifNewsletterConfirm'),
-    newsletterUnsubscribeBtn: document.getElementById('notifNewsletterUnsubscribe'),
+    newsletterEmailValue: document.getElementById('notifNewsletterEmailValue'),
+    newsletterSendLinkBtn: document.getElementById('notifNewsletterSendLink'),
     newsletterStatusLine: document.getElementById('notifNewsletterStatusLine'),
   };
 
@@ -4890,10 +4886,9 @@ function hydrateProfile(me){
 
   function setNewsletterBusy(nextBusy){
     newsletterBusy = !!nextBusy;
-    const disabled = newsletterBusy;
-    if (S.newsletterSubscribeBtn) S.newsletterSubscribeBtn.disabled = disabled;
-    if (S.newsletterConfirmBtn) S.newsletterConfirmBtn.disabled = disabled;
-    if (S.newsletterUnsubscribeBtn) S.newsletterUnsubscribeBtn.disabled = disabled;
+    const email = normalizeEmail(resolveNewsletterEmailFromUi());
+    const disabled = newsletterBusy || !email;
+    if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
   }
 
   function resolveTimezone(){
@@ -4905,16 +4900,26 @@ function hydrateProfile(me){
     }
   }
 
-  function prefillNewsletterEmail(){
-    if (!(S.newsletterEmail instanceof HTMLInputElement)) return;
-    if (S.newsletterEmail.value.trim()) return;
+  function resolveNewsletterEmailFromUi(){
     const identityEmail = String(document.getElementById('profEmail')?.textContent || '').trim();
     if (identityEmail && identityEmail !== '—') {
-      S.newsletterEmail.value = identityEmail;
-      return;
+      return identityEmail;
     }
     const fallbackAuthEmail = String(window.AUTH0_USER?.email || '').trim();
-    if (fallbackAuthEmail) S.newsletterEmail.value = fallbackAuthEmail;
+    if (fallbackAuthEmail) return fallbackAuthEmail;
+    return '';
+  }
+
+  function prefillNewsletterIdentity(email){
+    if (!(S.newsletterEmailValue instanceof Element)) return;
+    const normalized = normalizeEmail(email);
+    if (normalized) {
+      S.newsletterEmailValue.textContent = normalized;
+      if (S.newsletterSendLinkBtn && !newsletterBusy) S.newsletterSendLinkBtn.disabled = false;
+      return;
+    }
+    S.newsletterEmailValue.textContent = 'Sign in required';
+    if (S.newsletterSendLinkBtn && !newsletterBusy) S.newsletterSendLinkBtn.disabled = true;
   }
 
   async function postNewsletter(path, payload){
@@ -4930,43 +4935,28 @@ function hydrateProfile(me){
     if (newsletterBusy) return;
     try {
       setNewsletterBusy(true);
-      if (action === 'subscribe') {
-        const email = normalizeEmail(S.newsletterEmail?.value);
+      if (action === 'send-link') {
+        const email = normalizeEmail(resolveNewsletterEmailFromUi());
         if (!email || !email.includes('@')) {
-          setNewsletterStatus('Enter a valid email to subscribe.');
+          prefillNewsletterIdentity('');
+          setNewsletterStatus('Could not resolve your account email. Sign in and refresh, then try again.');
           return;
         }
+        prefillNewsletterIdentity(email);
         const payload = await postNewsletter('/newsletter/subscribe', {
           email,
           source: 'settings-notifications',
-          timezone: resolveTimezone()
+          timezone: resolveTimezone(),
+          auth0Sub: String(window.auth0Sub || '')
         });
         const state = String(payload?.state || '').toLowerCase();
-        if (state === 'active') setNewsletterStatus('Already subscribed.');
-        else if (state === 'pending_confirmation') setNewsletterStatus('Check your email to confirm subscription.');
-        else setNewsletterStatus('Subscription request sent.');
-        return;
-      }
-      if (action === 'confirm') {
-        const token = String(S.newsletterConfirmToken?.value || '').trim();
-        if (!token) {
-          setNewsletterStatus('Paste a confirmation token from your email first.');
-          return;
+        if (state === 'active') {
+          setNewsletterStatus('You are already subscribed. Check your inbox for a manage-subscription link.');
+        } else if (state === 'pending_confirmation') {
+          setNewsletterStatus('Check your inbox to confirm your newsletter subscription.');
+        } else {
+          setNewsletterStatus('Newsletter email sent. Check your inbox.');
         }
-        await postNewsletter('/newsletter/confirm', { token });
-        setNewsletterStatus('Subscription confirmed.');
-        if (S.newsletterConfirmToken instanceof HTMLInputElement) S.newsletterConfirmToken.value = '';
-        return;
-      }
-      if (action === 'unsubscribe') {
-        const token = String(S.newsletterUnsubToken?.value || '').trim();
-        if (!token) {
-          setNewsletterStatus('Paste an unsubscribe token from your email first.');
-          return;
-        }
-        await postNewsletter('/newsletter/unsubscribe', { token });
-        setNewsletterStatus('Newsletter unsubscribed.');
-        if (S.newsletterUnsubToken instanceof HTMLInputElement) S.newsletterUnsubToken.value = '';
       }
     } catch (error) {
       const detail = String(error?.message || '').trim();
@@ -5055,12 +5045,13 @@ function hydrateProfile(me){
   }
 
   async function load(){
+    prefillNewsletterIdentity(resolveNewsletterEmailFromUi());
     try{
       const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: false, timeoutMs: 2500 });
       if (authGate?.status !== 'authenticated') return;
       const d = await jfetch(notificationsApiBase() + '/me/notifications');
       hydrate(d||{});
-      prefillNewsletterEmail();
+      prefillNewsletterIdentity(resolveNewsletterEmailFromUi());
     }catch(_){ /* non-fatal */ }
     finally { markSettingsCardReady('notCard'); }
   }
@@ -5097,9 +5088,7 @@ function hydrateProfile(me){
     void handleNewsletterAction(action);
   });
 
-  S.newsletterSubscribeBtn?.setAttribute('data-dx-newsletter-action', 'subscribe');
-  S.newsletterConfirmBtn?.setAttribute('data-dx-newsletter-action', 'confirm');
-  S.newsletterUnsubscribeBtn?.setAttribute('data-dx-newsletter-action', 'unsubscribe');
+  S.newsletterSendLinkBtn?.setAttribute('data-dx-newsletter-action', 'send-link');
 
   // hydrate without touching the global boot flow
   load();

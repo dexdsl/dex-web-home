@@ -106,15 +106,17 @@ function assertHeadingTypographyInvariants(heading: { canonical: string; rendere
   expect(heading.canonical.length).toBeGreaterThan(0);
   expect(heading.rendered.length).toBeGreaterThan(0);
   expect(heading.rendered).toBe(heading.text);
-  expect(countZwnj(heading.rendered)).toBe(countCanonicalDoubleLetters(heading.canonical));
 
   const renderedWithoutZwnj = stripZwnj(heading.rendered);
   const inserted = findInsertedCharacters(heading.canonical, renderedWithoutZwnj);
+  const expectedZwnjCount = countCanonicalDoubleLetters(heading.canonical) + inserted.length;
+  expect(countZwnj(heading.rendered)).toBe(expectedZwnjCount);
   expect(inserted.length).toBeLessThanOrEqual(1);
   if (inserted.length > 0) {
     const firstUpper = inserted[0]!.toUpperCase();
     expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
     expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
+    expect(new RegExp(`${firstUpper}\\u200c${firstUpper}`, 'i').test(heading.rendered)).toBeTruthy();
   }
 }
 
@@ -248,7 +250,9 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(errorCanonical).toBeTruthy();
   expect(errorRendered).toBeTruthy();
   expect(errorRendered).toBe(errorText);
-  expect(countZwnj(errorRendered || '')).toBe(countCanonicalDoubleLetters(errorCanonical || ''));
+  const errorRenderedText = errorRendered || '';
+  const errorInserted = findInsertedCharacters(errorCanonical || '', stripZwnj(errorRenderedText));
+  expect(countZwnj(errorRenderedText)).toBe(countCanonicalDoubleLetters(errorCanonical || '') + errorInserted.length);
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect.poll(async () => page.locator('#featuredTitle').getAttribute('data-dx-heading-canonical')).toBeTruthy();
@@ -265,7 +269,8 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const heroTitle = await readHeadingBySelector(page, '#dexHeroCard h1');
   expect(heroTitle.canonical.length).toBeGreaterThan(0);
   expect(heroTitle.rendered.length).toBeGreaterThan(0);
-  expect(countZwnj(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical));
+  const heroInserted = findInsertedCharacters(heroTitle.canonical, stripZwnj(heroTitle.rendered));
+  expect(countZwnj(heroTitle.rendered)).toBe(countCanonicalDoubleLetters(heroTitle.canonical) + heroInserted.length);
   expect(heroTitle.canonical.toUpperCase()).toContain('RECORDING');
   expect(hasSingleLetterDuplicateInWord(stripZwnj(heroTitle.rendered), 'RECORDING')).toBeFalsy();
 
@@ -275,14 +280,15 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
     expect(String(donate.href || '')).toContain('/donate');
     expect(donate.canonical).toBe('DONATE');
     expect(donate.rendered).toBe(donate.text);
-    expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical));
     const renderedWithoutZwnj = stripZwnj(donate.rendered);
     const inserted = findInsertedCharacters(donate.canonical, renderedWithoutZwnj);
+    expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical) + inserted.length);
     expect(inserted.length).toBeLessThanOrEqual(1);
     if (inserted.length > 0) {
       const firstUpper = inserted[0]!.toUpperCase();
       expect(inserted.every((char) => char.toUpperCase() === firstUpper)).toBeTruthy();
       expect(LIGATURE_DUPLICATE_SUPPORTED.has(firstUpper)).toBeTruthy();
+      expect(new RegExp(`${firstUpper}\\u200c${firstUpper}`, 'i').test(donate.rendered)).toBeTruthy();
     }
   }
 

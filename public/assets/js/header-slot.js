@@ -553,8 +553,11 @@
 
     const target = eligible[Math.floor(randomFn() * eligible.length)];
     const chars = Array.from(nextValues[target.nodeIndex] || '');
-    const repeated = target.char.repeat(duplicateCount);
-    chars.splice(target.charIndex + 1, 0, repeated);
+    let duplicateRun = '';
+    for (let index = 0; index < duplicateCount; index += 1) {
+      duplicateRun += `${STRETCH_PRO_DUPLICATE_SEPARATOR}${target.char}`;
+    }
+    chars.splice(target.charIndex + 1, 0, duplicateRun);
     nextValues[target.nodeIndex] = chars.join('');
 
     return nextValues;
