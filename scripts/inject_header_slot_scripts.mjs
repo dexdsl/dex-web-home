@@ -6,6 +6,7 @@ const ROOT = process.cwd();
 const DOCS_DIR = path.join(ROOT, 'docs');
 const SLOT_SCRIPT_TAG = '<script defer src="/assets/js/header-slot.js"></script>';
 const DOT_SCRIPT_TAG = '<script defer src="/assets/js/dx-scroll-dot.js"></script>';
+const INTERACTIVE_HOVER_SCRIPT_TAG = '<script defer src="/assets/js/interactive-hover.js"></script>';
 const AUTH0_VENDOR_TAG = '<script src="/assets/vendor/auth0-spa-js.umd.min.js"></script>';
 const AUTH0_CONFIG_TAG = '<script src="/assets/dex-auth0-config.js"></script>';
 const AUTH_RUNTIME_TAG = '<script src="/assets/dex-auth.js"></script>';
@@ -64,7 +65,7 @@ function shouldInject(relativePath, html) {
     }
   }
   if (!requiresRuntime) return false;
-  return !html.includes(SLOT_SCRIPT_TAG) || !html.includes(DOT_SCRIPT_TAG);
+  return !html.includes(SLOT_SCRIPT_TAG) || !html.includes(DOT_SCRIPT_TAG) || !html.includes(INTERACTIVE_HOVER_SCRIPT_TAG);
 }
 
 function injectSingleTag(html, tag, anchors = []) {
@@ -124,6 +125,7 @@ function injectTag(html, relativePath) {
 
   next = injectSingleTag(next, SLOT_SCRIPT_TAG, [authAnchor, authConfigAnchor]);
   next = injectSingleTag(next, DOT_SCRIPT_TAG, [SLOT_SCRIPT_TAG, authAnchor, authConfigAnchor]);
+  next = injectSingleTag(next, INTERACTIVE_HOVER_SCRIPT_TAG, [DOT_SCRIPT_TAG, SLOT_SCRIPT_TAG, authAnchor, authConfigAnchor]);
   return next;
 }
 

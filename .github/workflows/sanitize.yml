@@ -71,6 +71,9 @@ jobs:
       - name: Verify heading ZWNJ contract
         run: npm run verify:heading-zwnj
 
+      - name: Verify interactive hover motion contract
+        run: npm run verify:hover-motion
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -106,6 +109,9 @@ jobs:
 
       - name: Heading ZWNJ regression test
         run: npm run test:heading-zwnj
+
+      - name: Interactive hover motion regression test
+        run: npm run test:hover-motion
 
       - name: Mobile profile shell regression test
         run: npm run test:profile-mobile-shell

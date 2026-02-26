@@ -3,6 +3,44 @@ import { animate } from 'framer-motion/dom';
 const ACTIVE_CONTROLS = new Map();
 const GROUP_STATE = new WeakMap();
 
+const BUTTON_INTERACTIVE_SELECTOR = [
+  '.dx-button-element',
+  '.dx-block-button-element',
+  '.sqs-button-element',
+  '.cta-btn',
+  '.cta',
+  '.dex-btn',
+  '.ghost',
+  '.ghost-btn',
+  '.theme-btn--primary',
+  '.btn--border.theme-btn--primary-inverse',
+].join(', ');
+
+const SEMANTIC_LINK_SELECTOR = [
+  'a[href].dx-support-card-link',
+  'a[href].dx-call-progress-link',
+  'a[href].dx-call-inline-link',
+  'a[href].dx-catalog-how-toc-link',
+  'a[href].dx-catalog-symbols-rail-link',
+  'a[href].dx-dexnotes-card-title-link',
+  'a[href].dx-dexnotes-entry-related-link',
+  'a[href].dx-dexnotes-entry-cover-link',
+  'a[href].dx-dexnotes-link',
+  'a[href].dx-msg-link',
+  'a[href].dx-poll-link',
+  'a[href][class*="card"]',
+  'a[href][class*="nav"]',
+  'a[href][class*="tab"]',
+  'a[href][class*="open"]',
+  'a[href][class*="action"]',
+  'a[href][data-dx-motion-include="true"]',
+  'a[href][data-dx-hover-variant="link"]',
+].join(', ');
+
+const FOOTER_MICRO_LINK_SELECTOR = '.dex-footer a, .footer-nav a, .footer-links-column a, .footer-social a';
+const SEMANTIC_CLASS_TOKENS = ['card', 'nav', 'tab', 'open', 'action', 'link'];
+const BUTTON_CLASS_TOKENS = ['button', 'btn', 'cta', 'dex-btn', 'dx-button-element', 'ghost'];
+
 const DEFAULTS = {
   easeStandard: [0.22, 0.8, 0.24, 1],
   easeEmphasis: [0.2, 0.9, 0.25, 1],
@@ -11,6 +49,10 @@ const DEFAULTS = {
   hoverScale: 1.015,
   pressScale: 0.985,
 };
+
+function clamp(min, max, value) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function markBound(node, key) {
   const raw = String(node.dataset.dxMotionBound || '');
@@ -96,6 +138,110 @@ function animateNode(node, keyframes, options) {
 function getInteractiveButtons(scopeEl, selectors) {
   if (!scopeEl || typeof scopeEl.querySelectorAll !== 'function') return [];
   return Array.from(scopeEl.querySelectorAll(selectors));
+}
+
+function mediaMatches(query) {
+  try {
+    return !!(window.matchMedia && window.matchMedia(query).matches);
+  } catch {
+    return false;
+  }
+}
+
+function prefersFinePointer() {
+  return mediaMatches('(hover: hover) and (pointer: fine)');
+}
+
+function toLowerClassName(node) {
+  return String(node?.className || '').toLowerCase();
+}
+
+function parseBooleanish(rawValue) {
+  if (rawValue == null) return false;
+  const value = String(rawValue).trim().toLowerCase();
+  if (!value) return true;
+  return !['0', 'false', 'off', 'no'].includes(value);
+}
+
+function hasMotionInclude(node) {
+  if (!node || typeof node.getAttribute !== 'function') return false;
+  return parseBooleanish(node.getAttribute('data-dx-motion-include'));
+}
+
+function hasMotionExclude(node) {
+  if (!node || typeof node.getAttribute !== 'function') return false;
+  return parseBooleanish(node.getAttribute('data-dx-motion-exclude'));
+}
+
+function parseHoverVariant(node) {
+  if (!node || typeof node.getAttribute !== 'function') return '';
+  return String(node.getAttribute('data-dx-hover-variant') || '').trim().toLowerCase();
+}
+
+function isFooterMicroLink(node) {
+  if (!node || typeof node.matches !== 'function') return false;
+  if (node.matches(FOOTER_MICRO_LINK_SELECTOR)) return true;
+  return !!node.closest('.dex-footer .footer-links-column, .dex-footer .footer-nav, .dex-footer .footer-social');
+}
+
+function shouldExcludeNode(node) {
+  const variant = parseHoverVariant(node);
+  if (variant === 'none') return true;
+  if (hasMotionExclude(node)) return true;
+  if (node.closest('[data-dx-motion-exclude="true"]') && !hasMotionInclude(node)) return true;
+  if (isFooterMicroLink(node) && !hasMotionInclude(node)) return true;
+  return false;
+}
+
+function classNameContainsToken(node, tokens) {
+  const className = toLowerClassName(node);
+  return tokens.some((token) => className.includes(token));
+}
+
+function isButtonCandidate(node) {
+  if (!node || typeof node.matches !== 'function') return false;
+  const variant = parseHoverVariant(node);
+  if (variant === 'magnetic') return true;
+  if (variant === 'link' || variant === 'press' || variant === 'none') return false;
+  if (node.matches(BUTTON_INTERACTIVE_SELECTOR)) return true;
+  if (node.tagName === 'BUTTON') return true;
+  if (String(node.getAttribute('role') || '').toLowerCase() === 'button') return true;
+  return classNameContainsToken(node, BUTTON_CLASS_TOKENS);
+}
+
+function isSemanticLinkCandidate(node) {
+  if (!node || typeof node.matches !== 'function') return false;
+  const variant = parseHoverVariant(node);
+  if (variant === 'link') return true;
+  if (variant === 'magnetic' || variant === 'press' || variant === 'none') return false;
+  if (!node.matches('a[href]')) return false;
+  if (hasMotionInclude(node)) return true;
+  if (node.matches(SEMANTIC_LINK_SELECTOR)) return true;
+  return classNameContainsToken(node, SEMANTIC_CLASS_TOKENS);
+}
+
+function toNumber(value, fallbackValue) {
+  const parsed = Number.parseFloat(String(value ?? ''));
+  return Number.isFinite(parsed) ? parsed : fallbackValue;
+}
+
+function readRuntimeMotionConfig() {
+  if (typeof window === 'undefined') return {};
+  const raw = window.__DX_INTERACTIVE_MOTION;
+  if (!raw || typeof raw !== 'object') return {};
+  return raw;
+}
+
+function resolveMotionNumber(opts, key, fallbackValue) {
+  const config = readRuntimeMotionConfig();
+  if (opts && Object.prototype.hasOwnProperty.call(opts, key)) return toNumber(opts[key], fallbackValue);
+  return toNumber(config[key], fallbackValue);
+}
+
+function resolveMotionString(opts, key, fallbackValue = '') {
+  const config = readRuntimeMotionConfig();
+  if (opts && Object.prototype.hasOwnProperty.call(opts, key)) return String(opts[key] || fallbackValue).trim();
+  return String(config[key] || fallbackValue).trim();
 }
 
 function registerMotionPair(node, key, onEnter, onLeave) {
@@ -208,18 +354,7 @@ export function routeTransitionIn(scopeEl, opts = {}) {
 export function bindDexButtonMotion(scopeEl, opts = {}) {
   if (!scopeEl || prefersReducedMotion()) return;
 
-  const selector = opts.selector || [
-    '.dx-button-element',
-    '.dx-block-button-element',
-    '.sqs-button-element',
-    '.cta-btn',
-    '.cta',
-    '.dex-btn',
-    '.ghost',
-    '.ghost-btn',
-    '.theme-btn--primary',
-    '.btn--border.theme-btn--primary-inverse',
-  ].join(', ');
+  const selector = opts.selector || BUTTON_INTERACTIVE_SELECTOR;
 
   const nodes = getInteractiveButtons(scopeEl, selector);
   const hoverY = opts.hoverY ?? tokenNum(scopeEl, '--dx-motion-distance-sm', Math.abs(DEFAULTS.hoverY));
@@ -281,6 +416,264 @@ export function bindDexButtonMotion(scopeEl, opts = {}) {
 
     node.addEventListener('pointerdown', press, { passive: true });
     node.addEventListener('mousedown', press);
+  });
+}
+
+function bindMagneticTransform(node, options = {}) {
+  if (!node || shouldExcludeNode(node)) return;
+
+  const duration = toNumber(options.duration, 0.18);
+  const releaseDuration = toNumber(options.releaseDuration, 0.12);
+  const amplitude = toNumber(options.amplitude, 6.2);
+  const tilt = toNumber(options.tilt, 2.4);
+  const hoverScale = toNumber(options.hoverScale, 1.018);
+  const hoverLift = toNumber(options.hoverLift, 1.4);
+  const pressScale = toNumber(options.pressScale, DEFAULTS.pressScale);
+  const opacityDim = toNumber(options.opacityDim, 0.76);
+
+  let frameId = 0;
+  let pendingEvent = null;
+
+  const animateTo = (state, animateOptions) => {
+    animateNode(
+      node,
+      state,
+      {
+        duration: toNumber(animateOptions?.duration, duration),
+        ease: animateOptions?.ease || DEFAULTS.easeEmphasis,
+      },
+    );
+  };
+
+  const flushMove = () => {
+    frameId = 0;
+    const event = pendingEvent;
+    pendingEvent = null;
+    if (!event) return;
+
+    const rect = node.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+    const xRatio = clamp(-1, 1, ((event.clientX - rect.left) / rect.width) * 2 - 1);
+    const yRatio = clamp(-1, 1, ((event.clientY - rect.top) / rect.height) * 2 - 1);
+    const targetX = xRatio * amplitude;
+    const targetY = yRatio * (amplitude * 0.62) - hoverLift;
+    const rotateY = xRatio * tilt;
+    const rotateX = -yRatio * tilt;
+    animateTo(
+      {
+        x: [targetX],
+        y: [targetY],
+        rotateX: [rotateX],
+        rotateY: [rotateY],
+        scale: [hoverScale],
+      },
+      {
+        duration,
+        ease: DEFAULTS.easeEmphasis,
+      },
+    );
+  };
+
+  const queueMove = (event) => {
+    pendingEvent = event;
+    if (frameId) return;
+    frameId = requestAnimationFrame(flushMove);
+  };
+
+  const release = () => {
+    if (frameId) {
+      cancelAnimationFrame(frameId);
+      frameId = 0;
+    }
+    pendingEvent = null;
+    animateTo(
+      {
+        x: [0],
+        y: [0],
+        rotateX: [0],
+        rotateY: [0],
+        scale: [1],
+      },
+      {
+        duration: releaseDuration,
+        ease: DEFAULTS.easeStandard,
+      },
+    );
+  };
+
+  node.addEventListener('pointerenter', (event) => {
+    updateGroupOpacity(node);
+    if (Number.isFinite(opacityDim) && opacityDim > 0 && opacityDim <= 1) {
+      node.style.opacity = '1';
+    }
+    queueMove(event);
+  });
+  node.addEventListener('pointermove', queueMove);
+  node.addEventListener('pointerleave', () => {
+    resetGroupOpacity(node.parentElement);
+    release();
+  });
+  node.addEventListener('pointercancel', release);
+  node.addEventListener('blur', release);
+  node.addEventListener('focusout', release);
+  node.addEventListener('focusin', () => {
+    animateTo(
+      {
+        x: [0],
+        y: [-hoverLift],
+        rotateX: [0],
+        rotateY: [0],
+        scale: [hoverScale],
+      },
+      {
+        duration,
+        ease: DEFAULTS.easeEmphasis,
+      },
+    );
+  });
+
+  if (!hasBound(node, `${options.boundKey || 'magnetic'}-press`)) {
+    markBound(node, `${options.boundKey || 'magnetic'}-press`);
+    node.addEventListener('pointerdown', () => {
+      animateTo(
+        {
+          scale: [pressScale],
+        },
+        {
+          duration: Math.min(duration, 0.1),
+          ease: DEFAULTS.easeExit,
+        },
+      );
+    }, { passive: true });
+  }
+}
+
+export function bindMagneticButtonMotion(scopeEl, opts = {}) {
+  if (!scopeEl || prefersReducedMotion() || !prefersFinePointer()) return;
+
+  const selector = opts.selector || `${BUTTON_INTERACTIVE_SELECTOR}, [data-dx-hover-variant="magnetic"], [data-dx-motion-include="true"]`;
+  const nodes = getInteractiveButtons(scopeEl, selector);
+  const duration = resolveMotionNumber(opts, 'duration', tokenMs(scopeEl, '--dx-motion-dur-sm', 180));
+  const releaseDuration = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
+  const amplitude = resolveMotionNumber(opts, 'amplitude', 6.6);
+  const tilt = resolveMotionNumber(opts, 'tilt', 2.8);
+  const hoverScale = resolveMotionNumber(opts, 'hoverScale', tokenNum(scopeEl, '--dx-motion-scale-hover', 1.018));
+  const hoverLift = resolveMotionNumber(opts, 'hoverLift', 1.6);
+  const pressScale = resolveMotionNumber(opts, 'pressScale', tokenNum(scopeEl, '--dx-motion-scale-press', DEFAULTS.pressScale));
+
+  nodes.forEach((node) => {
+    if (!isButtonCandidate(node) || shouldExcludeNode(node)) return;
+    if (!markBound(node, 'magnetic-button')) return;
+    node.dataset.dxMotion = node.dataset.dxMotion || 'interactive';
+
+    bindMagneticTransform(
+      node,
+      {
+        boundKey: 'magnetic-button',
+        duration,
+        releaseDuration,
+        amplitude,
+        tilt,
+        hoverScale,
+        hoverLift,
+        pressScale,
+        opacityDim: 0.74,
+      },
+    );
+  });
+}
+
+export function bindSemanticLinkMotion(scopeEl, opts = {}) {
+  if (!scopeEl || prefersReducedMotion() || !prefersFinePointer()) return;
+
+  const selector = opts.selector || `${SEMANTIC_LINK_SELECTOR}, a[href][data-dx-motion-include="true"]`;
+  const linkMode = resolveMotionString(opts, 'linkMode', 'semantic').toLowerCase();
+  if (linkMode === 'off' || linkMode === 'none') return;
+
+  const nodes = getInteractiveButtons(scopeEl, selector);
+  const duration = resolveMotionNumber(opts, 'duration', tokenMs(scopeEl, '--dx-motion-dur-sm', 180));
+  const releaseDuration = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
+  const amplitude = resolveMotionNumber(opts, 'linkAmplitude', resolveMotionNumber(opts, 'amplitude', 6.6) * 0.52);
+  const tilt = resolveMotionNumber(opts, 'linkTilt', 1.2);
+  const hoverScale = resolveMotionNumber(opts, 'linkScale', 1.01);
+  const hoverLift = resolveMotionNumber(opts, 'linkLift', 0.8);
+  const pressScale = resolveMotionNumber(opts, 'pressScale', tokenNum(scopeEl, '--dx-motion-scale-press', DEFAULTS.pressScale));
+
+  nodes.forEach((node) => {
+    if (!isSemanticLinkCandidate(node) || shouldExcludeNode(node)) return;
+    if (!markBound(node, 'semantic-link')) return;
+    node.dataset.dxMotion = node.dataset.dxMotion || 'interactive';
+
+    bindMagneticTransform(
+      node,
+      {
+        boundKey: 'semantic-link',
+        duration,
+        releaseDuration,
+        amplitude,
+        tilt,
+        hoverScale,
+        hoverLift,
+        pressScale,
+        opacityDim: 0.8,
+      },
+    );
+  });
+}
+
+export function bindPressOnlyMotion(scopeEl, opts = {}) {
+  if (!scopeEl) return;
+
+  const selector = opts.selector || `${BUTTON_INTERACTIVE_SELECTOR}, ${SEMANTIC_LINK_SELECTOR}, [data-dx-hover-variant="press"], [data-dx-motion-include="true"]`;
+  const nodes = getInteractiveButtons(scopeEl, selector);
+  const durationXs = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
+  const pressScale = resolveMotionNumber(opts, 'pressScale', tokenNum(scopeEl, '--dx-motion-scale-press', DEFAULTS.pressScale));
+
+  nodes.forEach((node) => {
+    if (shouldExcludeNode(node)) return;
+    if (!markBound(node, 'press-only')) return;
+    node.dataset.dxMotion = node.dataset.dxMotion || 'interactive';
+
+    const press = () => {
+      animateNode(
+        node,
+        {
+          x: [0],
+          y: [0],
+          rotateX: [0],
+          rotateY: [0],
+          scale: [pressScale],
+        },
+        {
+          duration: durationXs,
+          ease: DEFAULTS.easeExit,
+        },
+      );
+    };
+
+    const release = () => {
+      animateNode(
+        node,
+        {
+          x: [0],
+          y: [0],
+          rotateX: [0],
+          rotateY: [0],
+          scale: [1],
+        },
+        {
+          duration: durationXs,
+          ease: DEFAULTS.easeStandard,
+        },
+      );
+    };
+
+    node.addEventListener('pointerdown', press, { passive: true });
+    node.addEventListener('mousedown', press);
+    node.addEventListener('pointerup', release, { passive: true });
+    node.addEventListener('pointercancel', release, { passive: true });
+    node.addEventListener('pointerleave', release, { passive: true });
+    node.addEventListener('blur', release);
   });
 }
 
