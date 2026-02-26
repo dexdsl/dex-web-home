@@ -2359,6 +2359,21 @@
     grid-template-columns:1fr;
   }
 }
+#dex-settings #pane-notifs #notCard .dx-newsletter-actions .cta{
+  width:100%;
+  min-height:42px;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-actions .cta-secondary{
+  background:var(--glass-bg);
+  color:#000;
+  border:1px solid var(--glass-brd);
+  box-shadow:none;
+}
+@media (prefers-reduced-motion: no-preference){
+  #dex-settings #pane-notifs #notCard .dx-newsletter-actions .cta-secondary:hover{
+    box-shadow:0 8px 22px rgba(0,0,0,.12);
+  }
+}
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
 #dex-settings #pane-notifs .list label.item[data-dx-tooltip]{
   position:relative;
@@ -2818,10 +2833,12 @@
           <span class="dx-newsletter-identity-label">Account email</span>
           <strong id="notifNewsletterEmailValue">Resolving…</strong>
         </div>
-        <p class="note">We send links to your account email for confirmation and unsubscribe. No token entry needed in Settings.</p>
+        <p class="note">We send links to your account email for confirmation, pause, and unsubscribe. No token entry needed in Settings.</p>
         <div class="dx-newsletter-actions">
-          <button id="notifNewsletterSendLink" type="button" class="btn">Email confirmation/manage link</button>
-          <a class="btn" href="/entry/pressroom/">Submit release pitch</a>
+          <button id="notifNewsletterSendLink" type="button" class="cta">Email confirmation/manage link</button>
+          <button id="notifNewsletterPauseLink" type="button" class="cta cta-secondary">Pause newsletter</button>
+          <button id="notifNewsletterUnsubscribeLink" type="button" class="cta cta-secondary">Unsubscribe</button>
+          <a class="cta cta-secondary" href="/entry/pressroom/">Submit release pitch</a>
         </div>
         <p id="notifNewsletterStatusLine" class="note" aria-live="polite"></p>
       </section>
@@ -4864,6 +4881,8 @@ function hydrateProfile(me){
     badge:document.getElementById('notStatus'),
     newsletterEmailValue: document.getElementById('notifNewsletterEmailValue'),
     newsletterSendLinkBtn: document.getElementById('notifNewsletterSendLink'),
+    newsletterPauseLinkBtn: document.getElementById('notifNewsletterPauseLink'),
+    newsletterUnsubscribeLinkBtn: document.getElementById('notifNewsletterUnsubscribeLink'),
     newsletterStatusLine: document.getElementById('notifNewsletterStatusLine'),
   };
 
@@ -4900,6 +4919,8 @@ function hydrateProfile(me){
     const email = isLikelyEmail(resolveNewsletterEmailFromUi());
     const disabled = newsletterBusy || !email;
     if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
+    if (S.newsletterPauseLinkBtn) S.newsletterPauseLinkBtn.disabled = disabled;
+    if (S.newsletterUnsubscribeLinkBtn) S.newsletterUnsubscribeLinkBtn.disabled = disabled;
   }
 
   function resolveTimezone(){
@@ -4989,7 +5010,7 @@ function hydrateProfile(me){
     if (newsletterBusy) return;
     try {
       setNewsletterBusy(true);
-      if (action === 'send-link') {
+      if (action === 'send-link' || action === 'pause-link' || action === 'unsubscribe-link') {
         const email = isLikelyEmail(await resolveNewsletterEmailAsync());
         if (!email || !email.includes('@')) {
           prefillNewsletterIdentity('');
@@ -4997,19 +5018,30 @@ function hydrateProfile(me){
           return;
         }
         prefillNewsletterIdentity(email);
+        const sourceMap = {
+          'send-link': 'settings-newsletter-manage',
+          'pause-link': 'settings-newsletter-pause',
+          'unsubscribe-link': 'settings-newsletter-unsubscribe'
+        };
         const payload = await postNewsletter('/newsletter/subscribe', {
           email,
-          source: 'settings-notifications',
+          source: sourceMap[action] || 'settings-newsletter',
           timezone: resolveTimezone(),
           auth0Sub: String(window.auth0Sub || '')
         });
         const state = String(payload?.state || '').toLowerCase();
-        if (state === 'active') {
-          setNewsletterStatus('You are already subscribed. Check your inbox for a manage-subscription link.');
-        } else if (state === 'pending_confirmation') {
+        if (action === 'pause-link') {
+          setNewsletterStatus('Pause link sent. Check your inbox to pause newsletter delivery.');
+          return;
+        }
+        if (action === 'unsubscribe-link') {
+          setNewsletterStatus('Unsubscribe link sent. Check your inbox to remove this address from newsletter delivery.');
+          return;
+        }
+        if (state === 'pending_confirmation') {
           setNewsletterStatus('Check your inbox to confirm your newsletter subscription.');
         } else {
-          setNewsletterStatus('Newsletter email sent. Check your inbox.');
+          setNewsletterStatus('Manage-subscription link sent. Check your inbox.');
         }
       }
     } catch (error) {
@@ -5144,6 +5176,8 @@ function hydrateProfile(me){
   });
 
   S.newsletterSendLinkBtn?.setAttribute('data-dx-newsletter-action', 'send-link');
+  S.newsletterPauseLinkBtn?.setAttribute('data-dx-newsletter-action', 'pause-link');
+  S.newsletterUnsubscribeLinkBtn?.setAttribute('data-dx-newsletter-action', 'unsubscribe-link');
 
   window.addEventListener('dx:settings:identity-hydrated', (event) => {
     const detail = event && typeof event === 'object' && 'detail' in event ? event.detail : null;

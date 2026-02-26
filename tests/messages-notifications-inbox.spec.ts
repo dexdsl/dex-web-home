@@ -414,10 +414,21 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
   await expect(page.locator('#notifNewsletterUnsubToken')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterEmailValue')).toContainText('messages-e2e@example.com');
   await expect(page.locator('#notifNewsletterSendLink')).toBeVisible();
+  await expect(page.locator('#notifNewsletterPauseLink')).toBeVisible();
+  await expect(page.locator('#notifNewsletterUnsubscribeLink')).toBeVisible();
+  await expect(page.locator('#notifNewsletterSendLink')).toHaveClass(/cta/);
+  await expect(page.locator('#notifNewsletterPauseLink')).toHaveClass(/cta-secondary/);
+  await expect(page.locator('#notifNewsletterUnsubscribeLink')).toHaveClass(/cta-secondary/);
 
   await page.click('#notifNewsletterSendLink');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/check your inbox|newsletter email sent/i);
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/manage-subscription link sent|check your inbox|newsletter email sent/i);
   await expect.poll(() => newsletterHits.includes('subscribe:messages-e2e@example.com')).toBe(true);
+
+  await page.click('#notifNewsletterPauseLink');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/pause link sent/i);
+
+  await page.click('#notifNewsletterUnsubscribeLink');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribe link sent/i);
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {
