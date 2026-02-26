@@ -59,6 +59,9 @@ jobs:
       - name: Verify favorites contract
         run: npm run verify:favorites
 
+      - name: Verify error/support contract
+        run: npm run verify:error-support
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -82,6 +85,9 @@ jobs:
 
       - name: Favorites lookup parity test
         run: npm run test:favorites-lookup
+
+      - name: Error/support reliability test
+        run: npm run test:error-support
 
       - name: Visual snapshot test
         run: npm run test:visual

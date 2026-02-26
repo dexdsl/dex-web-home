@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-02-26T00:00:00.000Z",
+  "overall": {
+    "state": "operational",
+    "message": "All systems are operational."
+  },
+  "components": [
+    {
+      "id": "web",
+      "name": "Web App",
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": 99.99, "d30": 99.98 },
+      "latencyMs": 148,
+      "updatedAt": "2026-02-26T00:00:00.000Z"
+    },
+    {
+      "id": "auth",
+      "name": "Auth Runtime",
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": 99.96, "d30": 99.91 },
+      "latencyMs": 202,
+      "updatedAt": "2026-02-26T00:00:00.000Z"
+    },
+    {
+      "id": "api",
+      "name": "API",
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": 99.95, "d30": 99.9 },
+      "latencyMs": 188,
+      "updatedAt": "2026-02-26T00:00:00.000Z"
+    },
+    {
+      "id": "media",
+      "name": "Media Delivery",
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": 99.99, "d30": 99.97 },
+      "latencyMs": 132,
+      "updatedAt": "2026-02-26T00:00:00.000Z"
+    },
+    {
+      "id": "downloads",
+      "name": "Downloads",
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": 99.97, "d30": 99.93 },
+      "latencyMs": 214,
+      "updatedAt": "2026-02-26T00:00:00.000Z"
+    }
+  ],
+  "incidents": [
+    {
+      "id": "inc-2026-02-20-auth-latency",
+      "title": "Elevated auth latency",
+      "state": "resolved",
+      "impact": "minor",
+      "startedAt": "2026-02-20T14:10:00.000Z",
+      "updatedAt": "2026-02-20T14:42:00.000Z",
+      "resolvedAt": "2026-02-20T14:42:00.000Z",
+      "components": ["auth"],
+      "summary": "Token exchange latency briefly increased due to upstream saturation.",
+      "link": "/support/"
+    }
+  ]
+}

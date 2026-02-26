@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>support &mdash; dex digital sample library</title>
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="/support/" />
+    <link rel="icon" type="image/x-icon" href="/assets/img/54952c48d15771b9cb2a.ico"/>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/bridge.squarespace.css">
+    <link rel="stylesheet" href="/css/components/dx-layout.css">
+    <link rel="stylesheet" href="/css/components/dx-surface.css">
+    <link rel="stylesheet" href="/css/components/dx-controls.css">
+    <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/assets/css/dex.css">
+    <style>
+      .dx-utility-wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: clamp(1.2rem, 2vw, 2rem);
+      }
+      .dx-support-root {
+        display: grid;
+        gap: 1rem;
+      }
+      .dx-support-panel {
+        border: 1px solid var(--dx-glass-shell-rim, rgba(255, 255, 255, 0.15));
+        border-radius: 16px;
+        background: var(--dx-glass-shell-bg, rgba(10, 12, 17, 0.72));
+        box-shadow: var(--dx-glass-shell-shadow, 0 18px 38px rgba(0, 0, 0, 0.35));
+        padding: clamp(1rem, 2vw, 1.6rem);
+      }
+      .dx-support-kicker {
+        font-size: 0.75rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 0.5rem;
+        opacity: 0.75;
+      }
+      .dx-support-title {
+        margin: 0 0 0.6rem;
+        font-size: clamp(1.35rem, 3.2vw, 2.15rem);
+      }
+      .dx-support-copy {
+        margin: 0;
+      }
+      .dx-support-grid {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.95rem;
+      }
+      .dx-support-card {
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 12px;
+        padding: 0.9rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .dx-support-card h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .dx-support-card p {
+        margin: 0.45rem 0 0;
+      }
+      .dx-support-status-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.85rem;
+      }
+      .dx-support-status-table th,
+      .dx-support-status-table td {
+        text-align: left;
+        padding: 0.55rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        vertical-align: top;
+      }
+      .dx-support-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 95px;
+        border-radius: 999px;
+        padding: 0.2rem 0.7rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .dx-support-status-badge[data-state="operational"] { background: rgba(42, 189, 111, 0.17); color: #95f2c0; }
+      .dx-support-status-badge[data-state="degraded"] { background: rgba(255, 173, 50, 0.2); color: #ffd48a; }
+      .dx-support-status-badge[data-state="outage"] { background: rgba(238, 86, 86, 0.2); color: #ffadad; }
+      .dx-support-status-badge[data-state="maintenance"] { background: rgba(112, 165, 255, 0.2); color: #b6d2ff; }
+      .dx-support-status-meta {
+        margin: 0.55rem 0 0;
+        font-size: 0.95rem;
+        opacity: 0.85;
+      }
+      .dx-support-panel-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+      }
+      .dx-support-incident-list {
+        margin: 0.75rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.6rem;
+      }
+      .dx-support-incident-item {
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        border-radius: 12px;
+        padding: 0.72rem;
+      }
+      .dx-support-incident-meta {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-top: 0.3rem;
+      }
+      .dx-support-shortcuts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+      .dx-support-shortcuts a {
+        text-decoration: none;
+      }
+      .dx-support-faq details + details {
+        margin-top: 0.65rem;
+      }
+      .dx-support-faq summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .dx-support-faq p {
+        margin: 0.45rem 0 0;
+      }
+      @media (min-width: 840px) {
+        .dx-support-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+    <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
+    <script defer src="/assets/dex-auth0-config.js"></script>
+    <script defer src="/assets/dex-auth.js"></script>
+    <script defer src="/assets/js/header-slot.js"></script>
+    <script defer src="/assets/js/dx-scroll-dot.js"></script>
+    <script defer src="/assets/js/support-status.js"></script>
+  </head>
+  <body>
+    <main id="page" class="dx-utility-wrap" tabindex="-1">
+      <section id="dx-support" class="dx-support-root" data-dx-fetch-state="loading" aria-busy="true">
+        <div class="dx-fetch-shell-overlay" aria-hidden="true">
+          <div class="dx-fetch-shell dx-fetch-shell--card">
+            <span class="dx-fetch-shell-pill"></span>
+            <span class="dx-fetch-shell-line"></span>
+            <span class="dx-fetch-shell-line"></span>
+            <span class="dx-fetch-shell-line" style="width: 72%;"></span>
+          </div>
+        </div>
+
+        <section class="dx-support-panel">
+          <p class="dx-support-kicker">support center</p>
+          <h1 class="dx-support-title">Support and service reliability</h1>
+          <p class="dx-support-copy">Use these guides to troubleshoot quickly, then escalate through contact if you still need help.</p>
+        </section>
+
+        <section class="dx-support-panel" id="dx-support-account-panel">
+          <div class="dx-support-panel-head">
+            <h2>Account support</h2>
+          </div>
+          <div id="dx-support-account" aria-live="polite">Checking account status…</div>
+        </section>
+
+        <section class="dx-support-panel" id="dx-support-status-panel">
+          <div class="dx-support-panel-head">
+            <h2>System status</h2>
+            <button type="button" class="dx-button-element dx-button-element--secondary dx-button-size--sm" data-dx-support-refresh>Refresh</button>
+          </div>
+          <p id="dx-support-status-meta" class="dx-support-status-meta">Loading status…</p>
+          <div id="dx-support-status" aria-live="polite"></div>
+        </section>
+
+        <section class="dx-support-panel">
+          <h2>Get unstuck fast</h2>
+          <div class="dx-support-grid">
+            <a href="/catalog/" class="dx-support-card">
+              <h3>Catalog loading or navigation issues</h3>
+              <p>Check route path, refresh state, and fallback links from the catalog shell.</p>
+            </a>
+            <a href="/polls/" class="dx-support-card">
+              <h3>Poll route or submission mismatches</h3>
+              <p>Use the polls route directly and verify sign-in state before re-submitting actions.</p>
+            </a>
+            <a href="/entry/achievements/" class="dx-support-card">
+              <h3>Achievements appears blank or stalled</h3>
+              <p>Validate session state and retry. The page now supports partial-data fallback rendering.</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="dx-support-panel dx-support-faq">
+          <h2>FAQ</h2>
+          <details>
+            <summary>Why does a page sometimes look stale after a soft navigation?</summary>
+            <p>If a route runtime fails mid-transition, refresh state can desync. Use direct route reload and then continue navigation from the rendered route.</p>
+          </details>
+          <details>
+            <summary>Can I use support without signing in?</summary>
+            <p>Yes. Support is fully public. Signing in only unlocks account-specific shortcuts.</p>
+          </details>
+          <details>
+            <summary>How often does the status panel refresh?</summary>
+            <p>Status refreshes every 60 seconds when healthy and uses exponential backoff during outages or endpoint failures.</p>
+          </details>
+        </section>
+
+        <section class="dx-support-panel">
+          <h2>Need direct help?</h2>
+          <p class="dx-support-copy">If self-serve steps do not resolve the issue, contact us with the route and timestamp.</p>
+          <div class="dx-support-shortcuts">
+            <a href="/contact/" class="dx-button-element dx-button-element--primary dx-button-size--md">Open contact</a>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
