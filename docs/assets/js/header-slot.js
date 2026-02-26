@@ -22,6 +22,7 @@
   const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
   const PROFILE_FOOTER_PORTALED_CLASS = 'dx-profile-footer-portaled';
   const IOS_SAFARI_CLASS = 'dx-ios-safari';
+  const IOS_SAFARI_STANDALONE_CLASS = 'dx-ios-safari-standalone';
   const IOS_VIEWPORT_HEIGHT_VAR = '--dx-ios-viewport-height';
   const IOS_VIEWPORT_OFFSET_TOP_VAR = '--dx-ios-viewport-offset-top';
   const IOS_HOME_INDICATOR_VAR = '--dx-ios-home-indicator';
@@ -384,6 +385,14 @@
     return isLikelyIosFamily() && isSafariEngine();
   }
 
+  function isStandaloneDisplayMode() {
+    try {
+      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+      if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
+    } catch {}
+    return Boolean(window.navigator && window.navigator.standalone === true);
+  }
+
   function clearIosSafariViewportVars() {
     const rootStyle = document.documentElement && document.documentElement.style;
     if (!rootStyle) return;
@@ -394,14 +403,19 @@
 
   function syncIosSafariClassAndVarsNow() {
     const enabled = isIosSafariBrowser();
+    const standalone = enabled && isStandaloneDisplayMode();
     const html = document.documentElement;
     if (html) {
       html.classList.toggle(IOS_SAFARI_CLASS, enabled);
+      html.classList.toggle(IOS_SAFARI_STANDALONE_CLASS, standalone);
       html.setAttribute('data-dx-ios-safari', enabled ? 'true' : 'false');
+      html.setAttribute('data-dx-ios-safari-standalone', standalone ? 'true' : 'false');
     }
     if (document.body) {
       document.body.classList.toggle(IOS_SAFARI_CLASS, enabled);
+      document.body.classList.toggle(IOS_SAFARI_STANDALONE_CLASS, standalone);
       document.body.setAttribute('data-dx-ios-safari', enabled ? 'true' : 'false');
+      document.body.setAttribute('data-dx-ios-safari-standalone', standalone ? 'true' : 'false');
     }
     if (!enabled) {
       clearIosSafariViewportVars();
@@ -417,8 +431,8 @@
     );
     const viewport = window.visualViewport;
     const viewportHeight = viewport ? Math.max(0, Math.round(viewport.height || 0)) : layoutHeight;
-    const viewportOffsetTop = viewport ? Math.max(0, Math.round(viewport.offsetTop || 0)) : 0;
-    const occludedBottom = viewport
+    const viewportOffsetTop = standalone && viewport ? Math.max(0, Math.round(viewport.offsetTop || 0)) : 0;
+    const occludedBottom = standalone && viewport
       ? Math.max(0, Math.round(layoutHeight - (viewport.height || 0) - (viewport.offsetTop || 0)))
       : 0;
 

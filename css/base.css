@@ -92,6 +92,10 @@
   --dx-safe-right: env(safe-area-inset-right, 0px);
   --dx-safe-bottom: env(safe-area-inset-bottom, 0px);
   --dx-safe-left: env(safe-area-inset-left, 0px);
+  --dx-safe-top-max: env(safe-area-max-inset-top, 0px);
+  --dx-safe-right-max: env(safe-area-max-inset-right, 0px);
+  --dx-safe-bottom-max: env(safe-area-max-inset-bottom, 0px);
+  --dx-safe-left-max: env(safe-area-max-inset-left, 0px);
   --dex-scroll-dot-size: 12px;
   --dex-scroll-rail-w: 4px;
   --dex-scroll-shift-x: -10px;
@@ -181,6 +185,14 @@ html.dx-ios-safari body {
   min-height: -webkit-fill-available;
 }
 
+html.dx-ios-safari {
+  background: linear-gradient(180deg, #eef1f7 0%, #f3ece6 42%, #dde6f4 100%);
+}
+
+html.dx-ios-safari body {
+  background: transparent;
+}
+
 html.dx-ios-safari body.dx-slot-enabled #dx-slot-scroll-root {
   inset: 0 !important;
   height: var(--dx-ios-viewport-height, 100dvh);
@@ -193,10 +205,21 @@ html.dx-ios-safari body.dx-slot-enabled #dx-slot-foreground-root {
   padding-bottom: max(var(--dx-space-lg), var(--dx-safe-bottom), var(--dx-ios-home-indicator, 0px));
 }
 
+html.dx-ios-safari:not(.dx-ios-safari-standalone) body.dx-slot-enabled #dx-slot-scroll-root {
+  min-height: 100lvh;
+  height: max(100lvh, var(--dx-ios-viewport-height, 100dvh));
+}
+
+html.dx-ios-safari:not(.dx-ios-safari-standalone) body.dx-slot-enabled #dx-slot-foreground-root {
+  min-height: max(100lvh, var(--dx-ios-viewport-height, 100dvh));
+}
+
 html.dx-ios-safari body #scroll-gradient-bg,
 html.dx-ios-safari body #gooey-mesh-wrapper {
-  top: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-top), var(--dx-ios-viewport-offset-top, 0px))) * -1) !important;
-  bottom: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-bottom), var(--dx-ios-home-indicator, 0px))) * -1) !important;
+  top: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-top), var(--dx-safe-top-max), var(--dx-ios-viewport-offset-top, 0px))) * -1) !important;
+  right: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-right), var(--dx-safe-right-max))) * -1) !important;
+  bottom: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-bottom), var(--dx-safe-bottom-max), var(--dx-ios-home-indicator, 0px))) * -1) !important;
+  left: calc((var(--dx-gooey-overscan) + max(var(--dx-safe-left), var(--dx-safe-left-max))) * -1) !important;
 }
 
 body.dx-slot-enabled {

@@ -77,6 +77,12 @@ function verifySafeAreaCss() {
   if (!/--dx-ios-viewport-height/m.test(css)) {
     failures.push('public/css/base.css: missing iOS Safari viewport variable usage');
   }
+  if (!/safe-area-max-inset-top/m.test(css) || !/safe-area-max-inset-bottom/m.test(css)) {
+    failures.push('public/css/base.css: missing max safe-area inset fallbacks for iOS Safari tab mode');
+  }
+  if (!/html\.dx-ios-safari:not\(\.dx-ios-safari-standalone\)[\s\S]*100lvh/m.test(css)) {
+    failures.push('public/css/base.css: missing iOS Safari tab-mode 100lvh coverage rules');
+  }
 
   return failures;
 }
