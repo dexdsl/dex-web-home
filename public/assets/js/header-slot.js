@@ -57,8 +57,9 @@
     ['/assets/js/dx-scroll-dot.js', '__dxScrollDotLoaded'],
   ]);
   const STRETCH_PRO_DUPLICATE_SEPARATOR = '\u200C';
-  const STRETCH_PRO_FONT_PATTERN = /stretch\s*pro/i;
-  const STRETCH_PRO_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
+  const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
+  const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
+  const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
 
   let routeAbortController = null;
   let isNavigating = false;
@@ -77,6 +78,8 @@
   let profileViewportMetricsInstalled = false;
   let profileViewportMetricsRafId = 0;
   let profileFooterPortalState = { footer: null, anchor: null };
+  const headingCanonicalTextByNode = new WeakMap();
+  const headingRenderedTextByNode = new WeakMap();
 
   function getHeaderElement(root = document) {
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
@@ -383,8 +386,12 @@
     return char.toLowerCase() !== char.toUpperCase();
   }
 
-  function insertStretchProDuplicateSeparators(value) {
-    const source = String(value == null ? '' : value);
+  function stripZwnjCharacters(value) {
+    return String(value == null ? '' : value).replace(/\u200C/g, '');
+  }
+
+  function insertCanonicalDoubleLetterSeparators(value) {
+    const source = stripZwnjCharacters(value);
     if (!source) return source;
 
     const chars = Array.from(source);
@@ -407,51 +414,238 @@
     return changed ? output.join('') : source;
   }
 
-  function elementUsesStretchProFont(element, cache) {
-    if (!(element instanceof HTMLElement)) return false;
-    if (cache.has(element)) return cache.get(element);
-
-    let usesStretchPro = false;
-    try {
-      const fontFamily = String(window.getComputedStyle(element).fontFamily || '');
-      usesStretchPro = STRETCH_PRO_FONT_PATTERN.test(fontFamily);
-    } catch {
-      usesStretchPro = false;
+  function hashStringToUint32(value) {
+    let hash = 2166136261;
+    const chars = Array.from(String(value == null ? '' : value));
+    for (const char of chars) {
+      hash ^= char.codePointAt(0) || 0;
+      hash = Math.imul(hash, 16777619);
+      hash >>>= 0;
     }
-
-    cache.set(element, usesStretchPro);
-    return usesStretchPro;
+    return hash >>> 0;
   }
 
-  function applyStretchProDuplicateLetterSeparators(root = document) {
-    if (typeof document.createTreeWalker !== 'function' || typeof window.getComputedStyle !== 'function') return;
+  function createSeededRandom(seedValue) {
+    let seed = hashStringToUint32(seedValue || 'dx-heading-seed');
+    return () => {
+      seed += 0x6D2B79F5;
+      let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+  }
 
-    const scope = root instanceof Document ? (root.body || root.documentElement) : root;
-    if (!(scope instanceof Node)) return;
+  function createHeadingRandom(seedKey) {
+    const seedBase = window.__DX_HEADING_RANDOM_SEED;
+    if (seedBase === null || seedBase === undefined || String(seedBase) === '') {
+      return Math.random;
+    }
+    return createSeededRandom(`${seedBase}|${seedKey || ''}`);
+  }
 
-    const fontCache = new WeakMap();
-    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+  function pickProbabilisticDuplicateCount(randomFn) {
+    const roll = randomFn();
+    if (roll < 0.4) return 0;
+    if (roll < 0.8) return 1;
+    return 2;
+  }
+
+  function collectEligibleDuplicateTargets(nodeValues) {
+    const eligible = [];
+    nodeValues.forEach((value, nodeIndex) => {
+      const chars = Array.from(String(value || ''));
+      for (let charIndex = 0; charIndex < chars.length; charIndex += 1) {
+        const char = chars[charIndex];
+        if (!char || char === STRETCH_PRO_DUPLICATE_SEPARATOR) continue;
+        if (!/\S/.test(char)) continue;
+        if (!isAlphabeticCharacter(char)) continue;
+        if (HEADING_DUPLICATE_EXCLUDED.has(char.toUpperCase())) continue;
+        eligible.push({ nodeIndex, charIndex, char });
+      }
+    });
+    return eligible;
+  }
+
+  function applyProbabilisticHeadingDuplicates(nodeValues, randomFn) {
+    if (!Array.isArray(nodeValues) || !nodeValues.length) return nodeValues;
+    const nextValues = nodeValues.map((value) => String(value == null ? '' : value));
+    const duplicateCount = pickProbabilisticDuplicateCount(randomFn);
+    if (!duplicateCount) return nextValues;
+
+    const eligible = collectEligibleDuplicateTargets(nextValues);
+    if (!eligible.length) return nextValues;
+
+    const target = eligible[Math.floor(randomFn() * eligible.length)];
+    const chars = Array.from(nextValues[target.nodeIndex] || '');
+    const repeated = target.char.repeat(duplicateCount);
+    chars.splice(target.charIndex + 1, 0, repeated);
+    nextValues[target.nodeIndex] = chars.join('');
+
+    return nextValues;
+  }
+
+  function extractHeadingTextNodes(heading) {
+    if (!(heading instanceof HTMLElement)) return [];
+    if (typeof document.createTreeWalker !== 'function') return [];
+
+    const nodes = [];
+    const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
-        if (!node || !node.nodeValue || !/\S/.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        if (!node || typeof node.nodeValue !== 'string') return NodeFilter.FILTER_REJECT;
         const parent = node.parentElement;
-        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
-        if (parent.closest(STRETCH_PRO_TEXT_IGNORE_SELECTOR)) return NodeFilter.FILTER_REJECT;
+        if (parent && parent.closest(HEADING_TEXT_IGNORE_SELECTOR)) return NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue.length) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });
 
-    let textNode = walker.nextNode();
-    while (textNode) {
-      const parent = textNode.parentElement;
-      if (parent instanceof HTMLElement && elementUsesStretchProFont(parent, fontCache)) {
-        const originalValue = textNode.nodeValue || '';
-        const nextValue = insertStretchProDuplicateSeparators(originalValue);
-        if (nextValue !== originalValue) {
-          textNode.nodeValue = nextValue;
-        }
-      }
-      textNode = walker.nextNode();
+    let current = walker.nextNode();
+    while (current) {
+      nodes.push(current);
+      current = walker.nextNode();
     }
+    return nodes;
+  }
+
+  function canonicalHeadingNodeValue(node) {
+    const currentValue = String(node && node.nodeValue ? node.nodeValue : '');
+    const lastRendered = headingRenderedTextByNode.get(node);
+    const lastCanonical = headingCanonicalTextByNode.get(node);
+
+    if (typeof lastCanonical === 'string' && typeof lastRendered === 'string' && currentValue === lastRendered) {
+      return lastCanonical;
+    }
+
+    const canonical = stripZwnjCharacters(currentValue);
+    headingCanonicalTextByNode.set(node, canonical);
+    return canonical;
+  }
+
+  function normalizeHeadingRouteKey() {
+    return `${normalizePathname(window.location.pathname || '/')}${window.location.search || ''}`;
+  }
+
+  function decorateHeadingElement(heading, options = {}) {
+    if (!(heading instanceof HTMLElement)) return false;
+    const textNodes = extractHeadingTextNodes(heading);
+    if (!textNodes.length) return false;
+
+    const canonicalNodeValues = textNodes.map((node) => canonicalHeadingNodeValue(node));
+    const canonicalHeading = canonicalNodeValues.join('');
+    if (!/\S/.test(canonicalHeading)) return false;
+
+    const currentRendered = textNodes.map((node) => String(node.nodeValue || '')).join('');
+    const routeKey = options.routeKey || normalizeHeadingRouteKey();
+    const headingIndex = Number.isFinite(options.headingIndex) ? options.headingIndex : 0;
+    const signature = `${routeKey}|${headingIndex}|${canonicalHeading}`;
+
+    if (
+      heading.getAttribute('data-dx-heading-signature') === signature &&
+      heading.getAttribute('data-dx-heading-rendered') === currentRendered
+    ) {
+      heading.setAttribute('data-dx-heading-canonical', canonicalHeading);
+      return false;
+    }
+
+    const separatedNodeValues = canonicalNodeValues.map((value) => insertCanonicalDoubleLetterSeparators(value));
+    const randomFn = createHeadingRandom(signature);
+    const renderedNodeValues = applyProbabilisticHeadingDuplicates(separatedNodeValues, randomFn);
+
+    textNodes.forEach((node, index) => {
+      const nextValue = renderedNodeValues[index] || '';
+      node.nodeValue = nextValue;
+      headingRenderedTextByNode.set(node, nextValue);
+    });
+
+    const renderedHeading = renderedNodeValues.join('');
+    heading.setAttribute('data-dx-heading-canonical', canonicalHeading);
+    heading.setAttribute('data-dx-heading-rendered', renderedHeading);
+    heading.setAttribute('data-dx-heading-signature', signature);
+    return true;
+  }
+
+  function applyHeadingTypographyEffects(root = document) {
+    const scope = root instanceof Document ? (root.body || root.documentElement) : root;
+    if (!(scope instanceof Element || scope instanceof DocumentFragment)) return 0;
+    if (typeof scope.querySelectorAll !== 'function') return 0;
+
+    const headings = Array.from(scope.querySelectorAll(HEADING_TYPOGRAPHY_SELECTOR));
+    const routeKey = normalizeHeadingRouteKey();
+    let changedCount = 0;
+    headings.forEach((heading, index) => {
+      if (decorateHeadingElement(heading, { headingIndex: index, routeKey })) {
+        changedCount += 1;
+      }
+    });
+    return changedCount;
+  }
+
+  function renderHeadingText(value, options = {}) {
+    const source = options.uppercase === false ? String(value || '') : String(value || '').toUpperCase();
+    const canonical = stripZwnjCharacters(source);
+    const separated = insertCanonicalDoubleLetterSeparators(canonical);
+    const randomFn = createHeadingRandom(options.seedKey || canonical);
+    const [rendered] = applyProbabilisticHeadingDuplicates([separated], randomFn);
+    return rendered || separated;
+  }
+
+  function exposeHeadingTypographyRuntime() {
+    const runtime = {
+      separator: STRETCH_PRO_DUPLICATE_SEPARATOR,
+      decorateHeading: (heading, options = {}) => decorateHeadingElement(heading, options),
+      decorateHeadings: (root = document) => applyHeadingTypographyEffects(root),
+      renderHeadingText: (value, options = {}) => renderHeadingText(value, options),
+    };
+    try {
+      window.__dxHeadingFx = runtime;
+    } catch {}
+  }
+
+  exposeHeadingTypographyRuntime();
+
+  function applyHeadingTypographyEffectsIfPossible(root = document) {
+    try {
+      applyHeadingTypographyEffects(root);
+    } catch {}
+  }
+
+  function applyHeadingTypographyToElementIfPossible(heading, options = {}) {
+    if (!(heading instanceof HTMLElement)) return;
+    try {
+      decorateHeadingElement(heading, options);
+      return;
+    } catch {}
+    try {
+      const headingFx = window.__dxHeadingFx;
+      if (headingFx && typeof headingFx.decorateHeading === 'function') {
+        headingFx.decorateHeading(heading, options);
+      }
+    } catch {}
+  }
+
+  function decorateCanonicalHeadingById(id, options = {}) {
+    const heading = document.getElementById(id);
+    if (!(heading instanceof HTMLElement)) return;
+    applyHeadingTypographyToElementIfPossible(heading, options);
+  }
+
+  function decorateCanonicalHeadingBySelector(selector, options = {}) {
+    const heading = document.querySelector(selector);
+    if (!(heading instanceof HTMLElement)) return;
+    applyHeadingTypographyToElementIfPossible(heading, options);
+  }
+
+  function decorateSupportAndErrorHeadings() {
+    decorateCanonicalHeadingById('dx-error-title', { headingIndex: 0, routeKey: 'error:title' });
+    decorateCanonicalHeadingBySelector('#dx-support .dx-support-title', { headingIndex: 0, routeKey: 'support:title' });
+  }
+
+  window.addEventListener('dx:support-status:rendered', decorateSupportAndErrorHeadings);
+  window.addEventListener('dx:error-status:rendered', decorateSupportAndErrorHeadings);
+
+  function applyHeadingTypographyAndSupportHooks(root = document) {
+    applyHeadingTypographyEffectsIfPossible(root);
+    decorateSupportAndErrorHeadings();
   }
 
   function shouldPreserveOutsideSlot(node, headerElement) {
@@ -617,25 +811,8 @@
     }
   }
 
-  function randomizeTitleText(input) {
-    const source = String(input || '').toUpperCase();
-    const roll = Math.random();
-    const duplicateCount = roll < 0.4 ? 0 : (roll < 0.8 ? 1 : 2);
-    if (!duplicateCount) return source;
-
-    const excluded = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
-    const letters = [];
-    for (let index = 0; index < source.length; index += 1) {
-      const char = source[index];
-      if (!/\S/.test(char)) continue;
-      if (excluded.has(char)) continue;
-      letters.push({ char, index });
-    }
-    if (!letters.length) return source;
-
-    const selected = letters[Math.floor(Math.random() * letters.length)];
-    const repeatChar = selected.char.repeat(duplicateCount);
-    return `${source.slice(0, selected.index + 1)}${repeatChar}${source.slice(selected.index + 1)}`;
+  function randomizeTitleText(input, options = {}) {
+    return renderHeadingText(input, options);
   }
 
   function dispatchSlotReady(scrollRoot, foregroundRoot) {
@@ -1928,7 +2105,7 @@
     clearRouteScripts();
     await loadRouteScripts(scripts);
     loadInlineRouteScripts(inlineScripts);
-    applyStretchProDuplicateLetterSeparators(document);
+    applyHeadingTypographyAndSupportHooks(document);
 
     if (meshState) {
       restoreGooeyMeshState(meshState);
@@ -1949,7 +2126,7 @@
     scheduleProfileViewportMetricsSync();
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
-      applyStretchProDuplicateLetterSeparators(document);
+      applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
     });
@@ -2131,7 +2308,7 @@
     document.body.classList.add(BODY_CLASS);
     syncProfileProtectedRouteState(window.location.pathname);
     normalizeHeaderWordmarkLinks();
-    applyStretchProDuplicateLetterSeparators(document);
+    applyHeadingTypographyAndSupportHooks(document);
     syncProfileRouteGlassFromHeader(document);
 
     window.dxGetSlotScrollRoot = () => document.getElementById(SLOT_SCROLL_ID);
@@ -2152,7 +2329,7 @@
       dispatchSlotReady(scrollRoot, foregroundRoot);
       installHomeHeroAligner();
       normalizeMobileBurgerHooks(document);
-      applyStretchProDuplicateLetterSeparators(document);
+      applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
       persistScrollState(scrollRoot);

@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function(){
         font:700 clamp(2rem,5vw,3rem)/1.15 var(--font-heading,sans-serif);
         text-transform:uppercase;
       ">
-        THE OPEN-AC&zwnj;CES&zwnj;S<br>
+        THE OPEN-ACCESS<br>
         RECORDING LIBRARY FOR<br>
         <span
           id="heroWord"

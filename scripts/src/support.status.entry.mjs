@@ -154,6 +154,21 @@
     ].join('\n');
   }
 
+  function decorateHeadingIfAvailable(target, options) {
+    if (!(target instanceof HTMLElement)) return;
+    const headingFx = window.__dxHeadingFx;
+    if (!headingFx || typeof headingFx.decorateHeading !== 'function') return;
+    try {
+      headingFx.decorateHeading(target, options || {});
+    } catch {}
+  }
+
+  function dispatchHeadingRenderEvent(name) {
+    try {
+      window.dispatchEvent(new CustomEvent(name));
+    } catch {}
+  }
+
   async function copyTextToClipboard(text) {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       await navigator.clipboard.writeText(text);
@@ -178,7 +193,10 @@
     const reportText = buildErrorReport(context);
 
     const titleNode = document.getElementById('dx-error-title');
-    if (titleNode) titleNode.textContent = copy.title;
+    if (titleNode) {
+      titleNode.textContent = copy.title;
+      decorateHeadingIfAvailable(titleNode, { headingIndex: 0, routeKey: 'error:title' });
+    }
 
     const messageNode = document.getElementById('dx-error-message');
     if (messageNode) messageNode.textContent = copy.message;
@@ -253,6 +271,7 @@
     }
 
     setFetchState(root, FETCH_STATE_READY);
+    dispatchHeadingRenderEvent('dx:error-status:rendered');
   }
 
   function toFiniteNumber(value) {
@@ -1005,6 +1024,9 @@
     await runCycle();
     await authRenderPromise;
     setFetchState(root, FETCH_STATE_READY);
+    const supportTitle = root.querySelector('.dx-support-title');
+    decorateHeadingIfAvailable(supportTitle, { headingIndex: 0, routeKey: 'support:title' });
+    dispatchHeadingRenderEvent('dx:support-status:rendered');
   }
 
   async function boot() {

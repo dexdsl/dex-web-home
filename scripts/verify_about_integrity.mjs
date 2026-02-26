@@ -18,8 +18,8 @@ const EXPECTED_TABS = [
 
 const REQUIRED_CTA_SIGNATURES = [
   /<a[^>]*href="\/dex\/"[^>]*>More About Dex<\/a>/i,
-  /<a[^>]*href="#license"[^>]*data-goto="license"[^>]*>What C&zwnj;C BY 4\.0 Means<\/a>/i,
-  /<a[^>]*href="\/programs\/"[^>]*>Cur&zwnj;rent Programs<\/a>/i,
+  /<a[^>]*href="#license"[^>]*data-goto="license"[^>]*>What CC BY 4\.0 Means<\/a>/i,
+  /<a[^>]*href="\/programs\/"[^>]*>Current Programs<\/a>/i,
   /<a[^>]*href="#contact"[^>]*data-goto="contact"[^>]*>Propose a Project<\/a>/i,
   /<a[^>]*href="\/contact\/"[^>]*>Open Contact Page<\/a>/i,
   /<a[^>]*href="\/contact#form"[^>]*>Open Contact Form<\/a>/i,

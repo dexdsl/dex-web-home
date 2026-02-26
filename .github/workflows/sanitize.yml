@@ -62,6 +62,9 @@ jobs:
       - name: Verify error/support contract
         run: npm run verify:error-support
 
+      - name: Verify heading ZWNJ contract
+        run: npm run verify:heading-zwnj
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -88,6 +91,9 @@ jobs:
 
       - name: Error/support reliability test
         run: npm run test:error-support
+
+      - name: Heading ZWNJ regression test
+        run: npm run test:heading-zwnj
 
       - name: Visual snapshot test
         run: npm run test:visual
