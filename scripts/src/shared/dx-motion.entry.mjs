@@ -2,6 +2,7 @@ import { animate } from 'framer-motion/dom';
 
 const ACTIVE_CONTROLS = new Map();
 const GROUP_STATE = new WeakMap();
+const ACTIVE_MAGNETIC_CONTROLLERS = new Map();
 
 const BUTTON_INTERACTIVE_SELECTOR = [
   '.dx-button-element',
@@ -309,6 +310,16 @@ export function stopAllInScope(scopeEl) {
     });
     controls.clear();
   });
+
+  ACTIVE_MAGNETIC_CONTROLLERS.forEach((controller, node) => {
+    if (!scopeEl.contains(node)) return;
+    try {
+      controller.stop();
+    } catch {
+      // Ignore stale controllers.
+    }
+    ACTIVE_MAGNETIC_CONTROLLERS.delete(node);
+  });
 }
 
 export function routeTransitionOut(scopeEl, opts = {}) {
@@ -355,6 +366,8 @@ export function bindDexButtonMotion(scopeEl, opts = {}) {
   if (!scopeEl || prefersReducedMotion()) return;
 
   const selector = opts.selector || BUTTON_INTERACTIVE_SELECTOR;
+  const profileMode = resolveMotionString(opts, 'profile', 'magnetic-expressive').toLowerCase();
+  const magneticProfileActive = prefersFinePointer() && !['legacy', 'off', 'none', 'css'].includes(profileMode);
 
   const nodes = getInteractiveButtons(scopeEl, selector);
   const hoverY = opts.hoverY ?? tokenNum(scopeEl, '--dx-motion-distance-sm', Math.abs(DEFAULTS.hoverY));
@@ -364,6 +377,8 @@ export function bindDexButtonMotion(scopeEl, opts = {}) {
   const durationXs = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
 
   nodes.forEach((node) => {
+    if (magneticProfileActive && isButtonCandidate(node) && !hasMotionExclude(node)) return;
+
     registerMotionPair(
       node,
       'button',
@@ -422,93 +437,124 @@ export function bindDexButtonMotion(scopeEl, opts = {}) {
 function bindMagneticTransform(node, options = {}) {
   if (!node || shouldExcludeNode(node)) return;
 
-  const duration = toNumber(options.duration, 0.18);
-  const releaseDuration = toNumber(options.releaseDuration, 0.12);
   const amplitude = toNumber(options.amplitude, 6.2);
   const tilt = toNumber(options.tilt, 2.4);
   const hoverScale = toNumber(options.hoverScale, 1.018);
   const hoverLift = toNumber(options.hoverLift, 1.4);
   const pressScale = toNumber(options.pressScale, DEFAULTS.pressScale);
   const opacityDim = toNumber(options.opacityDim, 0.76);
+  const smoothing = clamp(0.08, 0.35, toNumber(options.smoothing, 0.18));
+  const settleThreshold = clamp(0.01, 0.3, toNumber(options.settleThreshold, 0.08));
+  const perspective = Math.max(320, toNumber(options.perspective, 980));
 
-  let frameId = 0;
-  let pendingEvent = null;
+  if (ACTIVE_MAGNETIC_CONTROLLERS.has(node)) return;
 
-  const animateTo = (state, animateOptions) => {
-    animateNode(
-      node,
-      state,
-      {
-        duration: toNumber(animateOptions?.duration, duration),
-        ease: animateOptions?.ease || DEFAULTS.easeEmphasis,
-      },
-    );
+  const state = {
+    frameId: 0,
+    hovering: false,
+    pressed: false,
+    target: { x: 0, y: 0, rx: 0, ry: 0, scale: 1 },
+    current: { x: 0, y: 0, rx: 0, ry: 0, scale: 1 },
   };
 
-  const flushMove = () => {
-    frameId = 0;
-    const event = pendingEvent;
-    pendingEvent = null;
-    if (!event) return;
+  function setTargetNeutral() {
+    state.target.x = 0;
+    state.target.y = 0;
+    state.target.rx = 0;
+    state.target.ry = 0;
+    state.target.scale = state.pressed ? pressScale : (state.hovering ? hoverScale : 1);
+  }
 
+  function setTargetFromPointer(event) {
     const rect = node.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
     const xRatio = clamp(-1, 1, ((event.clientX - rect.left) / rect.width) * 2 - 1);
     const yRatio = clamp(-1, 1, ((event.clientY - rect.top) / rect.height) * 2 - 1);
-    const targetX = xRatio * amplitude;
-    const targetY = yRatio * (amplitude * 0.62) - hoverLift;
-    const rotateY = xRatio * tilt;
-    const rotateX = -yRatio * tilt;
-    animateTo(
-      {
-        x: [targetX],
-        y: [targetY],
-        rotateX: [rotateX],
-        rotateY: [rotateY],
-        scale: [hoverScale],
-      },
-      {
-        duration,
-        ease: DEFAULTS.easeEmphasis,
-      },
-    );
-  };
+    // Keep pull stronger near center and softer at edges for a heavier, gravitational feel.
+    const radial = clamp(0, 1, Math.sqrt((xRatio * xRatio) + (yRatio * yRatio)));
+    const edgeDamp = 1 - radial * 0.25;
+    state.target.x = xRatio * amplitude * edgeDamp;
+    state.target.y = (yRatio * amplitude * 0.56 * edgeDamp) - hoverLift;
+    state.target.ry = xRatio * tilt * edgeDamp;
+    state.target.rx = -yRatio * tilt * edgeDamp;
+    state.target.scale = state.pressed ? pressScale : hoverScale;
+  }
 
-  const queueMove = (event) => {
-    pendingEvent = event;
-    if (frameId) return;
-    frameId = requestAnimationFrame(flushMove);
-  };
+  function applyTransform() {
+    node.style.transform = `perspective(${perspective}px) translate3d(${state.current.x.toFixed(3)}px, ${state.current.y.toFixed(3)}px, 0px) rotateX(${state.current.rx.toFixed(3)}deg) rotateY(${state.current.ry.toFixed(3)}deg) scale(${state.current.scale.toFixed(4)})`;
+  }
 
-  const release = () => {
-    if (frameId) {
-      cancelAnimationFrame(frameId);
-      frameId = 0;
+  function cancelFrame() {
+    if (!state.frameId) return;
+    cancelAnimationFrame(state.frameId);
+    state.frameId = 0;
+  }
+
+  function needsMoreFrames() {
+    const dx = Math.abs(state.target.x - state.current.x);
+    const dy = Math.abs(state.target.y - state.current.y);
+    const drx = Math.abs(state.target.rx - state.current.rx);
+    const dry = Math.abs(state.target.ry - state.current.ry);
+    const ds = Math.abs(state.target.scale - state.current.scale);
+    return dx > settleThreshold || dy > settleThreshold || drx > settleThreshold || dry > settleThreshold || ds > settleThreshold * 0.5;
+  }
+
+  function tick() {
+    state.frameId = 0;
+    state.current.x += (state.target.x - state.current.x) * smoothing;
+    state.current.y += (state.target.y - state.current.y) * smoothing;
+    state.current.rx += (state.target.rx - state.current.rx) * smoothing;
+    state.current.ry += (state.target.ry - state.current.ry) * smoothing;
+    state.current.scale += (state.target.scale - state.current.scale) * smoothing;
+    applyTransform();
+
+    if (needsMoreFrames()) {
+      state.frameId = requestAnimationFrame(tick);
+      return;
     }
-    pendingEvent = null;
-    animateTo(
-      {
-        x: [0],
-        y: [0],
-        rotateX: [0],
-        rotateY: [0],
-        scale: [1],
-      },
-      {
-        duration: releaseDuration,
-        ease: DEFAULTS.easeStandard,
-      },
-    );
-  };
+
+    // Snap tiny residuals to keep the idle transform perfectly clean.
+    state.current.x = state.target.x;
+    state.current.y = state.target.y;
+    state.current.rx = state.target.rx;
+    state.current.ry = state.target.ry;
+    state.current.scale = state.target.scale;
+
+    if (!state.hovering && !state.pressed && state.target.scale === 1 && state.target.x === 0 && state.target.y === 0 && state.target.rx === 0 && state.target.ry === 0) {
+      node.style.transform = '';
+      node.style.willChange = '';
+      return;
+    }
+    applyTransform();
+  }
+
+  function ensureFrame() {
+    if (state.frameId) return;
+    state.frameId = requestAnimationFrame(tick);
+  }
+
+  function release() {
+    state.hovering = false;
+    state.pressed = false;
+    setTargetNeutral();
+    ensureFrame();
+  }
 
   node.addEventListener('pointerenter', (event) => {
     updateGroupOpacity(node);
+    state.hovering = true;
     if (Number.isFinite(opacityDim) && opacityDim > 0 && opacityDim <= 1) {
       node.style.opacity = '1';
     }
-    queueMove(event);
+    node.style.willChange = 'transform';
+    setTargetFromPointer(event);
+    ensureFrame();
   });
-  node.addEventListener('pointermove', queueMove);
+  node.addEventListener('pointermove', (event) => {
+    if (!state.hovering) return;
+    setTargetFromPointer(event);
+    ensureFrame();
+  });
   node.addEventListener('pointerleave', () => {
     resetGroupOpacity(node.parentElement);
     release();
@@ -517,35 +563,49 @@ function bindMagneticTransform(node, options = {}) {
   node.addEventListener('blur', release);
   node.addEventListener('focusout', release);
   node.addEventListener('focusin', () => {
-    animateTo(
-      {
-        x: [0],
-        y: [-hoverLift],
-        rotateX: [0],
-        rotateY: [0],
-        scale: [hoverScale],
-      },
-      {
-        duration,
-        ease: DEFAULTS.easeEmphasis,
-      },
-    );
+    state.hovering = true;
+    node.style.willChange = 'transform';
+    state.target.x = 0;
+    state.target.y = -hoverLift;
+    state.target.rx = 0;
+    state.target.ry = 0;
+    state.target.scale = state.pressed ? pressScale : hoverScale;
+    ensureFrame();
   });
 
   if (!hasBound(node, `${options.boundKey || 'magnetic'}-press`)) {
     markBound(node, `${options.boundKey || 'magnetic'}-press`);
     node.addEventListener('pointerdown', () => {
-      animateTo(
-        {
-          scale: [pressScale],
-        },
-        {
-          duration: Math.min(duration, 0.1),
-          ease: DEFAULTS.easeExit,
-        },
-      );
+      state.pressed = true;
+      state.target.scale = pressScale;
+      ensureFrame();
+    }, { passive: true });
+    node.addEventListener('pointerup', () => {
+      state.pressed = false;
+      state.target.scale = state.hovering ? hoverScale : 1;
+      ensureFrame();
     }, { passive: true });
   }
+
+  ACTIVE_MAGNETIC_CONTROLLERS.set(node, {
+    stop: () => {
+      cancelFrame();
+      state.hovering = false;
+      state.pressed = false;
+      state.target.x = 0;
+      state.target.y = 0;
+      state.target.rx = 0;
+      state.target.ry = 0;
+      state.target.scale = 1;
+      state.current.x = 0;
+      state.current.y = 0;
+      state.current.rx = 0;
+      state.current.ry = 0;
+      state.current.scale = 1;
+      node.style.transform = '';
+      node.style.willChange = '';
+    },
+  });
 }
 
 export function bindMagneticButtonMotion(scopeEl, opts = {}) {
@@ -554,11 +614,11 @@ export function bindMagneticButtonMotion(scopeEl, opts = {}) {
   const selector = opts.selector || `${BUTTON_INTERACTIVE_SELECTOR}, [data-dx-hover-variant="magnetic"], [data-dx-motion-include="true"]`;
   const nodes = getInteractiveButtons(scopeEl, selector);
   const duration = resolveMotionNumber(opts, 'duration', tokenMs(scopeEl, '--dx-motion-dur-sm', 180));
-  const releaseDuration = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
-  const amplitude = resolveMotionNumber(opts, 'amplitude', 6.6);
-  const tilt = resolveMotionNumber(opts, 'tilt', 2.8);
-  const hoverScale = resolveMotionNumber(opts, 'hoverScale', tokenNum(scopeEl, '--dx-motion-scale-hover', 1.018));
-  const hoverLift = resolveMotionNumber(opts, 'hoverLift', 1.6);
+  const amplitude = resolveMotionNumber(opts, 'amplitude', 5.8);
+  const tilt = resolveMotionNumber(opts, 'tilt', 1.95);
+  const hoverScale = resolveMotionNumber(opts, 'hoverScale', tokenNum(scopeEl, '--dx-motion-scale-hover', 1.015));
+  const hoverLift = resolveMotionNumber(opts, 'hoverLift', 1.2);
+  const smoothing = resolveMotionNumber(opts, 'smoothing', 0.16);
   const pressScale = resolveMotionNumber(opts, 'pressScale', tokenNum(scopeEl, '--dx-motion-scale-press', DEFAULTS.pressScale));
 
   nodes.forEach((node) => {
@@ -571,13 +631,13 @@ export function bindMagneticButtonMotion(scopeEl, opts = {}) {
       {
         boundKey: 'magnetic-button',
         duration,
-        releaseDuration,
         amplitude,
         tilt,
         hoverScale,
         hoverLift,
+        smoothing,
         pressScale,
-        opacityDim: 0.74,
+        opacityDim: 0.82,
       },
     );
   });
@@ -592,11 +652,11 @@ export function bindSemanticLinkMotion(scopeEl, opts = {}) {
 
   const nodes = getInteractiveButtons(scopeEl, selector);
   const duration = resolveMotionNumber(opts, 'duration', tokenMs(scopeEl, '--dx-motion-dur-sm', 180));
-  const releaseDuration = tokenMs(scopeEl, '--dx-motion-dur-xs', 120);
-  const amplitude = resolveMotionNumber(opts, 'linkAmplitude', resolveMotionNumber(opts, 'amplitude', 6.6) * 0.52);
-  const tilt = resolveMotionNumber(opts, 'linkTilt', 1.2);
-  const hoverScale = resolveMotionNumber(opts, 'linkScale', 1.01);
-  const hoverLift = resolveMotionNumber(opts, 'linkLift', 0.8);
+  const amplitude = resolveMotionNumber(opts, 'linkAmplitude', resolveMotionNumber(opts, 'amplitude', 5.8) * 0.46);
+  const tilt = resolveMotionNumber(opts, 'linkTilt', 0.82);
+  const hoverScale = resolveMotionNumber(opts, 'linkScale', 1.007);
+  const hoverLift = resolveMotionNumber(opts, 'linkLift', 0.52);
+  const smoothing = resolveMotionNumber(opts, 'linkSmoothing', resolveMotionNumber(opts, 'smoothing', 0.16) * 0.95);
   const pressScale = resolveMotionNumber(opts, 'pressScale', tokenNum(scopeEl, '--dx-motion-scale-press', DEFAULTS.pressScale));
 
   nodes.forEach((node) => {
@@ -609,13 +669,13 @@ export function bindSemanticLinkMotion(scopeEl, opts = {}) {
       {
         boundKey: 'semantic-link',
         duration,
-        releaseDuration,
         amplitude,
         tilt,
         hoverScale,
         hoverLift,
+        smoothing,
         pressScale,
-        opacityDim: 0.8,
+        opacityDim: 0.86,
       },
     );
   });
