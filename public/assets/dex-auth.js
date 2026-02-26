@@ -458,6 +458,7 @@
 
   function pickMount() {
     var selectors = [
+      "[data-dx-auth-mount]",
       ".header-actions--right",
       ".header-actions",
       "header"

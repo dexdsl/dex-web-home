@@ -10,9 +10,10 @@ import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
 import { startViewer } from '../lib/viewer-server.mjs';
 import { PollsManager } from './polls-manager.mjs';
+import { StatusManager } from './status-manager.mjs';
 
-const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }, { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' }, { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' }];
-const PALETTE_ITEMS = ['init', 'update', 'doctor', 'polls', 'view'];
+const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }, { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' }, { id: 'status', label: 'Status', description: 'Manage status incidents and generate incident pages' }, { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' }];
+const PALETTE_ITEMS = ['init', 'update', 'doctor', 'polls', 'status', 'view'];
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
   '██╔══██╗██╔════╝╚██╗██╔╝',
@@ -126,7 +127,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
 
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
-    if (mode === 'init' || mode === 'update' || mode === 'doctor' || mode === 'polls') return;
+    if (mode === 'init' || mode === 'update' || mode === 'doctor' || mode === 'polls' || mode === 'status') return;
 
     if (input === '?') {
       setPaletteOpen((open) => !open);
@@ -143,7 +144,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
           void launchViewer();
           return;
         }
-        if (item === 'init' || item === 'update' || item === 'doctor' || item === 'polls') { setPaletteOpen(false); setMode(item); }
+        if (item === 'init' || item === 'update' || item === 'doctor' || item === 'polls' || item === 'status') { setPaletteOpen(false); setMode(item); }
         return;
       }
       if (key.upArrow) { setPaletteSelected((idx) => (filteredPalette.length ? (idx - 1 + filteredPalette.length) % filteredPalette.length : 0)); return; }
@@ -162,6 +163,10 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
       }
       if (MENU_ITEMS[selected].id === 'polls') {
         setMode('polls');
+        return;
+      }
+      if (MENU_ITEMS[selected].id === 'status') {
+        setMode('status');
         return;
       }
       setMode(MENU_ITEMS[selected].id);
@@ -218,6 +223,12 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
                 width: Math.max(60, cols - 8),
                 height: Math.max(12, workspaceHeight - 2),
               })
+              : mode === 'status'
+                ? React.createElement(StatusManager, {
+                  onExit: () => setMode('menu'),
+                  width: Math.max(60, cols - 8),
+                  height: Math.max(12, workspaceHeight - 2),
+                })
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
           menuWindow.start > 0 ? React.createElement(Text, { key: 'menu-up', color: '#8f98a8' }, '…') : null,

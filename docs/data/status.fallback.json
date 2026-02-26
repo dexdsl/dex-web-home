@@ -2,61 +2,64 @@
   "generatedAt": "2026-02-26T00:00:00.000Z",
   "overall": {
     "state": "degraded",
-    "message": "Live status source is unavailable; displaying last known fallback snapshot."
+    "message": "Live status feed is unavailable. Showing fallback snapshot from launch window telemetry."
   },
   "components": [
     {
       "id": "web",
       "name": "Web App",
       "state": "operational",
-      "uptime": { "h24": 99.95, "d7": 99.9, "d30": 99.82 },
-      "latencyMs": 170,
-      "updatedAt": "2026-02-25T23:58:00.000Z"
+      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "latencyMs": 171,
+      "updatedAt": "2026-02-26T00:00:00.000Z",
+      "history": [
+        "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational"
+      ]
     },
     {
       "id": "auth",
       "name": "Auth Runtime",
       "state": "degraded",
-      "uptime": { "h24": 99.82, "d7": 99.7, "d30": 99.51 },
-      "latencyMs": 322,
-      "updatedAt": "2026-02-25T23:58:00.000Z"
+      "uptime": { "h24": 99.72, "d7": null, "d30": null },
+      "latencyMs": 338,
+      "updatedAt": "2026-02-26T00:00:00.000Z",
+      "history": [
+        "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "operational", "operational", "operational", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded", "degraded"
+      ]
     },
     {
       "id": "api",
       "name": "API",
       "state": "operational",
-      "uptime": { "h24": 99.93, "d7": 99.86, "d30": 99.74 },
-      "latencyMs": 241,
-      "updatedAt": "2026-02-25T23:58:00.000Z"
+      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "latencyMs": 246,
+      "updatedAt": "2026-02-26T00:00:00.000Z",
+      "history": [
+        "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational"
+      ]
     },
     {
       "id": "media",
       "name": "Media Delivery",
       "state": "operational",
-      "uptime": { "h24": 99.98, "d7": 99.94, "d30": 99.88 },
-      "latencyMs": 150,
-      "updatedAt": "2026-02-25T23:58:00.000Z"
+      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "latencyMs": 158,
+      "updatedAt": "2026-02-26T00:00:00.000Z",
+      "history": [
+        "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational"
+      ]
     },
     {
       "id": "downloads",
       "name": "Downloads",
-      "state": "degraded",
-      "uptime": { "h24": 99.79, "d7": 99.62, "d30": 99.4 },
-      "latencyMs": 368,
-      "updatedAt": "2026-02-25T23:58:00.000Z"
+      "state": "operational",
+      "uptime": { "h24": 100, "d7": null, "d30": null },
+      "latencyMs": 259,
+      "updatedAt": "2026-02-26T00:00:00.000Z",
+      "history": [
+        "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational", "operational"
+      ]
     }
   ],
-  "incidents": [
-    {
-      "id": "inc-fallback-001",
-      "title": "Status ingest delay",
-      "state": "monitoring",
-      "impact": "minor",
-      "startedAt": "2026-02-25T23:30:00.000Z",
-      "updatedAt": "2026-02-26T00:00:00.000Z",
-      "components": ["auth", "downloads"],
-      "summary": "Status feed ingestion is delayed. Live telemetry is being restored.",
-      "link": "/support/"
-    }
-  ]
+  "incidents": []
 }

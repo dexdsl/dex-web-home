@@ -7,24 +7,26 @@ const LIVE_STATUS_FIXTURE = {
   generatedAt: '2026-02-26T00:00:00.000Z',
   overall: {
     state: 'operational',
-    message: 'All systems are operational.',
+    message: 'No incidents reported since launch on February 26, 2026. Longer uptime windows are initializing.',
   },
   components: [
     {
       id: 'web',
       name: 'Web App',
       state: 'operational',
-      uptime: { h24: 100, d7: 99.99, d30: 99.98 },
+      uptime: { h24: 100, d7: null, d30: null },
       latencyMs: 144,
       updatedAt: '2026-02-26T00:00:00.000Z',
+      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'operational')),
     },
     {
       id: 'api',
       name: 'API',
       state: 'operational',
-      uptime: { h24: 100, d7: 99.96, d30: 99.9 },
+      uptime: { h24: 100, d7: null, d30: null },
       latencyMs: 199,
       updatedAt: '2026-02-26T00:00:00.000Z',
+      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'operational')),
     },
   ],
   incidents: [],
@@ -34,31 +36,20 @@ const FALLBACK_STATUS_FIXTURE = {
   generatedAt: '2026-02-26T00:00:00.000Z',
   overall: {
     state: 'degraded',
-    message: 'Live status source is unavailable; displaying fallback snapshot.',
+    message: 'Live status feed is unavailable. Showing fallback snapshot from launch window telemetry.',
   },
   components: [
     {
       id: 'auth',
       name: 'Auth Runtime',
       state: 'degraded',
-      uptime: { h24: 99.8, d7: 99.7, d30: 99.5 },
+      uptime: { h24: 99.8, d7: null, d30: null },
       latencyMs: 322,
       updatedAt: '2026-02-26T00:00:00.000Z',
+      history: Array.from({ length: 20 }, () => 'unknown').concat(Array.from({ length: 22 }, () => 'degraded')),
     },
   ],
-  incidents: [
-    {
-      id: 'inc-fallback-1',
-      title: 'Auth latency increase',
-      state: 'monitoring',
-      impact: 'minor',
-      startedAt: '2026-02-26T00:00:00.000Z',
-      updatedAt: '2026-02-26T00:00:00.000Z',
-      components: ['auth'],
-      summary: 'Live feed unavailable. Using fallback status output.',
-      link: '/support/',
-    },
-  ],
+  incidents: [],
 };
 
 async function stubHeaderRuntimes(page: Page): Promise<void> {
@@ -195,7 +186,9 @@ test('support route renders live status and baseline support sections', async ({
 
   await expect(page.locator('h2', { hasText: 'Get unstuck fast' })).toBeVisible();
   await expect(page.locator('#dx-support-status-meta')).toContainText('Live source');
-  await expect(page.locator('#dx-support-status table.dx-support-status-table')).toBeVisible();
+  await expect(page.locator('#dx-support-status .dx-support-component-list')).toBeVisible();
+  await expect(page.locator('#dx-support-status .dx-support-sparkline-block')).toHaveCount(84);
+  await expect(page.locator('#dx-support-status')).toContainText('No incidents reported yet');
   await expect(page.locator('#dx-support-account')).toContainText('Sign in to access account-specific support shortcuts.');
 
   const robots = await page.locator('meta[name="robots"]').getAttribute('content');
@@ -228,6 +221,7 @@ test('support route falls back to fallback status source when live endpoint fail
   await expect(page.locator('#dx-support-status-meta')).toContainText('Fallback source');
   await expect(page.locator('#dx-support-status-meta')).toContainText('Live status endpoint unavailable');
   await expect(page.locator('#dx-support-status')).toContainText(/Auth\s*Runtime/i);
+  await expect(page.locator('#dx-support-status')).toContainText('No incidents reported yet');
 });
 
 test('support route exits loading even when auth resolve hangs', async ({ page }) => {

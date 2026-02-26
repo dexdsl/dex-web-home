@@ -78,7 +78,7 @@
   function sanitizeToken(value, maxLength = 80, fallback = 'unknown') {
     const cleaned = String(value || '')
       .replace(/[^a-zA-Z0-9 ._:/@-]/g, '')
-      .replace(/\\s+/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim()
       .slice(0, maxLength);
     return cleaned || fallback;
@@ -261,10 +261,18 @@
 
   function normalizeStatusState(value) {
     const state = String(value || '').trim().toLowerCase();
-    if (state === 'operational' || state === 'degraded' || state === 'outage' || state === 'maintenance') {
+    if (state === 'operational' || state === 'degraded' || state === 'outage' || state === 'maintenance' || state === 'unknown') {
       return state;
     }
-    return 'degraded';
+    return 'unknown';
+  }
+
+  function normalizeIncidentState(value) {
+    const state = String(value || '').trim().toLowerCase();
+    if (state === 'investigating' || state === 'identified' || state === 'monitoring' || state === 'resolved') {
+      return state;
+    }
+    return 'investigating';
   }
 
   function normalizeStatusPayload(payload, fallbackMessage) {
@@ -287,6 +295,15 @@
         },
         latencyMs: toFiniteNumber(value.latencyMs),
         updatedAt: sanitizeToken(value.updatedAt || root.generatedAt || '', 64, 'unknown'),
+        history: Array.isArray(value.history)
+          ? value.history
+            .map((entry) => {
+              if (typeof entry === 'string') return normalizeStatusState(entry);
+              if (isObject(entry)) return normalizeStatusState(entry.state);
+              return 'unknown';
+            })
+            .filter(Boolean)
+          : [],
       };
     });
 
@@ -299,7 +316,7 @@
       return {
         id: sanitizeToken(value.id || `incident-${index + 1}`, 80, `incident-${index + 1}`),
         title: sanitizeToken(value.title || `Incident ${index + 1}`, 180, `Incident ${index + 1}`),
-        state: sanitizeToken(value.state || 'active', 40, 'active'),
+        state: normalizeIncidentState(value.state),
         impact: sanitizeToken(value.impact || 'minor', 40, 'minor'),
         startedAt: sanitizeToken(value.startedAt || 'unknown', 64, 'unknown'),
         updatedAt: sanitizeToken(value.updatedAt || 'unknown', 64, 'unknown'),
@@ -353,7 +370,24 @@
     if (normalized === 'operational') return 'Operational';
     if (normalized === 'degraded') return 'Degraded';
     if (normalized === 'outage') return 'Outage';
+    if (normalized === 'unknown') return 'No data';
     return 'Maintenance';
+  }
+
+  function formatIncidentStateLabel(state) {
+    const normalized = normalizeIncidentState(state);
+    if (normalized === 'investigating') return 'Investigating';
+    if (normalized === 'identified') return 'Identified';
+    if (normalized === 'monitoring') return 'Monitoring';
+    return 'Resolved';
+  }
+
+  function incidentStateToBadgeState(state) {
+    const normalized = normalizeIncidentState(state);
+    if (normalized === 'resolved') return 'operational';
+    if (normalized === 'monitoring') return 'maintenance';
+    if (normalized === 'identified') return 'degraded';
+    return 'outage';
   }
 
   function formatDateLabel(value) {
@@ -410,7 +444,7 @@
             {
               generatedAt: new Date().toISOString(),
               overall: {
-                state: 'degraded',
+                state: 'unknown',
                 message: 'Status is temporarily unavailable.',
               },
               components: [],
@@ -448,57 +482,103 @@
 
     const overallBlock = document.createElement('div');
     overallBlock.className = 'dx-support-overall';
-    const overallBadge = document.createElement('span');
-    overallBadge.className = 'dx-support-status-badge';
-    overallBadge.setAttribute('data-state', normalizeStatusState(status.overall.state));
-    overallBadge.textContent = formatStateLabel(status.overall.state);
-    const overallMessage = document.createElement('span');
-    overallMessage.style.marginLeft = '0.65rem';
+
+    const overallHead = document.createElement('div');
+    overallHead.className = 'dx-support-overall-head';
+
+    const overallTitle = document.createElement('p');
+    overallTitle.className = 'dx-support-overall-title';
+    overallTitle.textContent = 'Current status';
+
+    const overallPill = document.createElement('span');
+    overallPill.className = 'dx-support-state-pill';
+    overallPill.setAttribute('data-state', status.overall.state);
+    overallPill.textContent = formatStateLabel(status.overall.state);
+    overallHead.append(overallTitle, overallPill);
+
+    const overallMessage = document.createElement('p');
+    overallMessage.className = 'dx-support-overall-message';
     overallMessage.textContent = status.overall.message;
-    overallBlock.append(overallBadge, overallMessage);
+    overallBlock.append(overallHead, overallMessage);
     statusRoot.appendChild(overallBlock);
 
+    if (statusBundle.warning) {
+      const warning = document.createElement('p');
+      warning.className = 'dx-support-warning';
+      warning.textContent = statusBundle.warning;
+      statusRoot.appendChild(warning);
+    }
+
+    const legend = document.createElement('div');
+    legend.className = 'dx-support-status-legend';
+    [
+      ['operational', 'Operational'],
+      ['degraded', 'Degraded'],
+      ['outage', 'Outage'],
+      ['maintenance', 'Monitoring'],
+      ['unknown', 'No data'],
+    ].forEach(([stateValue, label]) => {
+      const item = document.createElement('span');
+      item.className = 'dx-support-legend-item';
+      item.setAttribute('data-state', stateValue);
+      item.textContent = label;
+      legend.appendChild(item);
+    });
+    statusRoot.appendChild(legend);
+
     if (status.components.length > 0) {
-      const table = document.createElement('table');
-      table.className = 'dx-support-status-table';
-      const header = document.createElement('thead');
-      header.innerHTML = '<tr><th>Component</th><th>State</th><th>24h</th><th>7d</th><th>30d</th><th>Latency</th></tr>';
-      table.appendChild(header);
+      const componentList = document.createElement('div');
+      componentList.className = 'dx-support-component-list';
 
-      const body = document.createElement('tbody');
       status.components.forEach((component) => {
-        const row = document.createElement('tr');
+        const row = document.createElement('article');
+        row.className = 'dx-support-component';
 
-        const nameCell = document.createElement('td');
-        nameCell.textContent = component.name;
+        const head = document.createElement('div');
+        head.className = 'dx-support-component-head';
 
-        const stateCell = document.createElement('td');
-        const stateBadge = document.createElement('span');
-        stateBadge.className = 'dx-support-status-badge';
-        stateBadge.setAttribute('data-state', component.state);
-        stateBadge.textContent = formatStateLabel(component.state);
-        stateCell.appendChild(stateBadge);
+        const name = document.createElement('h4');
+        name.className = 'dx-support-component-name';
+        name.textContent = component.name;
 
-        const h24Cell = document.createElement('td');
-        h24Cell.textContent = formatPercent(component.uptime.h24);
+        const state = document.createElement('span');
+        state.className = 'dx-support-state-pill';
+        state.setAttribute('data-state', component.state);
+        state.textContent = formatStateLabel(component.state);
+        head.append(name, state);
 
-        const d7Cell = document.createElement('td');
-        d7Cell.textContent = formatPercent(component.uptime.d7);
+        const sparkline = document.createElement('div');
+        sparkline.className = 'dx-support-sparkline';
+        sparkline.setAttribute('role', 'img');
+        sparkline.setAttribute('aria-label', `${component.name} recent status history`);
+        const history = Array.isArray(component.history) ? component.history.slice(-72) : [];
+        const historyValues = history.length > 0
+          ? history
+          : Array.from({ length: 72 }, () => normalizeStatusState(component.state || 'unknown'));
+        historyValues.forEach((stateValue) => {
+          const normalizedState = normalizeStatusState(stateValue);
+          const block = document.createElement('span');
+          block.className = 'dx-support-sparkline-block';
+          block.setAttribute('data-state', normalizedState);
+          block.setAttribute('title', formatStateLabel(normalizedState));
+          sparkline.appendChild(block);
+        });
 
-        const d30Cell = document.createElement('td');
-        d30Cell.textContent = formatPercent(component.uptime.d30);
+        const meta = document.createElement('p');
+        meta.className = 'dx-support-component-meta';
+        const latency = Number.isFinite(component.latencyMs) ? `${Math.round(component.latencyMs)} ms` : '--';
+        meta.textContent = `24h ${formatPercent(component.uptime.h24)} · 7d ${formatPercent(component.uptime.d7)} · 30d ${formatPercent(component.uptime.d30)} · Updated ${formatDateLabel(component.updatedAt)} · Latency ${latency}`;
 
-        const latencyCell = document.createElement('td');
-        latencyCell.textContent = Number.isFinite(component.latencyMs)
-          ? `${Math.round(component.latencyMs)} ms`
-          : '--';
-
-        row.append(nameCell, stateCell, h24Cell, d7Cell, d30Cell, latencyCell);
-        body.appendChild(row);
+        row.append(head, sparkline, meta);
+        componentList.appendChild(row);
       });
 
-      table.appendChild(body);
-      statusRoot.appendChild(table);
+      statusRoot.appendChild(componentList);
+    } else {
+      const emptyComponents = document.createElement('p');
+      emptyComponents.className = 'dx-support-incidents-empty';
+      emptyComponents.textContent = 'No component telemetry is available yet.';
+      statusRoot.appendChild(emptyComponents);
     }
 
     const incidentsTitle = document.createElement('h3');
@@ -508,7 +588,8 @@
 
     if (status.incidents.length === 0) {
       const empty = document.createElement('p');
-      empty.textContent = 'No recent incidents.';
+      empty.className = 'dx-support-incidents-empty';
+      empty.textContent = 'No incidents reported yet. This status page launched recently, so historical trends will build over time.';
       statusRoot.appendChild(empty);
       return;
     }
@@ -520,13 +601,14 @@
       item.className = 'dx-support-incident-item';
 
       const head = document.createElement('div');
+      head.className = 'dx-support-incident-head';
       const incidentBadge = document.createElement('span');
-      incidentBadge.className = 'dx-support-status-badge';
-      incidentBadge.setAttribute('data-state', normalizeStatusState(incident.state));
-      incidentBadge.textContent = sanitizeToken(incident.state, 24, 'active');
+      incidentBadge.className = 'dx-support-state-pill';
+      incidentBadge.setAttribute('data-state', incidentStateToBadgeState(incident.state));
+      incidentBadge.textContent = formatIncidentStateLabel(incident.state);
 
       const title = document.createElement('strong');
-      title.style.marginLeft = '0.55rem';
+      title.className = 'dx-support-incident-title';
       title.textContent = incident.title;
       head.append(incidentBadge, title);
 

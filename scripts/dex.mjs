@@ -230,7 +230,7 @@ function parseTopLevelMode(argv) {
   const firstNonFlag = args.find((arg) => !arg.startsWith('-'));
   if (!firstNonFlag && args.length === 0) return { mode: 'dashboard', paletteOpen: false, command: null, rest: [] };
   if (!firstNonFlag && hasTopHelp) return { mode: 'dashboard', paletteOpen: true, command: null, rest: [] };
-  if (['init', 'update', 'doctor'].includes(firstNonFlag)) {
+  if (['init', 'update', 'doctor', 'status'].includes(firstNonFlag)) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'ink-command', paletteOpen: false, command: firstNonFlag, rest: args.slice(idx + 1) };
   }
@@ -429,7 +429,13 @@ if (topLevel.mode === 'ink-command') {
     console.log(`dex ${topLevel.command}: requires a TTY`);
     process.exit(1);
   }
-  const mode = topLevel.command === 'init' ? 'init' : topLevel.command === 'update' ? 'update' : 'doctor';
+  const mode = topLevel.command === 'init'
+    ? 'init'
+    : topLevel.command === 'update'
+      ? 'update'
+      : topLevel.command === 'status'
+        ? 'status'
+        : 'doctor';
   await runDashboard({ initialMode: mode, version: packageJson.version || 'dev' });
   process.exit(0);
 }
