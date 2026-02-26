@@ -41,8 +41,9 @@
     "verify:buttons": "node scripts/verify_button_primitives.mjs",
     "verify:dexnotes": "node scripts/verify_dexnotes_integrity.mjs",
     "verify:heading-zwnj": "node scripts/verify_heading_zwnj_contract.mjs",
+    "verify:mobile-viewport": "node scripts/verify_mobile_viewport_contract.mjs",
     "verify:no-sq-images": "npm run verify:no-legacy-cdn-images",
-    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:favorites && npm run verify:notifications && npm run verify:newsletter && npm run verify:error-support && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:heading-zwnj && npm run verify:hover-motion && npm run verify:polls",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:favorites && npm run verify:notifications && npm run verify:newsletter && npm run verify:error-support && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run verify:polls",
     "styles:sync": "node scripts/sync_runtime_css.mjs",
     "hdr:manifest": "node scripts/hdr_build_manifest.mjs",
     "hdr:inject": "node scripts/hdr_inject_picture_sources.mjs",
@@ -102,7 +103,7 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:hover-motion && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:messages-notifications && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
+    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:messages-notifications && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"

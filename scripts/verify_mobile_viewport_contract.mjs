@@ -24,6 +24,12 @@ function listHtmlFiles(dirPath, out = []) {
 function verifyViewportMeta() {
   const htmlFiles = listHtmlFiles(DOCS_DIR);
   const failures = [];
+  const requiredMetaPatterns = [
+    { name: 'theme-color', test: /<meta\s+name=(['"])theme-color\1[^>]*content=(['"])#e8ebf1\2[^>]*>/i },
+    { name: 'mobile-web-app-capable', test: /<meta\s+name=(['"])mobile-web-app-capable\1[^>]*content=(['"])yes\2[^>]*>/i },
+    { name: 'apple-mobile-web-app-capable', test: /<meta\s+name=(['"])apple-mobile-web-app-capable\1[^>]*content=(['"])yes\2[^>]*>/i },
+    { name: 'apple-mobile-web-app-status-bar-style', test: /<meta\s+name=(['"])apple-mobile-web-app-status-bar-style\1[^>]*content=(['"])black-translucent\2[^>]*>/i },
+  ];
 
   for (const absolutePath of htmlFiles) {
     const relativePath = path.relative(ROOT, absolutePath);
@@ -36,6 +42,12 @@ function verifyViewportMeta() {
     const viewportTag = viewportMatch[0];
     if (!/viewport-fit\s*=\s*cover/i.test(viewportTag)) {
       failures.push(`${relativePath}: viewport meta missing viewport-fit=cover`);
+    }
+
+    for (const requiredMeta of requiredMetaPatterns) {
+      if (!requiredMeta.test.test(html)) {
+        failures.push(`${relativePath}: missing required ${requiredMeta.name} meta tag`);
+      }
     }
   }
 

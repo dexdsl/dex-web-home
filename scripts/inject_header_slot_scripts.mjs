@@ -39,6 +39,43 @@ const CONTENT_HINTS = [
   'data-footer-sections',
   'header-announcement-bar-wrapper',
 ];
+const MOBILE_META_TAGS = [
+  { name: 'theme-color', content: '#e8ebf1' },
+  { name: 'mobile-web-app-capable', content: 'yes' },
+  { name: 'apple-mobile-web-app-capable', content: 'yes' },
+  { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+];
+
+function stripLeadingMetaTag(html, name) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const leadingRegex = new RegExp(`^\\s*<meta\\s+name=(['"])${escapedName}\\1[^>]*>\\s*`, 'i');
+  let next = html;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const replaced = next.replace(leadingRegex, '');
+    if (replaced !== next) {
+      next = replaced;
+      changed = true;
+    }
+  }
+  return next;
+}
+
+function stripLeadingViewportAndMobileMeta(html) {
+  let next = html;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const before = next;
+    next = stripLeadingMetaTag(next, 'viewport');
+    for (const tag of MOBILE_META_TAGS) {
+      next = stripLeadingMetaTag(next, tag.name);
+    }
+    if (next !== before) changed = true;
+  }
+  return next;
+}
 
 function normalizeViewportMetaContent(content) {
   const raw = String(content || '').trim();
@@ -62,10 +99,27 @@ function ensureViewportFitCoverMeta(html) {
   const viewportRegex = /<meta\s+name=(['"])viewport\1\s+content=(['"])([^'"]*)\2\s*\/?>/i;
   const match = html.match(viewportRegex);
   if (!match) {
-    const headCloseIndex = html.indexOf('</head>');
-    if (headCloseIndex < 0) return html;
     const tag = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">';
-    return `${html.slice(0, headCloseIndex)}${tag}\n${html.slice(headCloseIndex)}`;
+    const headOpenMatch = html.match(/<head\b[^>]*>/i);
+    if (headOpenMatch && typeof headOpenMatch.index === 'number') {
+      const insertIndex = headOpenMatch.index + headOpenMatch[0].length;
+      return `${html.slice(0, insertIndex)}\n${tag}${html.slice(insertIndex)}`;
+    }
+    const headCloseIndex = html.indexOf('</head>');
+    if (headCloseIndex >= 0) {
+      return `${html.slice(0, headCloseIndex)}${tag}\n${html.slice(headCloseIndex)}`;
+    }
+    const bodyOpenMatch = html.match(/<body\b/i);
+    if (bodyOpenMatch && typeof bodyOpenMatch.index === 'number') {
+      const insertIndex = bodyOpenMatch.index;
+      return `${html.slice(0, insertIndex)}${tag}\n${html.slice(insertIndex)}`;
+    }
+    const htmlOpenMatch = html.match(/<html\b[^>]*>/i);
+    if (htmlOpenMatch && typeof htmlOpenMatch.index === 'number') {
+      const insertIndex = htmlOpenMatch.index + htmlOpenMatch[0].length;
+      return `${html.slice(0, insertIndex)}\n<head>\n${tag}\n</head>\n${html.slice(insertIndex)}`;
+    }
+    return `${tag}\n${html}`;
   }
 
   const [full, nameQuote, contentQuote, content] = match;
@@ -73,6 +127,44 @@ function ensureViewportFitCoverMeta(html) {
   const normalizedTag = `<meta name=${nameQuote}viewport${nameQuote} content=${contentQuote}${normalized}${contentQuote}>`;
   if (full === normalizedTag) return html;
   return html.replace(full, normalizedTag);
+}
+
+function ensureNamedMetaTag(html, name, content) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const metaRegex = new RegExp(`<meta\\s+name=(['"])${escapedName}\\1[^>]*>`, 'i');
+  const match = html.match(metaRegex);
+  const canonicalTag = `<meta name="${name}" content="${content}">`;
+  if (!match) {
+    const headOpenMatch = html.match(/<head\b[^>]*>/i);
+    if (headOpenMatch && typeof headOpenMatch.index === 'number') {
+      const insertIndex = headOpenMatch.index + headOpenMatch[0].length;
+      return `${html.slice(0, insertIndex)}\n${canonicalTag}${html.slice(insertIndex)}`;
+    }
+    const headCloseIndex = html.indexOf('</head>');
+    if (headCloseIndex >= 0) {
+      return `${html.slice(0, headCloseIndex)}${canonicalTag}\n${html.slice(headCloseIndex)}`;
+    }
+    const bodyOpenMatch = html.match(/<body\b/i);
+    if (bodyOpenMatch && typeof bodyOpenMatch.index === 'number') {
+      const insertIndex = bodyOpenMatch.index;
+      return `${html.slice(0, insertIndex)}${canonicalTag}\n${html.slice(insertIndex)}`;
+    }
+    return `${canonicalTag}\n${html}`;
+  }
+
+  const currentTag = match[0];
+  const contentMatch = currentTag.match(/content=(['"])([^'"]*)\1/i);
+  const currentContent = contentMatch ? String(contentMatch[2] || '').trim() : '';
+  if (currentContent === content) return html;
+  return html.replace(currentTag, canonicalTag);
+}
+
+function ensureMobileMetaTags(html) {
+  let next = html;
+  for (const tag of MOBILE_META_TAGS) {
+    next = ensureNamedMetaTag(next, tag.name, tag.content);
+  }
+  return next;
 }
 
 function listHtmlFiles(dirPath, out = []) {
@@ -175,11 +267,15 @@ function main() {
   for (const absolutePath of htmlFiles) {
     const relativePath = path.relative(DOCS_DIR, absolutePath);
     const html = fs.readFileSync(absolutePath, 'utf8');
-    const withViewport = ensureViewportFitCoverMeta(html);
-    const requiresInjection = shouldInject(relativePath, withViewport);
-    if (!requiresInjection && withViewport === html) continue;
+    let next = stripLeadingViewportAndMobileMeta(html);
+    next = ensureViewportFitCoverMeta(next);
+    next = ensureMobileMetaTags(next);
+    const requiresInjection = shouldInject(relativePath, next);
+    if (!requiresInjection && next === html) continue;
 
-    const next = requiresInjection ? injectTag(withViewport, relativePath) : withViewport;
+    if (requiresInjection) {
+      next = injectTag(next, relativePath);
+    }
     if (next === html) continue;
 
     fs.writeFileSync(absolutePath, next, 'utf8');

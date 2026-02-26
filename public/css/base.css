@@ -188,14 +188,14 @@ body.dx-slot-enabled {
 body.dx-slot-enabled #dx-slot-scroll-root {
   display: block;
   position: fixed;
-  inset: var(--dx-slot-top) 0 calc(var(--dx-safe-bottom) * -1) 0;
+  inset: 0;
   overflow-y: auto;
   overflow-x: clip;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
   z-index: var(--dx-layer-foreground);
-  scroll-padding-top: calc(var(--dx-slot-content-offset) + var(--dx-space-xs));
+  scroll-padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset) + var(--dx-space-xs));
 }
 
 body.dx-slot-enabled #dx-slot-scroll-root::-webkit-scrollbar {
@@ -206,7 +206,8 @@ body.dx-slot-enabled #dx-slot-scroll-root::-webkit-scrollbar {
 
 body.dx-slot-enabled #dx-slot-foreground-root {
   min-height: 100%;
-  padding-top: var(--dx-slot-content-offset);
+  padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset));
+  padding-bottom: max(var(--dx-space-lg), var(--dx-safe-bottom));
   transition:
     opacity var(--dx-motion-dur-sm) var(--dx-motion-ease-standard),
     transform var(--dx-motion-dur-sm) var(--dx-motion-ease-standard),

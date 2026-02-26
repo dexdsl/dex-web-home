@@ -71,6 +71,9 @@ jobs:
       - name: Verify heading ZWNJ contract
         run: npm run verify:heading-zwnj
 
+      - name: Verify mobile viewport contract
+        run: npm run verify:mobile-viewport
+
       - name: Verify interactive hover motion contract
         run: npm run verify:hover-motion
 
