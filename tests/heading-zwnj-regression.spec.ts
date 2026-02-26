@@ -317,5 +317,6 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const settingsTitle = await readHeadingBySelector(page, '#dexs-title');
   assertHeadingTypographyInvariants(settingsTitle);
   expect(settingsTitle.canonical.toUpperCase()).toBe('SETTINGS');
+  expect(stripZwnj(settingsTitle.rendered)).toBe(settingsTitle.canonical);
   expect(hasTripleRepeatedLetter(settingsTitle.rendered)).toBeFalsy();
 });

@@ -132,6 +132,14 @@ function verifySupportFooterPadding() {
   ]);
 }
 
+function verifySettingsHeadingExclusion() {
+  const relPath = 'docs/entry/settings/index.html';
+  const text = readText(relPath);
+  assertIncludes(relPath, text, [
+    'id="dexs-title" data-dx-heading-duplicate-exclude-words="SETTINGS"',
+  ]);
+}
+
 function verifySupportErrorHeadingHooks() {
   const runtimeRel = 'scripts/src/support.status.entry.mjs';
   const runtimeText = readText(runtimeRel);
@@ -155,6 +163,7 @@ function main() {
   verifyHeadingRuntime();
   verifyNoInlineHeadingRandomizers();
   verifySupportFooterPadding();
+  verifySettingsHeadingExclusion();
   verifySupportErrorHeadingHooks();
 
   if (FAILURES.length > 0) {

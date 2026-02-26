@@ -2546,7 +2546,7 @@
 <!-- Settings UI -->
   <!-- Header (no chips / no manage button) -->
   <header class="hdr" aria-label="Account settings">
-    <h1 id="dexs-title">Settings</h1>
+    <h1 id="dexs-title" data-dx-heading-duplicate-exclude-words="SETTINGS">Settings</h1>
     <p class="sub">Manage your profile, membership, and notifications.</p>
   </header>
 
@@ -4888,6 +4888,9 @@ function hydrateProfile(me){
 
   let to = null, debounceMs = 400;
   let newsletterBusy = false;
+  const NEWSLETTER_ACTION_COOLDOWN_MS = 20 * 1000;
+  let newsletterCooldownUntil = 0;
+  let newsletterCooldownTimer = null;
 
   function setBadge(txt){
     if (!S.badge) return;
@@ -4914,10 +4917,38 @@ function hydrateProfile(me){
     S.newsletterStatusLine.textContent = String(text || '');
   }
 
+  function clearNewsletterCooldownTimer(){
+    if (!newsletterCooldownTimer) return;
+    clearTimeout(newsletterCooldownTimer);
+    newsletterCooldownTimer = null;
+  }
+
+  function newsletterCooldownRemainingMs(){
+    return Math.max(0, newsletterCooldownUntil - Date.now());
+  }
+
+  function formatWaitSeconds(ms){
+    const seconds = Math.max(1, Math.ceil((Number(ms) || 0) / 1000));
+    return String(seconds);
+  }
+
+  function setNewsletterCooldown(ms){
+    const nextMs = Math.max(0, Number(ms) || 0);
+    clearNewsletterCooldownTimer();
+    newsletterCooldownUntil = nextMs > 0 ? Date.now() + nextMs : 0;
+    if (nextMs > 0) {
+      newsletterCooldownTimer = setTimeout(() => {
+        newsletterCooldownUntil = 0;
+        newsletterCooldownTimer = null;
+        setNewsletterBusy(false);
+      }, nextMs + 40);
+    }
+  }
+
   function setNewsletterBusy(nextBusy){
     newsletterBusy = !!nextBusy;
     const email = isLikelyEmail(resolveNewsletterEmailFromUi());
-    const disabled = newsletterBusy || !email;
+    const disabled = newsletterBusy || newsletterCooldownRemainingMs() > 0 || !email;
     if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
     if (S.newsletterPauseLinkBtn) S.newsletterPauseLinkBtn.disabled = disabled;
     if (S.newsletterUnsubscribeLinkBtn) S.newsletterUnsubscribeLinkBtn.disabled = disabled;
@@ -4990,11 +5021,11 @@ function hydrateProfile(me){
     const normalized = isLikelyEmail(email);
     if (normalized) {
       S.newsletterEmailValue.textContent = normalized;
-      if (S.newsletterSendLinkBtn && !newsletterBusy) S.newsletterSendLinkBtn.disabled = false;
+      if (!newsletterBusy) setNewsletterBusy(false);
       return;
     }
     S.newsletterEmailValue.textContent = 'Sign in required';
-    if (S.newsletterSendLinkBtn && !newsletterBusy) S.newsletterSendLinkBtn.disabled = true;
+    if (!newsletterBusy) setNewsletterBusy(false);
   }
 
   async function postNewsletter(path, payload){
@@ -5008,6 +5039,12 @@ function hydrateProfile(me){
 
   async function handleNewsletterAction(action){
     if (newsletterBusy) return;
+    const cooldownMs = newsletterCooldownRemainingMs();
+    if (cooldownMs > 0) {
+      setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
+      setNewsletterBusy(false);
+      return;
+    }
     try {
       setNewsletterBusy(true);
       if (action === 'send-link' || action === 'pause-link' || action === 'unsubscribe-link') {
@@ -5015,6 +5052,11 @@ function hydrateProfile(me){
         if (!email || !email.includes('@')) {
           prefillNewsletterIdentity('');
           setNewsletterStatus('Could not resolve your account email. Sign in and refresh, then try again.');
+          return;
+        }
+        const authToken = await token();
+        if (!authToken) {
+          setNewsletterStatus('Your session has expired. Refresh and sign in again, then retry newsletter actions.');
           return;
         }
         prefillNewsletterIdentity(email);
@@ -5029,6 +5071,7 @@ function hydrateProfile(me){
           timezone: resolveTimezone(),
           auth0Sub: String(window.auth0Sub || '')
         });
+        setNewsletterCooldown(NEWSLETTER_ACTION_COOLDOWN_MS);
         const state = String(payload?.state || '').toLowerCase();
         if (action === 'pause-link') {
           setNewsletterStatus('Pause link sent. Check your inbox to pause newsletter delivery.');
@@ -5045,8 +5088,20 @@ function hydrateProfile(me){
         }
       }
     } catch (error) {
-      const detail = String(error?.message || '').trim();
-      setNewsletterStatus(detail ? `Newsletter action failed: ${detail}` : 'Newsletter action failed. Try again.');
+      const status = Number(error?.status || 0);
+      let detail = String(error?.message || '').trim();
+      if (detail) {
+        try {
+          const parsed = JSON.parse(detail);
+          if (parsed && typeof parsed.error === 'string') detail = parsed.error;
+        } catch {}
+      }
+      if (status === 429) {
+        setNewsletterCooldown(60 * 1000);
+        setNewsletterStatus('Too many requests right now. Please wait a minute and retry (provider protection can take up to 1 hour to fully clear).');
+      } else {
+        setNewsletterStatus(detail ? `Newsletter action failed: ${detail}` : 'Newsletter action failed. Try again.');
+      }
     } finally {
       setNewsletterBusy(false);
     }
