@@ -62,6 +62,8 @@
   // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
   const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
+  const DONATE_LABEL_CANONICAL = 'DOONATE';
+  const DONATE_LABEL_SELECTOR = '.header-actions-action--cta a[href], .header-menu-cta a[href], .dx-mobile-menu-actions a[href][data-dx-mobile-menu-action="true"]';
 
   let routeAbortController = null;
   let isNavigating = false;
@@ -593,6 +595,46 @@
     return rendered || separated;
   }
 
+  function isDonateAnchor(anchor) {
+    if (!(anchor instanceof HTMLAnchorElement)) return false;
+    const hrefValue = String(anchor.getAttribute('href') || '').trim();
+    if (!hrefValue) return false;
+    const absoluteHref = toAbsoluteUrl(hrefValue);
+    if (!absoluteHref) return false;
+    if (!isHttpUrl(absoluteHref)) return false;
+    if (!isSameOriginUrl(absoluteHref)) return false;
+    return normalizePathname(absoluteHref.pathname) === '/donate';
+  }
+
+  function renderDonateLabel() {
+    return insertCanonicalDoubleLetterSeparators(String(DONATE_LABEL_CANONICAL || '').toUpperCase());
+  }
+
+  function normalizeDonateActionLabels(root = document) {
+    const scope = root instanceof Document ? (root.body || root.documentElement) : root;
+    if (!(scope instanceof Element || scope instanceof DocumentFragment)) return 0;
+    if (typeof scope.querySelectorAll !== 'function') return 0;
+
+    const donateLabel = renderDonateLabel();
+    const canonical = String(DONATE_LABEL_CANONICAL || '').toUpperCase();
+    let normalizedCount = 0;
+
+    const anchors = Array.from(scope.querySelectorAll(DONATE_LABEL_SELECTOR));
+    for (const anchor of anchors) {
+      if (!(anchor instanceof HTMLAnchorElement)) continue;
+      if (!isDonateAnchor(anchor)) continue;
+      if (String(anchor.textContent || '') !== donateLabel) {
+        anchor.textContent = donateLabel;
+      }
+      anchor.setAttribute('data-dx-donate-canonical', canonical);
+      anchor.setAttribute('data-dx-donate-rendered', donateLabel);
+      anchor.setAttribute('data-dx-donate-normalized', 'true');
+      normalizedCount += 1;
+    }
+
+    return normalizedCount;
+  }
+
   function exposeHeadingTypographyRuntime() {
     const runtime = {
       separator: STRETCH_PRO_DUPLICATE_SEPARATOR,
@@ -650,6 +692,7 @@
 
   function applyHeadingTypographyAndSupportHooks(root = document) {
     applyHeadingTypographyEffectsIfPossible(root);
+    normalizeDonateActionLabels(root);
     decorateSupportAndErrorHeadings();
   }
 
@@ -1265,6 +1308,8 @@
         actionsHost.appendChild(donateClone);
       }
     }
+
+    normalizeDonateActionLabels(root);
 
     const navCandidates = getUniqueAnchors(Array.from(document.querySelectorAll(
       '.header-display-desktop .header-nav-list .header-nav-item > a[href], .header-display-mobile .header-nav-list .header-nav-item > a[href]'

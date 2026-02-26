@@ -99,6 +99,18 @@ async function readHeadingBySelector(page: Page, selector: string) {
   });
 }
 
+async function collectDonateLabels(page: Page) {
+  return page.locator('a[data-dx-donate-normalized="true"]').evaluateAll((nodes) => nodes.map((node) => {
+    const anchor = node as HTMLAnchorElement;
+    return {
+      href: anchor.getAttribute('href') || '',
+      text: anchor.textContent || '',
+      canonical: anchor.getAttribute('data-dx-donate-canonical') || '',
+      rendered: anchor.getAttribute('data-dx-donate-rendered') || '',
+    };
+  }));
+}
+
 async function seedHeadingRuntime(page: Page): Promise<void> {
   await page.addInitScript((seed) => {
     (window as unknown as { __DX_HEADING_RANDOM_SEED?: string }).__DX_HEADING_RANDOM_SEED = seed;
@@ -219,6 +231,16 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
   assertHeadingTypographyInvariants(featuredTitle);
   expect(featuredTitle.canonical.toUpperCase()).toBe('FEATURED ENTRIES');
+
+  const donateLabels = await collectDonateLabels(page);
+  expect(donateLabels.length).toBeGreaterThan(0);
+  for (const donate of donateLabels) {
+    expect(String(donate.href || '')).toContain('/donate');
+    expect(donate.canonical).toBe('DOONATE');
+    expect(donate.rendered).toBe(donate.text);
+    expect(countZwnj(donate.rendered)).toBe(countCanonicalDoubleLetters(donate.canonical));
+    expect(stripZwnj(donate.rendered)).toBe(donate.canonical);
+  }
 
   const signupTitle = await readHeadingBySelector(page, '#dex-signup .signup-heading');
   assertHeadingTypographyInvariants(signupTitle);
