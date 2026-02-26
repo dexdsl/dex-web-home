@@ -98,10 +98,12 @@
       }
 
       .dx-support-card {
-        border: 1px solid rgba(20, 24, 34, 0.18);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: rgba(252, 252, 252, 0.9);
-        box-shadow: 0 18px 38px rgba(9, 12, 18, 0.13);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: clamp(0.95rem, 2vw, 1.35rem);
       }
 
@@ -153,9 +155,11 @@
       }
 
       .dx-support-section {
-        border: 1px solid rgba(20, 24, 34, 0.15);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.9rem;
       }
 
@@ -180,9 +184,11 @@
       .dx-support-overall {
         display: grid;
         gap: 0.5rem;
-        border: 1px solid rgba(20, 24, 34, 0.16);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.8rem;
         margin-top: 0.75rem;
       }
@@ -283,9 +289,11 @@
       }
 
       .dx-support-component {
-        border: 1px solid rgba(20, 24, 34, 0.16);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
         padding: 0.7rem;
       }
 
@@ -339,10 +347,12 @@
       }
 
       .dx-support-incident-item {
-        border: 1px solid rgba(20, 24, 34, 0.16);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
         padding: 0.7rem;
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
       }
 
       .dx-support-incident-head {
@@ -373,12 +383,14 @@
       }
 
       .dx-support-card-link {
-        border: 1px solid rgba(20, 24, 34, 0.16);
+        border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
         border-radius: var(--dx-support-header-radius);
         padding: 0.82rem;
         text-decoration: none;
         color: inherit;
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--dx-header-glass-bg, rgba(255, 255, 255, 0.78));
+        -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+        backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
       }
 
       .dx-support-card-link h3 {
@@ -425,20 +437,6 @@
       }
 
       @media (min-width: 920px) {
-        .dx-support-root {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          align-items: start;
-        }
-
-        #dx-support-status-panel,
-        #dx-support-account-panel {
-          grid-column: auto;
-        }
-
-        .dx-support-root > .dx-support-section:not(#dx-support-status-panel):not(#dx-support-account-panel) {
-          grid-column: 1 / -1;
-        }
-
         .dx-support-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
