@@ -5,7 +5,14 @@
   var DROPDOWN_OPEN_CLASS = "is-open";
   var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
   var DEFAULT_MESSAGES_API = "https://dex-api.spring-fog-8edd.workers.dev";
+  var DEFAULT_SUBMIT_WEBAPP_API = "https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec";
   var MESSAGES_BADGE_ID = "auth-ui-messages-badge";
+  var PREFETCH_SWR_MS = 60000;
+  var PREFETCH_TIER1_SWR_MS = 120000;
+  var PREFETCH_UNREAD_TIMEOUT_MS = 2500;
+  var PREFETCH_QUOTA_TIMEOUT_MS = 3000;
+  var PREFETCH_TIER1_TIMEOUT_MS = 3500;
+  var PREFETCH_RELOAD_COOLDOWN_MS = 15000;
   var PROTECTED_PATHS = {
     "/press": true,
     "/favorites": true,
@@ -57,6 +64,8 @@
   var authReady = new Promise(function (resolve) { authReadyResolve = resolve; });
   var authReadyState = { isAuthenticated: false, user: null };
   var authReadyDone = false;
+  var prefetchInflight = Object.create(null);
+  var prefetchScopeState = { scope: "", lastRunAt: 0, idleTimer: 0 };
   var AUDIENCE_DISABLE_KEY = "dex.auth.disableAudience";
   var GUARD_REDIRECT_LOCK_KEY = "dex.auth.guard.redirect";
   var GUARD_REDIRECT_LOCK_TTL_MS = 20000;
@@ -91,6 +100,7 @@
       isAuthenticated: !!authReadyState.isAuthenticated,
       user: authReadyState.user || null
     });
+    scheduleAuthPrefetch(authReadyState);
   }
 
   function dispatchWindowEvent(name, detail) {
@@ -103,6 +113,365 @@
         window.dispatchEvent(evt);
       }
     } catch (e) {}
+  }
+
+  function getPrefetchScope(authState) {
+    var user = authState && authState.user;
+    return String(
+      (user && (user.sub || user.user_id || user.email))
+      || window.auth0Sub
+      || ""
+    ).trim();
+  }
+
+  function toSafeInt(value, fallback) {
+    var parsed = Number(value);
+    return isFinite(parsed) ? Math.max(0, Math.round(parsed)) : fallback;
+  }
+
+  function createPrefetchStore() {
+    var entries = Object.create(null);
+    var listeners = [];
+
+    function emit(detail) {
+      dispatchWindowEvent("dx:prefetch:update", detail);
+      for (var i = listeners.length - 1; i >= 0; i -= 1) {
+        var fn = listeners[i];
+        if (typeof fn !== "function") continue;
+        try {
+          fn(detail);
+        } catch (e) {}
+      }
+    }
+
+    return {
+      get: function (key) {
+        var item = entries[String(key || "")];
+        return item ? item.payload : null;
+      },
+      set: function (key, payload, meta) {
+        var resolvedKey = String(key || "").trim();
+        if (!resolvedKey) return null;
+        var ts = Date.now();
+        var mergedMeta = Object.assign({}, meta || {});
+        entries[resolvedKey] = {
+          payload: payload,
+          meta: mergedMeta,
+          ts: ts
+        };
+        emit({
+          key: resolvedKey,
+          scope: String(mergedMeta.scope || ""),
+          ts: ts
+        });
+        return entries[resolvedKey];
+      },
+      getFresh: function (key, maxAgeMs) {
+        var resolvedKey = String(key || "").trim();
+        if (!resolvedKey) return null;
+        var item = entries[resolvedKey];
+        if (!item) return null;
+        var age = Date.now() - Number(item.ts || 0);
+        var limit = Math.max(0, Number(maxAgeMs || 0));
+        if (limit > 0 && age > limit) return null;
+        return item;
+      },
+      invalidate: function (prefix) {
+        var safePrefix = String(prefix || "");
+        var keys = Object.keys(entries);
+        for (var i = 0; i < keys.length; i += 1) {
+          var key = keys[i];
+          if (!safePrefix || key.indexOf(safePrefix) === 0) {
+            delete entries[key];
+          }
+        }
+      },
+      subscribe: function (fn) {
+        if (typeof fn !== "function") return function () {};
+        listeners.push(fn);
+        return function () {
+          listeners = listeners.filter(function (candidate) {
+            return candidate !== fn;
+          });
+        };
+      }
+    };
+  }
+
+  if (!window.__DX_PREFETCH || typeof window.__DX_PREFETCH.getFresh !== "function") {
+    window.__DX_PREFETCH = createPrefetchStore();
+  }
+  var prefetchStore = window.__DX_PREFETCH;
+
+  function isPrefetchEnabled() {
+    if (window.__DX_PREFETCH_ENABLED === false) return false;
+    try {
+      var connection = navigator && (navigator.connection || navigator.mozConnection || navigator.webkitConnection);
+      if (connection && connection.saveData === true) return false;
+    } catch (e) {}
+    return true;
+  }
+
+  function getMessagesApiPrefetchKey(scope) {
+    return "unread:" + scope;
+  }
+
+  function getQuotaPrefetchKey(scope) {
+    return "quota:" + scope;
+  }
+
+  function getNotificationsPrefetchKey(scope) {
+    return "notifications:" + scope;
+  }
+
+  function getPollVotesSummaryPrefetchKey(scope) {
+    return "pollVotesSummary:" + scope;
+  }
+
+  function getSubmitWebappUrl() {
+    var config = window.__DX_SUBMIT_SAMPLES_CONFIG;
+    var configured = config && config.webappUrl;
+    var fromWindow = window.DX_SUBMIT_WEBAPP_URL;
+    return String(configured || fromWindow || DEFAULT_SUBMIT_WEBAPP_API).trim() || DEFAULT_SUBMIT_WEBAPP_API;
+  }
+
+  function parseQuotaPayload(payload) {
+    if (!payload || typeof payload !== "object") return null;
+    var weeklyLimit = toSafeInt(payload.weeklyLimit, NaN);
+    var weeklyUsed = toSafeInt(payload.weeklyUsed, NaN);
+    var weeklyRemaining = toSafeInt(payload.weeklyRemaining, NaN);
+    if (!isFinite(weeklyLimit) && !isFinite(weeklyUsed) && !isFinite(weeklyRemaining)) {
+      return null;
+    }
+    var limit = isFinite(weeklyLimit) ? Math.max(1, Math.min(99, weeklyLimit)) : 4;
+    var used = isFinite(weeklyUsed) ? weeklyUsed : Math.max(0, limit - (isFinite(weeklyRemaining) ? weeklyRemaining : 0));
+    var remaining = isFinite(weeklyRemaining) ? weeklyRemaining : Math.max(0, limit - used);
+    return {
+      weeklyLimit: limit,
+      weeklyUsed: Math.max(0, used),
+      weeklyRemaining: Math.max(0, Math.min(limit, remaining)),
+      weekStart: String(payload.weekStart || ""),
+      weekEnd: String(payload.weekEnd || ""),
+      updatedAt: String(payload.updatedAt || new Date().toISOString())
+    };
+  }
+
+  function jsonpWithTimeout(url, params, timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var callbackName = "dxAuthPrefetchCb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+      var callbackRef = "window." + callbackName;
+      var script = document.createElement("script");
+      var settled = false;
+      var timer = 0;
+
+      function cleanup() {
+        if (timer) window.clearTimeout(timer);
+        try {
+          window[callbackName] = function () {};
+        } catch (e) {}
+        window.setTimeout(function () {
+          try {
+            delete window[callbackName];
+          } catch (err) {
+            window[callbackName] = undefined;
+          }
+        }, 2000);
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      }
+
+      window[callbackName] = function (payload) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(payload);
+      };
+
+      script.onerror = function () {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error("JSONP request failed"));
+      };
+
+      var query = new URLSearchParams(Object.assign({}, params || {}, { callback: callbackRef }));
+      var sep = String(url).indexOf("?") >= 0 ? "&" : "?";
+      script.src = String(url) + sep + query.toString();
+      script.async = true;
+      document.body.appendChild(script);
+
+      timer = window.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error("JSONP request timeout"));
+      }, Math.max(250, Number(timeoutMs || PREFETCH_QUOTA_TIMEOUT_MS)));
+    });
+  }
+
+  function fetchJsonWithTimeout(url, init, timeoutMs) {
+    var controller = new AbortController();
+    var timer = window.setTimeout(function () {
+      try {
+        controller.abort();
+      } catch (e) {}
+    }, Math.max(250, Number(timeoutMs || PREFETCH_TIER1_TIMEOUT_MS)));
+
+    return fetch(url, Object.assign({}, init || {}, { signal: controller.signal }))
+      .then(function (response) {
+        if (!response.ok) return null;
+        return response.json().catch(function () { return null; });
+      })
+      .catch(function () { return null; })
+      .finally(function () {
+        window.clearTimeout(timer);
+      });
+  }
+
+  function withPrefetchInflight(taskKey, runner) {
+    var key = String(taskKey || "").trim();
+    if (!key || typeof runner !== "function") {
+      return Promise.resolve(null);
+    }
+    if (prefetchInflight[key]) return prefetchInflight[key];
+    prefetchInflight[key] = Promise.resolve()
+      .then(function () {
+        return runner();
+      })
+      .catch(function () { return null; })
+      .finally(function () {
+        delete prefetchInflight[key];
+      });
+    return prefetchInflight[key];
+  }
+
+  function prefetchUnreadCount(scope, token, forceLive) {
+    if (!scope || !token || !prefetchStore) return Promise.resolve(null);
+    var key = getMessagesApiPrefetchKey(scope);
+    if (!forceLive) {
+      var cached = prefetchStore.getFresh(key, PREFETCH_SWR_MS);
+      if (cached && cached.payload) return Promise.resolve(cached.payload);
+    }
+    return withPrefetchInflight("prefetch:" + key, function () {
+      return fetchJsonWithTimeout(
+        getMessagesApiBase() + "/me/messages/unread-count",
+        {
+          method: "GET",
+          headers: {
+            authorization: "Bearer " + token,
+            "content-type": "application/json"
+          }
+        },
+        PREFETCH_UNREAD_TIMEOUT_MS
+      ).then(function (payload) {
+        if (!payload) return null;
+        var count = parseMessagesUnreadCount(payload);
+        var record = { count: count };
+        prefetchStore.set(key, record, { scope: scope });
+        return record;
+      });
+    });
+  }
+
+  function prefetchQuota(scope, forceLive) {
+    if (!scope || !prefetchStore) return Promise.resolve(null);
+    var key = getQuotaPrefetchKey(scope);
+    if (!forceLive) {
+      var cached = prefetchStore.getFresh(key, PREFETCH_SWR_MS);
+      if (cached && cached.payload) return Promise.resolve(cached.payload);
+    }
+    return withPrefetchInflight("prefetch:" + key, function () {
+      return jsonpWithTimeout(
+        getSubmitWebappUrl(),
+        {
+          action: "quota",
+          auth0Sub: scope
+        },
+        PREFETCH_QUOTA_TIMEOUT_MS
+      ).then(function (payload) {
+        var parsed = parseQuotaPayload(payload);
+        if (!parsed) return null;
+        prefetchStore.set(key, parsed, { scope: scope });
+        return parsed;
+      });
+    });
+  }
+
+  function prefetchTierOne(scope, token) {
+    if (!scope || !token || !prefetchStore) return;
+    window.clearTimeout(prefetchScopeState.idleTimer);
+    prefetchScopeState.idleTimer = window.setTimeout(function () {
+      withPrefetchInflight("prefetch:" + getNotificationsPrefetchKey(scope), function () {
+        return fetchJsonWithTimeout(
+          getMessagesApiBase() + "/me/notifications",
+          {
+            method: "GET",
+            headers: {
+              authorization: "Bearer " + token,
+              "content-type": "application/json"
+            }
+          },
+          PREFETCH_TIER1_TIMEOUT_MS
+        ).then(function (payload) {
+          if (!payload) return null;
+          prefetchStore.set(getNotificationsPrefetchKey(scope), payload, { scope: scope });
+          return payload;
+        });
+      });
+
+      withPrefetchInflight("prefetch:" + getPollVotesSummaryPrefetchKey(scope), function () {
+        return fetchJsonWithTimeout(
+          getMessagesApiBase() + "/me/polls/votes/summary",
+          {
+            method: "GET",
+            headers: {
+              authorization: "Bearer " + token,
+              "content-type": "application/json"
+            }
+          },
+          PREFETCH_TIER1_TIMEOUT_MS
+        ).then(function (payload) {
+          if (!payload) return null;
+          prefetchStore.set(getPollVotesSummaryPrefetchKey(scope), payload, { scope: scope });
+          return payload;
+        });
+      });
+    }, 180);
+  }
+
+  function scheduleAuthPrefetch(authState) {
+    if (!isPrefetchEnabled()) return;
+    if (!authState || !authState.isAuthenticated) return;
+    var scope = getPrefetchScope(authState);
+    if (!scope) return;
+    var now = Date.now();
+    if (prefetchScopeState.scope === scope && now - prefetchScopeState.lastRunAt < PREFETCH_RELOAD_COOLDOWN_MS) {
+      return;
+    }
+    prefetchScopeState.scope = scope;
+    prefetchScopeState.lastRunAt = now;
+
+    var tokenPromise = Promise.resolve("")
+      .then(function () {
+        var auth = window.DEX_AUTH || window.dexAuth || null;
+        if (!auth || typeof auth.getAccessToken !== "function") return "";
+        return auth.getAccessToken();
+      })
+      .catch(function () { return ""; });
+
+    tokenPromise.then(function (token) {
+      var safeToken = String(token || "").trim();
+      prefetchQuota(scope, false).catch(function () {});
+      if (!safeToken) return;
+      prefetchUnreadCount(scope, safeToken, false)
+        .then(function (record) {
+          var count = toSafeInt(record && record.count, 0);
+          setMessagesUnreadBadge(count);
+        })
+        .catch(function () {});
+      prefetchTierOne(scope, safeToken);
+    });
   }
 
   function parseCssColorToRgb(value) {
@@ -846,10 +1215,21 @@
     return 0;
   }
 
-  function syncMessagesUnreadCount() {
+  function syncMessagesUnreadCount(options) {
+    var opts = options && typeof options === "object" ? options : {};
+    var forceLive = !!opts.forceLive;
     if (!authReadyState || !authReadyState.isAuthenticated) {
       setMessagesUnreadBadge(0);
       return Promise.resolve(0);
+    }
+    var scope = getPrefetchScope(authReadyState);
+    if (scope && prefetchStore && !forceLive) {
+      var cached = prefetchStore.getFresh(getMessagesApiPrefetchKey(scope), PREFETCH_SWR_MS);
+      if (cached && cached.payload && typeof cached.payload.count !== "undefined") {
+        var cachedCount = toSafeInt(cached.payload.count, 0);
+        setMessagesUnreadBadge(cachedCount);
+        return Promise.resolve(cachedCount);
+      }
     }
     if (!window.DEX_AUTH || typeof window.DEX_AUTH.getAccessToken !== "function") {
       return Promise.resolve(0);
@@ -872,6 +1252,9 @@
         }).then(function (payload) {
           var count = parseMessagesUnreadCount(payload);
           setMessagesUnreadBadge(count);
+          if (scope && prefetchStore) {
+            prefetchStore.set(getMessagesApiPrefetchKey(scope), { count: count }, { scope: scope });
+          }
           return count;
         });
       })
@@ -893,7 +1276,8 @@
 
     window.addEventListener("focus", function () {
       if (!authReadyState || !authReadyState.isAuthenticated) return;
-      syncMessagesUnreadCount();
+      syncMessagesUnreadCount({ forceLive: true });
+      scheduleAuthPrefetch(authReadyState);
     });
   }
 

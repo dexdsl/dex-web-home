@@ -56,10 +56,13 @@ function verifySubmitRuntime() {
     'window.__dxSubmitSamplesRuntimeLoaded',
     'DX_MIN_SHEEN_MS = 120',
     'window.__DX_SUBMIT_SAMPLES_CONFIG',
+    'window.__DX_PREFETCH',
     'pitchSystem',
     'pitchDescriptor',
     'Weekly uploads available',
     'refreshWeeklyQuotaFromSheet',
+    "action: 'quota'",
+    'data-dx-quota-source',
     'withCanonicalZwnj',
     'serializePitchSelection',
     'Pitch system',
@@ -83,6 +86,23 @@ function verifySubmitRuntime() {
       'status:"pending"',
     ]);
   }
+
+  const bannedQuotaPath = "action:'list'";
+  if (source.includes(bannedQuotaPath) || source.includes("action: 'list'")) {
+    FAILURES.push(`${sourceRel} still references list action for quota checks`);
+  }
+}
+
+function verifyAuthPrefetchRuntime() {
+  const runtimeRel = 'public/assets/dex-auth.js';
+  const runtime = readText(runtimeRel);
+  assertIncludes(runtimeRel, runtime, [
+    'window.__DX_PREFETCH',
+    'dx:prefetch:update',
+    'prefetchInflight',
+    'prefetchQuota',
+    'prefetchUnreadCount',
+  ]);
 }
 
 function verifyCssContracts() {
@@ -119,6 +139,7 @@ function verifyCssContracts() {
 function main() {
   verifySubmitRoute();
   verifySubmitRuntime();
+  verifyAuthPrefetchRuntime();
   verifyCssContracts();
 
   if (FAILURES.length > 0) {

@@ -20,6 +20,8 @@ import { animate } from 'framer-motion/dom';
   const SUBMIT_TIMEOUT_MS = 15000;
   const SUBMIT_MIN_LOADING_MS = 420;
   const JSONP_TIMEOUT_MS = 8000;
+  const PREFETCH_SWR_MS = 60000;
+  const QUOTA_RETRY_DELAY_MS = 220;
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_WEEKLY_LIMIT = 4;
@@ -736,44 +738,75 @@ import { animate } from 'framer-motion/dom';
     setFetchState(root, fetchState);
   }
 
-  function getStartOfWeekLocal(referenceDate = new Date()) {
-    const start = new Date(referenceDate);
-    start.setHours(0, 0, 0, 0);
-    const day = start.getDay();
-    const mondayOffset = (day + 6) % 7;
-    start.setDate(start.getDate() - mondayOffset);
-    return start;
-  }
-
-  function toDate(value) {
-    if (value instanceof Date && Number.isFinite(value.getTime())) return value;
-    const raw = text(value);
-    if (!raw) return null;
-    const parsed = new Date(raw);
-    if (!Number.isFinite(parsed.getTime())) return null;
-    return parsed;
-  }
-
-  function countCurrentWeekRows(rows) {
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
-    const start = getStartOfWeekLocal(new Date());
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-    let count = 0;
-    for (const row of rows) {
-      const timestamp = toDate(row?.timestamp);
-      if (!timestamp) continue;
-      if (timestamp >= start && timestamp < end) {
-        count += 1;
-      }
-    }
-    return count;
-  }
-
   function parsePositiveInt(value, fallback = null) {
     const parsed = Number.parseInt(String(value ?? ''), 10);
     if (!Number.isFinite(parsed) || parsed < 0) return fallback;
     return parsed;
+  }
+
+  function getPrefetchRuntime() {
+    const runtime = window.__DX_PREFETCH;
+    if (!runtime || typeof runtime.getFresh !== 'function' || typeof runtime.set !== 'function') return null;
+    return runtime;
+  }
+
+  function getQuotaPrefetchKey(auth0Sub) {
+    const safeSub = text(auth0Sub, '');
+    if (!safeSub) return '';
+    return `quota:${safeSub}`;
+  }
+
+  function setQuotaSource(source) {
+    if (!(liveRoot instanceof HTMLElement)) return;
+    liveRoot.setAttribute('data-dx-quota-source', text(source, 'none'));
+  }
+
+  function parseQuotaPayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const weeklyLimitRaw = parsePositiveInt(payload.weeklyLimit, null);
+    const weeklyUsedRaw = parsePositiveInt(payload.weeklyUsed, null);
+    const weeklyRemainingRaw = parsePositiveInt(payload.weeklyRemaining, null);
+    if (weeklyLimitRaw === null && weeklyUsedRaw === null && weeklyRemainingRaw === null) return null;
+    const weeklyLimit = Math.max(1, Math.min(99, weeklyLimitRaw ?? state?.weeklyLimit ?? DEFAULT_WEEKLY_LIMIT));
+    const weeklyUsed = Math.max(0, weeklyUsedRaw ?? (weeklyRemainingRaw === null ? 0 : weeklyLimit - weeklyRemainingRaw));
+    const weeklyRemaining = Math.max(0, Math.min(weeklyLimit, weeklyRemainingRaw ?? (weeklyLimit - weeklyUsed)));
+    return {
+      weeklyLimit,
+      weeklyUsed,
+      weeklyRemaining,
+      weekStart: text(payload.weekStart, ''),
+      weekEnd: text(payload.weekEnd, ''),
+      updatedAt: text(payload.updatedAt, new Date().toISOString()),
+    };
+  }
+
+  function applyQuotaPayload(quotaPayload) {
+    if (!state || !quotaPayload) return false;
+    const parsed = parseQuotaPayload(quotaPayload);
+    if (!parsed) return false;
+    state.weeklyLimit = parsed.weeklyLimit;
+    state.weeklyUsed = parsed.weeklyUsed;
+    state.quotaLeft = parsed.weeklyRemaining;
+    state.quotaResolved = true;
+    return true;
+  }
+
+  function readCachedQuota(auth0Sub) {
+    const prefetch = getPrefetchRuntime();
+    const key = getQuotaPrefetchKey(auth0Sub);
+    if (!prefetch || !key) return null;
+    const cached = prefetch.getFresh(key, PREFETCH_SWR_MS);
+    if (!cached || !cached.payload) return null;
+    return parseQuotaPayload(cached.payload);
+  }
+
+  function writeCachedQuota(auth0Sub, quotaPayload) {
+    const prefetch = getPrefetchRuntime();
+    const key = getQuotaPrefetchKey(auth0Sub);
+    if (!prefetch || !key) return;
+    const parsed = parseQuotaPayload(quotaPayload);
+    if (!parsed) return;
+    prefetch.set(key, parsed, { scope: auth0Sub });
   }
 
   function quotaSummaryText() {
@@ -851,44 +884,52 @@ import { animate } from 'framer-motion/dom';
     });
   }
 
-  async function refreshWeeklyQuotaFromSheet() {
-    if (!state || !text(state.webappUrl) || !text(state.auth0Sub)) return false;
-    try {
+  async function refreshWeeklyQuotaFromSheet(options = {}) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const forceLive = !!opts.forceLive;
+    const useCache = opts.useCache !== false;
+    const allowRetry = opts.allowRetry !== false;
+    const timeoutMs = Math.max(500, Number(opts.timeoutMs || JSONP_TIMEOUT_MS));
+    if (!state || !text(state.webappUrl) || !text(state.auth0Sub)) {
+      setQuotaSource('none');
+      return false;
+    }
+
+    if (useCache && !forceLive) {
+      const cached = readCachedQuota(state.auth0Sub);
+      if (cached && applyQuotaPayload(cached)) {
+        setQuotaSource('cache');
+        refreshQuotaCopy();
+      }
+    }
+
+    const fetchLiveQuota = async () => {
       const response = await jsonpRequest(
         state.webappUrl,
-        { action: 'list', auth0Sub: state.auth0Sub },
-        JSONP_TIMEOUT_MS,
+        { action: 'quota', auth0Sub: state.auth0Sub },
+        timeoutMs,
       );
-      const rows = response && typeof response === 'object' ? response.rows : [];
-      const responseWeeklyLimit = parsePositiveInt(
-        response && typeof response === 'object' ? response.weeklyLimit : null,
-        null,
-      );
-      const responseWeeklyUsed = Number.parseInt(
-        String(response && typeof response === 'object' ? response.weeklyUsed : ''),
-        10,
-      );
-      const responseWeeklyRemaining = parsePositiveInt(
-        response && typeof response === 'object' ? response.weeklyRemaining : null,
-        null,
-      );
-      if (responseWeeklyLimit !== null) {
-        state.weeklyLimit = Math.max(1, Math.min(99, responseWeeklyLimit));
-      }
-      const weeklyUsed = Number.isFinite(responseWeeklyUsed)
-        ? Math.max(0, responseWeeklyUsed)
-        : countCurrentWeekRows(rows);
-      if (responseWeeklyRemaining !== null) {
-        state.quotaLeft = Math.max(0, Math.min(state.weeklyLimit, responseWeeklyRemaining));
-        state.weeklyUsed = Math.max(0, state.weeklyLimit - state.quotaLeft);
-      } else {
-        state.weeklyUsed = weeklyUsed;
-        state.quotaLeft = Math.max(0, state.weeklyLimit - weeklyUsed);
-      }
-      state.quotaResolved = true;
+      const ok = applyQuotaPayload(response);
+      if (!ok) return false;
+      writeCachedQuota(state.auth0Sub, response);
+      setQuotaSource('live');
       return true;
+    };
+
+    try {
+      const liveOk = await fetchLiveQuota();
+      if (liveOk) return true;
+      if (!allowRetry) return false;
+      await delay(QUOTA_RETRY_DELAY_MS + Math.floor(Math.random() * 140));
+      return await fetchLiveQuota();
     } catch {
-      return false;
+      if (allowRetry) {
+        try {
+          await delay(QUOTA_RETRY_DELAY_MS + Math.floor(Math.random() * 140));
+          return await fetchLiveQuota();
+        } catch {}
+      }
+      return Boolean(state.quotaResolved && !forceLive);
     }
   }
 
@@ -1708,7 +1749,12 @@ import { animate } from 'framer-motion/dom';
     render();
     const submitStartTs = performance.now();
 
-    const quotaVerified = await refreshWeeklyQuotaFromSheet();
+    const quotaVerified = await refreshWeeklyQuotaFromSheet({
+      useCache: false,
+      forceLive: true,
+      allowRetry: true,
+      timeoutMs: 3400,
+    });
     if (!quotaVerified) {
       state.submitting = false;
       render();
@@ -1834,6 +1880,13 @@ import { animate } from 'framer-motion/dom';
     while (Date.now() - start < timeoutMs) {
       if (text(window.auth0Sub)) return text(window.auth0Sub);
 
+      if (window.DEX_AUTH && typeof window.DEX_AUTH.getUser === 'function') {
+        try {
+          const user = await withTimeout(window.DEX_AUTH.getUser(), Math.min(timeoutMs, 1200), null);
+          if (user && text(user.sub)) return text(user.sub);
+        } catch {}
+      }
+
       if (window.auth0 && typeof window.auth0.getUser === 'function') {
         try {
           const candidate = window.auth0.getUser();
@@ -1849,6 +1902,44 @@ import { animate } from 'framer-motion/dom';
       await delay(100);
     }
     return '';
+  }
+
+  let quotaHydrationPromise = null;
+
+  async function hydrateAuthAndQuota(options = {}) {
+    if (!state) return false;
+    const opts = options && typeof options === 'object' ? options : {};
+    const force = !!opts.force;
+    if (quotaHydrationPromise && !force) return quotaHydrationPromise;
+
+    quotaHydrationPromise = (async () => {
+      const sub = await resolveAuth0Sub(AUTH_TIMEOUT_MS);
+      if (!text(sub)) {
+        state.auth0Sub = '';
+        state.quotaResolved = false;
+        setQuotaSource('none');
+        refreshQuotaCopy();
+        return false;
+      }
+      if (state.auth0Sub !== sub) {
+        state.auth0Sub = sub;
+        window.auth0Sub = sub;
+      }
+      state.authUser = await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
+      const verified = await refreshWeeklyQuotaFromSheet({
+        useCache: true,
+        forceLive: !!opts.forceLive,
+        allowRetry: true,
+      });
+      refreshQuotaCopy();
+      return verified;
+    })()
+      .catch(() => false)
+      .finally(() => {
+        quotaHydrationPromise = null;
+      });
+
+    return quotaHydrationPromise;
   }
 
   async function mount(options = {}) {
@@ -1867,19 +1958,10 @@ import { animate } from 'framer-motion/dom';
       setFetchState(root, FETCH_STATE_LOADING);
       const config = toConfig(root);
       state = makeState(config);
-      state.auth0Sub = await resolveAuth0Sub(AUTH_TIMEOUT_MS);
-      state.authUser = await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
-      window.auth0Sub = state.auth0Sub || window.auth0Sub || '';
+      state.auth0Sub = text(window.auth0Sub, '');
+      setQuotaSource('none');
       render();
-      refreshWeeklyQuotaFromSheet()
-        .then((verified) => {
-          if (verified) {
-            refreshQuotaCopy();
-            return;
-          }
-          refreshQuotaCopy();
-        })
-        .catch(() => {});
+      hydrateAuthAndQuota({ force: true }).catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
       root.setAttribute('data-dx-submit-mounted', 'true');
       return true;
@@ -1904,22 +1986,20 @@ import { animate } from 'framer-motion/dom';
 
   document.addEventListener('dex-auth:ready', () => {
     if (!state) return;
-    resolveAuth0Sub(AUTH_TIMEOUT_MS)
-      .then((sub) => {
-        if (!text(sub)) return false;
-        if (state.auth0Sub !== sub) {
-          state.auth0Sub = sub;
-          window.auth0Sub = sub;
-        }
-        return resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
-      })
-      .then(() => {
-        return refreshWeeklyQuotaFromSheet();
-      })
-      .then(() => {
-        refreshQuotaCopy();
-      })
-      .catch(() => {});
+    hydrateAuthAndQuota({ force: true }).catch(() => {});
+  });
+
+  window.addEventListener('dx:prefetch:update', (event) => {
+    if (!state) return;
+    const detail = event && typeof event.detail === 'object' ? event.detail : null;
+    const key = text(detail?.key, '');
+    if (!key || key !== getQuotaPrefetchKey(state.auth0Sub)) return;
+    const cached = readCachedQuota(state.auth0Sub);
+    if (!cached) return;
+    if (applyQuotaPayload(cached)) {
+      setQuotaSource('cache');
+      refreshQuotaCopy();
+    }
   });
 
   if (document.readyState === 'loading') {

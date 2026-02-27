@@ -12,6 +12,7 @@
   const STYLE_ID = 'dx-polls-app-style';
   const PAGE_SIZE_OPEN = 12;
   const PAGE_SIZE_CLOSED = 8;
+  const POLL_LIST_CACHE_MAX_AGE_MS = 60000;
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -271,6 +272,25 @@
     return window.DEX_AUTH || window.dexAuth || null;
   }
 
+  function getAnonymousAuthSnapshot() {
+    return {
+      auth: getAuthApi(),
+      authenticated: false,
+      token: null,
+      user: null,
+    };
+  }
+
+  function getPrefetchRuntime() {
+    const runtime = window.__DX_PREFETCH;
+    if (!runtime || typeof runtime.getFresh !== 'function' || typeof runtime.set !== 'function') return null;
+    return runtime;
+  }
+
+  function getPollListCacheKey(state, page) {
+    return `polls:list:${state}:page:${page}`;
+  }
+
   async function resolveAuthSnapshot() {
     const auth = getAuthApi();
     if (!auth) {
@@ -314,7 +334,13 @@
   async function fetchJson(path, options = {}) {
     const apiBase = getApiBase();
     const authMode = options.auth || 'optional';
-    const authSnapshot = options.authSnapshot || await resolveAuthSnapshot();
+    let authSnapshot = options.authSnapshot || null;
+    if (!authSnapshot && authMode === 'required') {
+      authSnapshot = await resolveAuthSnapshot();
+    }
+    if (!authSnapshot) {
+      authSnapshot = getAnonymousAuthSnapshot();
+    }
     const headers = { 'content-type': 'application/json' };
 
     if (authSnapshot.token) {
@@ -539,30 +565,11 @@
     } catch {}
   }
 
-  async function mountList(root, initialAuthSnapshot) {
-    let authSnapshot = initialAuthSnapshot;
+  async function mountList(root, initialAuthSnapshot, authSnapshotPromise = null) {
+    let authSnapshot = initialAuthSnapshot || getAnonymousAuthSnapshot();
     let closedPage = 1;
 
-    async function fetchAndRender() {
-      const openRes = await fetchJson(`/polls?state=open&page=1&pageSize=${PAGE_SIZE_OPEN}`, {
-        auth: 'optional',
-        authSnapshot,
-      });
-      const closedRes = await fetchJson(`/polls?state=closed&page=${closedPage}&pageSize=${PAGE_SIZE_CLOSED}`, {
-        auth: 'optional',
-        authSnapshot,
-      });
-
-      if (!openRes.ok || !closedRes.ok) {
-        throw new Error('Failed to load poll lists');
-      }
-
-      const open = normalizeListPayload(openRes.data, 1);
-      const closed = normalizeListPayload(closedRes.data, closedPage);
-      closedPage = closed.page;
-
-      renderList(root, { auth: authSnapshot, open, closed });
-
+    function bindListActions() {
       root.querySelectorAll('[data-dx-poll-action="signin"]').forEach((button) => {
         button.addEventListener('click', async (event) => {
           event.preventDefault();
@@ -588,11 +595,72 @@
       }
     }
 
-    await fetchAndRender();
+    function renderCachedListIfFresh() {
+      if (closedPage !== 1) return false;
+      const prefetch = getPrefetchRuntime();
+      if (!prefetch) return false;
+      const openCached = prefetch.getFresh(getPollListCacheKey('open', 1), POLL_LIST_CACHE_MAX_AGE_MS);
+      const closedCached = prefetch.getFresh(getPollListCacheKey('closed', 1), POLL_LIST_CACHE_MAX_AGE_MS);
+      if (!openCached?.payload || !closedCached?.payload) return false;
+      const open = normalizeListPayload(openCached.payload, 1);
+      const closed = normalizeListPayload(closedCached.payload, 1);
+      renderList(root, { auth: authSnapshot, open, closed });
+      bindListActions();
+      return true;
+    }
+
+    function persistListCache(openPayload, closedPayload) {
+      if (closedPage !== 1) return;
+      const prefetch = getPrefetchRuntime();
+      if (!prefetch) return;
+      prefetch.set(getPollListCacheKey('open', 1), openPayload, { scope: 'public' });
+      prefetch.set(getPollListCacheKey('closed', 1), closedPayload, { scope: 'public' });
+    }
+
+    async function fetchAndRender() {
+      const openRes = await fetchJson(`/polls?state=open&page=1&pageSize=${PAGE_SIZE_OPEN}`, {
+        auth: 'optional',
+        authSnapshot,
+      });
+      const closedRes = await fetchJson(`/polls?state=closed&page=${closedPage}&pageSize=${PAGE_SIZE_CLOSED}`, {
+        auth: 'optional',
+        authSnapshot,
+      });
+
+      if (!openRes.ok || !closedRes.ok) {
+        throw new Error('Failed to load poll lists');
+      }
+
+      const open = normalizeListPayload(openRes.data, 1);
+      const closed = normalizeListPayload(closedRes.data, closedPage);
+      closedPage = closed.page;
+      persistListCache(openRes.data, closedRes.data);
+
+      renderList(root, { auth: authSnapshot, open, closed });
+      bindListActions();
+    }
+
+    const renderedFromCache = renderCachedListIfFresh();
+    if (renderedFromCache) {
+      fetchAndRender().catch(() => {});
+    } else {
+      await fetchAndRender();
+    }
+
+    if (authSnapshotPromise && typeof authSnapshotPromise.then === 'function') {
+      authSnapshotPromise
+        .then(async (resolvedAuth) => {
+          if (!resolvedAuth || !resolvedAuth.authenticated) return;
+          if (authSnapshot.authenticated) return;
+          authSnapshot = resolvedAuth;
+          await fetchAndRender();
+        })
+        .catch(() => {});
+    }
   }
 
-  async function mountDetail(root, pollId, initialAuthSnapshot) {
-    let authSnapshot = initialAuthSnapshot;
+  async function mountDetail(root, pollId, initialAuthSnapshot, authSnapshotPromise = null) {
+    let authSnapshot = initialAuthSnapshot || getAnonymousAuthSnapshot();
     let saveState = 'idle';
 
     const detailRes = await fetchJson(`/polls/${encodeURIComponent(pollId)}`, {
@@ -679,6 +747,17 @@
     }
 
     await renderWithResults();
+
+    if (authSnapshotPromise && typeof authSnapshotPromise.then === 'function') {
+      authSnapshotPromise
+        .then(async (resolvedAuth) => {
+          if (!resolvedAuth || !resolvedAuth.authenticated) return;
+          if (authSnapshot.authenticated) return;
+          authSnapshot = resolvedAuth;
+          await renderWithResults();
+        })
+        .catch(() => {});
+    }
   }
 
   async function boot() {
@@ -691,12 +770,13 @@
     setFetchState(root, 'loading');
 
     try {
-      const authSnapshot = await resolveAuthSnapshot();
+      const authSnapshot = getAnonymousAuthSnapshot();
+      const authSnapshotPromise = resolveAuthSnapshot();
       const route = parseRoute(root);
       if (route.type === 'detail' && route.pollId) {
-        await mountDetail(root, route.pollId, authSnapshot);
+        await mountDetail(root, route.pollId, authSnapshot, authSnapshotPromise);
       } else {
-        await mountList(root, authSnapshot);
+        await mountList(root, authSnapshot, authSnapshotPromise);
       }
 
       await waitMinSheen(startAt);

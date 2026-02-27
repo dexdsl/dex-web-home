@@ -23,6 +23,8 @@
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
+  const PREFETCH_SWR_MS = 60000;
+  const INITIAL_ROUTE_URL = String(window.location.href || '');
 
   function isObject(value) {
     return typeof value === 'object' && value !== null;
@@ -138,8 +140,51 @@
       .replace(/'/g, '&#39;');
   }
 
+  function normalizeHref(value) {
+    const raw = toSafeText(value, '');
+    if (!raw) return '';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/^[\w.-]+\.[a-z]{2,}(?:\/|$)/i.test(raw)) return `https://${raw}`;
+    if (raw.startsWith('/')) return raw;
+    return raw;
+  }
+
+  function extractGoogleDriveFileId(value) {
+    const href = normalizeHref(value);
+    if (!href) return '';
+    try {
+      const url = new URL(href, window.location.origin);
+      const host = String(url.hostname || '').toLowerCase();
+      if (!host.includes('drive.google.com')) return '';
+
+      const filePathMatch = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (filePathMatch?.[1]) return filePathMatch[1];
+
+      const openId = toSafeText(url.searchParams.get('id'), '');
+      if (openId) return openId;
+    } catch {}
+    return '';
+  }
+
+  function toGoogleDrivePreviewHref(value) {
+    const fileId = extractGoogleDriveFileId(value);
+    if (!fileId) return '';
+    return `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`;
+  }
+
   function getAuthRuntime() {
     return window.DEX_AUTH || window.dexAuth || null;
+  }
+
+  function getPrefetchRuntime() {
+    const runtime = window.__DX_PREFETCH;
+    if (!runtime || typeof runtime.getFresh !== 'function' || typeof runtime.set !== 'function') return null;
+    return runtime;
+  }
+
+  function getSubmissionDetailPrefetchKey(scope, sid) {
+    if (!scope || !sid) return '';
+    return `submission:detail:${scope}:${sid}`;
   }
 
   async function resolveAuthSnapshot(timeoutMs = AUTH_TIMEOUT_MS) {
@@ -264,6 +309,12 @@
 
   function parseSidFromLocation(routeUrl = '') {
     let sid = '';
+    if (!sid && INITIAL_ROUTE_URL) {
+      try {
+        const parsedInitial = new URL(INITIAL_ROUTE_URL, window.location.origin);
+        sid = toSafeText(parsedInitial.searchParams.get('sid'), '');
+      } catch {}
+    }
 
     if (routeUrl) {
       try {
@@ -300,7 +351,7 @@
     let sid = parseSidFromLocation(routeUrl);
     if (sid) return sid;
 
-    for (const waitMs of [16, 48, 96, 180, 300, 420, 600, 820]) {
+    for (const waitMs of [16, 32, 64, 96, 140, 220, 320, 480]) {
       await delay(waitMs);
       sid = parseSidFromLocation(routeUrl);
       if (sid) return sid;
@@ -366,6 +417,7 @@
 
     if (normalized === 'lookup_generated') {
       const generated = toLookup || fromLookup;
+      if (isPlaceholderSubmissionLookup(generated)) return '';
       return generated ? `Submission lookup generated: ${generated}.` : '';
     }
 
@@ -402,6 +454,12 @@
     return fallback;
   }
 
+  function isPlaceholderSubmissionLookup(value) {
+    const lookup = toSafeText(value, '');
+    if (!lookup) return false;
+    return /^SUB\d{2}-X\.Unk An O\d{4}$/i.test(lookup);
+  }
+
   function normalizeTimeline(timeline) {
     const rows = Array.isArray(timeline) ? timeline : [];
     return rows
@@ -426,6 +484,18 @@
         ]);
         const title = pickFirstText([value.title, metadata.title, metadata.submissionTitle, metadata.submission_title]);
         const creator = pickFirstText([value.creator, metadata.creator, metadata.artist]);
+        const instrument = pickFirstText([value.instrument, metadata.instrument]);
+        const category = pickFirstText([value.category, metadata.category]);
+        const submittedAt = pickFirstText([
+          value.submittedAt,
+          value.submitted_at,
+          value.clientSubmittedAt,
+          value.client_submitted_at,
+          metadata.submittedAt,
+          metadata.submitted_at,
+          metadata.clientSubmittedAt,
+          metadata.client_submitted_at,
+        ]);
         const lookup = pickFirstText([
           value.effectiveLookupNumber,
           value.effective_lookup_number,
@@ -460,10 +530,13 @@
           eventType,
           publicNote: displayNote || publicNote,
           statusRaw,
-          libraryHref,
-          sourceLink,
+          libraryHref: normalizeHref(libraryHref),
+          sourceLink: normalizeHref(sourceLink),
           title,
           creator,
+          instrument,
+          category,
+          submittedAt,
           lookup,
           createdAt,
           metadata,
@@ -630,6 +703,34 @@
       ...mergedMeta.map((meta) => meta.library_href),
       latestEvent?.libraryHref,
     ]);
+    thread.instrument = pickFirstText([
+      thread.instrument,
+      threadPayload.instrument,
+      ...mergedMeta.map((meta) => meta.instrument),
+      latestEvent?.instrument,
+    ]);
+    thread.category = pickFirstText([
+      thread.category,
+      threadPayload.category,
+      ...mergedMeta.map((meta) => meta.category),
+      latestEvent?.category,
+    ]);
+    thread.submittedAt = pickFirstText([
+      thread.submittedAt,
+      threadPayload.submittedAt,
+      threadPayload.submitted_at,
+      threadPayload.clientSubmittedAt,
+      threadPayload.client_submitted_at,
+      ...mergedMeta.map((meta) => meta.submittedAt),
+      ...mergedMeta.map((meta) => meta.submitted_at),
+      ...mergedMeta.map((meta) => meta.clientSubmittedAt),
+      ...mergedMeta.map((meta) => meta.client_submitted_at),
+      timelineEvents.find((event) => String(event?.eventType || '').toLowerCase() === 'sent')?.createdAt,
+      latestEvent?.submittedAt,
+      latestEvent?.createdAt,
+    ]);
+    thread.sourceLink = normalizeHref(thread.sourceLink);
+    thread.libraryHref = normalizeHref(thread.libraryHref);
 
     thread.currentStatusRaw = pickFirstText([
       thread.currentStatusRaw,
@@ -747,6 +848,22 @@
     ]);
     thread.sourceLink = pickFirstText([thread.sourceLink, match.sourceLink, match.source_link, match.link, matchMeta.sourceLink, matchMeta.source_link, matchMeta.link]);
     thread.libraryHref = pickFirstText([thread.libraryHref, match.libraryHref, match.library_href, matchMeta.libraryHref, matchMeta.library_href]);
+    thread.instrument = pickFirstText([thread.instrument, match.instrument, matchMeta.instrument]);
+    thread.category = pickFirstText([thread.category, match.category, matchMeta.category]);
+    thread.submittedAt = pickFirstText([
+      thread.submittedAt,
+      match.submittedAt,
+      match.submitted_at,
+      match.clientSubmittedAt,
+      match.client_submitted_at,
+      match.createdAt,
+      match.created_at,
+      match.timestamp,
+      matchMeta.submittedAt,
+      matchMeta.submitted_at,
+      matchMeta.clientSubmittedAt,
+      matchMeta.client_submitted_at,
+    ]);
     thread.updatedAt = pickFirstText([
       thread.updatedAt,
       match.updatedAt,
@@ -754,6 +871,8 @@
       match.receivedAt,
       match.received_at,
     ]);
+    thread.sourceLink = normalizeHref(thread.sourceLink);
+    thread.libraryHref = normalizeHref(thread.libraryHref);
 
     return thread;
   }
@@ -793,12 +912,10 @@
     const submissionLookup = pickFirstText([
       thread?.submissionLookupNumber,
       thread?.submissionLookupGenerated,
-      thread?.lookup,
     ]);
     const finalLookup = pickFirstText([
       thread?.finalLookupNumber,
       thread?.effectiveLookupNumber,
-      thread?.lookup,
     ]);
     const updatedAt = pickFirstText([thread?.updatedAt, nowIso()]);
     const statusRaw = toSafeText(thread?.currentStatusRaw, '');
@@ -814,7 +931,7 @@
         sourceLink,
         title,
         creator,
-        lookup: finalLookup || submissionLookup,
+        lookup: submissionLookup,
         createdAt: updatedAt,
         metadata: {
           submissionLookupNumber: submissionLookup,
@@ -860,7 +977,7 @@
         sourceLink,
         title,
         creator,
-        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        lookup: finalLookup,
         createdAt: updatedAt,
         metadata: {},
       });
@@ -876,7 +993,7 @@
         sourceLink,
         title,
         creator,
-        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        lookup: finalLookup || submissionLookup || '',
         createdAt: toSafeText(thread?.acknowledgedAt, updatedAt),
         metadata: {},
       });
@@ -892,7 +1009,7 @@
         sourceLink,
         title,
         creator,
-        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        lookup: finalLookup || submissionLookup || '',
         createdAt: updatedAt,
         metadata: {},
       });
@@ -933,6 +1050,9 @@
       finalLookupNumber: '',
       title: '',
       creator: '',
+      instrument: '',
+      category: '',
+      submittedAt: '',
       currentStage: 'reviewing',
       currentStatusRaw: '',
       updatedAt: '',
@@ -943,9 +1063,15 @@
 
     await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
 
+    const essentialsFromThreadList = (
+      toSafeText(thread.title)
+      && toSafeText(thread.lookup)
+      && (toSafeText(thread.sourceLink) || toSafeText(thread.libraryHref))
+    );
+
     const sub = toSafeText(authSnapshot?.sub, '');
     let legacyRow = null;
-    if (sub) {
+    if (sub && !essentialsFromThreadList) {
       const legacyResponse = await withTimeout(
         jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
         JSONP_TIMEOUT_MS + 100,
@@ -982,13 +1108,18 @@
       legacyRow?.final_lookup_number,
       thread.finalLookupNumber,
     ]);
-    thread.title = pickFirstText([legacyRow?.title, legacyRow?.submissionTitle, thread.title], 'Untitled submission');
+    thread.title = pickFirstText([legacyRow?.title, legacyRow?.submissionTitle, thread.title], '');
     thread.creator = pickFirstText([legacyRow?.creator, legacyRow?.artist, thread.creator], '');
     thread.currentStatusRaw = legacyStatus;
     thread.currentStage = reviewStage;
     thread.sourceLink = pickFirstText([legacyRow?.link, legacyRow?.sourceLink, thread.sourceLink], '');
     thread.libraryHref = pickFirstText([legacyRow?.libraryHref, legacyRow?.library_href, thread.libraryHref], '');
+    thread.instrument = pickFirstText([legacyRow?.instrument, legacyRow?.instrument_raw, thread.instrument], '');
+    thread.category = pickFirstText([legacyRow?.category, legacyRow?.category_raw, thread.category], '');
+    thread.submittedAt = pickFirstText([sentAt, legacyRow?.clientSubmittedAt, legacyRow?.client_submitted_at, thread.submittedAt], '');
     thread.updatedAt = pickFirstText([receivedAt, thread.updatedAt], new Date().toISOString());
+    thread.sourceLink = normalizeHref(thread.sourceLink);
+    thread.libraryHref = normalizeHref(thread.libraryHref);
 
     const timeline = [];
     if (sentAt) {
@@ -1069,6 +1200,49 @@
     `;
   }
 
+  function renderLoading(root, sid = '') {
+    const lookupLabel = toSafeText(sid, '');
+    root.innerHTML = `
+      <aside class="dx-sub-shell" data-dx-submission-shell data-dx-sub-loading="true">
+        ${renderBreadcrumb('submission timeline')}
+        <section class="dx-sub-head">
+          <p class="dx-sub-kicker">submission tracker</p>
+          <h1 class="dx-sub-title">${escapeHtml(lookupLabel ? `Submission ${lookupLabel.slice(0, 8)}` : 'Submission Timeline')}</h1>
+          <div class="dx-sub-status">
+            <span class="dx-sub-chip">Fetching</span>
+            <span class="dx-sub-chip">Syncing timeline</span>
+          </div>
+        </section>
+        <section class="dx-sub-grid">
+          <article class="dx-sub-card">
+            <p class="dx-sub-kicker">Submission</p>
+            <p class="dx-sub-item-body">Loading submission details…</p>
+          </article>
+          <article class="dx-sub-card">
+            <p class="dx-sub-kicker">Links</p>
+            <p class="dx-sub-item-body">Validating source links…</p>
+          </article>
+        </section>
+        <section class="dx-sub-timeline">
+          <article class="dx-sub-item">
+            <div class="dx-sub-item-head">
+              <p class="dx-sub-item-type">Fetching timeline events</p>
+              <p class="dx-sub-item-time">${escapeHtml(toDateTime(nowIso()))}</p>
+            </div>
+          </article>
+        </section>
+        <div class="dx-fetch-shell-overlay" aria-hidden="true">
+          <div class="dx-fetch-shell dx-fetch-shell--card">
+            <span class="dx-fetch-shell-pill"></span>
+            <span class="dx-fetch-shell-line"></span>
+            <span class="dx-fetch-shell-line"></span>
+            <span class="dx-fetch-shell-line" style="width: 66%;"></span>
+          </div>
+        </div>
+      </aside>
+    `;
+  }
+
   function renderSignIn(root) {
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
@@ -1109,8 +1283,9 @@
             const statusChip = item.statusRaw
               ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(item.eventType))}">${escapeHtml(item.statusRaw)}</span>`
               : '';
-            const link = item.libraryHref
-              ? `<a class="dx-sub-link" href="${escapeHtml(item.libraryHref)}">Library link</a>`
+            const eventLink = normalizeHref(item.sourceLink || item.libraryHref || '');
+            const link = eventLink
+              ? `<a class="dx-sub-link" href="${escapeHtml(eventLink)}" target="_blank" rel="noopener">Submission link</a>`
               : '';
 
             return `
@@ -1139,11 +1314,29 @@
       .join('');
 
     const warningHtml = model.warning ? `<p class="dx-sub-warning">${escapeHtml(model.warning)}</p>` : '';
-    const sourceLink = model.thread.sourceLink
-      ? `<a class="dx-sub-link" href="${escapeHtml(model.thread.sourceLink)}">Source submission</a>`
+    const submissionLinkHref = normalizeHref(model.thread.sourceLink || '');
+    const publishedLinkHref = normalizeHref(model.thread.libraryHref || '');
+    const sourceLink = submissionLinkHref
+      ? `<a class="dx-sub-link" href="${escapeHtml(submissionLinkHref)}" target="_blank" rel="noopener">Submission link</a>`
       : '';
-    const libraryLink = model.thread.libraryHref
-      ? `<a class="dx-sub-link" href="${escapeHtml(model.thread.libraryHref)}">In library</a>`
+    const releaseLink = publishedLinkHref
+      ? `<a class="dx-sub-link" href="${escapeHtml(publishedLinkHref)}" target="_blank" rel="noopener">Published release link</a>`
+      : '';
+    const previewHref = toGoogleDrivePreviewHref(submissionLinkHref);
+    const previewHtml = previewHref
+      ? `
+        <div class="dx-sub-preview" data-dx-sub-preview="drive">
+          <p class="dx-sub-kicker">Preview</p>
+          <iframe
+            class="dx-sub-preview-frame"
+            src="${escapeHtml(previewHref)}"
+            title="Submission preview"
+            loading="lazy"
+            allow="autoplay; fullscreen"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+      `
       : '';
 
     const titleLine = model.thread.title
@@ -1152,18 +1345,32 @@
         ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.lookup)}</p>`
         : '<p class="dx-sub-item-body">Submission</p>';
     const creatorLine = model.thread.creator
-      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.creator)}</p>`
+      ? `<p class="dx-sub-item-body">Creator: ${escapeHtml(model.thread.creator)}</p>`
+      : '';
+    const submittedAtLine = model.thread.submittedAt
+      ? `<p class="dx-sub-item-body">Submitted: ${escapeHtml(toDateTime(model.thread.submittedAt))}</p>`
+      : '';
+    const instrumentLine = model.thread.instrument
+      ? `<p class="dx-sub-item-body">Instrument: ${escapeHtml(model.thread.instrument)}</p>`
+      : '';
+    const categoryLine = model.thread.category
+      ? `<p class="dx-sub-item-body">Category: ${escapeHtml(model.thread.category)}</p>`
       : '';
     const statusLine = model.thread.currentStatusRaw
-      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.currentStatusRaw)}</p>`
+      ? `<p class="dx-sub-item-body">Status: ${escapeHtml(model.thread.currentStatusRaw)}</p>`
       : '';
+
+    const displayLookup = toSafeText(model.thread.lookup, '');
+    const displayTitle = isPlaceholderSubmissionLookup(displayLookup) && model.thread.title
+      ? model.thread.title
+      : (displayLookup || model.thread.title || 'Submission');
 
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
         ${renderBreadcrumb('submission timeline')}
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
-          <h1 class="dx-sub-title">${escapeHtml(model.thread.lookup || model.thread.title || 'Submission')}</h1>
+          <h1 class="dx-sub-title">${escapeHtml(displayTitle)}</h1>
           <div class="dx-sub-status">
             <span class="dx-sub-chip ${severityChipClass(stageSeverity(model.thread.currentStage))}">${escapeHtml(
               model.thread.currentStage.replace(/_/g, ' '),
@@ -1179,11 +1386,15 @@
             <p class="dx-sub-kicker">Submission</p>
             ${titleLine}
             ${creatorLine}
+            ${submittedAtLine}
+            ${instrumentLine}
+            ${categoryLine}
             ${statusLine}
           </article>
           <article class="dx-sub-card">
             <p class="dx-sub-kicker">Links</p>
-            <div class="dx-sub-links">${sourceLink}${libraryLink}</div>
+            <div class="dx-sub-links">${sourceLink}${releaseLink}</div>
+            ${previewHtml}
           </article>
         </section>
 
@@ -1268,33 +1479,31 @@
       ),
       title: toSafeText(threadPayload.title, ''),
       creator: toSafeText(threadPayload.creator, ''),
+      instrument: toSafeText(threadPayload.instrument, ''),
+      category: toSafeText(threadPayload.category, ''),
+      submittedAt: toSafeText(
+        threadPayload.submittedAt
+        || threadPayload.submitted_at
+        || threadPayload.clientSubmittedAt
+        || threadPayload.client_submitted_at
+        || threadPayload.sentAt
+        || threadPayload.sent_at,
+        '',
+      ),
       currentStage: toSafeText(threadPayload.currentStage || threadPayload.current_stage, 'reviewing'),
       currentStatusRaw: toSafeText(threadPayload.currentStatusRaw || threadPayload.current_status_raw, ''),
       updatedAt: toSafeText(threadPayload.updatedAt || threadPayload.updated_at, ''),
       acknowledgedAt: toSafeText(threadPayload.acknowledgedAt || threadPayload.acknowledged_at, ''),
-      sourceLink: toSafeText(threadPayload.sourceLink || threadPayload.source_link, ''),
-      libraryHref: toSafeText(threadPayload.libraryHref || threadPayload.library_href, ''),
+      sourceLink: normalizeHref(toSafeText(threadPayload.sourceLink || threadPayload.source_link || threadPayload.link, '')),
+      libraryHref: normalizeHref(toSafeText(threadPayload.libraryHref || threadPayload.library_href, '')),
     };
 
     hydrateThreadFromFallbacks(thread, threadPayload, timeline);
     await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
 
-    const hasRichTimelineEvent = hasTimelineEvent(
-      timeline,
-      'acknowledged',
-      'user_acknowledged',
-      'revision_requested',
-      'accepted',
-      'rejected',
-      'in_library',
-      'lookup_finalized',
-      'bucket_assigned',
-      'public_note',
-      'internal_note',
-    );
     const isSparseThread = !toSafeText(thread.title)
-      || (!toSafeText(thread.sourceLink) && !toSafeText(thread.libraryHref))
-      || !hasRichTimelineEvent;
+      || !toSafeText(thread.lookup)
+      || (!toSafeText(thread.sourceLink) && !toSafeText(thread.libraryHref));
 
     let warning = '';
     if (isSparseThread) {
@@ -1308,7 +1517,7 @@
 
     const timelineWithDerived = normalizeTimeline(deriveTimelineEvents(timeline, thread));
 
-    return {
+    const resolved = {
       ok: true,
       status: response.status,
       thread,
@@ -1316,6 +1525,13 @@
       stageRail: normalizeStageRail(payload.stageRail || payload.stage_rail || payload.rail, timelineWithDerived, thread),
       warning,
     };
+    const scope = toSafeText(authSnapshot?.sub, '');
+    const prefetch = getPrefetchRuntime();
+    const cacheKey = getSubmissionDetailPrefetchKey(scope, sid);
+    if (prefetch && cacheKey) {
+      prefetch.set(cacheKey, resolved, { scope });
+    }
+    return resolved;
   }
 
   async function acknowledgeSubmission(apiBase, authSnapshot, sid) {
@@ -1382,6 +1598,7 @@
   async function boot(root, options = {}) {
     const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
+    renderLoading(root);
 
     const sid = await resolveSid(options.routeUrl || '');
     if (!sid) {
@@ -1392,6 +1609,7 @@
       return;
     }
     readPendingSubmissionSid({ consume: true });
+    renderLoading(root, sid);
 
     const authSnapshot = await resolveAuthSnapshot(AUTH_TIMEOUT_MS);
     if (!authSnapshot.authenticated || !authSnapshot.token) {
@@ -1403,6 +1621,25 @@
     }
 
     const apiBase = toApiBase(root);
+    const scope = toSafeText(authSnapshot?.sub, '');
+    const prefetch = getPrefetchRuntime();
+    const cacheKey = getSubmissionDetailPrefetchKey(scope, sid);
+    let renderedFromCache = false;
+
+    if (prefetch && cacheKey) {
+      const cached = prefetch.getFresh(cacheKey, PREFETCH_SWR_MS);
+      if (cached?.payload?.ok) {
+        renderReady(root, cached.payload);
+        bindActions(root, {
+          sid,
+          apiBase,
+          authSnapshot,
+          model: cached.payload,
+        });
+        renderedFromCache = true;
+      }
+    }
+
     const model = await loadSubmissionDetail(apiBase, authSnapshot, sid);
 
     if (!model.ok) {
@@ -1414,6 +1651,12 @@
         return;
       }
 
+      if (renderedFromCache) {
+        const elapsed = performance.now() - startTs;
+        if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
+        setFetchState(root, FETCH_STATE_READY);
+        return;
+      }
       renderError(root, 'Submission Timeline', 'Unable to load this submission right now.');
       const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
@@ -1422,6 +1665,9 @@
     }
 
     renderReady(root, model);
+    if (prefetch && cacheKey) {
+      prefetch.set(cacheKey, model, { scope });
+    }
     bindActions(root, {
       sid,
       apiBase,

@@ -75,6 +75,25 @@ function verifyPublicPollRouteNotProtected() {
   assert(!protectedVerifyText.includes("'/polls'"), 'verify_protected_auth_contract should not require /polls protected');
 }
 
+function verifyAuthNonBlockingMarkers() {
+  const sourceRel = 'scripts/src/polls.app.entry.mjs';
+  const source = readText(sourceRel);
+  const required = [
+    'function getAnonymousAuthSnapshot()',
+    'authSnapshotPromise',
+    'POLL_LIST_CACHE_MAX_AGE_MS',
+  ];
+  for (const marker of required) {
+    if (!source.includes(marker)) {
+      FAILURES.push(`${sourceRel} missing marker: ${marker}`);
+    }
+  }
+
+  if (source.includes('const authSnapshot = await resolveAuthSnapshot();')) {
+    FAILURES.push(`${sourceRel} still blocks first render on auth snapshot`);
+  }
+}
+
 async function main() {
   const { data } = await readPollsFile();
   const pollIds = Array.isArray(data.polls)
@@ -84,6 +103,7 @@ async function main() {
   verifyGasRemoval();
   verifyGeneratedDetailPages(pollIds);
   verifyPublicPollRouteNotProtected();
+  verifyAuthNonBlockingMarkers();
 
   const achievements = readText('docs/entry/achievements/index.html');
   assert(achievements.includes('/me/polls/votes/summary'), 'achievements route must consume /me/polls/votes/summary');

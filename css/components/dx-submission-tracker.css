@@ -39,6 +39,8 @@ body.dx-route-profile-protected #dex-submission .dx-sub-shell {
 }
 
 #dex-submission .dx-sub-shell {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 10px;
   padding: clamp(12px, 1.8vw, 18px);
@@ -175,6 +177,20 @@ body.dx-route-profile-protected #dex-submission .dx-sub-shell {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+#dex-submission .dx-sub-preview {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+#dex-submission .dx-sub-preview-frame {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid rgba(17, 24, 39, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
 }
 
 #dex-submission .dx-sub-link {

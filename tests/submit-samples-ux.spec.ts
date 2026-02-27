@@ -96,16 +96,15 @@ async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario):
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
-    if (action === 'list') {
+    if (action === 'quota') {
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
         body: `${callback}(${JSON.stringify({
           status: 'ok',
-          rows: [
-            { timestamp: new Date().toISOString(), row: 2 },
-            { timestamp: '2025-01-01T00:00:00.000Z', row: 3 },
-          ],
+          weeklyLimit: 4,
+          weeklyUsed: 1,
+          weeklyRemaining: 3,
         })});`,
       });
       return;
@@ -247,8 +246,74 @@ test('submit page collapses to single-column on mobile with readable field text'
   expect(fontSize).toBeGreaterThanOrEqual(16);
 });
 
+test('submit shell reaches ready before delayed auth resolves, then hydrates quota', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubApiBaseline(page);
+
+  await page.route('**/assets/dex-auth.js', async (route) => {
+    const script = `
+      (() => {
+        const user = { sub: 'auth0|submit-slow-auth', family_name: 'Solis', name: 'Slow Auth User' };
+        const delay = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
+        const auth = {
+          ready: delay(2800, { isAuthenticated: true }),
+          resolve: () => delay(2800, { authenticated: true }),
+          requireAuth: () => Promise.resolve({ status: 'authenticated' }),
+          isAuthenticated: () => Promise.resolve(true),
+          getUser: () => delay(2800, user),
+          getAccessToken: () => Promise.resolve('slow-auth-token'),
+          signIn: () => Promise.resolve(),
+          signOut: () => Promise.resolve(),
+        };
+        window.DEX_AUTH = auth;
+        window.dexAuth = auth;
+        window.auth0 = { getUser: () => delay(2800, user) };
+      })();
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: script });
+  });
+
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+    if (action === 'quota') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok', weeklyLimit: 4, weeklyUsed: 1, weeklyRemaining: 3 })});`,
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok', row: 55 })});`,
+    });
+  });
+
+  const start = Date.now();
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  const root = page.locator('#dex-submit');
+  await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
+  const readyElapsed = Date.now() - start;
+  expect(readyElapsed).toBeLessThan(2500);
+
+  const begin = page.getByRole('button', { name: 'Begin' });
+  await expect(begin).toBeVisible();
+  await expect(begin).toBeDisabled();
+  await expect(page.locator('#dex-submit')).toContainText('checking your account quota');
+  await expect.poll(async () => begin.isDisabled()).toBe(false);
+});
+
 test('submit wizard enforces required fields and keeps payload key contract on submit', async ({ page }) => {
   let submitParams: Record<string, string> | null = null;
+  let listActionCount = 0;
+  let quotaActionCount = 0;
 
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page);
@@ -258,18 +323,22 @@ test('submit wizard enforces required fields and keeps payload key contract on s
     const url = new URL(route.request().url());
     const action = String(url.searchParams.get('action') || '').toLowerCase();
     const callback = String(url.searchParams.get('callback') || '').trim();
+    if (action === 'list') listActionCount += 1;
 
     if (!callback) {
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
-    if (action === 'list') {
+    if (action === 'quota') {
+      quotaActionCount += 1;
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
         body: `${callback}(${JSON.stringify({
           status: 'ok',
-          rows: [{ timestamp: new Date().toISOString(), row: 11 }],
+          weeklyLimit: 4,
+          weeklyUsed: 0,
+          weeklyRemaining: 4,
         })});`,
       });
       return;
@@ -320,6 +389,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   expect(submitParams).not.toBeNull();
   if (!submitParams) return;
+  expect(listActionCount).toBe(0);
+  expect(quotaActionCount).toBeGreaterThan(0);
 
   const keys = Object.keys(submitParams);
   expect(keys).toEqual(
@@ -377,11 +448,11 @@ test('submit services chips use custom tooltip contract and sidebar guidance fol
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
-    if (action === 'list') {
+    if (action === 'quota') {
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
-        body: `${callback}(${JSON.stringify({ status: 'ok', rows: [] })});`,
+        body: `${callback}(${JSON.stringify({ status: 'ok', weeklyLimit: 4, weeklyUsed: 0, weeklyRemaining: 4 })});`,
       });
       return;
     }
@@ -462,11 +533,11 @@ test('submit quota JSONP timeout never throws late callback reference errors', a
       return;
     }
 
-    if (action === 'list') {
+    if (action === 'quota') {
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
-        body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', rows: [] })}); } }, 12000);`,
+        body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', weeklyLimit: 4, weeklyUsed: 0, weeklyRemaining: 4 })}); } }, 12000);`,
       });
       return;
     }
@@ -553,13 +624,12 @@ test('submit intro locks Begin when weekly quota is exhausted for the signed-in 
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
-    if (action === 'list') {
+    if (action === 'quota') {
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
         body: `${callback}(${JSON.stringify({
           status: 'ok',
-          rows: [],
           weeklyLimit: 4,
           weeklyUsed: 4,
           weeklyRemaining: 0,
@@ -597,13 +667,12 @@ test('submit flow locks controls, shows fetching sheen, then proceeds to done', 
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
-    if (action === 'list') {
+    if (action === 'quota') {
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
         body: `${callback}(${JSON.stringify({
           status: 'ok',
-          rows: [],
           weeklyLimit: 4,
           weeklyUsed: 0,
           weeklyRemaining: 4,

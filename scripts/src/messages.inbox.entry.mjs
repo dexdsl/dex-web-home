@@ -17,6 +17,7 @@
   const SUBMISSIONS_FETCH_TIMEOUT_MS = 6000;
   const ACTION_TIMEOUT_MS = 5000;
   const NON_SUB_RETENTION_DAYS = 90;
+  const PREFETCH_SWR_MS = 60000;
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SUBMISSION_STATE_PREFIX = 'dex:messages:submission-state:v1:';
@@ -168,6 +169,40 @@
   function getScope(authSnapshot) {
     const sub = toSafeText(authSnapshot?.sub, '');
     return sub || 'anon';
+  }
+
+  function getPrefetchRuntime() {
+    const runtime = window.__DX_PREFETCH;
+    if (!runtime || typeof runtime.getFresh !== 'function' || typeof runtime.set !== 'function') return null;
+    return runtime;
+  }
+
+  function getPrefetchSubmissionsKey(scope) {
+    return `messages:submissions:${scope}`;
+  }
+
+  function getPrefetchSystemKey(scope) {
+    return `messages:system:${scope}`;
+  }
+
+  function readPrefetchedRecords(scope, sourceType) {
+    const prefetch = getPrefetchRuntime();
+    if (!prefetch || !scope) return null;
+    const key = sourceType === 'submission'
+      ? getPrefetchSubmissionsKey(scope)
+      : getPrefetchSystemKey(scope);
+    const cached = prefetch.getFresh(key, PREFETCH_SWR_MS);
+    if (!cached || !Array.isArray(cached.payload)) return null;
+    return cached.payload;
+  }
+
+  function writePrefetchedRecords(scope, sourceType, records) {
+    const prefetch = getPrefetchRuntime();
+    if (!prefetch || !scope || !Array.isArray(records)) return;
+    const key = sourceType === 'submission'
+      ? getPrefetchSubmissionsKey(scope)
+      : getPrefetchSystemKey(scope);
+    prefetch.set(key, records, { scope });
   }
 
   function loadSubmissionState(scope) {
@@ -458,7 +493,6 @@
       || finalLookupBase
       || generated
       || lookup
-      || buildSubmissionLookup(row, fallbackYear, fallbackCounter)
     );
   }
 
@@ -925,6 +959,12 @@
       cachePendingSidFromTarget(event.target);
     }, captureEventOptions);
 
+    root.addEventListener('keydown', (event) => {
+      const key = event instanceof KeyboardEvent ? event.key : '';
+      if (key !== 'Enter' && key !== ' ') return;
+      cachePendingSidFromTarget(event.target);
+    }, captureEventOptions);
+
     root.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -1119,6 +1159,26 @@
       return;
     }
 
+    const cachedSubmissionRecords = readPrefetchedRecords(scope, 'submission') || [];
+    const cachedSystemRecords = readPrefetchedRecords(scope, 'system') || [];
+    const model = {
+      records: mergeRecords(cachedSubmissionRecords, cachedSystemRecords),
+      filter: 'all',
+      showArchived: false,
+      warnings: [],
+    };
+
+    if (cachedSubmissionRecords.length > 0 || cachedSystemRecords.length > 0) {
+      model.warnings.push('Refreshing inbox…');
+      render(root, model);
+      bindHandlers(root, model, {
+        apiBase,
+        authSnapshot,
+        scope,
+        submissionState,
+      });
+    }
+
     let submissionRecords = [];
     let systemRecords = [];
     const warnings = [];
@@ -1129,16 +1189,17 @@
         loadSubmissionRecords(apiBase, authSnapshot, submissionState),
         loadSystemRecords(apiBase, authSnapshot),
       ]);
-
       submissionRecords = Array.isArray(submissionResult.records) ? submissionResult.records : [];
       systemRecords = Array.isArray(systemResult.records) ? systemResult.records : [];
       if (submissionResult.warning) warnings.push(submissionResult.warning);
       if (systemResult.warning) warnings.push(systemResult.warning);
+      writePrefetchedRecords(scope, 'submission', submissionRecords);
+      writePrefetchedRecords(scope, 'system', systemRecords);
     } catch {
       hasFatal = true;
     }
 
-    if (hasFatal) {
+    if (hasFatal && model.records.length === 0) {
       ensureStyles();
       root.innerHTML = `
         <aside class="dx-msg-shell">
@@ -1158,12 +1219,12 @@
       return;
     }
 
-    const model = {
-      records: mergeRecords(submissionRecords, systemRecords),
-      filter: 'all',
-      showArchived: false,
-      warnings,
-    };
+    if (!hasFatal) {
+      model.records = mergeRecords(submissionRecords, systemRecords);
+      model.warnings = warnings;
+    } else if (model.records.length > 0) {
+      model.warnings = ['Showing cached inbox data while live sync recovers.'];
+    }
 
     render(root, model);
     bindHandlers(root, model, {

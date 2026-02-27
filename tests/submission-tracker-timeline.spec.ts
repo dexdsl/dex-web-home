@@ -442,7 +442,7 @@ test('submission detail hydrates sparse payload fields from metadata and list fa
   await expect(page.locator('#dex-submission')).toContainText('Brass Session');
   await expect(page.locator('#dex-submission')).toContainText('John Doe');
   await expect(page.locator('#dex-submission')).toContainText('Pending Review');
-  await expect(page.locator('#dex-submission')).toContainText('Source submission');
+  await expect(page.locator('#dex-submission')).toContainText('Submission link');
 });
 
 test('submission detail prefers effective/final lookup fields over legacy lookup', async ({ page }) => {
