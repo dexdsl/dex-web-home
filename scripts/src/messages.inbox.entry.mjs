@@ -469,6 +469,23 @@
     return title === 'untitled submission' || title === 'untitled';
   }
 
+  function sanitizeSubmissionTitle(value) {
+    const title = toSafeText(value, '');
+    if (!title) return '';
+    if (isUntitledSubmissionTitle(title)) return '';
+    return title;
+  }
+
+  function composeSubmissionCardTitle(submissionTitle, lookup, fallbackTitle) {
+    const safeTitle = sanitizeSubmissionTitle(submissionTitle);
+    const safeLookup = sanitizeLookupValue(lookup);
+    const safeFallback = toSafeText(fallbackTitle, 'Submission');
+    if (safeTitle && safeLookup) return `${safeTitle} (${safeLookup})`;
+    if (safeTitle) return safeTitle;
+    if (safeLookup) return safeLookup;
+    return safeFallback;
+  }
+
   function formatCounter(value) {
     const parsed = Number.parseInt(String(value || '0'), 10);
     const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
@@ -556,7 +573,7 @@
         sourceType: 'submission',
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
-        title: (!isPlaceholderSubmissionLookup(lookup) && lookup) || submissionTitle || lookup || `Submission ${index + 1}`,
+        title: composeSubmissionCardTitle(submissionTitle, lookup, `Submission ${index + 1}`),
         body: toSafeText(normalizedRow?.latestPublicNote || normalizedRow?.latest_public_note || normalizedRow?.notes || normalizedRow?.note, ''),
         href: submissionId
           ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
@@ -618,10 +635,7 @@
         merged.title || merged.submissionTitle || merged.submission_title,
         '',
       );
-      const title = (!isPlaceholderSubmissionLookup(lookup) && lookup)
-        || submissionTitle
-        || lookup
-        || `Submission ${index + 1}`;
+      const title = composeSubmissionCardTitle(submissionTitle, lookup, `Submission ${index + 1}`);
       const sourceRow = merged.sourceRow || merged.source_row || merged.row || '';
       const readAt = toSafeText(merged.acknowledgedAt || merged.acknowledged_at || state.readAt, '');
       const archivedAt = toSafeText(merged.archivedAt || merged.archived_at || state.archivedAt, '');
@@ -730,15 +744,15 @@
             const legacyFinalLookup = sanitizeLookupValue(legacy?.metadata?.finalLookupNumber);
             const nextSubmissionLookup = currentSubmissionLookup || legacySubmissionLookup;
             const nextFinalLookup = currentFinalLookup || legacyFinalLookup;
-            const legacySubmissionTitle = toSafeText(legacy?.metadata?.submissionTitle, '');
+            const currentSubmissionTitle = sanitizeSubmissionTitle(record?.metadata?.submissionTitle);
+            const legacySubmissionTitle = sanitizeSubmissionTitle(legacy?.metadata?.submissionTitle);
+            const nextSubmissionTitle = currentSubmissionTitle || legacySubmissionTitle;
             const nextLookup = nextFinalLookup || nextSubmissionLookup || currentLookup || legacyLookup;
-            const nextTitle = (!currentLookup || isPlaceholderSubmissionLookup(currentLookup))
-              ? (nextLookup || legacySubmissionTitle || record.title)
-              : (
-                  !toSafeText(record?.metadata?.submissionTitle, '') || isUntitledSubmissionTitle(record?.metadata?.submissionTitle)
-                    ? (record.title || legacySubmissionTitle || nextLookup || 'Submission')
-                    : (record.title || nextLookup || legacySubmissionTitle || 'Submission')
-                );
+            const fallbackTitle = sanitizeSubmissionTitle(record.title)
+              || sanitizeSubmissionTitle(legacy.title)
+              || toSafeText(record.title, '')
+              || 'Submission';
+            const nextTitle = composeSubmissionCardTitle(nextSubmissionTitle, nextLookup, fallbackTitle);
 
             return {
               ...record,
@@ -747,7 +761,7 @@
               metadata: {
                 ...record.metadata,
                 lookup: nextLookup,
-                submissionTitle: legacySubmissionTitle || toSafeText(record?.metadata?.submissionTitle, ''),
+                submissionTitle: nextSubmissionTitle || toSafeText(record?.metadata?.submissionTitle, ''),
                 sourceLink: toSafeText(record?.metadata?.sourceLink, '') || toSafeText(legacy?.metadata?.sourceLink, ''),
                 submissionLookupNumber: nextSubmissionLookup,
                 finalLookupNumber: nextFinalLookup,

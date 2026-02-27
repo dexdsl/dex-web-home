@@ -688,7 +688,9 @@ test('messages inbox merges system + submissions and supports read/archive actio
     /\/entry\/messages\/submission\/\?sid=sub-001/,
   );
   const submissionTitle = String(await page.locator('[data-source-type="submission"] .dx-msg-heading').first().textContent() || '').trim();
-  expect(submissionTitle).toMatch(GENERATED_LOOKUP_REGEX);
+  expect(submissionTitle).toContain('Brass Session');
+  const lookupMatch = submissionTitle.match(/\((SUB\d{2}-[A-Z]\.[A-Za-z]{3}\s+[A-Za-z][A-Za-z\-']*\s+(?:A|V|AV|O)\d{4})\)$/);
+  expect(lookupMatch?.[1] || '').toMatch(GENERATED_LOOKUP_REGEX);
 
   await page.locator('[data-dx-msg-filter="system"]').click();
   await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);
