@@ -125,6 +125,10 @@
     }
   }
 
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -220,6 +224,7 @@
   async function jsonpWithTimeout(url, timeoutMs = JSONP_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxSubDetailCb${Math.random().toString(36).slice(2)}`;
+      const callbackRef = `window.${callbackName}`;
       const script = document.createElement('script');
       let settled = false;
       let timer = 0;
@@ -252,7 +257,7 @@
       }, Math.max(250, timeoutMs));
 
       const separator = url.includes('?') ? '&' : '?';
-      script.src = `${url}${separator}callback=${callbackName}`;
+      script.src = `${url}${separator}callback=${encodeURIComponent(callbackRef)}`;
       document.body.appendChild(script);
     });
   }
@@ -295,7 +300,7 @@
     let sid = parseSidFromLocation(routeUrl);
     if (sid) return sid;
 
-    for (const waitMs of [16, 48, 96]) {
+    for (const waitMs of [16, 48, 96, 180, 300, 420, 600, 820]) {
       await delay(waitMs);
       sid = parseSidFromLocation(routeUrl);
       if (sid) return sid;
@@ -563,6 +568,28 @@
       ...mergedMeta.map((meta) => meta.lookup_number),
       latestEvent?.lookup,
     ]);
+    thread.submissionLookupNumber = pickFirstText([
+      thread.submissionLookupNumber,
+      threadPayload.submissionLookupNumber,
+      threadPayload.submission_lookup_number,
+      threadPayload.submissionLookupGenerated,
+      threadPayload.submission_lookup_generated,
+      ...mergedMeta.map((meta) => meta.submissionLookupNumber),
+      ...mergedMeta.map((meta) => meta.submission_lookup_number),
+      ...mergedMeta.map((meta) => meta.submissionLookupGenerated),
+      ...mergedMeta.map((meta) => meta.submission_lookup_generated),
+    ]);
+    thread.finalLookupNumber = pickFirstText([
+      thread.finalLookupNumber,
+      threadPayload.finalLookupNumber,
+      threadPayload.final_lookup_number,
+      threadPayload.effectiveLookupNumber,
+      threadPayload.effective_lookup_number,
+      ...mergedMeta.map((meta) => meta.finalLookupNumber),
+      ...mergedMeta.map((meta) => meta.final_lookup_number),
+      ...mergedMeta.map((meta) => meta.effectiveLookupNumber),
+      ...mergedMeta.map((meta) => meta.effective_lookup_number),
+    ]);
 
     thread.title = pickFirstText([
       thread.title,
@@ -627,7 +654,13 @@
   }
 
   function shouldHydrateFromThreadList(thread) {
-    return !toSafeText(thread.title) || !toSafeText(thread.creator) || !toSafeText(thread.sourceLink);
+    return (
+      !toSafeText(thread.lookup)
+      || !toSafeText(thread.title)
+      || !toSafeText(thread.creator)
+      || !toSafeText(thread.sourceLink)
+      || !toSafeText(thread.submissionLookupNumber)
+    );
   }
 
   async function hydrateThreadFromList(apiBase, authSnapshot, sid, thread) {
@@ -655,10 +688,11 @@
 
     const match = rows.find((row) => {
       const value = isObject(row) ? row : {};
-      const rowSid = toSafeText(value.submissionId || value.submission_id, '');
+      const rowSid = toSafeText(value.submissionId || value.submission_id || value.id, '');
       return rowSid && rowSid === sid;
     });
     if (!isObject(match)) return thread;
+    const matchMeta = parseMetadata(match.metadata || match.metadata_json || match.metadataJson || match.meta);
 
     thread.lookup = pickFirstText([
       thread.lookup,
@@ -675,9 +709,34 @@
       match.lookup,
       match.lookupNumber,
       match.lookup_number,
+      matchMeta.lookup,
+      matchMeta.lookupNumber,
+      matchMeta.lookup_number,
     ]);
-    thread.title = pickFirstText([thread.title, match.title, match.submissionTitle, match.submission_title]);
-    thread.creator = pickFirstText([thread.creator, match.creator, match.artist]);
+    thread.submissionLookupNumber = pickFirstText([
+      thread.submissionLookupNumber,
+      match.submissionLookupNumber,
+      match.submission_lookup_number,
+      match.submissionLookupGenerated,
+      match.submission_lookup_generated,
+      matchMeta.submissionLookupNumber,
+      matchMeta.submission_lookup_number,
+      matchMeta.submissionLookupGenerated,
+      matchMeta.submission_lookup_generated,
+    ]);
+    thread.finalLookupNumber = pickFirstText([
+      thread.finalLookupNumber,
+      match.finalLookupNumber,
+      match.final_lookup_number,
+      match.effectiveLookupNumber,
+      match.effective_lookup_number,
+      matchMeta.finalLookupNumber,
+      matchMeta.final_lookup_number,
+      matchMeta.effectiveLookupNumber,
+      matchMeta.effective_lookup_number,
+    ]);
+    thread.title = pickFirstText([thread.title, match.title, match.submissionTitle, match.submission_title, matchMeta.title, matchMeta.submissionTitle, matchMeta.submission_title]);
+    thread.creator = pickFirstText([thread.creator, match.creator, match.artist, matchMeta.creator, matchMeta.artist]);
     thread.currentStatusRaw = pickFirstText([
       thread.currentStatusRaw,
       match.currentStatusRaw,
@@ -686,8 +745,8 @@
       match.status_raw,
       match.status,
     ]);
-    thread.sourceLink = pickFirstText([thread.sourceLink, match.sourceLink, match.source_link, match.link]);
-    thread.libraryHref = pickFirstText([thread.libraryHref, match.libraryHref, match.library_href]);
+    thread.sourceLink = pickFirstText([thread.sourceLink, match.sourceLink, match.source_link, match.link, matchMeta.sourceLink, matchMeta.source_link, matchMeta.link]);
+    thread.libraryHref = pickFirstText([thread.libraryHref, match.libraryHref, match.library_href, matchMeta.libraryHref, matchMeta.library_href]);
     thread.updatedAt = pickFirstText([
       thread.updatedAt,
       match.updatedAt,
@@ -713,6 +772,133 @@
       return 'reviewing';
     }
     return 'reviewing';
+  }
+
+  function hasTimelineEvent(timeline, ...eventTypes) {
+    const wanted = new Set(eventTypes.map((value) => String(value || '').toLowerCase()).filter(Boolean));
+    if (!wanted.size) return false;
+    return (Array.isArray(timeline) ? timeline : []).some((event) => {
+      const type = String(event?.eventType || '').toLowerCase();
+      return wanted.has(type);
+    });
+  }
+
+  function deriveTimelineEvents(timeline, thread) {
+    const events = Array.isArray(timeline) ? [...timeline] : [];
+    const sid = toSafeText(thread?.submissionId, 'submission');
+    const sourceLink = toSafeText(thread?.sourceLink, '');
+    const libraryHref = toSafeText(thread?.libraryHref, '');
+    const title = toSafeText(thread?.title, '');
+    const creator = toSafeText(thread?.creator, '');
+    const submissionLookup = pickFirstText([
+      thread?.submissionLookupNumber,
+      thread?.submissionLookupGenerated,
+      thread?.lookup,
+    ]);
+    const finalLookup = pickFirstText([
+      thread?.finalLookupNumber,
+      thread?.effectiveLookupNumber,
+      thread?.lookup,
+    ]);
+    const updatedAt = pickFirstText([thread?.updatedAt, nowIso()]);
+    const statusRaw = toSafeText(thread?.currentStatusRaw, '');
+    const statusStage = statusRawToStage(statusRaw);
+
+    if (submissionLookup && !hasTimelineEvent(events, 'lookup_generated')) {
+      events.push({
+        id: `${sid}-lookup-generated`,
+        eventType: 'lookup_generated',
+        publicNote: '',
+        statusRaw: statusRaw || 'lookup generated',
+        libraryHref,
+        sourceLink,
+        title,
+        creator,
+        lookup: finalLookup || submissionLookup,
+        createdAt: updatedAt,
+        metadata: {
+          submissionLookupNumber: submissionLookup,
+          toLookup: submissionLookup,
+        },
+      });
+    }
+
+    if (
+      submissionLookup
+      && finalLookup
+      && finalLookup !== submissionLookup
+      && !hasTimelineEvent(events, 'lookup_finalized')
+    ) {
+      events.push({
+        id: `${sid}-lookup-finalized`,
+        eventType: 'lookup_finalized',
+        publicNote: '',
+        statusRaw: statusRaw || 'lookup finalized',
+        libraryHref,
+        sourceLink,
+        title,
+        creator,
+        lookup: finalLookup,
+        createdAt: updatedAt,
+        metadata: {
+          fromLookup: submissionLookup,
+          toLookup: finalLookup,
+          submissionLookupNumber: submissionLookup,
+          finalLookupNumber: finalLookup,
+          effectiveLookupNumber: finalLookup,
+        },
+      });
+    }
+
+    if (statusStage && statusStage !== 'reviewing' && !hasTimelineEvent(events, statusStage)) {
+      events.push({
+        id: `${sid}-status-${statusStage}`,
+        eventType: statusStage,
+        publicNote: '',
+        statusRaw: statusRaw || statusStage.replace(/_/g, ' '),
+        libraryHref,
+        sourceLink,
+        title,
+        creator,
+        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        createdAt: updatedAt,
+        metadata: {},
+      });
+    }
+
+    if (toSafeText(thread?.acknowledgedAt, '') && !hasTimelineEvent(events, 'acknowledged', 'user_acknowledged')) {
+      events.push({
+        id: `${sid}-acknowledged`,
+        eventType: 'user_acknowledged',
+        publicNote: '',
+        statusRaw: 'acknowledged',
+        libraryHref,
+        sourceLink,
+        title,
+        creator,
+        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        createdAt: toSafeText(thread?.acknowledgedAt, updatedAt),
+        metadata: {},
+      });
+    }
+
+    if (libraryHref && !hasTimelineEvent(events, 'in_library')) {
+      events.push({
+        id: `${sid}-in-library`,
+        eventType: 'in_library',
+        publicNote: '',
+        statusRaw: statusRaw || 'in library',
+        libraryHref,
+        sourceLink,
+        title,
+        creator,
+        lookup: finalLookup || submissionLookup || toSafeText(thread?.lookup, ''),
+        createdAt: updatedAt,
+        metadata: {},
+      });
+    }
+
+    return events;
   }
 
   function resolveLookupFromLegacyRow(row, fallbackLookup, fallbackSid) {
@@ -743,6 +929,8 @@
     const thread = {
       submissionId: sid,
       lookup: '',
+      submissionLookupNumber: '',
+      finalLookupNumber: '',
       title: '',
       creator: '',
       currentStage: 'reviewing',
@@ -784,6 +972,16 @@
     const notes = toSafeText(legacyRow?.notes || legacyRow?.note, '');
 
     thread.lookup = resolveLookupFromLegacyRow(legacyRow, thread.lookup, sid);
+    thread.submissionLookupNumber = pickFirstText([
+      legacyRow?.submissionLookupNumber,
+      legacyRow?.submission_lookup_number,
+      thread.submissionLookupNumber,
+    ]);
+    thread.finalLookupNumber = pickFirstText([
+      legacyRow?.finalLookupNumber,
+      legacyRow?.final_lookup_number,
+      thread.finalLookupNumber,
+    ]);
     thread.title = pickFirstText([legacyRow?.title, legacyRow?.submissionTitle, thread.title], 'Untitled submission');
     thread.creator = pickFirstText([legacyRow?.creator, legacyRow?.artist, thread.creator], '');
     thread.currentStatusRaw = legacyStatus;
@@ -843,19 +1041,38 @@
       ? 'Timeline sync is catching up. Showing latest submission details.'
       : 'Using legacy submissions feed while timeline sync catches up.';
 
+    const timelineWithDerived = normalizeTimeline(deriveTimelineEvents(timeline, thread));
+
     return {
       ok: true,
       status: 200,
       thread,
-      timeline,
-      stageRail: normalizeStageRail(null, timeline, thread),
+      timeline: timelineWithDerived,
+      stageRail: normalizeStageRail(null, timelineWithDerived, thread),
       warning,
     };
+  }
+
+  function renderBreadcrumb(currentLabel = 'submission timeline') {
+    return `
+      <div class="dex-breadcrumb-overlay">
+        <nav class="dex-breadcrumb" aria-label="Breadcrumb" data-dex-breadcrumb>
+          <a class="dex-breadcrumb-back" href="/entry/messages/">messages</a>
+          <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter aria-hidden="true">
+            <svg class="dex-breadcrumb-icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path data-dex-breadcrumb-path d="M12 2L20 12L12 22L4 12Z"></path>
+            </svg>
+          </span>
+          <span class="dex-breadcrumb-current">${escapeHtml(currentLabel)}</span>
+        </nav>
+      </div>
+    `;
   }
 
   function renderSignIn(root) {
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
+        ${renderBreadcrumb('submission timeline')}
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">Submission Timeline</h1>
@@ -868,6 +1085,7 @@
   function renderError(root, title, message) {
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
+        ${renderBreadcrumb('submission timeline')}
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">${escapeHtml(title || 'Submission Timeline')}</h1>
@@ -930,7 +1148,9 @@
 
     const titleLine = model.thread.title
       ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.title)}</p>`
-      : '<p class="dx-sub-item-body">Untitled submission</p>';
+      : model.thread.lookup
+        ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.lookup)}</p>`
+        : '<p class="dx-sub-item-body">Submission</p>';
     const creatorLine = model.thread.creator
       ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.creator)}</p>`
       : '';
@@ -940,6 +1160,7 @@
 
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
+        ${renderBreadcrumb('submission timeline')}
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">${escapeHtml(model.thread.lookup || model.thread.title || 'Submission')}</h1>
@@ -1014,10 +1235,10 @@
     const threadPayload = isObject(payload.thread)
       ? payload.thread
       : (isObject(payload.submission) ? payload.submission : {});
-    const timeline = normalizeTimeline(payload.timeline || payload.events);
+    let timeline = normalizeTimeline(payload.timeline || payload.events);
 
     const thread = {
-      submissionId: toSafeText(threadPayload.submissionId || threadPayload.submission_id, sid),
+      submissionId: toSafeText(threadPayload.submissionId || threadPayload.submission_id || threadPayload.id, sid),
       lookup: pickFirstText([
         threadPayload.effectiveLookupNumber,
         threadPayload.effective_lookup_number,
@@ -1031,6 +1252,20 @@
         threadPayload.submission_lookup_generated,
         threadPayload.lookup,
       ]),
+      submissionLookupNumber: toSafeText(
+        threadPayload.submissionLookupNumber
+        || threadPayload.submission_lookup_number
+        || threadPayload.submissionLookupGenerated
+        || threadPayload.submission_lookup_generated,
+        '',
+      ),
+      finalLookupNumber: toSafeText(
+        threadPayload.finalLookupNumber
+        || threadPayload.final_lookup_number
+        || threadPayload.effectiveLookupNumber
+        || threadPayload.effective_lookup_number,
+        '',
+      ),
       title: toSafeText(threadPayload.title, ''),
       creator: toSafeText(threadPayload.creator, ''),
       currentStage: toSafeText(threadPayload.currentStage || threadPayload.current_stage, 'reviewing'),
@@ -1044,13 +1279,42 @@
     hydrateThreadFromFallbacks(thread, threadPayload, timeline);
     await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
 
+    const hasRichTimelineEvent = hasTimelineEvent(
+      timeline,
+      'acknowledged',
+      'user_acknowledged',
+      'revision_requested',
+      'accepted',
+      'rejected',
+      'in_library',
+      'lookup_finalized',
+      'bucket_assigned',
+      'public_note',
+      'internal_note',
+    );
+    const isSparseThread = !toSafeText(thread.title)
+      || (!toSafeText(thread.sourceLink) && !toSafeText(thread.libraryHref))
+      || !hasRichTimelineEvent;
+
+    let warning = '';
+    if (isSparseThread) {
+      const fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+      if (fallback?.ok) {
+        hydrateThreadFromFallbacks(thread, fallback.thread || {}, fallback.timeline || []);
+        timeline = normalizeTimeline([...(timeline || []), ...((fallback.timeline || []))]);
+        warning = toSafeText(fallback.warning, '');
+      }
+    }
+
+    const timelineWithDerived = normalizeTimeline(deriveTimelineEvents(timeline, thread));
+
     return {
       ok: true,
       status: response.status,
       thread,
-      timeline,
-      stageRail: normalizeStageRail(payload.stageRail || payload.stage_rail || payload.rail, timeline, thread),
-      warning: '',
+      timeline: timelineWithDerived,
+      stageRail: normalizeStageRail(payload.stageRail || payload.stage_rail || payload.rail, timelineWithDerived, thread),
+      warning,
     };
   }
 

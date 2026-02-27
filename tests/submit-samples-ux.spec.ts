@@ -344,6 +344,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
       'notes',
       'submissionYear',
       'performerToken',
+      'submissionLookupNumber',
+      'finalLookupNumber',
       'status',
     ]),
   );
@@ -351,6 +353,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   expect(submitParams.status).toBe('pending');
   expect(submitParams.auth0Sub).toBe('auth0|submit-ui-e2e');
   expect(submitParams.performerToken).toBe('So');
+  expect(submitParams.submissionLookupNumber).toMatch(GENERATED_LOOKUP_REGEX);
+  expect(submitParams.finalLookupNumber).toBe('');
   expect(submitParams.pitchSystem).toBe('12-tet');
   expect(submitParams.pitchDescriptor).toBe('C♯/D♭');
   expect(submitParams.keyCenter).toBe('12-TET: C♯/D♭');

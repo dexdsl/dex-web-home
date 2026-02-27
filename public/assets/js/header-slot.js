@@ -2100,8 +2100,22 @@
   }
 
   function syncBodyAttributes(sourceBody) {
+    const sourceClassName = String(sourceBody?.className || '').trim();
+    const sourceId = String(sourceBody?.id || '').trim();
+    const sourceAttrs = Array.from(sourceBody?.attributes || []);
+    const hasLayoutHintAttrs = sourceAttrs.some((attr) => {
+      if (!attr || attr.name === 'class' || attr.name === 'id') return false;
+      return attr.name === 'style' || attr.name === 'tabindex' || attr.name.startsWith('data-');
+    });
+    const shouldPreserveCurrentChrome = !sourceClassName && !sourceId && !hasLayoutHintAttrs;
+
+    if (shouldPreserveCurrentChrome) {
+      document.body.classList.add(BODY_CLASS);
+      return;
+    }
+
     const currentAttrs = Array.from(document.body.attributes);
-    const nextAttrs = new Map(Array.from(sourceBody.attributes).map((attr) => [attr.name, attr.value]));
+    const nextAttrs = new Map(sourceAttrs.map((attr) => [attr.name, attr.value]));
 
     for (const attr of currentAttrs) {
       if (attr.name === 'class' || attr.name === 'id') continue;
@@ -2688,7 +2702,9 @@
       return false;
     }
 
-    const currentUrl = new URL(window.location.href);
+    const locationUrl = new URL(window.location.href);
+    const renderedUrl = toAbsoluteUrl(String(window.__dxLastSlotUrl || ''), locationUrl.href);
+    const currentUrl = renderedUrl || locationUrl;
     const sameRoute = normalizeRouteKey(currentUrl) === normalizeRouteKey(targetUrl);
     const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
 

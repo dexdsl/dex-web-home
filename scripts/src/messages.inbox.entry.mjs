@@ -79,6 +79,17 @@
     return raw || fallback;
   }
 
+  function parseMetadata(value) {
+    if (isObject(value)) return value;
+    if (typeof value !== 'string') return {};
+    try {
+      const parsed = JSON.parse(value);
+      return isObject(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
   function sanitizeSubmissionId(value) {
     return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
   }
@@ -181,6 +192,7 @@
   async function jsonpWithTimeout(url, timeoutMs) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxMsgCb${Math.random().toString(36).slice(2)}`;
+      const callbackRef = `window.${callbackName}`;
       const script = document.createElement('script');
       let settled = false;
       let timer = 0;
@@ -213,7 +225,7 @@
       }, timeoutMs);
 
       const separator = url.includes('?') ? '&' : '?';
-      script.src = `${url}${separator}callback=${callbackName}`;
+      script.src = `${url}${separator}callback=${encodeURIComponent(callbackRef)}`;
       document.body.appendChild(script);
     });
   }
@@ -384,10 +396,22 @@
     return toSafeText(parts[parts.length - 1], '');
   }
 
-  function parsePerformerToken(performer, creator) {
-    const source = toSafeText(performer, '') || parseSurnameCandidate(creator);
+  function resolveAuthSurname() {
+    const user = (window.AUTH0_USER && isObject(window.AUTH0_USER)) ? window.AUTH0_USER : null;
+    if (!user) return '';
+    return toSafeText(
+      user.family_name
+      || user.surname
+      || user.last_name
+      || parseSurnameCandidate(user.name || user.nickname || user.email || ''),
+      '',
+    );
+  }
+
+  function parsePerformerToken(performer) {
+    const source = toSafeText(performer, '') || resolveAuthSurname();
     const letters = source.replace(/[^A-Za-z]/g, '');
-    if (!letters) return 'An';
+    if (!letters) return 'Un';
     const token = letters.slice(0, 2).padEnd(2, 'X');
     return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
   }
@@ -399,15 +423,21 @@
   }
 
   function buildSubmissionLookup(row, fallbackYear, fallbackCounter) {
-    const rowCounter = toSafeText(row?.submissionSerial || row?.submission_serial || row?.row, '');
+    const rowCounter = toSafeText(
+      row?.submissionSerial
+      || row?.submission_serial
+      || row?.sourceRow
+      || row?.source_row
+      || row?.row,
+      '',
+    );
     const counter = formatCounter(rowCounter || fallbackCounter || 1);
     const category = toSafeText(row?.category || row?.category_raw || row?.instrumentCategory, '');
     const instrument = toSafeText(row?.instrument || row?.instrument_raw, '');
     const performer = toSafeText(row?.performerToken || row?.performer_token, '');
-    const creator = toSafeText(row?.creator || row?.creator_raw || row?.artist, '');
     const instrumentType = parseInstrumentTypeCode(category);
     const instrumentPrefix = toLookupWord(instrument, 3, 'Unk');
-    const performerToken = parsePerformerToken(performer, creator);
+    const performerToken = parsePerformerToken(performer);
     const collectionType = parseCollectionTypeCode(row?.collectionType || row?.collection_type);
     const year = Number.parseInt(String(row?.submissionYear || row?.submission_year || fallbackYear || new Date().getFullYear()), 10);
     const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
@@ -436,31 +466,49 @@
     const safeRows = Array.isArray(rows) ? rows : [];
     const fallbackYear = new Date().getFullYear();
     return safeRows.map((row, index) => {
-      const submissionId = toSafeText(row?.submissionId || row?.submission_id, '');
+      const metadata = parseMetadata(row?.metadata || row?.metadata_json || row?.metadataJson || row?.meta);
+      const normalizedRow = {
+        ...(isObject(row) ? row : {}),
+        ...metadata,
+      };
+      const submissionId = sanitizeSubmissionId(
+        normalizedRow?.submissionId
+        || normalizedRow?.submission_id
+        || normalizedRow?.id,
+      );
       const id = submissionId || buildSubmissionId(row, index, sub);
       const state = isObject(submissionState[id]) ? submissionState[id] : {};
-      const status = toSafeText(row?.status, 'Submitted');
-      const createdAt = toRecordDate(row?.timestamp || row?.createdAt || row?.created_at);
-      const lookup = resolveSubmissionLookup(row, fallbackYear, (index + 1));
+      const status = toSafeText(normalizedRow?.status, 'Submitted');
+      const createdAt = toRecordDate(
+        normalizedRow?.timestamp
+        || normalizedRow?.updatedAt
+        || normalizedRow?.updated_at
+        || normalizedRow?.createdAt
+        || normalizedRow?.created_at,
+      );
+      const fallbackCounter = normalizedRow?.row || normalizedRow?.sourceRow || (index + 1);
+      const lookup = resolveSubmissionLookup(normalizedRow, fallbackYear, fallbackCounter);
+      const sourceLink = toSafeText(normalizedRow?.sourceLink || normalizedRow?.source_link || normalizedRow?.link, '');
       return {
         id,
         sourceType: 'submission',
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
         title: lookup,
-        body: toSafeText(row?.notes || row?.note, ''),
+        body: toSafeText(normalizedRow?.latestPublicNote || normalizedRow?.latest_public_note || normalizedRow?.notes || normalizedRow?.note, ''),
         href: submissionId
           ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
           : '/entry/submit/',
         metadata: {
           submissionId,
-          row: row?.row,
+          row: normalizedRow?.row || normalizedRow?.sourceRow || normalizedRow?.source_row,
           status,
-          license: row?.license,
-          collectionType: row?.collectionType || row?.collection_type,
+          license: normalizedRow?.license,
+          collectionType: normalizedRow?.collectionType || normalizedRow?.collection_type,
           lookup,
-          submissionLookupNumber: toSafeText(row?.submissionLookupNumber || row?.submission_lookup_number, ''),
-          finalLookupNumber: toSafeText(row?.finalLookupNumber || row?.final_lookup_number, ''),
+          sourceLink,
+          submissionLookupNumber: toSafeText(normalizedRow?.submissionLookupNumber || normalizedRow?.submission_lookup_number, ''),
+          finalLookupNumber: toSafeText(normalizedRow?.finalLookupNumber || normalizedRow?.final_lookup_number, ''),
         },
         createdAt,
         readAt: toSafeText(state.readAt, ''),
@@ -475,24 +523,46 @@
     const safeRows = Array.isArray(rows) ? rows : [];
     return safeRows.map((row, index) => {
       const value = isObject(row) ? row : {};
-      const submissionId = toSafeText(value.submissionId || value.submission_id, '');
+      const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
+      const merged = { ...value, ...metadata };
+      const submissionId = sanitizeSubmissionId(merged.submissionId || merged.submission_id || merged.id);
       const id = submissionId || `submission-thread-${index + 1}`;
       const state = isObject(submissionState[id]) ? submissionState[id] : {};
-      const status = toSafeText(value.currentStatusRaw || value.current_status_raw, 'Submitted');
-      const createdAt = toRecordDate(value.updatedAt || value.updated_at || value.receivedAt || value.received_at || value.createdAt || value.created_at);
-      const fallbackYear = Number.parseInt(String(value.submissionYear || value.submission_year || new Date().getFullYear()), 10);
-      const lookup = resolveSubmissionLookup(value, fallbackYear, (index + 1));
-      const title = lookup || toSafeText(value.title, `Submission ${index + 1}`);
-      const sourceRow = value.sourceRow || value.source_row || '';
-      const readAt = toSafeText(value.acknowledgedAt || value.acknowledged_at || state.readAt, '');
-      const archivedAt = toSafeText(value.archivedAt || value.archived_at || state.archivedAt, '');
+      const status = toSafeText(
+        merged.currentStatusRaw
+        || merged.current_status_raw
+        || merged.statusRaw
+        || merged.status_raw
+        || merged.status,
+        'Submitted',
+      );
+      const createdAt = toRecordDate(
+        merged.updatedAt
+        || merged.updated_at
+        || merged.receivedAt
+        || merged.received_at
+        || merged.createdAt
+        || merged.created_at
+        || merged.timestamp,
+      );
+      const fallbackYear = Number.parseInt(
+        String(merged.submissionYear || merged.submission_year || new Date().getFullYear()),
+        10,
+      );
+      const fallbackCounter = merged.sourceRow || merged.source_row || merged.row || (index + 1);
+      const lookup = resolveSubmissionLookup(merged, fallbackYear, fallbackCounter);
+      const title = lookup || toSafeText(merged.title || merged.submissionTitle || merged.submission_title, `Submission ${index + 1}`);
+      const sourceRow = merged.sourceRow || merged.source_row || merged.row || '';
+      const readAt = toSafeText(merged.acknowledgedAt || merged.acknowledged_at || state.readAt, '');
+      const archivedAt = toSafeText(merged.archivedAt || merged.archived_at || state.archivedAt, '');
+      const sourceLink = toSafeText(merged.sourceLink || merged.source_link || merged.link, '');
       return {
         id,
         sourceType: 'submission',
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
         title,
-        body: toSafeText(value.latestPublicNote || value.latest_public_note, ''),
+        body: toSafeText(merged.latestPublicNote || merged.latest_public_note || merged.notes || merged.note, ''),
         href: submissionId
           ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
           : '/entry/submit/',
@@ -500,10 +570,11 @@
           submissionId,
           row: sourceRow,
           status,
-          license: toSafeText(value.license, ''),
-          collectionType: toSafeText(value.collectionType || value.collection_type, ''),
-          submissionLookupNumber: toSafeText(value.submissionLookupNumber || value.submission_lookup_number, ''),
-          finalLookupNumber: toSafeText(value.finalLookupNumber || value.final_lookup_number, ''),
+          license: toSafeText(merged.license, ''),
+          collectionType: toSafeText(merged.collectionType || merged.collection_type, ''),
+          sourceLink,
+          submissionLookupNumber: toSafeText(merged.submissionLookupNumber || merged.submission_lookup_number, ''),
+          finalLookupNumber: toSafeText(merged.finalLookupNumber || merged.final_lookup_number, ''),
         },
         createdAt,
         readAt,

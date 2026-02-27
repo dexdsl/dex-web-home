@@ -357,6 +357,30 @@ test('submission detail hard load restores header/footer chrome and can route ba
   await waitReady(page, '#dex-msg');
 });
 
+test('submission detail browser back resolves slot content and URL together', async ({ page }) => {
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page);
+
+  await page.goto('/entry/messages/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-msg');
+
+  const openLink = page.locator('[data-source-type="submission"] .dx-msg-link').first();
+  await expect(openLink).toHaveAttribute('href', /\/entry\/messages\/submission\/\?sid=sub-001/);
+  await Promise.all([
+    page.waitForURL('**/entry/messages/submission/**'),
+    openLink.click(),
+  ]);
+  await waitReady(page, '#dex-submission');
+
+  await Promise.all([
+    page.waitForURL('**/entry/messages/**'),
+    page.goBack(),
+  ]);
+
+  await waitReady(page, '#dex-msg');
+  await expect(page.locator('#dex-msg [data-source-type=\"submission\"]')).toHaveCount(1);
+});
+
 test('submission detail renders timeline and excludes internal note text', async ({ page }) => {
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page, 'signed-in');

@@ -291,6 +291,7 @@ import { animate } from 'framer-motion/dom';
       quotaResolved: false,
       webappUrl: config.webappUrl,
       auth0Sub: '',
+      authUser: null,
       meta: createInitialMeta(),
       licenseType: 'joint',
       lastSubmissionRow: '000',
@@ -399,9 +400,13 @@ import { animate } from 'framer-motion/dom';
   }
 
   function resolveAuthSurname() {
-    const user = window.AUTH0_USER && typeof window.AUTH0_USER === 'object'
-      ? window.AUTH0_USER
+    const preferred = state && state.authUser && typeof state.authUser === 'object'
+      ? state.authUser
       : null;
+    const user = preferred
+      || (window.AUTH0_USER && typeof window.AUTH0_USER === 'object'
+        ? window.AUTH0_USER
+        : null);
     if (!user) return '';
     const direct = text(user.family_name || user.surname || user.last_name, '');
     if (direct) return direct;
@@ -411,9 +416,38 @@ import { animate } from 'framer-motion/dom';
   function parsePerformerToken() {
     const surname = resolveAuthSurname();
     const letters = String(surname || '').replace(/[^A-Za-z]/g, '');
-    if (!letters) return 'An';
+    if (!letters) return 'Un';
     const token = letters.slice(0, 2).padEnd(2, 'X');
     return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
+  }
+
+  async function resolveAuthUser(timeoutMs = AUTH_TIMEOUT_MS) {
+    if (window.AUTH0_USER && typeof window.AUTH0_USER === 'object') {
+      if (state) state.authUser = window.AUTH0_USER;
+      return window.AUTH0_USER;
+    }
+
+    const runtimeCandidates = [
+      window.DEX_AUTH,
+      window.dexAuth,
+      window.auth0,
+    ].filter((candidate) => candidate && typeof candidate.getUser === 'function');
+
+    for (const runtime of runtimeCandidates) {
+      try {
+        const candidate = runtime.getUser();
+        const user = candidate && typeof candidate.then === 'function'
+          ? await withTimeout(candidate, timeoutMs, null)
+          : candidate;
+        if (user && typeof user === 'object') {
+          window.AUTH0_USER = user;
+          if (state) state.authUser = user;
+          return user;
+        }
+      } catch {}
+    }
+
+    return null;
   }
 
   function formatCounter(value) {
@@ -782,6 +816,7 @@ import { animate } from 'framer-motion/dom';
   async function jsonpRequest(url, params = {}, timeoutMs = JSONP_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxSubmitJsonp_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+      const callbackRef = `window.${callbackName}`;
       const script = document.createElement('script');
       let settled = false;
       let timer = 0;
@@ -803,7 +838,7 @@ import { animate } from 'framer-motion/dom';
         settle(resolve, payload);
       };
 
-      const query = new URLSearchParams({ ...params, callback: callbackName });
+      const query = new URLSearchParams({ ...params, callback: callbackRef });
       const separator = String(url).includes('?') ? '&' : '?';
       script.async = true;
       script.src = `${url}${separator}${query.toString()}`;
@@ -1634,6 +1669,8 @@ import { animate } from 'framer-motion/dom';
 
   function buildPayload() {
     syncLegacyPitchFields(state.meta);
+    const estimatedCounter = Math.max(1, Number(state.weeklyUsed || 0) + 1);
+    const generatedLookup = buildGeneratedSubmissionLookup(estimatedCounter);
     return {
       auth0Sub: text(state.auth0Sub),
       title: text(state.meta.title),
@@ -1654,6 +1691,8 @@ import { animate } from 'framer-motion/dom';
       notes: text(state.meta.notes),
       submissionYear: String(new Date().getFullYear()),
       performerToken: parsePerformerToken(),
+      submissionLookupNumber: generatedLookup,
+      finalLookupNumber: '',
       status: 'pending',
     };
   }
@@ -1684,8 +1723,10 @@ import { animate } from 'framer-motion/dom';
       return;
     }
 
+    await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
     const payload = buildPayload();
     const callbackName = `dxSubmitCallback_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+    const callbackRef = `window.${callbackName}`;
     const script = document.createElement('script');
     const ticket = Date.now();
     state.submitTicket = ticket;
@@ -1764,7 +1805,7 @@ import { animate } from 'framer-motion/dom';
     };
 
     script.async = true;
-    script.src = `${state.webappUrl}?callback=${encodeURIComponent(callbackName)}&${new URLSearchParams(payload).toString()}`;
+    script.src = `${state.webappUrl}?callback=${encodeURIComponent(callbackRef)}&${new URLSearchParams(payload).toString()}`;
     script.addEventListener('error', () => onResolved(false));
     document.body.appendChild(script);
 
@@ -1827,6 +1868,7 @@ import { animate } from 'framer-motion/dom';
       const config = toConfig(root);
       state = makeState(config);
       state.auth0Sub = await resolveAuth0Sub(AUTH_TIMEOUT_MS);
+      state.authUser = await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
       window.auth0Sub = state.auth0Sub || window.auth0Sub || '';
       render();
       refreshWeeklyQuotaFromSheet()
@@ -1869,6 +1911,9 @@ import { animate } from 'framer-motion/dom';
           state.auth0Sub = sub;
           window.auth0Sub = sub;
         }
+        return resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
+      })
+      .then(() => {
         return refreshWeeklyQuotaFromSheet();
       })
       .then(() => {
