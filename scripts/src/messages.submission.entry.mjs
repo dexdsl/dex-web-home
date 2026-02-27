@@ -415,21 +415,23 @@
       metadata.lookup,
     ]);
 
+    const fromLookupSafe = sanitizeLookupValue(fromLookup);
+    const toLookupSafe = sanitizeLookupValue(toLookup);
+
     if (normalized === 'lookup_generated') {
-      const generated = toLookup || fromLookup;
-      if (isPlaceholderSubmissionLookup(generated)) return '';
+      const generated = toLookupSafe || fromLookupSafe;
       return generated ? `Submission lookup generated: ${generated}.` : '';
     }
 
     if (normalized === 'lookup_finalized') {
-      if (fromLookup && toLookup && fromLookup !== toLookup) {
-        return `Lookup number finalized from ${fromLookup} to ${toLookup}.`;
+      if (fromLookupSafe && toLookupSafe && fromLookupSafe !== toLookupSafe) {
+        return `Lookup number finalized from ${fromLookupSafe} to ${toLookupSafe}.`;
       }
-      return toLookup ? `Lookup number finalized: ${toLookup}.` : '';
+      return toLookupSafe ? `Lookup number finalized: ${toLookupSafe}.` : '';
     }
 
     if (normalized === 'bucket_assigned') {
-      return toLookup ? `Bucket/file lookup assigned: ${toLookup}.` : '';
+      return toLookupSafe ? `Bucket/file lookup assigned: ${toLookupSafe}.` : '';
     }
 
     return '';
@@ -457,13 +459,20 @@
   function isPlaceholderSubmissionLookup(value) {
     const lookup = toSafeText(value, '');
     if (!lookup) return false;
-    return /^SUB\d{2}-X\.Unk An O\d{4}$/i.test(lookup);
+    return /^SUB\d{2}-X\.Unk\s+[A-Za-z]{2}\s+O\d{4}$/i.test(lookup);
   }
 
   function isUntitledSubmissionTitle(value) {
     const title = toSafeText(value, '').toLowerCase();
     if (!title) return false;
     return title === 'untitled submission' || title === 'untitled';
+  }
+
+  function sanitizeLookupValue(value) {
+    const lookup = toSafeText(value, '');
+    if (!lookup) return '';
+    if (isPlaceholderSubmissionLookup(lookup)) return '';
+    return lookup;
   }
 
   function normalizeEventType(eventType) {
@@ -474,11 +483,38 @@
   }
 
   function pickPreferredLookup(primaryValue, secondaryValue) {
-    const primary = toSafeText(primaryValue, '');
-    const secondary = toSafeText(secondaryValue, '');
-    if (primary && !isPlaceholderSubmissionLookup(primary)) return primary;
-    if (secondary && !isPlaceholderSubmissionLookup(secondary)) return secondary;
-    return primary || secondary;
+    const primary = sanitizeLookupValue(primaryValue);
+    const secondary = sanitizeLookupValue(secondaryValue);
+    if (primary) return primary;
+    if (secondary) return secondary;
+    return '';
+  }
+
+  function resolveCanonicalLookup({
+    finalLookupNumber = '',
+    submissionLookupNumber = '',
+    fallbackLookup = '',
+  } = {}) {
+    const finalLookup = sanitizeLookupValue(finalLookupNumber);
+    if (finalLookup) return finalLookup;
+    const submissionLookup = sanitizeLookupValue(submissionLookupNumber);
+    if (submissionLookup) return submissionLookup;
+    return sanitizeLookupValue(fallbackLookup);
+  }
+
+  function applyCanonicalThreadLookup(thread) {
+    if (!isObject(thread)) return thread;
+    const submissionLookup = sanitizeLookupValue(thread.submissionLookupNumber);
+    const finalLookup = sanitizeLookupValue(thread.finalLookupNumber);
+    const fallbackLookup = sanitizeLookupValue(thread.lookup);
+    thread.submissionLookupNumber = submissionLookup;
+    thread.finalLookupNumber = finalLookup;
+    thread.lookup = resolveCanonicalLookup({
+      finalLookupNumber: finalLookup,
+      submissionLookupNumber: submissionLookup,
+      fallbackLookup,
+    });
+    return thread;
   }
 
   function pickPreferredTitle(primaryValue, secondaryValue) {
@@ -594,6 +630,40 @@
       .map((entry) => entry.item);
   }
 
+  function shouldKeepTimelineEvent(event) {
+    const value = isObject(event) ? event : {};
+    const eventType = normalizeEventType(value.eventType);
+    const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
+    const toLookup = sanitizeLookupValue(
+      pickFirstText([
+        metadata.toLookup,
+        metadata.to_lookup,
+        metadata.finalLookupNumber,
+        metadata.final_lookup_number,
+        metadata.effectiveLookupNumber,
+        metadata.effective_lookup_number,
+        value.lookup,
+      ]),
+    );
+    const generatedLookup = sanitizeLookupValue(
+      pickFirstText([
+        metadata.submissionLookupNumber,
+        metadata.submission_lookup_number,
+        metadata.submissionLookupGenerated,
+        metadata.submission_lookup_generated,
+        metadata.fromLookup,
+        metadata.from_lookup,
+        metadata.toLookup,
+        metadata.to_lookup,
+        value.lookup,
+      ]),
+    );
+
+    if (eventType === 'lookup_finalized') return Boolean(toLookup);
+    if (eventType === 'lookup_generated') return Boolean(generatedLookup);
+    return true;
+  }
+
   function normalizeTimeline(timeline) {
     const rows = Array.isArray(timeline) ? timeline : [];
     const normalized = rows
@@ -630,7 +700,7 @@
           metadata.clientSubmittedAt,
           metadata.client_submitted_at,
         ]);
-        const lookup = pickFirstText([
+        const lookup = sanitizeLookupValue(pickFirstText([
           value.effectiveLookupNumber,
           value.effective_lookup_number,
           value.finalLookupNumber,
@@ -655,7 +725,7 @@
           metadata.lookup,
           metadata.lookupNumber,
           metadata.lookup_number,
-        ]);
+        ]));
         const createdAt = toSafeText(value.eventAt || value.event_at || value.createdAt || value.created_at, '');
         const id = toSafeText(value.id, `timeline-${index + 1}`);
         const displayNote = buildLookupTransitionNote(eventType, metadata, publicNote);
@@ -676,6 +746,7 @@
           metadata,
         };
       })
+      .filter((item) => shouldKeepTimelineEvent(item))
       .sort((a, b) => {
         const tsA = parseTimestamp(a.createdAt) || 0;
         const tsB = parseTimestamp(b.createdAt) || 0;
@@ -746,7 +817,7 @@
     const mergedMeta = [payloadMeta, ...eventMetas];
     const latestEvent = timelineEvents.length > 0 ? timelineEvents[timelineEvents.length - 1] : null;
 
-    const mergedLookup = pickFirstText([
+    const mergedLookup = sanitizeLookupValue(pickFirstText([
       threadPayload.effectiveLookupNumber,
       threadPayload.effective_lookup_number,
       threadPayload.finalLookupNumber,
@@ -774,11 +845,11 @@
       ...mergedMeta.map((meta) => meta.lookupNumber),
       ...mergedMeta.map((meta) => meta.lookup_number),
       latestEvent?.lookup,
-    ]);
-    if (!toSafeText(thread.lookup) || isPlaceholderSubmissionLookup(thread.lookup)) {
+    ]));
+    if (!sanitizeLookupValue(thread.lookup)) {
       thread.lookup = mergedLookup || toSafeText(thread.lookup, '');
     }
-    thread.submissionLookupNumber = pickFirstText([
+    thread.submissionLookupNumber = sanitizeLookupValue(pickFirstText([
       thread.submissionLookupNumber,
       threadPayload.submissionLookupNumber,
       threadPayload.submission_lookup_number,
@@ -788,18 +859,14 @@
       ...mergedMeta.map((meta) => meta.submission_lookup_number),
       ...mergedMeta.map((meta) => meta.submissionLookupGenerated),
       ...mergedMeta.map((meta) => meta.submission_lookup_generated),
-    ]);
-    thread.finalLookupNumber = pickFirstText([
+    ]));
+    thread.finalLookupNumber = sanitizeLookupValue(pickFirstText([
       thread.finalLookupNumber,
       threadPayload.finalLookupNumber,
       threadPayload.final_lookup_number,
-      threadPayload.effectiveLookupNumber,
-      threadPayload.effective_lookup_number,
       ...mergedMeta.map((meta) => meta.finalLookupNumber),
       ...mergedMeta.map((meta) => meta.final_lookup_number),
-      ...mergedMeta.map((meta) => meta.effectiveLookupNumber),
-      ...mergedMeta.map((meta) => meta.effective_lookup_number),
-    ]);
+    ]));
 
     const mergedTitle = pickFirstText([
       threadPayload.title,
@@ -890,6 +957,8 @@
       latestEvent?.createdAt,
     ]);
 
+    applyCanonicalThreadLookup(thread);
+
     return thread;
   }
 
@@ -938,7 +1007,7 @@
     if (!isObject(match)) return thread;
     const matchMeta = parseMetadata(match.metadata || match.metadata_json || match.metadataJson || match.meta);
 
-    const hydratedLookup = pickFirstText([
+    const hydratedLookup = sanitizeLookupValue(pickFirstText([
       match.effectiveLookupNumber,
       match.effective_lookup_number,
       match.finalLookupNumber,
@@ -955,11 +1024,11 @@
       matchMeta.lookup,
       matchMeta.lookupNumber,
       matchMeta.lookup_number,
-    ]);
-    if (!toSafeText(thread.lookup) || isPlaceholderSubmissionLookup(thread.lookup)) {
+    ]));
+    if (!sanitizeLookupValue(thread.lookup)) {
       thread.lookup = hydratedLookup || toSafeText(thread.lookup, '');
     }
-    thread.submissionLookupNumber = pickFirstText([
+    thread.submissionLookupNumber = sanitizeLookupValue(pickFirstText([
       thread.submissionLookupNumber,
       match.submissionLookupNumber,
       match.submission_lookup_number,
@@ -969,18 +1038,14 @@
       matchMeta.submission_lookup_number,
       matchMeta.submissionLookupGenerated,
       matchMeta.submission_lookup_generated,
-    ]);
-    thread.finalLookupNumber = pickFirstText([
+    ]));
+    thread.finalLookupNumber = sanitizeLookupValue(pickFirstText([
       thread.finalLookupNumber,
       match.finalLookupNumber,
       match.final_lookup_number,
-      match.effectiveLookupNumber,
-      match.effective_lookup_number,
       matchMeta.finalLookupNumber,
       matchMeta.final_lookup_number,
-      matchMeta.effectiveLookupNumber,
-      matchMeta.effective_lookup_number,
-    ]);
+    ]));
     const hydratedTitle = pickFirstText([
       match.title,
       match.submissionTitle,
@@ -1026,6 +1091,7 @@
       match.receivedAt,
       match.received_at,
     ]);
+    applyCanonicalThreadLookup(thread);
     thread.sourceLink = normalizeHref(thread.sourceLink);
     thread.libraryHref = normalizeHref(thread.libraryHref);
 
@@ -1064,14 +1130,13 @@
     const libraryHref = toSafeText(thread?.libraryHref, '');
     const title = toSafeText(thread?.title, '');
     const creator = toSafeText(thread?.creator, '');
-    const submissionLookup = pickFirstText([
+    const submissionLookup = sanitizeLookupValue(pickFirstText([
       thread?.submissionLookupNumber,
       thread?.submissionLookupGenerated,
-    ]);
-    const finalLookup = pickFirstText([
+    ]));
+    const finalLookup = sanitizeLookupValue(pickFirstText([
       thread?.finalLookupNumber,
-      thread?.effectiveLookupNumber,
-    ]);
+    ]));
     const updatedAt = pickFirstText([thread?.updatedAt, nowIso()]);
     const statusRaw = toSafeText(thread?.currentStatusRaw, '');
     const statusStage = statusRawToStage(statusRaw);
@@ -1132,7 +1197,7 @@
         sourceLink,
         title,
         creator,
-        lookup: finalLookup,
+        lookup: finalLookup || submissionLookup || '',
         createdAt: updatedAt,
         metadata: {},
       });
@@ -1175,22 +1240,27 @@
 
   function resolveLookupFromLegacyRow(row, fallbackLookup, fallbackSid) {
     const legacy = isObject(row) ? row : {};
-    const lookup = pickFirstText([
-      legacy.effectiveLookupNumber,
-      legacy.effective_lookup_number,
+    const finalLookup = sanitizeLookupValue(pickFirstText([
       legacy.finalLookupNumber,
       legacy.final_lookup_number,
+    ]));
+    const submissionLookup = sanitizeLookupValue(pickFirstText([
       legacy.submissionLookupNumber,
       legacy.submission_lookup_number,
-      legacy.finalLookupBase,
-      legacy.final_lookup_base,
       legacy.submissionLookupGenerated,
       legacy.submission_lookup_generated,
+    ]));
+    const fallbackResolved = sanitizeLookupValue(pickFirstText([
       legacy.lookup,
       legacy.lookupNumber,
       legacy.lookup_number,
       fallbackLookup,
-    ]);
+    ]));
+    const lookup = resolveCanonicalLookup({
+      finalLookupNumber: finalLookup,
+      submissionLookupNumber: submissionLookup,
+      fallbackLookup: fallbackResolved,
+    });
     if (lookup) return lookup;
     const sid = toSafeText(fallbackSid, '');
     if (!sid) return 'Submission';
@@ -1253,16 +1323,16 @@
     const notes = toSafeText(legacyRow?.notes || legacyRow?.note, '');
 
     thread.lookup = resolveLookupFromLegacyRow(legacyRow, thread.lookup, sid);
-    thread.submissionLookupNumber = pickFirstText([
+    thread.submissionLookupNumber = sanitizeLookupValue(pickFirstText([
       legacyRow?.submissionLookupNumber,
       legacyRow?.submission_lookup_number,
       thread.submissionLookupNumber,
-    ]);
-    thread.finalLookupNumber = pickFirstText([
+    ]));
+    thread.finalLookupNumber = sanitizeLookupValue(pickFirstText([
       legacyRow?.finalLookupNumber,
       legacyRow?.final_lookup_number,
       thread.finalLookupNumber,
-    ]);
+    ]));
     thread.title = pickFirstText([legacyRow?.title, legacyRow?.submissionTitle, thread.title], '');
     thread.creator = pickFirstText([legacyRow?.creator, legacyRow?.artist, thread.creator], '');
     thread.currentStatusRaw = legacyStatus;
@@ -1275,6 +1345,7 @@
     thread.updatedAt = pickFirstText([receivedAt, thread.updatedAt], new Date().toISOString());
     thread.sourceLink = normalizeHref(thread.sourceLink);
     thread.libraryHref = normalizeHref(thread.libraryHref);
+    applyCanonicalThreadLookup(thread);
 
     const timeline = [];
     if (sentAt) {
@@ -1625,7 +1696,7 @@
 
     const thread = {
       submissionId: toSafeText(threadPayload.submissionId || threadPayload.submission_id || threadPayload.id, sid),
-      lookup: pickFirstText([
+      lookup: sanitizeLookupValue(pickFirstText([
         threadPayload.effectiveLookupNumber,
         threadPayload.effective_lookup_number,
         threadPayload.finalLookupNumber,
@@ -1637,21 +1708,21 @@
         threadPayload.submissionLookupGenerated,
         threadPayload.submission_lookup_generated,
         threadPayload.lookup,
-      ]),
-      submissionLookupNumber: toSafeText(
+      ])),
+      submissionLookupNumber: sanitizeLookupValue(toSafeText(
         threadPayload.submissionLookupNumber
         || threadPayload.submission_lookup_number
         || threadPayload.submissionLookupGenerated
         || threadPayload.submission_lookup_generated,
         '',
-      ),
-      finalLookupNumber: toSafeText(
+      )),
+      finalLookupNumber: sanitizeLookupValue(toSafeText(
         threadPayload.finalLookupNumber
         || threadPayload.final_lookup_number
-        || threadPayload.effectiveLookupNumber
-        || threadPayload.effective_lookup_number,
-        '',
-      ),
+        || threadPayload.finalLookupBase
+        || threadPayload.final_lookup_base
+        || '',
+      )),
       title: toSafeText(threadPayload.title, ''),
       creator: toSafeText(threadPayload.creator, ''),
       instrument: toSafeText(threadPayload.instrument, ''),
@@ -1672,6 +1743,7 @@
       sourceLink: normalizeHref(toSafeText(threadPayload.sourceLink || threadPayload.source_link || threadPayload.link, '')),
       libraryHref: normalizeHref(toSafeText(threadPayload.libraryHref || threadPayload.library_href, '')),
     };
+    applyCanonicalThreadLookup(thread);
 
     hydrateThreadFromFallbacks(thread, threadPayload, timeline);
     await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
@@ -1691,6 +1763,7 @@
         warning = toSafeText(fallback.warning, '');
       }
     }
+    applyCanonicalThreadLookup(thread);
 
     const timelineWithDerived = normalizeTimeline(deriveTimelineEvents(timeline, thread));
 

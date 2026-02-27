@@ -456,6 +456,13 @@
     return /^SUB\d{2}-X\.Unk\s+[A-Za-z]{2}\s+O\d{4}$/i.test(lookup);
   }
 
+  function sanitizeLookupValue(value) {
+    const lookup = toSafeText(value, '');
+    if (!lookup) return '';
+    if (isPlaceholderSubmissionLookup(lookup)) return '';
+    return lookup;
+  }
+
   function isUntitledSubmissionTitle(value) {
     const title = toSafeText(value, '').toLowerCase();
     if (!title) return false;
@@ -491,25 +498,24 @@
   }
 
   function resolveSubmissionLookup(row, fallbackYear, fallbackCounter) {
-    const effective = toSafeText(row?.effectiveLookupNumber || row?.effective_lookup_number, '');
-    const finalLookupNumber = toSafeText(row?.finalLookupNumber || row?.final_lookup_number, '');
-    const submissionLookupNumber = toSafeText(row?.submissionLookupNumber || row?.submission_lookup_number, '');
-    const finalLookupBase = toSafeText(row?.finalLookupBase || row?.final_lookup_base, '');
-    const generated = toSafeText(row?.submissionLookupGenerated || row?.submission_lookup_generated, '');
-    const lookup = toSafeText(row?.lookup || row?.lookupNumber || row?.lookup_number, '');
+    const finalLookupNumber = sanitizeLookupValue(row?.finalLookupNumber || row?.final_lookup_number);
+    const submissionLookupNumber = sanitizeLookupValue(row?.submissionLookupNumber || row?.submission_lookup_number);
+    const generated = sanitizeLookupValue(row?.submissionLookupGenerated || row?.submission_lookup_generated);
+    const lookup = sanitizeLookupValue(row?.lookup || row?.lookupNumber || row?.lookup_number);
+    const effective = sanitizeLookupValue(row?.effectiveLookupNumber || row?.effective_lookup_number);
     const resolved = (
-      effective
-      || finalLookupNumber
+      finalLookupNumber
       || submissionLookupNumber
-      || finalLookupBase
       || generated
       || lookup
+      || effective
     );
-    if (resolved && !isPlaceholderSubmissionLookup(resolved)) return resolved;
+    if (resolved) return resolved;
 
     const built = buildSubmissionLookup(row, fallbackYear, fallbackCounter);
-    if (built && !isPlaceholderSubmissionLookup(built)) return built;
-    return resolved || built;
+    const sanitizedBuilt = sanitizeLookupValue(built);
+    if (sanitizedBuilt) return sanitizedBuilt;
+    return resolved || '';
   }
 
   function normalizeSubmissionRecords(rows, sub, submissionState) {
@@ -564,8 +570,8 @@
           lookup,
           submissionTitle,
           sourceLink,
-          submissionLookupNumber: toSafeText(normalizedRow?.submissionLookupNumber || normalizedRow?.submission_lookup_number, ''),
-          finalLookupNumber: toSafeText(normalizedRow?.finalLookupNumber || normalizedRow?.final_lookup_number, ''),
+          submissionLookupNumber: sanitizeLookupValue(normalizedRow?.submissionLookupNumber || normalizedRow?.submission_lookup_number),
+          finalLookupNumber: sanitizeLookupValue(normalizedRow?.finalLookupNumber || normalizedRow?.final_lookup_number),
         },
         createdAt,
         readAt: toSafeText(state.readAt, ''),
@@ -639,8 +645,8 @@
           lookup,
           submissionTitle,
           sourceLink,
-          submissionLookupNumber: toSafeText(merged.submissionLookupNumber || merged.submission_lookup_number, ''),
-          finalLookupNumber: toSafeText(merged.finalLookupNumber || merged.final_lookup_number, ''),
+          submissionLookupNumber: sanitizeLookupValue(merged.submissionLookupNumber || merged.submission_lookup_number),
+          finalLookupNumber: sanitizeLookupValue(merged.finalLookupNumber || merged.final_lookup_number),
         },
         createdAt,
         readAt,
@@ -706,12 +712,16 @@
             const legacy = sid ? legacyBySid.get(sid) : null;
             if (!legacy) return record;
 
-            const currentLookup = toSafeText(record?.metadata?.lookup || record?.title, '');
-            const legacyLookup = toSafeText(legacy?.metadata?.lookup || legacy?.title, '');
+            const currentLookup = sanitizeLookupValue(record?.metadata?.lookup || record?.title);
+            const legacyLookup = sanitizeLookupValue(legacy?.metadata?.lookup || legacy?.title);
+            const currentSubmissionLookup = sanitizeLookupValue(record?.metadata?.submissionLookupNumber);
+            const legacySubmissionLookup = sanitizeLookupValue(legacy?.metadata?.submissionLookupNumber);
+            const currentFinalLookup = sanitizeLookupValue(record?.metadata?.finalLookupNumber);
+            const legacyFinalLookup = sanitizeLookupValue(legacy?.metadata?.finalLookupNumber);
+            const nextSubmissionLookup = currentSubmissionLookup || legacySubmissionLookup;
+            const nextFinalLookup = currentFinalLookup || legacyFinalLookup;
             const legacySubmissionTitle = toSafeText(legacy?.metadata?.submissionTitle, '');
-            const nextLookup = (!currentLookup || isPlaceholderSubmissionLookup(currentLookup))
-              ? (legacyLookup || currentLookup)
-              : currentLookup;
+            const nextLookup = nextFinalLookup || nextSubmissionLookup || currentLookup || legacyLookup;
             const nextTitle = (!currentLookup || isPlaceholderSubmissionLookup(currentLookup))
               ? (nextLookup || legacySubmissionTitle || record.title)
               : (
@@ -729,12 +739,8 @@
                 lookup: nextLookup,
                 submissionTitle: legacySubmissionTitle || toSafeText(record?.metadata?.submissionTitle, ''),
                 sourceLink: toSafeText(record?.metadata?.sourceLink, '') || toSafeText(legacy?.metadata?.sourceLink, ''),
-                submissionLookupNumber:
-                  toSafeText(record?.metadata?.submissionLookupNumber, '')
-                  || toSafeText(legacy?.metadata?.submissionLookupNumber, ''),
-                finalLookupNumber:
-                  toSafeText(record?.metadata?.finalLookupNumber, '')
-                  || toSafeText(legacy?.metadata?.finalLookupNumber, ''),
+                submissionLookupNumber: nextSubmissionLookup,
+                finalLookupNumber: nextFinalLookup,
               },
             };
           });
