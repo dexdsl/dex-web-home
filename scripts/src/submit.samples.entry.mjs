@@ -18,7 +18,7 @@ import { animate } from 'framer-motion/dom';
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 3200;
   const SUBMIT_TIMEOUT_MS = 15000;
-  const JSONP_TIMEOUT_MS = 2500;
+  const JSONP_TIMEOUT_MS = 8000;
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_WEEKLY_LIMIT = 4;
@@ -745,7 +745,7 @@ import { animate } from 'framer-motion/dom';
       } catch {
         window[callbackName] = undefined;
       }
-    }, 30000);
+    }, 180000);
   }
 
   async function jsonpRequest(url, params = {}, timeoutMs = JSONP_TIMEOUT_MS) {
@@ -773,8 +773,9 @@ import { animate } from 'framer-motion/dom';
       };
 
       const query = new URLSearchParams({ ...params, callback: callbackName });
+      const separator = String(url).includes('?') ? '&' : '?';
       script.async = true;
-      script.src = `${url}?${query.toString()}`;
+      script.src = `${url}${separator}${query.toString()}`;
       script.addEventListener('error', () => settle(reject, new Error('JSONP request failed')));
       document.body.appendChild(script);
 
@@ -793,7 +794,13 @@ import { animate } from 'framer-motion/dom';
         JSONP_TIMEOUT_MS,
       );
       const rows = response && typeof response === 'object' ? response.rows : [];
-      const weeklyUsed = countCurrentWeekRows(rows);
+      const responseWeeklyUsed = Number.parseInt(
+        String(response && typeof response === 'object' ? response.weeklyUsed : ''),
+        10,
+      );
+      const weeklyUsed = Number.isFinite(responseWeeklyUsed)
+        ? Math.max(0, responseWeeklyUsed)
+        : countCurrentWeekRows(rows);
       state.weeklyUsed = weeklyUsed;
       state.quotaLeft = Math.max(0, state.weeklyLimit - weeklyUsed);
       return true;

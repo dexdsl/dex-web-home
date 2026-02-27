@@ -451,7 +451,7 @@ test('submit quota JSONP timeout never throws late callback reference errors', a
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
-        body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', rows: [] })}); } }, 7000);`,
+        body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', rows: [] })}); } }, 12000);`,
       });
       return;
     }
@@ -482,7 +482,7 @@ test('submit quota JSONP timeout never throws late callback reference errors', a
   await page.getByRole('button', { name: /Submit sample/i }).click();
 
   await expect(page.locator('.dx-submit-toast--error').last()).toContainText('Could not verify weekly quota');
-  await page.waitForTimeout(7300);
+  await page.waitForTimeout(12300);
 
   const refErrors = pageErrors.filter(
     (message) => message.includes('dxSubmitJsonp_') && message.includes('is not defined'),
