@@ -26,6 +26,10 @@ const SYNC_MAP = [
     targets: ['data/catalog.entries.json', 'docs/data/catalog.entries.json'],
   },
   {
+    source: 'data/catalog.seasons.json',
+    targets: ['public/data/catalog.seasons.json', 'docs/data/catalog.seasons.json'],
+  },
+  {
     source: 'public/data/catalog.guide.json',
     targets: ['data/catalog.guide.json', 'docs/data/catalog.guide.json'],
   },

@@ -9,6 +9,7 @@ const ENTRIES_PATH = path.join(ROOT, 'public', 'data', 'catalog.entries.json');
 const GUIDE_PATH = path.join(ROOT, 'public', 'data', 'catalog.guide.json');
 const SYMBOLS_PATH = path.join(ROOT, 'public', 'data', 'catalog.symbols.json');
 const SEARCH_PATH = path.join(ROOT, 'public', 'data', 'catalog.search.json');
+const SEASONS_PATH = path.join(ROOT, 'public', 'data', 'catalog.seasons.json');
 
 const INDEX_PAGE_PATH = path.join(ROOT, 'docs', 'catalog', 'index.html');
 const HOW_PAGE_PATH = path.join(ROOT, 'docs', 'catalog', 'how', 'index.html');
@@ -58,6 +59,7 @@ function main() {
   const guideModel = readJson(GUIDE_PATH);
   const symbolsModel = readJson(SYMBOLS_PATH);
   const searchModel = readJson(SEARCH_PATH);
+  const seasonsModel = readJson(SEASONS_PATH);
 
   for (const key of REQUIRED_MODEL_KEYS) {
     if (!(key in model)) failures.push(`catalog model missing key: ${key}`);
@@ -73,6 +75,10 @@ function main() {
 
   if (!Array.isArray(searchModel.entries) || searchModel.entries.length === 0) {
     failures.push('catalog search index is empty');
+  }
+
+  if (!Array.isArray(seasonsModel.seasons)) {
+    failures.push('catalog seasons config is missing seasons array');
   }
 
   const guideParts = Array.isArray(guideModel.parts) ? guideModel.parts : [];
@@ -209,6 +215,9 @@ function main() {
   }
   if (!indexRuntimeSource.includes("'#list-of-identifiers': '/catalog/symbols/#list-of-identifiers'")) {
     failures.push('catalog index runtime missing #list-of-identifiers hash redirect');
+  }
+  if (!indexRuntimeSource.includes('/data/catalog.seasons.json')) {
+    failures.push('catalog index runtime missing catalog.seasons fetch source');
   }
 
   if (failures.length > 0) {

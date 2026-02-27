@@ -247,6 +247,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'newsletter', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'catalog') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'catalog', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
@@ -405,6 +409,30 @@ async function runPollsCommand(rest = []) {
   }
 
   throw new Error(`Unknown polls command: ${subcommand}`);
+}
+
+async function runCatalogCommand(rest = []) {
+  const [subcommand = '', ...tail] = rest;
+  if (!subcommand) {
+    if (process.stdout.isTTY && process.stdin.isTTY) {
+      const { runDashboard } = await import('./ui/dashboard.mjs');
+      await runDashboard({
+        initialMode: 'catalog',
+        version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+      });
+      return;
+    }
+    console.log('Usage: dex catalog seasons <list|get|set|teaser> [args]');
+    return;
+  }
+
+  if (subcommand === 'seasons') {
+    const { runCatalogSeasonsCommand } = await import('./lib/catalog-seasons-cli.mjs');
+    await runCatalogSeasonsCommand(tail);
+    return;
+  }
+
+  throw new Error(`Unknown catalog command: ${subcommand}`);
 }
 
 function parseCsvRow(line) {
@@ -762,6 +790,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'polls') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'newsletter') {
   await runNewsletterCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'catalog') {
+  await runCatalogCommand(topLevel.rest);
   process.exit(0);
 }
 

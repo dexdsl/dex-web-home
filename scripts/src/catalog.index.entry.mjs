@@ -10,6 +10,9 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   const APP_SELECTOR = '[data-catalog-index-app]';
   const ENTRIES_URL = '/data/catalog.entries.json';
   const SEARCH_URL = '/data/catalog.search.json';
+  const SEASONS_URL = '/data/catalog.seasons.json';
+  const DEFAULT_UNANNOUNCED_MESSAGE = 'this artist has not been announced yet';
+  const DEFAULT_UNANNOUNCED_TOKEN_POOL = ['???', '!!!', '***', '@@@'];
   const REDIRECT_HASHES = {
     '#dex-how': '/catalog/how/#dex-how',
     '#list-of-identifiers': '/catalog/symbols/#list-of-identifiers',
@@ -27,12 +30,14 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
   let model = null;
   let searchModel = null;
+  let seasonsModel = null;
   let fuse = null;
   let state = { ...DEFAULT_STATE };
   let blobRaf = 0;
   let blobResizeHandler = null;
   let drawerOpen = false;
   let seasonCarouselSeason = '';
+  let seasonTeaserSeed = '';
   let favoritesSignalsBound = false;
   const ZWNJ = '\u200C';
   const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
@@ -592,11 +597,140 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
   function seasonLabel(seasonRaw) {
     const season = text(seasonRaw).toUpperCase();
+    const configured = seasonConfigFor(season)?.label;
+    if (configured) return configured;
     if (season === 'S2') return "season 2 ('24-)";
     if (season === 'S1') return "season 1 ('22-'24)";
     const match = season.match(/^S(\d+)$/);
     if (match) return `season ${match[1]}`;
     return 'season';
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(numeric)));
+  }
+
+  function dedupeTokens(values) {
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const token = text(value).trim();
+      if (!token) return;
+      const key = token.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(token);
+    });
+    return out;
+  }
+
+  function seasonOrderFromId(idValue) {
+    const match = text(idValue).toUpperCase().match(/^S(\d+)$/);
+    if (!match) return 0;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function normalizeSeasonConfig(rawValue) {
+    const rawSeasons = Array.isArray(rawValue?.seasons) ? rawValue.seasons : [];
+    const normalized = [];
+    const seen = new Set();
+    rawSeasons.forEach((season) => {
+      const id = text(season?.id).toUpperCase();
+      if (!id) return;
+      const key = id.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      const unannouncedRaw = season?.unannounced || {};
+      const tokenPool = dedupeTokens(unannouncedRaw.tokenPool);
+      normalized.push({
+        id,
+        label: text(season?.label) || '',
+        order: Number.isFinite(Number(season?.order)) ? Number(season.order) : seasonOrderFromId(id),
+        unannounced: {
+          enabled: Boolean(unannouncedRaw.enabled),
+          count: clampNumber(unannouncedRaw.count, 0, 3, 1),
+          message: text(unannouncedRaw.message) || DEFAULT_UNANNOUNCED_MESSAGE,
+          tokenPool: tokenPool.length ? tokenPool : [...DEFAULT_UNANNOUNCED_TOKEN_POOL],
+          style: text(unannouncedRaw.style) === 'redacted' ? 'redacted' : 'redacted',
+        },
+      });
+    });
+    normalized.sort((a, b) => {
+      const orderDiff = Number(b.order || 0) - Number(a.order || 0);
+      if (orderDiff !== 0) return orderDiff;
+      return text(a.id).localeCompare(text(b.id));
+    });
+    return {
+      version: text(rawValue?.version || ''),
+      seasons: normalized,
+    };
+  }
+
+  function seasonConfigById() {
+    const map = new Map();
+    const seasons = Array.isArray(seasonsModel?.seasons) ? seasonsModel.seasons : [];
+    seasons.forEach((season) => {
+      const id = text(season?.id).toUpperCase();
+      if (!id) return;
+      map.set(id, season);
+    });
+    return map;
+  }
+
+  function seasonConfigFor(seasonRaw) {
+    const season = text(seasonRaw).toUpperCase();
+    if (!season) return null;
+    return seasonConfigById().get(season) || null;
+  }
+
+  function resolveSeasonTeaserSeed() {
+    if (seasonTeaserSeed) return seasonTeaserSeed;
+    if (window.__DX_SEASON_TEASER_SEED != null) {
+      seasonTeaserSeed = text(window.__DX_SEASON_TEASER_SEED) || String(window.__DX_SEASON_TEASER_SEED);
+      return seasonTeaserSeed;
+    }
+    const randomPart = Math.floor(Math.random() * 1e9);
+    seasonTeaserSeed = `${Date.now()}-${randomPart}`;
+    return seasonTeaserSeed;
+  }
+
+  function hashString32(value) {
+    const source = String(value || '');
+    let hash = 2166136261;
+    for (let i = 0; i < source.length; i += 1) {
+      hash ^= source.charCodeAt(i);
+      hash = (hash * 16777619) >>> 0;
+    }
+    return hash >>> 0;
+  }
+
+  function teaserTokenForSeason(season, index, tokenPool) {
+    const pool = Array.isArray(tokenPool) && tokenPool.length ? tokenPool : DEFAULT_UNANNOUNCED_TOKEN_POOL;
+    if (!pool.length) return '???';
+    const seed = resolveSeasonTeaserSeed();
+    const hash = hashString32(`${seed}:${text(season).toUpperCase()}:${index}`);
+    return pool[hash % pool.length];
+  }
+
+  function buildUnannouncedCardsForSeason(seasonRaw) {
+    const season = text(seasonRaw).toUpperCase();
+    const configured = seasonConfigFor(season);
+    if (!configured || !configured.unannounced?.enabled) return [];
+    const count = clampNumber(configured.unannounced.count, 0, 3, 1);
+    const cards = [];
+    for (let index = 0; index < count; index += 1) {
+      cards.push({
+        season,
+        index,
+        message: text(configured.unannounced.message) || DEFAULT_UNANNOUNCED_MESSAGE,
+        style: text(configured.unannounced.style) || 'redacted',
+        token: teaserTokenForSeason(season, index, configured.unannounced.tokenPool),
+      });
+    }
+    return cards;
   }
 
   function protectedAllCaps(value) {
@@ -926,6 +1060,9 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     const href = canonicalEntryHref(entry.entry_href) || '/catalog/';
     const imageSrc = imageCandidateForEntry(entry);
     const slide = create('li', 'dx-catalog-index-season-slide');
+    const season = text(entry.season).toUpperCase();
+    slide.setAttribute('data-dx-season-card-kind', 'entry');
+    if (season) slide.setAttribute('data-dx-season-id', season);
 
     const media = create('a', 'dx-catalog-index-season-media');
     media.href = href;
@@ -948,29 +1085,79 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     return slide;
   }
 
+  function renderUnannouncedSeasonSlide(card) {
+    const season = text(card?.season).toUpperCase();
+    const token = text(card?.token) || '???';
+    const message = text(card?.message) || DEFAULT_UNANNOUNCED_MESSAGE;
+    const style = text(card?.style) || 'redacted';
+    const index = clampNumber(card?.index, 0, 99, 0);
+
+    const slide = create('li', `dx-catalog-index-season-slide dx-catalog-index-season-slide--unannounced dx-catalog-index-season-slide--${style}`);
+    slide.setAttribute('data-dx-season-card-kind', 'unannounced');
+    slide.setAttribute('data-dx-season-id', season || '');
+    slide.setAttribute('data-dx-growlix-token', token);
+    slide.setAttribute('data-dx-unannounced-index', String(index));
+    slide.setAttribute('aria-label', 'Unannounced artist teaser');
+
+    const media = create('div', 'dx-catalog-index-season-media dx-catalog-index-season-media--unannounced');
+    media.setAttribute('aria-hidden', 'true');
+    const tokenChip = create('span', 'dx-catalog-index-season-growlix-token', token);
+    media.appendChild(tokenChip);
+
+    const copy = create('div', 'dx-catalog-index-season-copy');
+    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', token));
+    copy.appendChild(create('p', 'dx-catalog-index-season-title', message));
+    copy.appendChild(create('p', 'dx-catalog-index-season-note', 'artist reveal pending'));
+
+    slide.append(media, copy);
+    return slide;
+  }
+
   function renderSeasonCarousel(target) {
     const imageEntries = allEntries().filter((entry) => {
       return !!canonicalEntryHref(entry.entry_href) && !!text(entry.season).trim() && !!imageCandidateForEntry(entry);
     });
-    if (!imageEntries.length) return;
 
     const seasonBuckets = new Map();
     imageEntries.forEach((entry) => {
-      const season = text(entry.season).trim();
+      const season = text(entry.season).trim().toUpperCase();
       if (!season) return;
       if (!seasonBuckets.has(season)) seasonBuckets.set(season, []);
       seasonBuckets.get(season).push(entry);
     });
 
+    const configById = seasonConfigById();
+    configById.forEach((season, seasonId) => {
+      const count = clampNumber(season?.unannounced?.count, 0, 3, 1);
+      const hasTeaser = Boolean(season?.unannounced?.enabled) && count > 0;
+      if (!seasonBuckets.has(seasonId) && hasTeaser) {
+        seasonBuckets.set(seasonId, []);
+      }
+    });
+    if (!seasonBuckets.size) return;
+
     const preferred = Array.isArray(model?.stats?.seasons)
-      ? model.stats.seasons.map((value) => text(value).trim()).filter(Boolean)
+      ? model.stats.seasons.map((value) => text(value).trim().toUpperCase()).filter(Boolean)
       : [];
     const seasons = [];
-    for (const season of [...preferred, ...seasonBuckets.keys()]) {
-      if (!season || !seasonBuckets.has(season)) continue;
+    for (const season of [...preferred, ...configById.keys(), ...seasonBuckets.keys()]) {
+      if (!season) continue;
+      const hasEntries = seasonBuckets.has(season) && (seasonBuckets.get(season) || []).length > 0;
+      const hasTeaser = buildUnannouncedCardsForSeason(season).length > 0;
+      if (!hasEntries && !hasTeaser) continue;
       if (seasons.includes(season)) continue;
       seasons.push(season);
     }
+
+    seasons.sort((a, b) => {
+      const configA = configById.get(a);
+      const configB = configById.get(b);
+      const orderA = Number.isFinite(Number(configA?.order)) ? Number(configA.order) : seasonOrderFromId(a);
+      const orderB = Number.isFinite(Number(configB?.order)) ? Number(configB.order) : seasonOrderFromId(b);
+      if (orderA !== orderB) return orderB - orderA;
+      return text(a).localeCompare(text(b));
+    });
+
     if (!seasons.length) return;
     if (!seasons.includes(seasonCarouselSeason)) seasonCarouselSeason = seasons[0];
 
@@ -1022,6 +1209,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       seasons.forEach((season) => {
         const tab = create('button', 'dx-catalog-index-season-tab', seasonLabel(season));
         tab.type = 'button';
+        tab.setAttribute('data-dx-season-id', season);
         const active = season === seasonCarouselSeason;
         tab.classList.toggle('is-active', active);
         tab.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -1044,6 +1232,8 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       seasonMeta.textContent = seasonLabel(seasonCarouselSeason);
       const seasonEntries = seasonBuckets.get(seasonCarouselSeason) || [];
       seasonEntries.forEach((entry) => track.appendChild(renderSeasonSlide(entry)));
+      const unannouncedCards = buildUnannouncedCardsForSeason(seasonCarouselSeason);
+      unannouncedCards.forEach((card) => track.appendChild(renderUnannouncedSeasonSlide(card)));
       track.scrollLeft = 0;
 
       if (prefersReducedMotion()) return;
@@ -1230,6 +1420,14 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     return await response.json();
   }
 
+  async function loadOptionalJson(url) {
+    try {
+      return await loadJson(url);
+    } catch {
+      return null;
+    }
+  }
+
   async function boot() {
     if (redirectLegacyHashes()) return;
 
@@ -1237,12 +1435,14 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     bindFavoritesSignals();
 
     try {
-      const [loadedModel, loadedSearch] = await Promise.all([
+      const [loadedModel, loadedSearch, loadedSeasons] = await Promise.all([
         loadJson(ENTRIES_URL),
         loadJson(SEARCH_URL),
+        loadOptionalJson(SEASONS_URL),
       ]);
       model = loadedModel;
       searchModel = loadedSearch;
+      seasonsModel = normalizeSeasonConfig(loadedSeasons || { seasons: [] });
       fuse = buildFuse();
       writeUrlState();
       render();
