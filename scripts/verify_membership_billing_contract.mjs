@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const SETTINGS_PATH = path.join(ROOT, 'docs', 'entry', 'settings', 'index.html');
+const MEMBERSHIP_RUNTIME_PATH = path.join(ROOT, 'scripts', 'src', 'settings.membership.entry.mjs');
 const AUTH_CONFIG_PATHS = [
   path.join(ROOT, 'public', 'assets', 'dex-auth0-config.js'),
   path.join(ROOT, 'public', 'assets', 'dex-auth-config.js')
@@ -27,10 +28,20 @@ const REQUIRED_HANDLER_MARKERS = [
   'returnPath: RETURN_PATH'
 ];
 
+const REQUIRED_V3_RUNTIME_MARKERS = [
+  'window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED = true',
+  'window.__dxSettingsMembershipMount = mountMembershipV3',
+  'data-dx-billing-ledger',
+  'data-dx-billing-row-status',
+  'data-dx-billing-cta-primary',
+  'Billing history'
+];
+
 const BANNED_MARKERS = [
   "fetch(api + '/stripe/create-checkout-session'",
   'if (window.DEX_AUTH && window.DEX_AUTH.ready)',
-  'createAuth0Client({'
+  'createAuth0Client({',
+  'Billing history (preview)'
 ];
 
 function readText(filePath) {
@@ -65,8 +76,26 @@ function verifySettingsContract(failures) {
     failures.push('settings page is missing BILLING_ENDPOINTS contract object');
   }
 
+  if (!html.includes('/assets/js/settings.membership.js')) {
+    failures.push('settings page is missing settings membership runtime include');
+  }
+
+  if (!html.includes('data-dx-membership-root')) {
+    failures.push('settings page is missing membership v3 mount marker');
+  }
+
   if (!html.includes('data/stripe-membership-products.json') && !fs.existsSync(STRIPE_PRODUCT_MAP_PATH)) {
     failures.push('stripe membership product mapping file is missing');
+  }
+}
+
+function verifyMembershipRuntimeContract(failures) {
+  const runtimeSource = readText(MEMBERSHIP_RUNTIME_PATH);
+
+  for (const marker of REQUIRED_V3_RUNTIME_MARKERS) {
+    if (!runtimeSource.includes(marker)) {
+      failures.push(`membership runtime missing marker: ${marker}`);
+    }
   }
 }
 
@@ -124,6 +153,7 @@ function main() {
   const failures = [];
 
   verifySettingsContract(failures);
+  verifyMembershipRuntimeContract(failures);
   verifyAudienceContract(failures);
   verifyStripeProductMap(failures);
 

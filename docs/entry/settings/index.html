@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="/css/components/dx-surface.css">
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/css/components/dx-settings-membership.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
@@ -2735,6 +2736,9 @@
 
       <!-- MEMBERSHIP (gated chooser; portal button lives here only) -->
       <section id="pane-membership" class="pane" role="tabpanel" aria-labelledby="tab-membership" hidden>
+        <div id="dxMembershipV3Root" data-dx-membership-root data-dx-membership-state="loading"></div>
+
+        <div id="dxLegacyMembershipPane" hidden>
         <div class="card" id="membershipCard">
           <div class="card-head-row">
             <h2>Membership &amp; billing</h2>
@@ -2804,12 +2808,13 @@
         </div>
 
         <div class="card" id="billingHistoryCard" style="margin-top:var(--gap);">
-          <h2>Billing history (preview)</h2>
+          <h2>Billing history</h2>
           <div id="invoices" class="list">
             <div class="item"><span class="skeleton" style="width:40%; height:16px;"></span><span class="skeleton" style="width:20%; height:16px;"></span></div>
             <div class="item"><span class="skeleton" style="width:40%; height:16px;"></span><span class="skeleton" style="width:20%; height:16px;"></span></div>
           </div>
           <div class="actions" style="margin-top:12px;"><button id="portalHistory" class="btn">View all invoices in Portal</button></div>
+        </div>
         </div>
       </section>
 
@@ -2911,6 +2916,7 @@
   </div>
   <!-- GSAP for ink animation (falls back to inline styles if not present) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="/assets/js/settings.membership.js"></script>
 
   <script>
     (() => {
@@ -3429,6 +3435,10 @@ function fitProfileLayout(){
       function showPane(name, dirHint){
         if (!panes.get(name)) return;
         if (name===current){
+          if (name === 'membership' && !showPane._loadedMembership){
+            loadMembershipPane().then(()=>{});
+            showPane._loadedMembership = true;
+          }
           fitProfileLayout();
           toggleProfileAside();
           queueInkSync(true);
@@ -3511,6 +3521,11 @@ function fitProfileLayout(){
   first.setAttribute('aria-selected','true');
   panes.forEach((el, key) => el.hidden = (key !== first.dataset.pane));
   current = first.dataset.pane;
+
+  if (current === 'membership' && !showPane._loadedMembership){
+    loadMembershipPane().then(()=>{});
+    showPane._loadedMembership = true;
+  }
 
   fitProfileLayout();
   toggleProfileAside();
@@ -4573,6 +4588,23 @@ function hydrateProfile(me){
 })();
 
       async function loadMembershipPane(){
+        if (window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED && typeof window.__dxSettingsMembershipMount === 'function') {
+          try {
+            await window.__dxSettingsMembershipMount({
+              apiBase: api,
+              returnPath: RETURN_PATH,
+              successPath: SUCCESS_PATH
+            });
+          } catch (_error) {
+            // Membership runtime renders deterministic inline errors.
+          } finally {
+            markSettingsCardReady('membershipCard');
+            markSettingsCardReady('billingHistoryCard');
+            markSettingsCardReady('asideBilling');
+          }
+          return;
+        }
+
         try {
           await Promise.all([loadPrices(), loadInvoices()]);
           if (!billingSummary) await loadBillingSummary();

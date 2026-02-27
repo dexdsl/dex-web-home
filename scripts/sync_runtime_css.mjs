@@ -78,6 +78,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-pressroom.css', 'docs/css/components/dx-pressroom.css'],
   },
   {
+    source: 'public/css/components/dx-settings-membership.css',
+    targets: ['css/components/dx-settings-membership.css', 'docs/css/components/dx-settings-membership.css'],
+  },
+  {
     source: 'public/css/components/dx-controls.css',
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },
@@ -120,6 +124,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/dexnotes.entry.js',
     targets: ['assets/js/dexnotes.entry.js', 'docs/assets/js/dexnotes.entry.js'],
+  },
+  {
+    source: 'public/assets/js/settings.membership.js',
+    targets: ['assets/js/settings.membership.js', 'docs/assets/js/settings.membership.js'],
   },
   {
     source: 'public/assets/js/header-slot.js',

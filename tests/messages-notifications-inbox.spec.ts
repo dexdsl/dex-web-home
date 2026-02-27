@@ -686,6 +686,26 @@ test('settings membership impact uses reordered artist names and instrument-awar
   expect(zwnjState.hasMainZwnj || zwnjState.hasSubZwnj || zwnjState.hasRowZwnj).toBe(true);
 });
 
+test('settings membership v3 renders trust-first status and production billing ledger', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+
+  await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxMembershipV3Root')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-state', /none|active|trialing|past_due|unpaid|canceled_at_period_end|canceled/);
+  await expect(page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]')).toBeVisible();
+
+  await expect(page.locator('#dxBillingHistoryV3Card h2')).toContainText('Billing history');
+  await expect(page.locator('#dxBillingHistoryV3Card')).not.toContainText('preview');
+  await expect(page.locator('#dxBillingHistoryV3Card [data-dx-billing-ledger]')).toBeVisible();
+
+  const headers = await page.locator('#dxBillingHistoryV3Card thead th').allTextContents();
+  expect(headers.map((value) => value.trim())).toEqual(['Date', 'Invoice', 'Status', 'Amount', 'Receipt']);
+});
+
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {
   const actionHits: string[] = [];
 

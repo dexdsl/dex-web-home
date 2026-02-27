@@ -1,0 +1,1041 @@
+(() => {
+  const DEFAULT_TIERS = {
+    S: {
+      name: 'Steward',
+      impact: 'Keeps the commons online and open.',
+      month: 6.99,
+      year: 69.99,
+      currency: 'USD',
+    },
+    M: {
+      name: 'Archivist',
+      impact: 'Funds artist sessions, storage, and preservation.',
+      month: 14.99,
+      year: 149.99,
+      currency: 'USD',
+    },
+    L: {
+      name: 'Producer',
+      impact: 'Underwrites new commissions and release velocity.',
+      month: 24.99,
+      year: 249.99,
+      currency: 'USD',
+    },
+  };
+
+  const STATUS_ORDER = ['none', 'active', 'trialing', 'past_due', 'unpaid', 'canceled_at_period_end', 'canceled'];
+
+  const ENDPOINTS = {
+    plans: '/me/billing/plans',
+    plansLegacy: '/prices',
+    summary: '/me/billing/summary',
+    summaryLegacy: '/me/subscription',
+    checkout: '/me/billing/checkout-session',
+    checkoutLegacy: '/stripe/create-checkout-session',
+    portal: '/me/billing/portal-session',
+    invoices: '/me/invoices?limit=12',
+    pause: '/me/billing/subscription/pause',
+    resume: '/me/billing/subscription/resume',
+  };
+
+  const ALLOWED_INTERVALS = new Set(['month', 'year']);
+
+  function $(selector, root = document) {
+    return root.querySelector(selector);
+  }
+
+  function $$(selector, root = document) {
+    return Array.from(root.querySelectorAll(selector));
+  }
+
+  function txt(value, fallback = '') {
+    const out = String(value == null ? '' : value).trim();
+    return out || fallback;
+  }
+
+  function toNumber(value, fallback = null) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function clampStatus(status) {
+    const normalized = txt(status).toLowerCase();
+    return STATUS_ORDER.includes(normalized) ? normalized : 'none';
+  }
+
+  function money(amount, currency = 'USD') {
+    const normalized = toNumber(amount, null);
+    if (!Number.isFinite(normalized)) return '—';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: txt(currency, 'USD').toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(normalized);
+  }
+
+  function dateFromUnixSeconds(seconds) {
+    const n = toNumber(seconds, null);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    return new Date(n * 1000).toLocaleDateString();
+  }
+
+  function statusLabel(status) {
+    const s = clampStatus(status);
+    if (s === 'none') return 'No active plan';
+    if (s === 'trialing') return 'Trialing';
+    if (s === 'past_due') return 'Past due';
+    if (s === 'unpaid') return 'Payment required';
+    if (s === 'canceled_at_period_end') return 'Canceling at period end';
+    if (s === 'canceled') return 'Canceled';
+    return 'Active';
+  }
+
+  function normalizePlans(raw) {
+    const fallback = {
+      currency: 'USD',
+      defaultTier: 'S',
+      coverFeesEnabled: true,
+      plans: Object.entries(DEFAULT_TIERS).map(([tier, meta]) => ({
+        tier,
+        name: meta.name,
+        impact: meta.impact,
+        month: { amount: meta.month, currency: meta.currency },
+        year: { amount: meta.year, currency: meta.currency },
+      })),
+    };
+
+    if (!raw || typeof raw !== 'object') return fallback;
+
+    const plans = Array.isArray(raw.plans) ? raw.plans : null;
+    if (plans && plans.length > 0) {
+      const normalizedPlans = plans
+        .map((plan) => {
+          const tier = txt(plan && plan.tier).toUpperCase();
+          if (!DEFAULT_TIERS[tier]) return null;
+          return {
+            tier,
+            name: txt(plan && plan.name, DEFAULT_TIERS[tier].name),
+            impact: txt(plan && (plan.impact || plan.description), DEFAULT_TIERS[tier].impact),
+            month: {
+              amount: toNumber(plan && plan.month && plan.month.amount, DEFAULT_TIERS[tier].month),
+              currency: txt(plan && plan.month && plan.month.currency, txt(raw.currency, DEFAULT_TIERS[tier].currency)).toUpperCase(),
+            },
+            year: {
+              amount: toNumber(plan && plan.year && plan.year.amount, DEFAULT_TIERS[tier].year),
+              currency: txt(plan && plan.year && plan.year.currency, txt(raw.currency, DEFAULT_TIERS[tier].currency)).toUpperCase(),
+            },
+          };
+        })
+        .filter(Boolean);
+
+      if (normalizedPlans.length > 0) {
+        return {
+          currency: txt(raw.currency, 'USD').toUpperCase(),
+          defaultTier: txt(raw.defaultTier, 'S').toUpperCase(),
+          coverFeesEnabled: raw.coverFeesEnabled !== false,
+          plans: normalizedPlans,
+        };
+      }
+    }
+
+    if (raw.month && raw.year) {
+      const fallbackPlans = Object.keys(DEFAULT_TIERS).map((tier) => ({
+        tier,
+        name: DEFAULT_TIERS[tier].name,
+        impact: DEFAULT_TIERS[tier].impact,
+        month: { amount: toNumber(raw.month[tier], DEFAULT_TIERS[tier].month), currency: 'USD' },
+        year: { amount: toNumber(raw.year[tier], DEFAULT_TIERS[tier].year), currency: 'USD' },
+      }));
+      return {
+        currency: 'USD',
+        defaultTier: txt(raw.defaultTier, 'S').toUpperCase(),
+        coverFeesEnabled: true,
+        plans: fallbackPlans,
+      };
+    }
+
+    return fallback;
+  }
+
+  function extractLast4(value) {
+    const digits = txt(value).replace(/\D/g, '');
+    return digits.length >= 4 ? digits.slice(-4) : '';
+  }
+
+  function normalizeSummary(raw) {
+    const summary = raw && typeof raw === 'object' ? raw : {};
+    const status = clampStatus(summary.status || summary.subscription_status || 'none');
+    const tier = txt(summary.tier || summary.plan_tier).toUpperCase();
+    const interval = txt(summary.interval || summary.plan_interval).toLowerCase();
+
+    const defaultPaymentMethod =
+      summary.default_payment_method
+      || (summary.invoice_settings && summary.invoice_settings.default_payment_method)
+      || (summary.customer && summary.customer.invoice_settings && summary.customer.invoice_settings.default_payment_method)
+      || null;
+
+    const explicitHasDefault = summary.has_default_payment_method;
+    const explicitOnFile = summary.payment_method_on_file;
+    const explicitHasPayment = summary.has_payment_method;
+
+    const defaultLast4 = extractLast4(
+      summary.default_payment_method_last4
+      || summary.payment_method_last4
+      || summary.payment_last4
+      || summary.card_last4
+      || (defaultPaymentMethod && defaultPaymentMethod.last4)
+      || (defaultPaymentMethod && defaultPaymentMethod.card && defaultPaymentMethod.card.last4)
+      || (summary.invoice_preview && summary.invoice_preview.default_payment_method_last4)
+      || ''
+    );
+
+    let hasDefault = null;
+    if (explicitHasDefault === true || explicitOnFile === true || explicitHasPayment === true) {
+      hasDefault = true;
+    } else if (explicitHasDefault === false || explicitOnFile === false || explicitHasPayment === false) {
+      hasDefault = false;
+    } else if (typeof defaultPaymentMethod === 'string' && txt(defaultPaymentMethod)) {
+      hasDefault = true;
+    } else if (defaultPaymentMethod && typeof defaultPaymentMethod === 'object') {
+      hasDefault = true;
+    }
+
+    return {
+      status,
+      tier: DEFAULT_TIERS[tier] ? tier : null,
+      interval: ALLOWED_INTERVALS.has(interval) ? interval : null,
+      currentPeriodEnd: toNumber(summary.current_period_end || summary.renewTs || 0, null),
+      cancelAtPeriodEnd: Boolean(summary.cancel_at_period_end || status === 'canceled_at_period_end'),
+      customerPortalEnabled: summary.customer_portal_enabled !== false,
+      hasDefaultPaymentMethod: hasDefault,
+      defaultPaymentLast4: defaultLast4 || null,
+    };
+  }
+
+  function normalizeInvoiceStatus(status) {
+    const s = txt(status).toLowerCase();
+    if (!s) return 'unknown';
+    if (s === 'paid') return 'paid';
+    if (s === 'open') return 'open';
+    if (s === 'draft') return 'draft';
+    if (s === 'void') return 'void';
+    if (s === 'uncollectible') return 'uncollectible';
+    return s;
+  }
+
+  function normalizeInvoices(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const rows = Array.isArray(src.data) ? src.data : Array.isArray(src.invoices) ? src.invoices : [];
+    return rows.map((invoice, index) => {
+      const created = toNumber(invoice && invoice.created, null);
+      const amountPaidCents = toNumber(invoice && invoice.amount_paid, null);
+      const amountDueCents = toNumber(invoice && invoice.amount_due, null);
+      const currency = txt(invoice && invoice.currency, 'USD').toUpperCase();
+      const amountCents = Number.isFinite(amountPaidCents)
+        ? amountPaidCents
+        : Number.isFinite(amountDueCents)
+          ? amountDueCents
+          : null;
+
+      return {
+        id: txt(invoice && invoice.id, `invoice-${index + 1}`),
+        number: txt(invoice && invoice.number, '—'),
+        created,
+        status: normalizeInvoiceStatus(invoice && invoice.status),
+        currency,
+        amountCents,
+        hostedInvoiceUrl: txt(invoice && (invoice.hosted_invoice_url || invoice.hostedInvoiceUrl), ''),
+        invoicePdfUrl: txt(invoice && (invoice.invoice_pdf || invoice.invoicePdfUrl), ''),
+      };
+    });
+  }
+
+  function isCompatFallbackStatus(status) {
+    return status === 404 || status === 405 || status === 501;
+  }
+
+  async function resolveAccessToken() {
+    try {
+      if (window.DEX_AUTH && typeof window.DEX_AUTH.getAccessToken === 'function') {
+        return await window.DEX_AUTH.getAccessToken();
+      }
+    } catch {}
+
+    try {
+      if (window.dexAuth && typeof window.dexAuth.getAccessToken === 'function') {
+        return await window.dexAuth.getAccessToken();
+      }
+    } catch {}
+
+    try {
+      if (window.auth0Client && typeof window.auth0Client.getTokenSilently === 'function') {
+        return await window.auth0Client.getTokenSilently();
+      }
+    } catch {}
+
+    return null;
+  }
+
+  async function apiFetch(apiBase, endpoint, options = {}) {
+    const base = txt(apiBase || '/api', '/api').replace(/\/+$/, '');
+    const url = `${base}${endpoint}`;
+    const token = await resolveAccessToken();
+
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeoutMs = Math.max(500, Number(options.timeoutMs || 12000));
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const headers = Object.assign({}, options.headers || {});
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (options.body && !Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: options.method || 'GET',
+        headers,
+        body: options.body,
+        signal: controller ? controller.signal : undefined,
+      });
+    } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (controller && controller.signal.aborted) {
+        const err = new Error(`Request timed out after ${timeoutMs}ms`);
+        err.status = 408;
+        throw err;
+      }
+      throw error;
+    }
+
+    if (timeoutId) clearTimeout(timeoutId);
+
+    const rawText = await response.text().catch(() => '');
+    let payload = {};
+    if (rawText) {
+      try {
+        payload = JSON.parse(rawText);
+      } catch {
+        payload = {};
+      }
+    }
+
+    if (!response.ok) {
+      const err = new Error(rawText || response.statusText || `HTTP ${response.status}`);
+      err.status = response.status;
+      err.payload = payload;
+      throw err;
+    }
+
+    return payload;
+  }
+
+  function primaryActionForStatus(status) {
+    const s = clampStatus(status);
+    if (s === 'past_due' || s === 'unpaid') {
+      return { label: 'Fix payment method', mode: 'portal-payment' };
+    }
+    if (s === 'active' || s === 'trialing' || s === 'canceled_at_period_end') {
+      return { label: 'Change plan', mode: 'checkout' };
+    }
+    return { label: 'Start membership', mode: 'checkout' };
+  }
+
+  function secondaryActionForStatus(status) {
+    const s = clampStatus(status);
+    if (s === 'past_due' || s === 'unpaid') {
+      return { label: 'Open Customer Portal', mode: 'portal-manage' };
+    }
+    return { label: 'Manage billing', mode: 'portal-manage' };
+  }
+
+  function pauseResumeLabel(summary) {
+    if (!summary) return null;
+    const s = clampStatus(summary.status);
+    if (s === 'active' || s === 'trialing') {
+      if (summary.cancelAtPeriodEnd) return { label: 'Resume membership', mode: 'resume' };
+      return { label: 'Pause at period end', mode: 'pause' };
+    }
+    if (s === 'canceled_at_period_end') return { label: 'Resume membership', mode: 'resume' };
+    return null;
+  }
+
+  function paymentLabel(summary) {
+    if (!summary) return '—';
+    if (summary.defaultPaymentLast4) return `•••• ${summary.defaultPaymentLast4}`;
+    if (summary.hasDefaultPaymentMethod === true) return 'On file in Customer Portal';
+    if (summary.hasDefaultPaymentMethod === false) return 'None on file';
+    if (summary.customerPortalEnabled) return 'Managed in Customer Portal';
+    return 'None on file';
+  }
+
+  function planNameForSummary(summary, plansByTier) {
+    if (!summary || !summary.tier || !plansByTier.has(summary.tier)) return 'No active plan';
+    const plan = plansByTier.get(summary.tier);
+    const interval = summary.interval === 'year' ? 'Annual' : 'Monthly';
+    return `${plan.name} (${interval})`;
+  }
+
+  function resolveTierModel(plansByTier, tier) {
+    const normalized = txt(tier).toUpperCase();
+    if (plansByTier.has(normalized)) return plansByTier.get(normalized);
+    return plansByTier.get('S') || plansByTier.values().next().value || null;
+  }
+
+  function annualSavings(plan) {
+    if (!plan) return { amount: 0, percent: 0 };
+    const month = toNumber(plan.month && plan.month.amount, 0);
+    const year = toNumber(plan.year && plan.year.amount, 0);
+    if (!Number.isFinite(month) || !Number.isFinite(year) || month <= 0 || year <= 0) {
+      return { amount: 0, percent: 0 };
+    }
+    const monthlyYear = month * 12;
+    const savingsAmount = Math.max(0, monthlyYear - year);
+    const percent = monthlyYear > 0 ? Math.round((savingsAmount / monthlyYear) * 100) : 0;
+    return { amount: savingsAmount, percent };
+  }
+
+  function skeletonLedgerRows(count = 4) {
+    let html = '';
+    for (let i = 0; i < count; i += 1) {
+      html += '<tr>'
+        + '<td><span class="dx-memv3-skel" style="width:92px"></span></td>'
+        + '<td><span class="dx-memv3-skel" style="width:110px"></span></td>'
+        + '<td><span class="dx-memv3-skel" style="width:74px"></span></td>'
+        + '<td><span class="dx-memv3-skel" style="width:80px"></span></td>'
+        + '<td><span class="dx-memv3-skel" style="width:72px"></span></td>'
+        + '</tr>';
+    }
+    return html;
+  }
+
+  class MembershipV3Controller {
+    constructor(root, options = {}) {
+      this.root = root;
+      this.apiBase = txt(options.apiBase || '/api', '/api');
+      this.returnPath = txt(options.returnPath || '/entry/settings#membership', '/entry/settings#membership');
+      this.successPath = txt(options.successPath || '/entry/settings?thanks=1#membership', '/entry/settings?thanks=1#membership');
+      this.interval = 'month';
+      this.selectedTier = 'S';
+      this.plans = normalizePlans(null);
+      this.summary = normalizeSummary(null);
+      this.invoices = [];
+      this.invoiceState = 'loading';
+      this.error = '';
+      this.busy = false;
+      this.mounted = false;
+      this.cache = {};
+    }
+
+    render() {
+      this.root.innerHTML = ''
+        + '<article class="card dx-memv3-card" id="dxMembershipV3Card" data-dx-fetch-state="loading" aria-busy="true">'
+        + '  <header class="dx-memv3-header">'
+        + '    <div>'
+        + '      <h2>Membership &amp; billing</h2>'
+        + '      <p class="note">Support Dex with a membership and keep the CC-BY archive open for everyone.</p>'
+        + '    </div>'
+        + '    <span class="dx-memv3-state-chip" id="dxMemV3StateChip">Loading…</span>'
+        + '  </header>'
+        + '  <section class="dx-memv3-status-grid">'
+        + '    <div class="dx-memv3-status" aria-live="polite">'
+        + '      <div class="dx-memv3-status-row"><span>Plan</span><strong id="dxMemV3Plan">Loading…</strong></div>'
+        + '      <div class="dx-memv3-status-row"><span>Renews</span><strong id="dxMemV3Renew">—</strong></div>'
+        + '      <div class="dx-memv3-status-row"><span>Payment method</span><strong id="dxMemV3Pay">—</strong></div>'
+        + '      <div class="dx-memv3-status-row"><span>Cancellation</span><strong id="dxMemV3Cancel">None scheduled</strong></div>'
+        + '    </div>'
+        + '    <aside class="dx-memv3-impact">'
+        + '      <h3>Why this membership matters now</h3>'
+        + '      <ul>'
+        + '        <li><strong>Keep it open:</strong> Membership offsets hosting and bandwidth for the CC-BY commons.</li>'
+        + '        <li><strong>Fund sessions:</strong> Contributions directly support new artist recordings and publishing.</li>'
+        + '        <li><strong>Sustain quality:</strong> Predictable support keeps release quality and cadence high.</li>'
+        + '      </ul>'
+        + '      <p class="dx-memv3-trust">CC-BY archive remains open regardless of membership.</p>'
+        + '    </aside>'
+        + '  </section>'
+        + '  <section class="dx-memv3-plan-panel">'
+        + '    <header class="dx-memv3-plan-head">'
+        + '      <h3>Choose your support tier</h3>'
+        + '      <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
+        + '        <button type="button" data-interval="month" aria-pressed="true">Monthly</button>'
+        + '        <button type="button" data-interval="year" aria-pressed="false">Annual</button>'
+        + '      </div>'
+        + '    </header>'
+        + '    <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
+        + '    <div class="dx-memv3-plan-summary">'
+        + '      <p id="dxMemV3Selection" class="dx-memv3-selection">Selected: Steward · Monthly · $6.99</p>'
+        + '      <label id="dxMemV3CoverWrap" class="dx-memv3-cover">'
+        + '        <input id="dxMemV3Cover" type="checkbox" />'
+        + '        <span>Cover fees (+2.9% + $0.30)</span>'
+        + '      </label>'
+        + '      <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
+        + '    </div>'
+        + '    <div class="dx-memv3-actions">'
+        + '      <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>Start membership</button>'
+        + '      <button type="button" id="dxMemV3Secondary" class="cta-primary">Manage billing</button>'
+        + '      <button type="button" id="dxMemV3PauseResume" class="btn" hidden></button>'
+        + '    </div>'
+        + '    <p id="dxMemV3Error" class="dx-memv3-error" hidden></p>'
+        + '  </section>'
+        + '</article>'
+        + '<article class="card dx-memv3-card" id="dxBillingHistoryV3Card" data-dx-fetch-state="loading" aria-busy="true">'
+        + '  <header class="dx-memv3-ledger-head">'
+        + '    <h2>Billing history</h2>'
+        + '    <p class="note">Recent invoices and receipts for this account.</p>'
+        + '  </header>'
+        + '  <div class="dx-memv3-ledger-wrap" data-dx-billing-ledger>'
+        + '    <table class="dx-memv3-ledger">'
+        + '      <thead>'
+        + '        <tr><th>Date</th><th>Invoice</th><th>Status</th><th>Amount</th><th>Receipt</th></tr>'
+        + '      </thead>'
+        + '      <tbody id="dxMemV3LedgerBody">'
+        +          skeletonLedgerRows(4)
+        + '      </tbody>'
+        + '    </table>'
+        + '  </div>'
+        + '  <p id="dxMemV3LedgerEmpty" class="dx-memv3-ledger-empty" hidden>No invoices yet.</p>'
+        + '  <p id="dxMemV3LedgerError" class="dx-memv3-ledger-error" hidden>Invoices unavailable right now.</p>'
+        + '  <div class="dx-memv3-ledger-actions">'
+        + '    <button type="button" id="dxMemV3RefreshInvoices" class="btn" hidden>Retry</button>'
+        + '    <button type="button" id="dxMemV3PortalHistory" class="btn">View all invoices in Customer Portal</button>'
+        + '  </div>'
+        + '</article>';
+
+      this.cache = {
+        membershipCard: $('#dxMembershipV3Card', this.root),
+        billingCard: $('#dxBillingHistoryV3Card', this.root),
+        stateChip: $('#dxMemV3StateChip', this.root),
+        planEl: $('#dxMemV3Plan', this.root),
+        renewEl: $('#dxMemV3Renew', this.root),
+        payEl: $('#dxMemV3Pay', this.root),
+        cancelEl: $('#dxMemV3Cancel', this.root),
+        intervalButtons: $$('[data-interval]', this.root),
+        tierGrid: $('#dxMemV3TierGrid', this.root),
+        selection: $('#dxMemV3Selection', this.root),
+        coverWrap: $('#dxMemV3CoverWrap', this.root),
+        coverInput: $('#dxMemV3Cover', this.root),
+        primaryCta: $('#dxMemV3Primary', this.root),
+        secondaryCta: $('#dxMemV3Secondary', this.root),
+        pauseResumeBtn: $('#dxMemV3PauseResume', this.root),
+        errorLine: $('#dxMemV3Error', this.root),
+        ledgerBody: $('#dxMemV3LedgerBody', this.root),
+        ledgerEmpty: $('#dxMemV3LedgerEmpty', this.root),
+        ledgerError: $('#dxMemV3LedgerError', this.root),
+        ledgerRetry: $('#dxMemV3RefreshInvoices', this.root),
+        portalHistoryBtn: $('#dxMemV3PortalHistory', this.root),
+      };
+
+      this.root.setAttribute('data-dx-membership-state', 'loading');
+      this.root.setAttribute('data-dx-interval', this.interval);
+      this.bindEvents();
+      this.renderTierCards();
+      this.renderSelection();
+    }
+
+    setCardReady(card) {
+      if (!(card instanceof HTMLElement)) return;
+      card.setAttribute('data-dx-fetch-state', 'ready');
+      card.removeAttribute('aria-busy');
+    }
+
+    setError(message) {
+      this.error = txt(message);
+      if (!(this.cache.errorLine instanceof HTMLElement)) return;
+      const hasMessage = Boolean(this.error);
+      this.cache.errorLine.hidden = !hasMessage;
+      this.cache.errorLine.textContent = hasMessage ? this.error : '';
+    }
+
+    setBusy(nextBusy) {
+      this.busy = Boolean(nextBusy);
+      const controls = [
+        this.cache.primaryCta,
+        this.cache.secondaryCta,
+        this.cache.pauseResumeBtn,
+        this.cache.portalHistoryBtn,
+        this.cache.ledgerRetry,
+      ];
+      controls.forEach((control) => {
+        if (!(control instanceof HTMLButtonElement)) return;
+        control.disabled = this.busy;
+        control.setAttribute('data-billing-busy', this.busy ? 'true' : 'false');
+      });
+    }
+
+    renderTierCards() {
+      if (!(this.cache.tierGrid instanceof HTMLElement)) return;
+      const plansByTier = new Map(this.plans.plans.map((plan) => [plan.tier, plan]));
+      const cards = [];
+      for (const tier of ['S', 'M', 'L']) {
+        const plan = resolveTierModel(plansByTier, tier);
+        if (!plan) continue;
+        const monthAmount = money(plan.month.amount, plan.month.currency);
+        const yearAmount = money(plan.year.amount, plan.year.currency);
+        const savings = annualSavings(plan);
+        const savingsCopy = savings.amount > 0
+          ? `Save ${money(savings.amount, plan.year.currency)} / year${savings.percent > 0 ? ` (${savings.percent}%)` : ''}`
+          : 'Best for sustained support';
+
+        cards.push(
+          '<button type="button" class="dx-memv3-tier"'
+            + ` data-dx-tier="${tier}"`
+            + ` data-tier="${tier}"`
+            + ` aria-pressed="${String(this.selectedTier === tier)}"`
+          + '>'
+          + `  <span class="dx-memv3-tier-name">${plan.name}</span>`
+          + `  <span class="dx-memv3-tier-price" data-price-month="${String(plan.month.amount)}" data-price-year="${String(plan.year.amount)}" data-currency="${txt(plan.month.currency, 'USD')}">${monthAmount}</span>`
+          + '  <span class="dx-memv3-tier-period">/ month</span>'
+          + `  <span class="dx-memv3-tier-impact">${plan.impact}</span>`
+          + `  <span class="dx-memv3-tier-savings">${savingsCopy}</span>`
+          + '</button>'
+        );
+      }
+
+      this.cache.tierGrid.innerHTML = cards.join('');
+    }
+
+    updateTierVisuals() {
+      const cards = $$('.dx-memv3-tier', this.root);
+      cards.forEach((card) => {
+        const tier = txt(card.getAttribute('data-tier')).toUpperCase();
+        card.setAttribute('aria-pressed', String(tier === this.selectedTier));
+      });
+
+      cards.forEach((card) => {
+        const price = $('.dx-memv3-tier-price', card);
+        const period = $('.dx-memv3-tier-period', card);
+        const priceMonth = toNumber(price && price.getAttribute('data-price-month'), null);
+        const priceYear = toNumber(price && price.getAttribute('data-price-year'), null);
+        const currency = txt(price && price.getAttribute('data-currency'), this.plans.currency || 'USD').toUpperCase();
+        const amount = this.interval === 'year' ? priceYear : priceMonth;
+        if (price instanceof HTMLElement) {
+          price.textContent = money(amount, currency);
+        }
+        if (period instanceof HTMLElement) {
+          period.textContent = this.interval === 'year' ? '/ year' : '/ month';
+        }
+      });
+
+      this.root.setAttribute('data-dx-interval', this.interval);
+    }
+
+    renderSelection() {
+      const plansByTier = new Map(this.plans.plans.map((plan) => [plan.tier, plan]));
+      const selectedPlan = resolveTierModel(plansByTier, this.selectedTier);
+      if (!(this.cache.selection instanceof HTMLElement) || !selectedPlan) return;
+
+      const amount = this.interval === 'year' ? selectedPlan.year.amount : selectedPlan.month.amount;
+      const currency = this.interval === 'year' ? selectedPlan.year.currency : selectedPlan.month.currency;
+      const intervalLabel = this.interval === 'year' ? 'Annual' : 'Monthly';
+      this.cache.selection.textContent = `Selected: ${selectedPlan.name} · ${intervalLabel} · ${money(amount, currency)}`;
+    }
+
+    renderSummary() {
+      const plansByTier = new Map(this.plans.plans.map((plan) => [plan.tier, plan]));
+      const status = clampStatus(this.summary.status);
+      const primaryAction = primaryActionForStatus(status);
+      const secondaryAction = secondaryActionForStatus(status);
+      const pauseResume = pauseResumeLabel(this.summary);
+
+      this.root.setAttribute('data-dx-membership-state', status);
+
+      if (this.cache.stateChip instanceof HTMLElement) {
+        this.cache.stateChip.textContent = statusLabel(status);
+      }
+      if (this.cache.planEl instanceof HTMLElement) {
+        this.cache.planEl.textContent = planNameForSummary(this.summary, plansByTier);
+      }
+      if (this.cache.renewEl instanceof HTMLElement) {
+        this.cache.renewEl.textContent = dateFromUnixSeconds(this.summary.currentPeriodEnd);
+      }
+      if (this.cache.payEl instanceof HTMLElement) {
+        this.cache.payEl.textContent = paymentLabel(this.summary);
+      }
+      if (this.cache.cancelEl instanceof HTMLElement) {
+        this.cache.cancelEl.textContent = this.summary.cancelAtPeriodEnd
+          ? `Ends ${dateFromUnixSeconds(this.summary.currentPeriodEnd)}`
+          : 'None scheduled';
+      }
+
+      if (this.cache.primaryCta instanceof HTMLButtonElement) {
+        this.cache.primaryCta.textContent = primaryAction.label;
+        this.cache.primaryCta.dataset.action = primaryAction.mode;
+      }
+
+      if (this.cache.secondaryCta instanceof HTMLButtonElement) {
+        this.cache.secondaryCta.textContent = secondaryAction.label;
+        this.cache.secondaryCta.dataset.action = secondaryAction.mode;
+      }
+
+      const checkoutActive = primaryAction.mode === 'checkout';
+      if (this.cache.coverWrap instanceof HTMLElement) {
+        this.cache.coverWrap.hidden = !checkoutActive || this.plans.coverFeesEnabled === false;
+      }
+
+      if (this.cache.pauseResumeBtn instanceof HTMLButtonElement) {
+        if (!pauseResume) {
+          this.cache.pauseResumeBtn.hidden = true;
+          this.cache.pauseResumeBtn.dataset.action = '';
+        } else {
+          this.cache.pauseResumeBtn.hidden = false;
+          this.cache.pauseResumeBtn.textContent = pauseResume.label;
+          this.cache.pauseResumeBtn.dataset.action = pauseResume.mode;
+        }
+      }
+
+      this.updateTierVisuals();
+      this.renderSelection();
+      this.setCardReady(this.cache.membershipCard);
+    }
+
+    renderInvoices() {
+      const body = this.cache.ledgerBody;
+      if (!(body instanceof HTMLElement)) return;
+
+      if (this.invoiceState === 'loading') {
+        body.innerHTML = skeletonLedgerRows(4);
+        if (this.cache.ledgerEmpty instanceof HTMLElement) this.cache.ledgerEmpty.hidden = true;
+        if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = true;
+        if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = true;
+        return;
+      }
+
+      if (this.invoiceState === 'error') {
+        body.innerHTML = '';
+        if (this.cache.ledgerEmpty instanceof HTMLElement) this.cache.ledgerEmpty.hidden = true;
+        if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = false;
+        if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = false;
+        this.setCardReady(this.cache.billingCard);
+        return;
+      }
+
+      if (!this.invoices.length) {
+        body.innerHTML = '';
+        if (this.cache.ledgerEmpty instanceof HTMLElement) this.cache.ledgerEmpty.hidden = false;
+        if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = true;
+        if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = true;
+        this.setCardReady(this.cache.billingCard);
+        return;
+      }
+
+      body.innerHTML = this.invoices.map((invoice) => {
+        const dateLabel = dateFromUnixSeconds(invoice.created);
+        const status = normalizeInvoiceStatus(invoice.status);
+        const amount = Number.isFinite(invoice.amountCents)
+          ? money(invoice.amountCents / 100, invoice.currency)
+          : '—';
+        const receiptLinks = [];
+        if (invoice.hostedInvoiceUrl) {
+          receiptLinks.push(`<a href="${invoice.hostedInvoiceUrl}" target="_blank" rel="noopener noreferrer">View</a>`);
+        }
+        if (invoice.invoicePdfUrl) {
+          receiptLinks.push(`<a href="${invoice.invoicePdfUrl}" target="_blank" rel="noopener noreferrer">PDF</a>`);
+        }
+        const receiptCell = receiptLinks.length ? receiptLinks.join('<span aria-hidden="true"> · </span>') : '—';
+
+        return ''
+          + '<tr>'
+          + `  <td>${dateLabel}</td>`
+          + `  <td>${txt(invoice.number, invoice.id)}</td>`
+          + `  <td><span class="dx-memv3-ledger-status" data-dx-billing-row-status="${status}">${status.replace(/_/g, ' ')}</span></td>`
+          + `  <td>${amount}</td>`
+          + `  <td>${receiptCell}</td>`
+          + '</tr>';
+      }).join('');
+
+      if (this.cache.ledgerEmpty instanceof HTMLElement) this.cache.ledgerEmpty.hidden = true;
+      if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = true;
+      if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = true;
+      this.setCardReady(this.cache.billingCard);
+    }
+
+    bindEvents() {
+      this.cache.intervalButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.addEventListener('click', () => {
+          const interval = txt(button.getAttribute('data-interval')).toLowerCase();
+          if (!ALLOWED_INTERVALS.has(interval)) return;
+          this.interval = interval;
+          this.cache.intervalButtons.forEach((btn) => {
+            if (!(btn instanceof HTMLButtonElement)) return;
+            const isActive = txt(btn.getAttribute('data-interval')).toLowerCase() === this.interval;
+            btn.setAttribute('aria-pressed', String(isActive));
+          });
+          this.updateTierVisuals();
+          this.renderSelection();
+        });
+      });
+
+      this.root.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const tierButton = target.closest('[data-tier]');
+        if (!(tierButton instanceof HTMLButtonElement)) return;
+        const tier = txt(tierButton.getAttribute('data-tier')).toUpperCase();
+        if (!DEFAULT_TIERS[tier]) return;
+        this.selectedTier = tier;
+        this.updateTierVisuals();
+        this.renderSelection();
+      });
+
+      if (this.cache.primaryCta instanceof HTMLButtonElement) {
+        this.cache.primaryCta.addEventListener('click', async () => {
+          if (this.busy) return;
+          await this.handlePrimaryAction();
+        });
+      }
+
+      if (this.cache.secondaryCta instanceof HTMLButtonElement) {
+        this.cache.secondaryCta.addEventListener('click', async () => {
+          if (this.busy) return;
+          await this.handlePortalFlow(this.cache.secondaryCta.dataset.action || 'portal-manage');
+        });
+      }
+
+      if (this.cache.pauseResumeBtn instanceof HTMLButtonElement) {
+        this.cache.pauseResumeBtn.addEventListener('click', async () => {
+          if (this.busy) return;
+          const action = txt(this.cache.pauseResumeBtn.dataset.action);
+          if (!action) return;
+          await this.handlePauseResume(action);
+        });
+      }
+
+      if (this.cache.portalHistoryBtn instanceof HTMLButtonElement) {
+        this.cache.portalHistoryBtn.addEventListener('click', async () => {
+          if (this.busy) return;
+          await this.handlePortalFlow('invoice_history');
+        });
+      }
+
+      if (this.cache.ledgerRetry instanceof HTMLButtonElement) {
+        this.cache.ledgerRetry.addEventListener('click', async () => {
+          if (this.busy) return;
+          await this.loadInvoices();
+        });
+      }
+    }
+
+    async handlePrimaryAction() {
+      const mode = txt(this.cache.primaryCta && this.cache.primaryCta.dataset.action);
+      if (!mode) return;
+
+      if (mode === 'portal-payment') {
+        await this.handlePortalFlow('payment_method_update');
+        return;
+      }
+
+      await this.startCheckout();
+    }
+
+    async startCheckout() {
+      this.setBusy(true);
+      this.setError('');
+
+      const payload = {
+        tier: this.selectedTier,
+        interval: this.interval,
+        coverFees: Boolean(this.cache.coverInput && this.cache.coverInput.checked),
+        returnPath: this.returnPath,
+        successUrl: new URL(this.successPath, window.location.origin).toString(),
+        cancelUrl: new URL(this.returnPath, window.location.origin).toString(),
+      };
+
+      try {
+        let session;
+        try {
+          session = await apiFetch(this.apiBase, ENDPOINTS.checkout, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+        } catch (error) {
+          if (!isCompatFallbackStatus(Number(error && error.status))) throw error;
+          session = await apiFetch(this.apiBase, ENDPOINTS.checkoutLegacy, {
+            method: 'POST',
+            body: JSON.stringify({
+              tier: this.selectedTier,
+              interval: this.interval,
+              coverFees: payload.coverFees,
+              successUrl: payload.successUrl,
+              cancelUrl: payload.cancelUrl,
+              success_url: payload.successUrl,
+              cancel_url: payload.cancelUrl,
+            }),
+          });
+        }
+
+        if (session && session.url) {
+          window.location.href = String(session.url);
+          return;
+        }
+        throw new Error('No checkout URL returned.');
+      } catch (error) {
+        this.setError('Could not start checkout right now. Please try again.');
+        console.error('settings.membership.v3 checkout failed', error);
+      } finally {
+        this.setBusy(false);
+      }
+    }
+
+    async handlePortalFlow(mode) {
+      const flow = txt(mode);
+      this.setBusy(true);
+      this.setError('');
+      try {
+        const payload = {
+          flow,
+          returnPath: this.returnPath,
+        };
+        const session = await apiFetch(this.apiBase, ENDPOINTS.portal, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (session && session.url) {
+          window.location.href = String(session.url);
+          return;
+        }
+        throw new Error('No portal URL returned.');
+      } catch (error) {
+        this.setError('Could not open Customer Portal right now.');
+        console.error('settings.membership.v3 portal failed', error);
+      } finally {
+        this.setBusy(false);
+      }
+    }
+
+    async handlePauseResume(action) {
+      const normalized = txt(action).toLowerCase();
+      if (normalized !== 'pause' && normalized !== 'resume') return;
+      this.setBusy(true);
+      this.setError('');
+      try {
+        const endpoint = normalized === 'pause' ? ENDPOINTS.pause : ENDPOINTS.resume;
+        await apiFetch(this.apiBase, endpoint, {
+          method: 'POST',
+          body: JSON.stringify({ returnPath: this.returnPath }),
+        });
+        await this.loadSummary();
+      } catch (error) {
+        this.setError(normalized === 'pause'
+          ? 'Could not pause membership at period end.'
+          : 'Could not resume membership.');
+        console.error('settings.membership.v3 pause/resume failed', error);
+      } finally {
+        this.setBusy(false);
+      }
+    }
+
+    async loadPlans() {
+      try {
+        const payload = await apiFetch(this.apiBase, ENDPOINTS.plans, { timeoutMs: 10000 });
+        this.plans = normalizePlans(payload);
+      } catch (error) {
+        if (!isCompatFallbackStatus(Number(error && error.status))) {
+          throw error;
+        }
+        const payload = await apiFetch(this.apiBase, ENDPOINTS.plansLegacy, { timeoutMs: 10000 });
+        this.plans = normalizePlans(payload);
+      }
+
+      this.selectedTier = resolveTierModel(new Map(this.plans.plans.map((plan) => [plan.tier, plan])), this.plans.defaultTier)
+        ? txt(this.plans.defaultTier, 'S').toUpperCase()
+        : 'S';
+      if (!DEFAULT_TIERS[this.selectedTier]) this.selectedTier = 'S';
+      this.renderTierCards();
+      this.updateTierVisuals();
+      this.renderSelection();
+    }
+
+    async loadSummary() {
+      try {
+        const payload = await apiFetch(this.apiBase, ENDPOINTS.summary, { timeoutMs: 10000 });
+        this.summary = normalizeSummary(payload);
+      } catch (error) {
+        if (!isCompatFallbackStatus(Number(error && error.status))) {
+          throw error;
+        }
+        const payload = await apiFetch(this.apiBase, ENDPOINTS.summaryLegacy, { timeoutMs: 10000 });
+        this.summary = normalizeSummary(payload);
+      }
+      this.renderSummary();
+    }
+
+    async loadInvoices() {
+      this.invoiceState = 'loading';
+      this.renderInvoices();
+      try {
+        const payload = await apiFetch(this.apiBase, ENDPOINTS.invoices, { timeoutMs: 12000 });
+        this.invoices = normalizeInvoices(payload);
+        this.invoiceState = 'ready';
+      } catch (error) {
+        this.invoiceState = 'error';
+        this.invoices = [];
+        console.error('settings.membership.v3 invoices failed', error);
+      }
+      this.renderInvoices();
+    }
+
+    async mount() {
+      this.render();
+      this.mounted = true;
+
+      try {
+        await this.loadPlans();
+      } catch (error) {
+        this.setError('Could not load plans right now.');
+        console.error('settings.membership.v3 plans failed', error);
+      }
+
+      try {
+        await this.loadSummary();
+      } catch (error) {
+        this.summary = normalizeSummary(null);
+        this.renderSummary();
+        this.setError('Could not load billing status right now.');
+        console.error('settings.membership.v3 summary failed', error);
+      }
+
+      await this.loadInvoices();
+
+      this.setCardReady(this.cache.membershipCard);
+      this.setCardReady(this.cache.billingCard);
+
+      const legacyPane = document.getElementById('dxLegacyMembershipPane');
+      if (legacyPane instanceof HTMLElement) legacyPane.hidden = true;
+      const asideBilling = document.getElementById('asideBilling');
+      if (asideBilling instanceof HTMLElement) {
+        const note = $('p.note', asideBilling);
+        if (note) {
+          note.textContent = 'Stripe handles payments securely. Manage cards, plans, and invoices in Customer Portal.';
+        }
+      }
+    }
+  }
+
+  async function mountMembershipV3(options = {}) {
+    const root = document.getElementById('dxMembershipV3Root');
+    if (!(root instanceof HTMLElement)) return null;
+
+    const existing = root.__dxMembershipV3Controller;
+    if (existing instanceof MembershipV3Controller && existing.mounted) {
+      return existing;
+    }
+
+    const settingsRoot = document.getElementById('dex-settings');
+    const controller = new MembershipV3Controller(root, {
+      apiBase: options.apiBase || txt(settingsRoot && settingsRoot.dataset && settingsRoot.dataset.api, '/api'),
+      returnPath: options.returnPath || '/entry/settings#membership',
+      successPath: options.successPath || '/entry/settings?thanks=1#membership',
+    });
+
+    root.__dxMembershipV3Controller = controller;
+    await controller.mount();
+    return controller;
+  }
+
+  window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED = true;
+  window.__dxSettingsMembershipMount = mountMembershipV3;
+})();

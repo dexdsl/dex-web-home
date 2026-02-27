@@ -31,6 +31,7 @@
     "verify:header-slot": "node scripts/verify_header_slot_contract.mjs",
     "verify:loading-shell": "node scripts/verify_loading_shell_contract.mjs",
     "verify:membership-billing": "node scripts/verify_membership_billing_contract.mjs",
+    "verify:settings-membership-ui": "node scripts/verify_settings_membership_ui_contract.mjs",
     "verify:motion": "node scripts/verify_motion_contract.mjs",
     "verify:hover-motion": "node scripts/verify_interactive_hover_contract.mjs",
     "verify:settings-delete": "node scripts/verify_settings_delete_modal_contract.mjs",
@@ -43,7 +44,7 @@
     "verify:heading-zwnj": "node scripts/verify_heading_zwnj_contract.mjs",
     "verify:mobile-viewport": "node scripts/verify_mobile_viewport_contract.mjs",
     "verify:no-sq-images": "npm run verify:no-legacy-cdn-images",
-    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:favorites && npm run verify:notifications && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:error-support && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run verify:polls",
+    "phase1:all": "npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:header-slot && npm run verify:protected-auth && npm run verify:loading-shell && npm run verify:membership-billing && npm run verify:settings-membership-ui && npm run verify:settings-delete && npm run verify:scroll-dot && npm run verify:catalog && npm run verify:favorites && npm run verify:notifications && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:error-support && npm run verify:call && npm run verify:buttons && npm run verify:dexnotes && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run verify:polls",
     "styles:sync": "node scripts/sync_runtime_css.mjs",
     "hdr:manifest": "node scripts/hdr_build_manifest.mjs",
     "hdr:inject": "node scripts/hdr_inject_picture_sources.mjs",
@@ -59,6 +60,7 @@
     "messages:submission:build": "node scripts/build-messages-submission.mjs",
     "submit:build": "node scripts/build-submit-samples.mjs",
     "pressroom:build": "node scripts/build-pressroom.mjs",
+    "settings:membership:build": "node scripts/build-settings-membership.mjs",
     "hover:build": "node scripts/build-interactive-hover.mjs",
     "newsletter:preview": "node scripts/dex.mjs newsletter preview --template newsletter",
     "favorites:build": "node scripts/build-favorites.mjs",
@@ -114,7 +116,7 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
+    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:settings-membership-ui && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"
