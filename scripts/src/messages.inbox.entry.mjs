@@ -450,6 +450,18 @@
     return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
   }
 
+  function isPlaceholderSubmissionLookup(value) {
+    const lookup = toSafeText(value, '');
+    if (!lookup) return false;
+    return /^SUB\d{2}-X\.Unk\s+[A-Za-z]{2}\s+O\d{4}$/i.test(lookup);
+  }
+
+  function isUntitledSubmissionTitle(value) {
+    const title = toSafeText(value, '').toLowerCase();
+    if (!title) return false;
+    return title === 'untitled submission' || title === 'untitled';
+  }
+
   function formatCounter(value) {
     const parsed = Number.parseInt(String(value || '0'), 10);
     const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
@@ -485,7 +497,7 @@
     const finalLookupBase = toSafeText(row?.finalLookupBase || row?.final_lookup_base, '');
     const generated = toSafeText(row?.submissionLookupGenerated || row?.submission_lookup_generated, '');
     const lookup = toSafeText(row?.lookup || row?.lookupNumber || row?.lookup_number, '');
-    return (
+    const resolved = (
       effective
       || finalLookupNumber
       || submissionLookupNumber
@@ -493,6 +505,11 @@
       || generated
       || lookup
     );
+    if (resolved && !isPlaceholderSubmissionLookup(resolved)) return resolved;
+
+    const built = buildSubmissionLookup(row, fallbackYear, fallbackCounter);
+    if (built && !isPlaceholderSubmissionLookup(built)) return built;
+    return resolved || built;
   }
 
   function normalizeSubmissionRecords(rows, sub, submissionState) {
@@ -521,13 +538,19 @@
       );
       const fallbackCounter = normalizedRow?.row || normalizedRow?.sourceRow || (index + 1);
       const lookup = resolveSubmissionLookup(normalizedRow, fallbackYear, fallbackCounter);
+      const submissionTitle = toSafeText(
+        normalizedRow?.title
+        || normalizedRow?.submissionTitle
+        || normalizedRow?.submission_title,
+        '',
+      );
       const sourceLink = toSafeText(normalizedRow?.sourceLink || normalizedRow?.source_link || normalizedRow?.link, '');
       return {
         id,
         sourceType: 'submission',
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
-        title: lookup,
+        title: (!isPlaceholderSubmissionLookup(lookup) && lookup) || submissionTitle || lookup || `Submission ${index + 1}`,
         body: toSafeText(normalizedRow?.latestPublicNote || normalizedRow?.latest_public_note || normalizedRow?.notes || normalizedRow?.note, ''),
         href: submissionId
           ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
@@ -539,6 +562,7 @@
           license: normalizedRow?.license,
           collectionType: normalizedRow?.collectionType || normalizedRow?.collection_type,
           lookup,
+          submissionTitle,
           sourceLink,
           submissionLookupNumber: toSafeText(normalizedRow?.submissionLookupNumber || normalizedRow?.submission_lookup_number, ''),
           finalLookupNumber: toSafeText(normalizedRow?.finalLookupNumber || normalizedRow?.final_lookup_number, ''),
@@ -584,7 +608,14 @@
       );
       const fallbackCounter = merged.sourceRow || merged.source_row || merged.row || (index + 1);
       const lookup = resolveSubmissionLookup(merged, fallbackYear, fallbackCounter);
-      const title = lookup || toSafeText(merged.title || merged.submissionTitle || merged.submission_title, `Submission ${index + 1}`);
+      const submissionTitle = toSafeText(
+        merged.title || merged.submissionTitle || merged.submission_title,
+        '',
+      );
+      const title = (!isPlaceholderSubmissionLookup(lookup) && lookup)
+        || submissionTitle
+        || lookup
+        || `Submission ${index + 1}`;
       const sourceRow = merged.sourceRow || merged.source_row || merged.row || '';
       const readAt = toSafeText(merged.acknowledgedAt || merged.acknowledged_at || state.readAt, '');
       const archivedAt = toSafeText(merged.archivedAt || merged.archived_at || state.archivedAt, '');
@@ -605,6 +636,8 @@
           status,
           license: toSafeText(merged.license, ''),
           collectionType: toSafeText(merged.collectionType || merged.collection_type, ''),
+          lookup,
+          submissionTitle,
           sourceLink,
           submissionLookupNumber: toSafeText(merged.submissionLookupNumber || merged.submission_lookup_number, ''),
           finalLookupNumber: toSafeText(merged.finalLookupNumber || merged.final_lookup_number, ''),
@@ -645,8 +678,75 @@
         : Array.isArray(payload.items)
           ? payload.items
           : [];
+      const normalizedRecords = normalizeSubmissionThreadRecords(rows, submissionState);
+      const sub = toSafeText(authSnapshot?.sub, '');
+      const needsLegacyHydration = normalizedRecords.some((record) => {
+        const lookup = toSafeText(record?.metadata?.lookup || record?.title, '');
+        const submissionTitle = toSafeText(record?.metadata?.submissionTitle, '');
+        return isPlaceholderSubmissionLookup(lookup) || !submissionTitle || isUntitledSubmissionTitle(submissionTitle);
+      });
+
+      if (needsLegacyHydration && sub) {
+        const legacyResponse = await withTimeout(
+          jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+          JSONP_TIMEOUT_MS + 100,
+          { status: 'timeout', rows: [] },
+        );
+        const legacyRows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+        if (legacyRows.length) {
+          const legacyRecords = normalizeSubmissionRecords(legacyRows, sub, submissionState);
+          const legacyBySid = new Map();
+          for (const legacy of legacyRecords) {
+            const sid = toSafeText(legacy?.metadata?.submissionId, '');
+            if (!sid) continue;
+            legacyBySid.set(sid, legacy);
+          }
+          const mergedRecords = normalizedRecords.map((record) => {
+            const sid = toSafeText(record?.metadata?.submissionId, '');
+            const legacy = sid ? legacyBySid.get(sid) : null;
+            if (!legacy) return record;
+
+            const currentLookup = toSafeText(record?.metadata?.lookup || record?.title, '');
+            const legacyLookup = toSafeText(legacy?.metadata?.lookup || legacy?.title, '');
+            const legacySubmissionTitle = toSafeText(legacy?.metadata?.submissionTitle, '');
+            const nextLookup = (!currentLookup || isPlaceholderSubmissionLookup(currentLookup))
+              ? (legacyLookup || currentLookup)
+              : currentLookup;
+            const nextTitle = (!currentLookup || isPlaceholderSubmissionLookup(currentLookup))
+              ? (nextLookup || legacySubmissionTitle || record.title)
+              : (
+                  !toSafeText(record?.metadata?.submissionTitle, '') || isUntitledSubmissionTitle(record?.metadata?.submissionTitle)
+                    ? (record.title || legacySubmissionTitle || nextLookup || 'Submission')
+                    : (record.title || nextLookup || legacySubmissionTitle || 'Submission')
+                );
+
+            return {
+              ...record,
+              title: nextTitle,
+              body: toSafeText(record.body, '') || toSafeText(legacy.body, ''),
+              metadata: {
+                ...record.metadata,
+                lookup: nextLookup,
+                submissionTitle: legacySubmissionTitle || toSafeText(record?.metadata?.submissionTitle, ''),
+                sourceLink: toSafeText(record?.metadata?.sourceLink, '') || toSafeText(legacy?.metadata?.sourceLink, ''),
+                submissionLookupNumber:
+                  toSafeText(record?.metadata?.submissionLookupNumber, '')
+                  || toSafeText(legacy?.metadata?.submissionLookupNumber, ''),
+                finalLookupNumber:
+                  toSafeText(record?.metadata?.finalLookupNumber, '')
+                  || toSafeText(legacy?.metadata?.finalLookupNumber, ''),
+              },
+            };
+          });
+          return {
+            records: mergedRecords,
+            warning: '',
+          };
+        }
+      }
+
       return {
-        records: normalizeSubmissionThreadRecords(rows, submissionState),
+        records: normalizedRecords,
         warning: '',
       };
     }

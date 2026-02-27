@@ -459,6 +459,12 @@
     return /^SUB\d{2}-X\.Unk An O\d{4}$/i.test(lookup);
   }
 
+  function isUntitledSubmissionTitle(value) {
+    const title = toSafeText(value, '').toLowerCase();
+    if (!title) return false;
+    return title === 'untitled submission' || title === 'untitled';
+  }
+
   function normalizeTimeline(timeline) {
     const rows = Array.isArray(timeline) ? timeline : [];
     return rows
@@ -610,8 +616,7 @@
     const mergedMeta = [payloadMeta, ...eventMetas];
     const latestEvent = timelineEvents.length > 0 ? timelineEvents[timelineEvents.length - 1] : null;
 
-    thread.lookup = pickFirstText([
-      thread.lookup,
+    const mergedLookup = pickFirstText([
       threadPayload.effectiveLookupNumber,
       threadPayload.effective_lookup_number,
       threadPayload.finalLookupNumber,
@@ -640,6 +645,9 @@
       ...mergedMeta.map((meta) => meta.lookup_number),
       latestEvent?.lookup,
     ]);
+    if (!toSafeText(thread.lookup) || isPlaceholderSubmissionLookup(thread.lookup)) {
+      thread.lookup = mergedLookup || toSafeText(thread.lookup, '');
+    }
     thread.submissionLookupNumber = pickFirstText([
       thread.submissionLookupNumber,
       threadPayload.submissionLookupNumber,
@@ -663,8 +671,7 @@
       ...mergedMeta.map((meta) => meta.effective_lookup_number),
     ]);
 
-    thread.title = pickFirstText([
-      thread.title,
+    const mergedTitle = pickFirstText([
       threadPayload.title,
       threadPayload.submissionTitle,
       threadPayload.submission_title,
@@ -673,6 +680,9 @@
       ...mergedMeta.map((meta) => meta.submission_title),
       latestEvent?.title,
     ]);
+    if (!toSafeText(thread.title) || isUntitledSubmissionTitle(thread.title)) {
+      thread.title = mergedTitle || toSafeText(thread.title, '');
+    }
 
     thread.creator = pickFirstText([
       thread.creator,
@@ -754,9 +764,13 @@
   }
 
   function shouldHydrateFromThreadList(thread) {
+    const lookup = toSafeText(thread.lookup);
+    const title = toSafeText(thread.title);
     return (
-      !toSafeText(thread.lookup)
-      || !toSafeText(thread.title)
+      !lookup
+      || isPlaceholderSubmissionLookup(lookup)
+      || !title
+      || isUntitledSubmissionTitle(title)
       || !toSafeText(thread.creator)
       || !toSafeText(thread.sourceLink)
       || !toSafeText(thread.submissionLookupNumber)
@@ -794,8 +808,7 @@
     if (!isObject(match)) return thread;
     const matchMeta = parseMetadata(match.metadata || match.metadata_json || match.metadataJson || match.meta);
 
-    thread.lookup = pickFirstText([
-      thread.lookup,
+    const hydratedLookup = pickFirstText([
       match.effectiveLookupNumber,
       match.effective_lookup_number,
       match.finalLookupNumber,
@@ -813,6 +826,9 @@
       matchMeta.lookupNumber,
       matchMeta.lookup_number,
     ]);
+    if (!toSafeText(thread.lookup) || isPlaceholderSubmissionLookup(thread.lookup)) {
+      thread.lookup = hydratedLookup || toSafeText(thread.lookup, '');
+    }
     thread.submissionLookupNumber = pickFirstText([
       thread.submissionLookupNumber,
       match.submissionLookupNumber,
@@ -835,7 +851,17 @@
       matchMeta.effectiveLookupNumber,
       matchMeta.effective_lookup_number,
     ]);
-    thread.title = pickFirstText([thread.title, match.title, match.submissionTitle, match.submission_title, matchMeta.title, matchMeta.submissionTitle, matchMeta.submission_title]);
+    const hydratedTitle = pickFirstText([
+      match.title,
+      match.submissionTitle,
+      match.submission_title,
+      matchMeta.title,
+      matchMeta.submissionTitle,
+      matchMeta.submission_title,
+    ]);
+    if (!toSafeText(thread.title) || isUntitledSubmissionTitle(thread.title)) {
+      thread.title = hydratedTitle || toSafeText(thread.title, '');
+    }
     thread.creator = pickFirstText([thread.creator, match.creator, match.artist, matchMeta.creator, matchMeta.artist]);
     thread.currentStatusRaw = pickFirstText([
       thread.currentStatusRaw,
@@ -1168,8 +1194,8 @@
     }
 
     const warning = failingStatus >= 500
-      ? 'Timeline sync is catching up. Showing latest submission details.'
-      : 'Using legacy submissions feed while timeline sync catches up.';
+      ? 'Live timeline sync is delayed. Showing latest available submission details.'
+      : '';
 
     const timelineWithDerived = normalizeTimeline(deriveTimelineEvents(timeline, thread));
 
@@ -1326,20 +1352,23 @@
       ? `
         <div class="dx-sub-preview" data-dx-sub-preview="drive">
           <p class="dx-sub-kicker">Preview</p>
-          <iframe
-            class="dx-sub-preview-frame"
-            src="${escapeHtml(previewHref)}"
-            title="Submission preview"
-            loading="lazy"
-            allow="autoplay; fullscreen"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
+          <button
+            type="button"
+            class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--secondary"
+            data-dx-sub-action="preview-drive"
+            data-dx-sub-preview-src="${escapeHtml(previewHref)}"
+          >Load Drive preview</button>
+          <p class="dx-sub-item-body">Preview works for publicly shared files. If unavailable, open the submission link.</p>
+          <div class="dx-sub-preview-slot" data-dx-sub-preview-slot></div>
         </div>
       `
       : '';
 
-    const titleLine = model.thread.title
-      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.title)}</p>`
+    const resolvedThreadTitle = isUntitledSubmissionTitle(model.thread.title)
+      ? ''
+      : toSafeText(model.thread.title, '');
+    const titleLine = resolvedThreadTitle
+      ? `<p class="dx-sub-item-body">${escapeHtml(resolvedThreadTitle)}</p>`
       : model.thread.lookup
         ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.lookup)}</p>`
         : '<p class="dx-sub-item-body">Submission</p>';
@@ -1360,9 +1389,9 @@
       : '';
 
     const displayLookup = toSafeText(model.thread.lookup, '');
-    const displayTitle = isPlaceholderSubmissionLookup(displayLookup) && model.thread.title
-      ? model.thread.title
-      : (displayLookup || model.thread.title || 'Submission');
+    const displayTitle = (!isPlaceholderSubmissionLookup(displayLookup) && displayLookup)
+      || resolvedThreadTitle
+      || 'Submission';
 
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
@@ -1501,7 +1530,9 @@
     await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
 
     const isSparseThread = !toSafeText(thread.title)
+      || isUntitledSubmissionTitle(thread.title)
       || !toSafeText(thread.lookup)
+      || isPlaceholderSubmissionLookup(thread.lookup)
       || (!toSafeText(thread.sourceLink) && !toSafeText(thread.libraryHref));
 
     let warning = '';
@@ -1562,9 +1593,36 @@
       async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
-        if (target.getAttribute('data-dx-sub-action') !== 'ack') return;
+        const actionTarget = target.closest('[data-dx-sub-action]');
+        if (!(actionTarget instanceof HTMLElement)) return;
+        const action = toSafeText(actionTarget.getAttribute('data-dx-sub-action'), '');
 
-        target.setAttribute('disabled', 'disabled');
+        if (action === 'preview-drive') {
+          const previewSrc = toSafeText(actionTarget.getAttribute('data-dx-sub-preview-src'), '');
+          const previewCard = actionTarget.closest('[data-dx-sub-preview="drive"]');
+          if (!previewSrc || !(previewCard instanceof HTMLElement)) return;
+          const previewSlot = previewCard.querySelector('[data-dx-sub-preview-slot]');
+          if (!(previewSlot instanceof HTMLElement)) return;
+          if (previewSlot.getAttribute('data-dx-preview-loaded') === 'true') return;
+
+          const frame = document.createElement('iframe');
+          frame.className = 'dx-sub-preview-frame';
+          frame.src = previewSrc;
+          frame.title = 'Submission preview';
+          frame.loading = 'lazy';
+          frame.setAttribute('allow', 'autoplay; fullscreen');
+          frame.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+          previewSlot.innerHTML = '';
+          previewSlot.appendChild(frame);
+          previewSlot.setAttribute('data-dx-preview-loaded', 'true');
+          actionTarget.setAttribute('disabled', 'disabled');
+          actionTarget.textContent = 'Drive preview loaded';
+          return;
+        }
+
+        if (action !== 'ack') return;
+
+        actionTarget.setAttribute('disabled', 'disabled');
         const ackControls = Array.from(document.querySelectorAll('[data-dx-sub-action="ack"]'));
         for (const control of ackControls) {
           if (control instanceof HTMLElement) control.setAttribute('disabled', 'disabled');

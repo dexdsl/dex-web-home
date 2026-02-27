@@ -562,7 +562,7 @@ test('submission detail falls back to legacy feed when worker detail returns 500
   await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
   await waitReady(page, '#dex-submission');
 
-  await expect(page.locator('#dex-submission')).toContainText('Timeline sync is catching up');
+  await expect(page.locator('#dex-submission')).toContainText('Live timeline sync is delayed');
   await expect(page.locator('#dex-submission')).toContainText('Legacy feed note for timeline fallback.');
   await expect(page.locator('#dx-sub-stage-rail')).toContainText('Sent');
   await expect(page.locator('#dx-sub-stage-rail')).toContainText('Received');
