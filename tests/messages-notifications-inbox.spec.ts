@@ -731,11 +731,17 @@ test('settings membership v3 renders trust-first status and production billing l
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'false');
   await page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]').click();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'cancel-composer');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Cancel');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'true');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toContainText('Start membership');
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-interval-thumb')).toBeVisible();
+  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'view-membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('View membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-impact')).toHaveCount(0);
   await expect(page.locator('#asideWhy')).toBeVisible();
 
@@ -796,6 +802,27 @@ test('settings membership v3 shows current-membership actions for active and pay
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toContainText('Manage billing');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3PauseResume')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Archivist');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Monthly');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('$14.99');
+
+  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'cancel-composer');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Cancel');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
+  await page.locator('#dxMembershipV3Root [data-interval="year"]').click();
+  await page.locator('#dxMembershipV3Root [data-tier="S"]').click();
+  await page.locator('#dxMembershipV3Root #dxMemV3Cover').check();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Steward');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Annual');
+  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'view-membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Change plan');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Archivist');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Monthly');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('$14.99');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Cover')).not.toBeChecked();
 
   await page.unroute(/\/me\/billing\/summary(?:\?.*)?$|\/me\/subscription(?:\?.*)?$/);
   await stubMembershipSummary(page, {
@@ -812,6 +839,48 @@ test('settings membership v3 shows current-membership actions for active and pay
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Fix payment method');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toContainText('Manage billing');
+});
+
+test('settings membership v3 blocks same-plan checkout and shows inline guidance', async ({ page }) => {
+  let checkoutHits = 0;
+
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+  await stubMembershipSummary(page, {
+    status: 'active',
+    tier: 'M',
+    interval: 'month',
+    customer_portal_enabled: true,
+  });
+
+  await page.route(/\/me\/billing\/checkout-session(?:\?.*)?$/, async (route) => {
+    if (route.request().method().toUpperCase() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    checkoutHits += 1;
+    await route.fulfill({
+      status: 200,
+      headers: CORS_HEADERS,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: 'https://example.test/checkout' }),
+    });
+  });
+
+  await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Archivist');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Monthly');
+  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'cancel-composer');
+  await page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout').click();
+
+  await expect.poll(() => checkoutHits).toBe(0);
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Error')).toContainText(
+    'Select a different tier or billing interval to change your plan.',
+  );
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {

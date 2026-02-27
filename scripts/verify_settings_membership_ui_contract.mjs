@@ -60,6 +60,7 @@ function verifyRuntime(failures) {
       'window.__dxSettingsMembershipMount = mountMembershipV3',
       'data-dx-membership-state',
       'data-dx-membership-cta-mode',
+      'cancel-composer',
       'data-dx-membership-rail',
       'data-dx-membership-rail-scrollable',
       'data-dx-tier',

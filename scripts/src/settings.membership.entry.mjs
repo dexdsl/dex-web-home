@@ -391,9 +391,13 @@
       model.secondary.label = 'Manage billing';
       if (status === 'past_due' || status === 'unpaid') {
         model.primary = { label: 'Fix payment method', mode: 'portal-payment', visible: true };
+      } else if (tiersOpen && allowComposer) {
+        model.primary = { label: 'Cancel', mode: 'cancel-composer', visible: true };
       } else {
         model.primary = { label: 'Change plan', mode: 'view-membership', visible: true };
       }
+    } else if (tiersOpen && allowComposer) {
+      model.primary = { label: 'Cancel', mode: 'cancel-composer', visible: true };
     }
 
     model.ctaMode = txt(model.primary.mode, 'view-membership');
@@ -431,6 +435,22 @@
     const normalized = txt(tier).toUpperCase();
     if (plansByTier.has(normalized)) return plansByTier.get(normalized);
     return plansByTier.get('S') || plansByTier.values().next().value || null;
+  }
+
+  function normalizeTierValue(tier, fallback = 'S') {
+    const normalized = txt(tier, fallback).toUpperCase();
+    if (DEFAULT_TIERS[normalized]) return normalized;
+    const fallbackNormalized = txt(fallback, '').toUpperCase();
+    if (fallbackNormalized && DEFAULT_TIERS[fallbackNormalized]) return fallbackNormalized;
+    return '';
+  }
+
+  function normalizeIntervalValue(interval, fallback = 'month') {
+    const normalized = txt(interval, fallback).toLowerCase();
+    if (ALLOWED_INTERVALS.has(normalized)) return normalized;
+    const fallbackNormalized = txt(fallback, '').toLowerCase();
+    if (ALLOWED_INTERVALS.has(fallbackNormalized)) return fallbackNormalized;
+    return '';
   }
 
   function annualSavings(plan) {
@@ -475,6 +495,10 @@
       this.error = '';
       this.busy = false;
       this.tiersOpen = false;
+      this.composerBaselineTier = 'S';
+      this.composerBaselineInterval = 'month';
+      this.composerBaselineCoverFees = false;
+      this.hasComposerBaseline = false;
       this.mounted = false;
       this.cache = {};
       this.railSyncRaf = 0;
@@ -608,6 +632,49 @@
       }
       this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.queueRailSync();
+    }
+
+    readCoverFeesSelection() {
+      if (!(this.cache.coverInput instanceof HTMLInputElement)) return false;
+      return Boolean(this.cache.coverInput.checked);
+    }
+
+    writeCoverFeesSelection(nextValue) {
+      if (!(this.cache.coverInput instanceof HTMLInputElement)) return;
+      this.cache.coverInput.checked = Boolean(nextValue);
+    }
+
+    captureComposerBaseline() {
+      this.composerBaselineTier = normalizeTierValue(this.selectedTier, 'S');
+      this.composerBaselineInterval = normalizeIntervalValue(this.interval, 'month');
+      this.composerBaselineCoverFees = this.readCoverFeesSelection();
+      this.hasComposerBaseline = true;
+    }
+
+    syncComposerBaselineFromSummary() {
+      const hasCurrentMembership = hasCurrentMembershipStatus(this.summary && this.summary.status);
+      const summaryTier = hasCurrentMembership
+        ? normalizeTierValue(this.summary && this.summary.tier, this.selectedTier)
+        : normalizeTierValue(this.selectedTier, 'S');
+      const summaryInterval = hasCurrentMembership
+        ? normalizeIntervalValue(this.summary && this.summary.interval, this.interval)
+        : normalizeIntervalValue(this.interval, 'month');
+
+      this.composerBaselineTier = summaryTier;
+      this.composerBaselineInterval = summaryInterval;
+      this.composerBaselineCoverFees = this.readCoverFeesSelection();
+      this.hasComposerBaseline = true;
+    }
+
+    restoreComposerFromBaseline() {
+      if (!this.hasComposerBaseline) {
+        this.captureComposerBaseline();
+      }
+      this.selectedTier = normalizeTierValue(this.composerBaselineTier, this.selectedTier || 'S');
+      this.interval = normalizeIntervalValue(this.composerBaselineInterval, this.interval || 'month');
+      this.writeCoverFeesSelection(this.composerBaselineCoverFees);
+      this.updateTierVisuals();
+      this.renderSelection();
     }
 
     setCardReady(card) {
@@ -1022,10 +1089,19 @@
       if (!mode) return;
 
       if (mode === 'view-membership') {
+        this.captureComposerBaseline();
         if (!this.tiersOpen) {
           this.setTierComposerOpen(true);
         }
         this.renderSummary();
+        return;
+      }
+
+      if (mode === 'cancel-composer') {
+        this.restoreComposerFromBaseline();
+        this.setTierComposerOpen(false);
+        this.renderSummary();
+        this.setError('');
         return;
       }
 
@@ -1037,14 +1113,30 @@
       await this.startCheckout();
     }
 
+    isSamePlanSelectionAsCurrentMembership() {
+      if (!hasCurrentMembershipStatus(this.summary && this.summary.status)) return false;
+      const currentTier = normalizeTierValue(this.summary && this.summary.tier, '');
+      const currentInterval = normalizeIntervalValue(this.summary && this.summary.interval, '');
+      const selectedTier = normalizeTierValue(this.selectedTier, '');
+      const selectedInterval = normalizeIntervalValue(this.interval, '');
+      if (!currentTier || !currentInterval || !selectedTier || !selectedInterval) return false;
+      return currentTier === selectedTier && currentInterval === selectedInterval;
+    }
+
     async startCheckout() {
-      this.setBusy(true);
       this.setError('');
+
+      if (this.isSamePlanSelectionAsCurrentMembership()) {
+        this.setError('Select a different tier or billing interval to change your plan.');
+        return;
+      }
+
+      this.setBusy(true);
 
       const payload = {
         tier: this.selectedTier,
         interval: this.interval,
-        coverFees: Boolean(this.cache.coverInput && this.cache.coverInput.checked),
+        coverFees: this.readCoverFeesSelection(),
         returnPath: this.returnPath,
         successUrl: new URL(this.successPath, window.location.origin).toString(),
         cancelUrl: new URL(this.returnPath, window.location.origin).toString(),
@@ -1147,12 +1239,13 @@
       }
 
       this.selectedTier = resolveTierModel(new Map(this.plans.plans.map((plan) => [plan.tier, plan])), this.plans.defaultTier)
-        ? txt(this.plans.defaultTier, 'S').toUpperCase()
+        ? normalizeTierValue(this.plans.defaultTier, 'S')
         : 'S';
       if (!DEFAULT_TIERS[this.selectedTier]) this.selectedTier = 'S';
       this.renderTierCards();
       this.updateTierVisuals();
       this.renderSelection();
+      this.syncComposerBaselineFromSummary();
     }
 
     async loadSummary() {
@@ -1166,6 +1259,20 @@
         const payload = await apiFetch(this.apiBase, ENDPOINTS.summaryLegacy, { timeoutMs: 10000 });
         this.summary = normalizeSummary(payload);
       }
+
+      const hasCurrentMembership = hasCurrentMembershipStatus(this.summary.status);
+      if (hasCurrentMembership && !this.tiersOpen) {
+        if (this.summary.tier && DEFAULT_TIERS[this.summary.tier]) {
+          this.selectedTier = this.summary.tier;
+        }
+        if (this.summary.interval && ALLOWED_INTERVALS.has(this.summary.interval)) {
+          this.interval = this.summary.interval;
+        }
+        this.updateTierVisuals();
+        this.renderSelection();
+      }
+
+      this.syncComposerBaselineFromSummary();
       this.renderSummary();
     }
 
