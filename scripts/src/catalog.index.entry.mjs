@@ -716,6 +716,19 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     return pool[hash % pool.length];
   }
 
+  function interleaveSeasonTeasers(season, entries, teasers) {
+    const mixed = Array.isArray(entries) ? entries.map((entry) => ({ kind: 'entry', entry })) : [];
+    if (!Array.isArray(teasers) || !teasers.length) return mixed;
+    const seed = resolveSeasonTeaserSeed();
+    teasers.forEach((card, teaserIndex) => {
+      const currentLength = mixed.length;
+      const hash = hashString32(`${seed}:${text(season).toUpperCase()}:insert:${teaserIndex}:${currentLength}`);
+      const insertAt = currentLength <= 0 ? 0 : (hash % (currentLength + 1));
+      mixed.splice(insertAt, 0, { kind: 'teaser', card });
+    });
+    return mixed;
+  }
+
   function buildUnannouncedCardsForSeason(seasonRaw) {
     const season = text(seasonRaw).toUpperCase();
     const configured = seasonConfigFor(season);
@@ -1107,13 +1120,15 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     image.alt = 'Sign up for free access';
     image.src = HOME_SIGNUP_TEASER_IMAGE;
     media.appendChild(image);
-    const tokenChip = create('span', 'dx-catalog-index-season-growlix-token', token);
-    media.appendChild(tokenChip);
 
     const copy = create('div', 'dx-catalog-index-season-copy');
-    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', 'Unannounced artist'));
+    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', token));
     copy.appendChild(create('p', 'dx-catalog-index-season-title', message));
-    copy.appendChild(create('p', 'dx-catalog-index-season-note', `growlix ${token}`));
+    const locked = create('button', 'dx-button-element dx-button-size--sm dx-button-element--primary dx-catalog-index-season-open is-disabled', protectedAllCaps('View collection'));
+    locked.type = 'button';
+    locked.disabled = true;
+    locked.setAttribute('aria-disabled', 'true');
+    copy.appendChild(locked);
 
     slide.append(media, copy);
     return slide;
@@ -1237,9 +1252,12 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       track.setAttribute('data-dx-motion', 'pagination');
       seasonMeta.textContent = seasonLabel(seasonCarouselSeason);
       const seasonEntries = seasonBuckets.get(seasonCarouselSeason) || [];
-      seasonEntries.forEach((entry) => track.appendChild(renderSeasonSlide(entry)));
       const unannouncedCards = buildUnannouncedCardsForSeason(seasonCarouselSeason);
-      unannouncedCards.forEach((card) => track.appendChild(renderUnannouncedSeasonSlide(card)));
+      const slides = interleaveSeasonTeasers(seasonCarouselSeason, seasonEntries, unannouncedCards);
+      slides.forEach((slide) => {
+        if (slide.kind === 'entry') track.appendChild(renderSeasonSlide(slide.entry));
+        else if (slide.kind === 'teaser') track.appendChild(renderUnannouncedSeasonSlide(slide.card));
+      });
       track.scrollLeft = 0;
 
       if (prefersReducedMotion()) return;

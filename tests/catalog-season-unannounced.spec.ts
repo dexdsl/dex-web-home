@@ -93,8 +93,14 @@ test('season carousel renders a non-clickable unannounced teaser card with growl
   expect(token.length).toBeGreaterThan(0);
   expect(DEFAULT_POOL).toContain(token);
 
+  await expect(teaserCard.locator('.dx-catalog-index-season-performer').first()).toHaveText(token);
   await expect(teaserCard).toContainText('this artist has not been announced yet');
   await expect(teaserCard.locator('img.dx-catalog-index-season-img').first()).toHaveAttribute('src', new RegExp(`${HOME_SIGNUP_CARD_IMAGE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+  await expect(teaserCard.locator('.dx-catalog-index-season-growlix-token')).toHaveCount(0);
+  const lockedCta = teaserCard.locator('button.dx-catalog-index-season-open').first();
+  const lockedCtaText = ((await lockedCta.textContent()) || '').replace(/\u200c/g, '').trim();
+  expect(lockedCtaText.toLowerCase()).toBe('view collection');
+  await expect(lockedCta).toBeDisabled();
   await expect(teaserCard.locator('a')).toHaveCount(0);
 });
 
@@ -141,4 +147,45 @@ test('teaser token is deterministic for a page-load seed and season/index pair',
   if (shouldDiffer) expect(tokenTwo).not.toBe(tokenOne);
 
   await secondPage.close();
+});
+
+test('teaser card insertion index varies by page-load seed (not fixed to trail position)', async ({ page, context }) => {
+  const firstSeed = 'seed-catalog-insert-a';
+  await setTeaserSeed(page, firstSeed);
+  await loadCatalog(page);
+  await selectSeasonTabIfPresent(page, 'S2');
+
+  const firstSlides = page.locator('.dx-catalog-index-season-track > .dx-catalog-index-season-slide');
+  const firstTotal = await firstSlides.count();
+  expect(firstTotal).toBeGreaterThan(0);
+  const firstTeaser = page.locator('.dx-catalog-index-season-track > .dx-catalog-index-season-slide--unannounced').first();
+  await expect(firstTeaser).toBeVisible();
+  const firstIndex = await firstTeaser.evaluate((node) => {
+    const parent = node.parentElement;
+    if (!parent) return -1;
+    return Array.prototype.indexOf.call(parent.children, node);
+  });
+  expect(firstIndex).toBeGreaterThanOrEqual(0);
+
+  let secondSeed = 'seed-catalog-insert-b';
+  let secondIndex = firstIndex;
+  for (let n = 0; n < 40 && secondIndex === firstIndex; n += 1) {
+    secondSeed = `seed-catalog-insert-${n + 2}`;
+    const probePage = await context.newPage();
+    await blockExternalRequests(probePage);
+    await setTeaserSeed(probePage, secondSeed);
+    await loadCatalog(probePage);
+    await selectSeasonTabIfPresent(probePage, 'S2');
+    const probeTeaser = probePage.locator('.dx-catalog-index-season-track > .dx-catalog-index-season-slide--unannounced').first();
+    await expect(probeTeaser).toBeVisible();
+    secondIndex = await probeTeaser.evaluate((node) => {
+      const parent = node.parentElement;
+      if (!parent) return -1;
+      return Array.prototype.indexOf.call(parent.children, node);
+    });
+    await probePage.close();
+  }
+
+  expect(secondIndex).toBeGreaterThanOrEqual(0);
+  expect(secondIndex).not.toBe(firstIndex);
 });
