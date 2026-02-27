@@ -5,7 +5,7 @@ import { animate } from 'framer-motion/dom';
   if (window.__dxSubmitSamplesRuntimeLoaded) {
     if (typeof window.__dxSubmitSamplesMount === 'function') {
       try {
-        window.__dxSubmitSamplesMount({ force: true });
+        window.__dxSubmitSamplesMount();
       } catch {}
     }
     return;
@@ -423,8 +423,19 @@ import { animate } from 'framer-motion/dom';
     return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
   }
 
+  function extractAuthSubject(candidate) {
+    if (!candidate || typeof candidate !== 'object') return '';
+    const subject = text(candidate.sub || candidate.user_id || candidate.email, '');
+    return subject;
+  }
+
   async function resolveAuthUser(timeoutMs = AUTH_TIMEOUT_MS) {
     if (window.AUTH0_USER && typeof window.AUTH0_USER === 'object') {
+      const existingSub = extractAuthSubject(window.AUTH0_USER);
+      if (existingSub) {
+        window.auth0Sub = existingSub;
+        if (state) state.auth0Sub = existingSub;
+      }
       if (state) state.authUser = window.AUTH0_USER;
       return window.AUTH0_USER;
     }
@@ -443,6 +454,11 @@ import { animate } from 'framer-motion/dom';
           : candidate;
         if (user && typeof user === 'object') {
           window.AUTH0_USER = user;
+          const resolvedSub = extractAuthSubject(user);
+          if (resolvedSub) {
+            window.auth0Sub = resolvedSub;
+            if (state) state.auth0Sub = resolvedSub;
+          }
           if (state) state.authUser = user;
           return user;
         }
@@ -1882,7 +1898,8 @@ import { animate } from 'framer-motion/dom';
       if (window.DEX_AUTH && typeof window.DEX_AUTH.getUser === 'function') {
         try {
           const user = await withTimeout(window.DEX_AUTH.getUser(), Math.min(timeoutMs, 1200), null);
-          if (user && text(user.sub)) return text(user.sub);
+          const subject = extractAuthSubject(user);
+          if (subject) return subject;
         } catch {}
       }
 
@@ -1890,12 +1907,14 @@ import { animate } from 'framer-motion/dom';
         try {
           const candidate = window.auth0.getUser();
           const user = candidate && typeof candidate.then === 'function' ? await candidate : candidate;
-          if (user && text(user.sub)) return text(user.sub);
+          const subject = extractAuthSubject(user);
+          if (subject) return subject;
         } catch {}
       }
 
-      if (window.AUTH0_USER && text(window.AUTH0_USER.sub)) {
-        return text(window.AUTH0_USER.sub);
+      if (window.AUTH0_USER && typeof window.AUTH0_USER === 'object') {
+        const subject = extractAuthSubject(window.AUTH0_USER);
+        if (subject) return subject;
       }
 
       await delay(100);
@@ -1908,16 +1927,17 @@ import { animate } from 'framer-motion/dom';
   async function hydrateAuthAndQuota(options = {}) {
     if (!state) return false;
     const opts = options && typeof options === 'object' ? options : {};
-    const force = !!opts.force;
-    if (quotaHydrationPromise && !force) return quotaHydrationPromise;
+    if (quotaHydrationPromise) return quotaHydrationPromise;
 
     quotaHydrationPromise = (async () => {
       const sub = await resolveAuth0Sub(AUTH_TIMEOUT_MS);
       if (!text(sub)) {
-        state.auth0Sub = '';
-        state.quotaResolved = false;
-        setQuotaSource('none');
-        refreshQuotaCopy();
+        // Keep the last known quota on transient auth races; only reset when nothing was resolved yet.
+        if (!state.quotaResolved) {
+          state.auth0Sub = '';
+          setQuotaSource('none');
+          refreshQuotaCopy();
+        }
         return false;
       }
       if (state.auth0Sub !== sub) {
@@ -1960,7 +1980,7 @@ import { animate } from 'framer-motion/dom';
       state.auth0Sub = text(window.auth0Sub, '');
       setQuotaSource('none');
       render();
-      hydrateAuthAndQuota({ force: true }).catch(() => {});
+      hydrateAuthAndQuota({ forceLive: false }).catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
       root.setAttribute('data-dx-submit-mounted', 'true');
       return true;
@@ -1980,12 +2000,12 @@ import { animate } from 'framer-motion/dom';
   window.__dxSubmitSamplesMount = mount;
 
   document.addEventListener('dx:slotready', () => {
-    mount({ force: true }).catch(() => {});
+    mount().catch(() => {});
   });
 
   document.addEventListener('dex-auth:ready', () => {
     if (!state) return;
-    hydrateAuthAndQuota({ force: true }).catch(() => {});
+    hydrateAuthAndQuota({ forceLive: true }).catch(() => {});
   });
 
   window.addEventListener('dx:prefetch:update', (event) => {
