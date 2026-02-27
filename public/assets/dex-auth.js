@@ -12,7 +12,9 @@
   var PREFETCH_UNREAD_TIMEOUT_MS = 2500;
   var PREFETCH_QUOTA_TIMEOUT_MS = 3000;
   var PREFETCH_TIER1_TIMEOUT_MS = 3500;
-  var PREFETCH_RELOAD_COOLDOWN_MS = 15000;
+  var PREFETCH_RELOAD_COOLDOWN_MS = 60000;
+  var UNREAD_SYNC_COOLDOWN_MS = 60000;
+  var UNREAD_FORCE_LIVE_MIN_INTERVAL_MS = 15000;
   var PROTECTED_PATHS = {
     "/press": true,
     "/favorites": true,
@@ -66,6 +68,9 @@
   var authReadyDone = false;
   var prefetchInflight = Object.create(null);
   var prefetchScopeState = { scope: "", lastRunAt: 0, idleTimer: 0 };
+  var unreadSyncInflight = null;
+  var unreadSyncLastRunAt = 0;
+  var unreadSyncLastCount = 0;
   var AUDIENCE_DISABLE_KEY = "dex.auth.disableAudience";
   var GUARD_REDIRECT_LOCK_KEY = "dex.auth.guard.redirect";
   var GUARD_REDIRECT_LOCK_TTL_MS = 20000;
@@ -358,8 +363,7 @@
         {
           method: "GET",
           headers: {
-            authorization: "Bearer " + token,
-            "content-type": "application/json"
+            authorization: "Bearer " + token
           }
         },
         PREFETCH_UNREAD_TIMEOUT_MS
@@ -402,13 +406,16 @@
     window.clearTimeout(prefetchScopeState.idleTimer);
     prefetchScopeState.idleTimer = window.setTimeout(function () {
       withPrefetchInflight("prefetch:" + getNotificationsPrefetchKey(scope), function () {
+        var cachedNotifications = prefetchStore.getFresh(getNotificationsPrefetchKey(scope), PREFETCH_TIER1_SWR_MS);
+        if (cachedNotifications && cachedNotifications.payload) {
+          return Promise.resolve(cachedNotifications.payload);
+        }
         return fetchJsonWithTimeout(
           getMessagesApiBase() + "/me/notifications",
           {
             method: "GET",
             headers: {
-              authorization: "Bearer " + token,
-              "content-type": "application/json"
+              authorization: "Bearer " + token
             }
           },
           PREFETCH_TIER1_TIMEOUT_MS
@@ -420,13 +427,16 @@
       });
 
       withPrefetchInflight("prefetch:" + getPollVotesSummaryPrefetchKey(scope), function () {
+        var cachedVotes = prefetchStore.getFresh(getPollVotesSummaryPrefetchKey(scope), PREFETCH_TIER1_SWR_MS);
+        if (cachedVotes && cachedVotes.payload) {
+          return Promise.resolve(cachedVotes.payload);
+        }
         return fetchJsonWithTimeout(
           getMessagesApiBase() + "/me/polls/votes/summary",
           {
             method: "GET",
             headers: {
-              authorization: "Bearer " + token,
-              "content-type": "application/json"
+              authorization: "Bearer " + token
             }
           },
           PREFETCH_TIER1_TIMEOUT_MS
@@ -1217,33 +1227,55 @@
   function syncMessagesUnreadCount(options) {
     var opts = options && typeof options === "object" ? options : {};
     var forceLive = !!opts.forceLive;
+    var now = Date.now();
     if (!authReadyState || !authReadyState.isAuthenticated) {
       setMessagesUnreadBadge(0);
+      unreadSyncLastCount = 0;
       return Promise.resolve(0);
     }
+
+    if (unreadSyncInflight) {
+      return unreadSyncInflight;
+    }
+
+    if (forceLive && unreadSyncLastRunAt > 0 && now - unreadSyncLastRunAt < UNREAD_FORCE_LIVE_MIN_INTERVAL_MS) {
+      setMessagesUnreadBadge(unreadSyncLastCount);
+      return Promise.resolve(unreadSyncLastCount);
+    }
+
+    if (!forceLive && unreadSyncLastRunAt > 0 && now - unreadSyncLastRunAt < UNREAD_SYNC_COOLDOWN_MS) {
+      setMessagesUnreadBadge(unreadSyncLastCount);
+      return Promise.resolve(unreadSyncLastCount);
+    }
+
     var scope = getPrefetchScope(authReadyState);
     if (scope && prefetchStore && !forceLive) {
       var cached = prefetchStore.getFresh(getMessagesApiPrefetchKey(scope), PREFETCH_SWR_MS);
       if (cached && cached.payload && typeof cached.payload.count !== "undefined") {
         var cachedCount = toSafeInt(cached.payload.count, 0);
         setMessagesUnreadBadge(cachedCount);
+        unreadSyncLastCount = cachedCount;
+        unreadSyncLastRunAt = now;
         return Promise.resolve(cachedCount);
       }
     }
     if (!window.DEX_AUTH || typeof window.DEX_AUTH.getAccessToken !== "function") {
+      unreadSyncLastCount = 0;
+      unreadSyncLastRunAt = now;
       return Promise.resolve(0);
     }
-    return window.DEX_AUTH.getAccessToken()
+
+    unreadSyncInflight = window.DEX_AUTH.getAccessToken()
       .then(function (token) {
         if (!token) {
           setMessagesUnreadBadge(0);
+          unreadSyncLastCount = 0;
           return 0;
         }
         return fetch(getMessagesApiBase() + "/me/messages/unread-count", {
           method: "GET",
           headers: {
-            authorization: "Bearer " + token,
-            "content-type": "application/json"
+            authorization: "Bearer " + token
           }
         }).then(function (response) {
           if (!response.ok) return null;
@@ -1251,6 +1283,7 @@
         }).then(function (payload) {
           var count = parseMessagesUnreadCount(payload);
           setMessagesUnreadBadge(count);
+          unreadSyncLastCount = count;
           if (scope && prefetchStore) {
             prefetchStore.set(getMessagesApiPrefetchKey(scope), { count: count }, { scope: scope });
           }
@@ -1258,8 +1291,15 @@
         });
       })
       .catch(function () {
+        unreadSyncLastCount = 0;
         return 0;
+      })
+      .finally(function () {
+        unreadSyncLastRunAt = Date.now();
+        unreadSyncInflight = null;
       });
+
+    return unreadSyncInflight;
   }
 
   function bindMessagesUnreadEvents() {
