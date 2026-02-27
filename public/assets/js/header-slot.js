@@ -139,6 +139,18 @@
           }
         }
 
+        if (!document.querySelector('svg[data-usage="social-icons-svg"]')) {
+          const sourceSprite = parsed.querySelector('svg[data-usage="social-icons-svg"]');
+          if (sourceSprite instanceof SVGElement) {
+            const importedSprite = document.importNode(sourceSprite, true);
+            if (document.body.firstChild) {
+              document.body.insertBefore(importedSprite, document.body.firstChild);
+            } else {
+              document.body.appendChild(importedSprite);
+            }
+          }
+        }
+
         const importedHeader = document.importNode(sourceHeader, true);
         if (document.body.firstChild) {
           document.body.insertBefore(importedHeader, document.body.firstChild);
@@ -149,6 +161,7 @@
         if (!getProfileFooterSourceElement(document)) {
           const sourceFooter = getProfileFooterSourceElement(parsed);
           if (sourceFooter instanceof HTMLElement) {
+            sourceFooter.setAttribute('data-surface', sourceFooter.getAttribute('data-surface') || 'light');
             document.body.appendChild(document.importNode(sourceFooter, true));
           }
         }

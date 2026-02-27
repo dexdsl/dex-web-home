@@ -237,3 +237,37 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   expect(submitParams.collectionType).toBe('A');
   expect(submitParams.link).toBe('https://drive.google.com/mock-source');
 });
+
+test('submit hard-load uses standard footer geometry and icon sprite', async ({ page }) => {
+  const viewport = page.viewportSize();
+  test.skip(!viewport || viewport.width < 980, 'desktop-only assertion');
+
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await expect(page.locator('.header-announcement-bar-wrapper').first()).toBeVisible();
+  await expect(page.locator('.dex-footer').first()).toBeVisible();
+  await expect(page.locator('svg[data-usage="social-icons-svg"] symbol#youtube-unauth-icon')).toHaveCount(1);
+
+  const footerMetrics = await page.evaluate(() => {
+    const footer = document.querySelector('.dex-footer') as HTMLElement | null;
+    if (!footer) return null;
+    const rect = footer.getBoundingClientRect();
+    const logoWidths = Array.from(footer.querySelectorAll('.footer-logo img'))
+      .map((node) => (node as HTMLElement).getBoundingClientRect().width)
+      .filter((value) => Number.isFinite(value));
+    return {
+      height: Math.round(rect.height),
+      maxLogoWidth: Math.round(logoWidths.length ? Math.max(...logoWidths) : 0),
+    };
+  });
+
+  expect(footerMetrics).not.toBeNull();
+  if (!footerMetrics) return;
+  expect(footerMetrics.height).toBeGreaterThan(72);
+  expect(footerMetrics.height).toBeLessThan(320);
+  expect(footerMetrics.maxLogoWidth).toBeLessThan(220);
+});

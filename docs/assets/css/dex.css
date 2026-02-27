@@ -790,10 +790,88 @@ body.homepage #dex-faq .spark-accordion__item {
   }
 }
 
+.dex-footer .footer-grid {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto auto !important;
+  align-items: center !important;
+  gap: var(--space-4, 1.5rem) !important;
+}
+
+.dex-footer .footer-logo-column {
+  justify-self: start !important;
+  text-align: center !important;
+}
+
+.dex-footer .footer-logo {
+  display: grid !important;
+}
+
+.dex-footer .footer-logo img {
+  width: clamp(5.25rem, 8vw, 8rem) !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: none !important;
+  margin: 0 !important;
+}
+
+.dex-footer .footer-attribution {
+  justify-self: center !important;
+  text-align: center !important;
+  font-size: .85rem !important;
+  line-height: 1.25 !important;
+}
+
+.dex-footer .footer-seal-column {
+  justify-self: center !important;
+}
+
+.dex-footer .candid-seal {
+  display: inline-block !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  text-decoration: none !important;
+}
+
+.dex-footer .candid-seal img {
+  height: clamp(42px, 5.2vw, 72px) !important;
+  width: auto !important;
+  display: block !important;
+}
+
+.dex-footer .footer-links-column {
+  justify-self: end !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--space-3, 1rem) !important;
+}
+
+.dex-footer .footer-nav {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: var(--space-3, 1rem) !important;
+  font-size: .85rem !important;
+}
+
 .dex-footer[data-surface="dark"],
 .dex-footer[data-surface="light"],
 .dex-footer:not([data-surface]) {
   --dex-footer-text: #232323 !important;
+}
+
+.dex-footer[data-surface="dark"] .footer-logo .logo--dark {
+  display: block !important;
+}
+
+.dex-footer[data-surface="light"] .footer-logo .logo--light {
+  display: block !important;
+}
+
+.dex-footer:not([data-surface]) .footer-logo .logo--light {
+  display: block !important;
 }
 
 .dex-footer .footer-attribution,
