@@ -55,6 +55,10 @@ function verifySubmitRuntime() {
     'window.__dxSubmitSamplesRuntimeLoaded',
     'DX_MIN_SHEEN_MS = 120',
     'window.__DX_SUBMIT_SAMPLES_CONFIG',
+    'pitchSystem',
+    'pitchDescriptor',
+    'serializePitchSelection',
+    'Pitch system',
     'data-dx-submit-shell',
     'data-dx-submit-step',
     'data-dx-submit-progress',
@@ -67,7 +71,13 @@ function verifySubmitRuntime() {
     'docs/assets/js/submit.samples.js',
   ]) {
     const text = readText(relPath);
-    assertIncludes(relPath, text, ['__dxSubmitSamplesRuntimeLoaded', 'data-dx-submit-shell', 'status:"pending"']);
+    assertIncludes(relPath, text, [
+      '__dxSubmitSamplesRuntimeLoaded',
+      'pitchSystem',
+      'pitchDescriptor',
+      'data-dx-submit-shell',
+      'status:"pending"',
+    ]);
   }
 }
 

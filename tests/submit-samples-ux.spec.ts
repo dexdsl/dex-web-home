@@ -64,6 +64,77 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+type PitchSystemValue = '12-tet' | '24-tet' | 'ji' | 'atonal' | 'non-pitched';
+
+type PitchSubmitScenario = {
+  pitchSystem: PitchSystemValue;
+  descriptor?: string;
+  expectedKeyCenter: string;
+};
+
+async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario): Promise<Record<string, string>> {
+  let submitParams: Record<string, string> | null = null;
+
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    submitParams = Object.fromEntries(url.searchParams.entries());
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok', row: 77 })});`,
+    });
+  });
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
+
+  const step = page.locator('[data-dx-submit-step="metadata"]');
+  await step.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Pitch Scenario Sample');
+  await step.locator('.dx-submit-field', { hasText: 'Sample creator(s)' }).locator('input').fill('Pitch Scenario Artist');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
+  await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
+
+  await step.locator('.dx-submit-field', { hasText: 'Pitch system' }).locator('select').selectOption(scenario.pitchSystem);
+
+  if (scenario.pitchSystem === '12-tet') {
+    await step.locator('.dx-submit-field', { hasText: 'Key center' }).locator('select').selectOption(scenario.descriptor || 'C');
+  } else if (scenario.pitchSystem === '24-tet') {
+    await step.locator('.dx-submit-field', { hasText: '24-TET pitch descriptor' }).locator('input').fill(scenario.descriptor || '');
+  } else if (scenario.pitchSystem === 'ji') {
+    await step.locator('.dx-submit-field', { hasText: 'JI pitch descriptor' }).locator('input').fill(scenario.descriptor || '');
+  }
+
+  await page.getByRole('button', { name: 'Continue to license' }).click();
+  await expect(page.locator('[data-dx-submit-step="license"]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Continue to upload' }).click();
+  await expect(page.locator('[data-dx-submit-step="upload"]')).toBeVisible();
+  const uploadStep = page.locator('[data-dx-submit-step="upload"]');
+  await uploadStep.locator('.dx-submit-field', { hasText: 'Public source link' }).locator('input').fill('https://drive.google.com/mock-source');
+  await uploadStep.locator('.dx-submit-field', { hasText: 'Notes for Dex team' }).locator('textarea').fill('pitch serialization regression');
+  await page.getByRole('button', { name: /Submit sample/i }).click();
+  await expect(page.locator('[data-dx-submit-step="done"]')).toBeVisible();
+
+  expect(submitParams).not.toBeNull();
+  if (!submitParams) {
+    return {};
+  }
+  return submitParams;
+}
+
 test('submit page uses desktop 60/40 shell with sticky command panel', async ({ page }) => {
   const viewport = page.viewportSize();
   test.skip(!viewport || viewport.width < 1200, 'desktop-only assertion');
@@ -189,6 +260,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   await step.locator('.dx-submit-field', { hasText: 'Sample creator(s)' }).locator('input').fill('Jane Doe');
   await step.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
   await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
+  await step.locator('.dx-submit-field', { hasText: 'Pitch system' }).locator('select').selectOption('12-tet');
+  await step.locator('.dx-submit-field', { hasText: 'Key center' }).locator('select').selectOption('C♯/D♭');
   await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
@@ -219,6 +292,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
       'category',
       'instrument',
       'bpm',
+      'pitchSystem',
+      'pitchDescriptor',
       'keyCenter',
       'scaleQuality',
       'tags',
@@ -234,9 +309,46 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   expect(submitParams.status).toBe('pending');
   expect(submitParams.auth0Sub).toBe('auth0|submit-ui-e2e');
+  expect(submitParams.pitchSystem).toBe('12-tet');
+  expect(submitParams.pitchDescriptor).toBe('C♯/D♭');
+  expect(submitParams.keyCenter).toBe('12-TET: C♯/D♭');
   expect(submitParams.collectionType).toBe('A');
   expect(submitParams.link).toBe('https://drive.google.com/mock-source');
 });
+
+const PITCH_SERIALIZATION_SCENARIOS: Array<PitchSubmitScenario & { name: string }> = [
+  {
+    name: '24-TET descriptor',
+    pitchSystem: '24-tet',
+    descriptor: 'C quarter-sharp',
+    expectedKeyCenter: '24-TET: C quarter-sharp',
+  },
+  {
+    name: 'JI descriptor',
+    pitchSystem: 'ji',
+    descriptor: '5/4 on C',
+    expectedKeyCenter: 'JI: 5/4 on C',
+  },
+  {
+    name: 'Atonal quick path',
+    pitchSystem: 'atonal',
+    expectedKeyCenter: 'Atonal',
+  },
+  {
+    name: 'Non-pitched quick path',
+    pitchSystem: 'non-pitched',
+    expectedKeyCenter: 'Non-pitched',
+  },
+];
+
+for (const scenario of PITCH_SERIALIZATION_SCENARIOS) {
+  test(`submit serializes ${scenario.name} into canonical keyCenter`, async ({ page }) => {
+    const params = await submitSampleWithPitch(page, scenario);
+    expect(params.pitchSystem).toBe(scenario.pitchSystem);
+    expect(params.pitchDescriptor || '').toBe(scenario.descriptor || '');
+    expect(params.keyCenter).toBe(scenario.expectedKeyCenter);
+  });
+}
 
 test('submit hard-load uses standard footer geometry and icon sprite', async ({ page }) => {
   const viewport = page.viewportSize();

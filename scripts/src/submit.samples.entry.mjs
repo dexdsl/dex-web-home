@@ -102,6 +102,19 @@ import { animate } from 'framer-motion/dom';
     'B',
   ];
 
+  const PITCH_SYSTEM_OPTIONS = [
+    { value: '12-tet', label: '12-TET' },
+    { value: '24-tet', label: '24-TET' },
+    { value: 'ji', label: 'Just Intonation (JI)' },
+    { value: 'atonal', label: 'Atonal' },
+    { value: 'non-pitched', label: 'Non-pitched' },
+  ];
+
+  const PITCH_DESCRIPTOR_HINTS = {
+    '24-tet': 'Examples: C quarter-sharp, D -50c, A 3/4-sharp',
+    ji: 'Examples: 5/4 on C, 7/4 on D, 11-limit drone on A',
+  };
+
   const TAG_HINT =
     'Met, Fre, Perc, Sus, Cle, Dis, Mono, Poly, Lou, Qui, Med, Bra, Exc, Sta, Sho, Lon, Oth, Ow, Mid, Hi, Spa';
 
@@ -120,6 +133,8 @@ import { animate } from 'framer-motion/dom';
       category: '',
       instrument: '',
       bpm: '',
+      pitchSystem: '12-tet',
+      pitchDescriptor: '',
       keyCenter: '',
       scaleQuality: '',
       tags: '',
@@ -157,6 +172,43 @@ import { animate } from 'framer-motion/dom';
   function number(value, fallback = 0) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function normalizePitchSystem(value) {
+    const normalized = text(value).toLowerCase();
+    if (normalized === '24-tet') return '24-tet';
+    if (normalized === 'ji') return 'ji';
+    if (normalized === 'atonal') return 'atonal';
+    if (normalized === 'non-pitched') return 'non-pitched';
+    return '12-tet';
+  }
+
+  function serializePitchSelection(pitchSystem, pitchDescriptor) {
+    const system = normalizePitchSystem(pitchSystem);
+    const descriptor = text(pitchDescriptor);
+
+    if (system === 'atonal') return 'Atonal';
+    if (system === 'non-pitched') return 'Non-pitched';
+    if (system === '24-tet') return descriptor ? `24-TET: ${descriptor}` : '24-TET';
+    if (system === 'ji') return descriptor ? `JI: ${descriptor}` : 'JI';
+    if (!descriptor) return '';
+    return `12-TET: ${descriptor}`;
+  }
+
+  function syncLegacyPitchFields(meta) {
+    if (!meta || typeof meta !== 'object') return '';
+    meta.pitchSystem = normalizePitchSystem(meta.pitchSystem);
+    if (meta.pitchSystem === 'atonal' || meta.pitchSystem === 'non-pitched') {
+      meta.pitchDescriptor = '';
+    }
+    meta.keyCenter = serializePitchSelection(meta.pitchSystem, meta.pitchDescriptor);
+    return meta.keyCenter;
+  }
+
+  function summarizePitch(meta) {
+    if (!meta || typeof meta !== 'object') return 'Unspecified';
+    const serialized = text(syncLegacyPitchFields(meta));
+    return serialized || 'Unspecified';
   }
 
   function create(tag, className = '', value = '') {
@@ -416,28 +468,83 @@ import { animate } from 'framer-motion/dom';
     bpmField.appendChild(bpmInput);
     grid.appendChild(bpmField);
 
-    const keyField = wrapField('Key center');
-    const keySelect = create('select', 'dx-submit-input');
-    const emptyOption = create('option', '', 'Select key center');
-    emptyOption.value = '';
-    keySelect.appendChild(emptyOption);
-    KEY_CENTER_OPTIONS.forEach((value) => {
-      const option = create('option', '', value);
-      option.value = value;
-      keySelect.appendChild(option);
+    const currentPitchSystem = normalizePitchSystem(state.meta.pitchSystem);
+    state.meta.pitchSystem = currentPitchSystem;
+    if (currentPitchSystem === '12-tet' && !KEY_CENTER_OPTIONS.includes(text(state.meta.pitchDescriptor))) {
+      state.meta.pitchDescriptor = '';
+    }
+    syncLegacyPitchFields(state.meta);
+
+    const pitchSystemField = wrapField('Pitch system');
+    const pitchSystemSelect = create('select', 'dx-submit-input');
+    PITCH_SYSTEM_OPTIONS.forEach((entry) => {
+      const option = create('option', '', entry.label);
+      option.value = entry.value;
+      pitchSystemSelect.appendChild(option);
     });
-    keySelect.value = state.meta.keyCenter;
-    keySelect.addEventListener('change', (event) => {
-      state.meta.keyCenter = event.target.value;
+    pitchSystemSelect.value = currentPitchSystem;
+    pitchSystemSelect.addEventListener('change', (event) => {
+      state.meta.pitchSystem = normalizePitchSystem(event.target.value);
+      if (state.meta.pitchSystem === '12-tet' && !KEY_CENTER_OPTIONS.includes(text(state.meta.pitchDescriptor))) {
+        state.meta.pitchDescriptor = '';
+      }
+      if (state.meta.pitchSystem === 'atonal' || state.meta.pitchSystem === 'non-pitched') {
+        state.meta.pitchDescriptor = '';
+      }
+      syncLegacyPitchFields(state.meta);
+      refreshCommandOnly();
+      render();
     });
-    keyField.appendChild(keySelect);
-    grid.appendChild(keyField);
+    pitchSystemField.appendChild(pitchSystemSelect);
+    grid.appendChild(pitchSystemField);
+
+    if (currentPitchSystem === '12-tet') {
+      const keyField = wrapField('Key center');
+      const keySelect = create('select', 'dx-submit-input');
+      const emptyOption = create('option', '', 'Select key center');
+      emptyOption.value = '';
+      keySelect.appendChild(emptyOption);
+      KEY_CENTER_OPTIONS.forEach((value) => {
+        const option = create('option', '', value);
+        option.value = value;
+        keySelect.appendChild(option);
+      });
+      keySelect.value = text(state.meta.pitchDescriptor);
+      keySelect.addEventListener('change', (event) => {
+        state.meta.pitchDescriptor = event.target.value;
+        syncLegacyPitchFields(state.meta);
+        refreshCommandOnly();
+      });
+      keyField.appendChild(keySelect);
+      grid.appendChild(keyField);
+    } else if (currentPitchSystem === '24-tet' || currentPitchSystem === 'ji') {
+      const descriptorLabel = currentPitchSystem === '24-tet' ? '24-TET pitch descriptor' : 'JI pitch descriptor';
+      const descriptorField = wrapField(descriptorLabel);
+      const hint = create('p', 'dx-submit-copy dx-submit-copy--compact', PITCH_DESCRIPTOR_HINTS[currentPitchSystem]);
+      const descriptorInput = create('input', 'dx-submit-input');
+      descriptorInput.type = 'text';
+      descriptorInput.maxLength = 120;
+      descriptorInput.placeholder =
+        currentPitchSystem === '24-tet' ? 'Ex: C quarter-sharp' : 'Ex: 5/4 on C';
+      descriptorInput.value = text(state.meta.pitchDescriptor);
+      descriptorInput.addEventListener('input', (event) => {
+        state.meta.pitchDescriptor = event.target.value;
+        syncLegacyPitchFields(state.meta);
+        refreshCommandOnly();
+      });
+      descriptorField.append(hint, descriptorInput);
+      grid.appendChild(descriptorField);
+    } else {
+      const quickField = wrapField('Pitch detail');
+      quickField.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', 'No key-center descriptor required for this pitch type.'));
+      grid.appendChild(quickField);
+    }
 
     const scaleField = wrapField('Scale quality');
     const scaleInput = create('input', 'dx-submit-input');
     scaleInput.type = 'text';
     scaleInput.maxLength = 50;
-    scaleInput.placeholder = 'major, minor, modal...';
+    scaleInput.placeholder = 'major, minor, modal, maqam, raga...';
     scaleInput.value = state.meta.scaleQuality;
     scaleInput.addEventListener('input', (event) => {
       state.meta.scaleQuality = event.target.value;
@@ -741,6 +848,17 @@ import { animate } from 'framer-motion/dom';
       create('p', 'dx-submit-copy dx-submit-copy--compact', license.summary),
     );
 
+    const pitchCard = create('section', 'dx-submit-command-card');
+    pitchCard.append(
+      create('p', 'dx-submit-kicker', 'Pitch profile'),
+      create('h3', 'dx-submit-command-title', summarizePitch(state.meta)),
+      create(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'Use 12-TET note selection, or describe 24-TET/JI context. Atonal and non-pitched are first-class options.',
+      ),
+    );
+
     const checklist = create('section', 'dx-submit-command-card');
     checklist.append(
       create('p', 'dx-submit-kicker', 'Required fields'),
@@ -761,7 +879,7 @@ import { animate } from 'framer-motion/dom';
       create('p', 'dx-submit-copy dx-submit-copy--compact', STEP_GUIDANCE[stepKey] || ''),
     );
 
-    aside.append(cycle, licenseCard, checklist, quality, guide);
+    aside.append(cycle, licenseCard, pitchCard, checklist, quality, guide);
     return aside;
   }
 
@@ -828,6 +946,7 @@ import { animate } from 'framer-motion/dom';
   }
 
   function buildPayload() {
+    syncLegacyPitchFields(state.meta);
     return {
       auth0Sub: text(state.auth0Sub),
       title: text(state.meta.title),
@@ -835,6 +954,8 @@ import { animate } from 'framer-motion/dom';
       category: text(state.meta.category),
       instrument: text(state.meta.instrument),
       bpm: text(state.meta.bpm),
+      pitchSystem: text(state.meta.pitchSystem),
+      pitchDescriptor: text(state.meta.pitchDescriptor),
       keyCenter: text(state.meta.keyCenter),
       scaleQuality: text(state.meta.scaleQuality),
       tags: text(state.meta.tags),
