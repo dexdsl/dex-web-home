@@ -48,6 +48,7 @@ function main() {
     'data-dx-season-card-kind',
     'data-dx-growlix-token',
     'dx-catalog-index-season-slide--unannounced',
+    'HOME_SIGNUP_TEASER_IMAGE',
     '__DX_SEASON_TEASER_SEED',
   ];
   for (const marker of requiredRuntimeMarkers) {
@@ -60,8 +61,7 @@ function main() {
   const requiredCssMarkers = [
     '.dx-catalog-index-season-slide--unannounced',
     '.dx-catalog-index-season-growlix-token',
-    '@keyframes dx-catalog-season-teaser-sheen',
-    '.dx-catalog-index-season-media--unannounced::before',
+    '.dx-catalog-index-season-media--unannounced',
   ];
   for (const marker of requiredCssMarkers) {
     if (!cssSource.includes(marker)) {

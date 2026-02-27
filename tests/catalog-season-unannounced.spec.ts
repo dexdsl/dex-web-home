@@ -3,6 +3,7 @@ import path from 'node:path';
 import { expect, test, type Page } from 'playwright/test';
 
 const DEFAULT_POOL = ['???', '!!!', '***', '@@@'];
+const HOME_SIGNUP_CARD_IMAGE = '/assets/img/3b1476c230073f7589e3.jpg';
 
 function hashString32(value: string): number {
   let hash = 2166136261;
@@ -93,6 +94,7 @@ test('season carousel renders a non-clickable unannounced teaser card with growl
   expect(DEFAULT_POOL).toContain(token);
 
   await expect(teaserCard).toContainText('this artist has not been announced yet');
+  await expect(teaserCard.locator('img.dx-catalog-index-season-img').first()).toHaveAttribute('src', new RegExp(`${HOME_SIGNUP_CARD_IMAGE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
   await expect(teaserCard.locator('a')).toHaveCount(0);
 });
 

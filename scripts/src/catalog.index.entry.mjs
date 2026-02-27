@@ -13,6 +13,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   const SEASONS_URL = '/data/catalog.seasons.json';
   const DEFAULT_UNANNOUNCED_MESSAGE = 'this artist has not been announced yet';
   const DEFAULT_UNANNOUNCED_TOKEN_POOL = ['???', '!!!', '***', '@@@'];
+  const HOME_SIGNUP_TEASER_IMAGE = '/assets/img/3b1476c230073f7589e3.jpg';
   const REDIRECT_HASHES = {
     '#dex-how': '/catalog/how/#dex-how',
     '#list-of-identifiers': '/catalog/symbols/#list-of-identifiers',
@@ -1089,10 +1090,9 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     const season = text(card?.season).toUpperCase();
     const token = text(card?.token) || '???';
     const message = text(card?.message) || DEFAULT_UNANNOUNCED_MESSAGE;
-    const style = text(card?.style) || 'redacted';
     const index = clampNumber(card?.index, 0, 99, 0);
 
-    const slide = create('li', `dx-catalog-index-season-slide dx-catalog-index-season-slide--unannounced dx-catalog-index-season-slide--${style}`);
+    const slide = create('li', 'dx-catalog-index-season-slide dx-catalog-index-season-slide--unannounced');
     slide.setAttribute('data-dx-season-card-kind', 'unannounced');
     slide.setAttribute('data-dx-season-id', season || '');
     slide.setAttribute('data-dx-growlix-token', token);
@@ -1101,13 +1101,19 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
     const media = create('div', 'dx-catalog-index-season-media dx-catalog-index-season-media--unannounced');
     media.setAttribute('aria-hidden', 'true');
+    const image = create('img', 'dx-catalog-index-season-img');
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.alt = 'Sign up for free access';
+    image.src = HOME_SIGNUP_TEASER_IMAGE;
+    media.appendChild(image);
     const tokenChip = create('span', 'dx-catalog-index-season-growlix-token', token);
     media.appendChild(tokenChip);
 
     const copy = create('div', 'dx-catalog-index-season-copy');
-    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', token));
+    copy.appendChild(create('h3', 'dx-catalog-index-season-performer', 'Unannounced artist'));
     copy.appendChild(create('p', 'dx-catalog-index-season-title', message));
-    copy.appendChild(create('p', 'dx-catalog-index-season-note', 'artist reveal pending'));
+    copy.appendChild(create('p', 'dx-catalog-index-season-note', `growlix ${token}`));
 
     slide.append(media, copy);
     return slide;

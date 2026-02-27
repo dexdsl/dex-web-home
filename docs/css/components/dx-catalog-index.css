@@ -291,43 +291,33 @@
 }
 
 .dx-catalog-index-season-slide--unannounced {
-  border-color: rgba(29, 35, 49, 0.22);
-  background:
-    radial-gradient(140% 120% at 10% -18%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0) 70%),
-    linear-gradient(152deg, rgba(36, 42, 55, 0.85), rgba(23, 28, 40, 0.92));
+  position: relative;
 }
 
 .dx-catalog-index-season-media--unannounced {
   position: relative;
-  display: grid;
-  place-items: end start;
-  min-height: clamp(132px, 18vw, 178px);
-  background:
-    linear-gradient(130deg, rgba(255, 91, 28, 0.2), rgba(255, 149, 5, 0.1) 45%, rgba(12, 16, 26, 0.2)),
-    repeating-linear-gradient(-32deg, rgba(255, 255, 255, 0.06) 0 10px, rgba(255, 255, 255, 0.02) 10px 20px);
-  isolation: isolate;
-}
-
-.dx-catalog-index-season-media--unannounced::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(102deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.15) 48%, rgba(255, 255, 255, 0) 68%);
-  transform: translateX(-125%);
-  animation: dx-catalog-season-teaser-sheen 9s ease-in-out infinite;
-  pointer-events: none;
+  display: block;
 }
 
 .dx-catalog-index-season-growlix-token {
-  position: relative;
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
   z-index: 1;
-  margin: 0.68rem;
-  font-family: var(--font-heading, "Stretch Pro", sans-serif);
-  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
-  line-height: 1;
-  letter-spacing: 0.08em;
-  color: #fff3de;
-  text-shadow: 0 3px 18px rgba(255, 110, 32, 0.42);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.8rem;
+  padding: 0.18rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(245, 248, 255, 0.78);
+  backdrop-filter: blur(4px);
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #2a3140;
 }
 
 .dx-catalog-index-season-img {
@@ -368,14 +358,6 @@
   text-overflow: ellipsis;
 }
 
-.dx-catalog-index-season-slide--unannounced .dx-catalog-index-season-performer {
-  color: #fff4e7;
-}
-
-.dx-catalog-index-season-slide--unannounced .dx-catalog-index-season-title {
-  color: rgba(244, 248, 255, 0.9);
-}
-
 .dx-catalog-index-season-note {
   margin: 0;
   margin-top: auto;
@@ -383,14 +365,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 170, 120, 0.88);
-}
-
-@keyframes dx-catalog-season-teaser-sheen {
-  0%,
-  72%,
-  100% { transform: translateX(-125%); }
-  86% { transform: translateX(125%); }
+  color: rgba(59, 69, 84, 0.84);
 }
 
 .dx-catalog-index-season-open {
@@ -700,10 +675,5 @@
 @media (prefers-reduced-motion: reduce) {
   #gooey-mesh-wrapper .gooey-blob {
     opacity: 0.2;
-  }
-
-  .dx-catalog-index-season-media--unannounced::before {
-    animation: none !important;
-    transform: translateX(0);
   }
 }
