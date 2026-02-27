@@ -21,7 +21,7 @@ async function stubHeaderRuntimes(page: Page): Promise<void> {
 async function stubDexAuthRuntime(page: Page): Promise<void> {
   const script = `
     (() => {
-      const user = { sub: 'auth0|submit-ui-e2e', name: 'Submit E2E', email: 'submit@example.com' };
+      const user = { sub: 'auth0|submit-ui-e2e', name: 'Seb Solis', family_name: 'Solis', email: 'submit@example.com' };
       const auth = {
         ready: Promise.resolve({ isAuthenticated: true }),
         resolve: () => Promise.resolve({ authenticated: true }),
@@ -83,12 +83,27 @@ async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario):
 
   await page.route('https://script.google.com/macros/**', async (route) => {
     const url = new URL(route.request().url());
-    submitParams = Object.fromEntries(url.searchParams.entries());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
     const callback = String(url.searchParams.get('callback') || '').trim();
     if (!callback) {
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({
+          status: 'ok',
+          rows: [
+            { timestamp: new Date().toISOString(), row: 2 },
+            { timestamp: '2025-01-01T00:00:00.000Z', row: 3 },
+          ],
+        })});`,
+      });
+      return;
+    }
+    submitParams = Object.fromEntries(url.searchParams.entries());
     await route.fulfill({
       status: 200,
       contentType: 'application/javascript',
@@ -145,6 +160,8 @@ test('submit page uses desktop 60/40 shell with sticky command panel', async ({ 
 
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
+  await expect(page.locator('#dex-submit')).toContainText('Weekly uploads available');
+  await expect(page.locator('#dex-submit')).not.toContainText('Daily uploads available');
 
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('[data-dx-submit-shell]') as HTMLElement | null;
@@ -230,13 +247,25 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   await page.route('https://script.google.com/macros/**', async (route) => {
     const url = new URL(route.request().url());
-    submitParams = Object.fromEntries(url.searchParams.entries());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
     const callback = String(url.searchParams.get('callback') || '').trim();
 
     if (!callback) {
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
       return;
     }
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({
+          status: 'ok',
+          rows: [{ timestamp: new Date().toISOString(), row: 11 }],
+        })});`,
+      });
+      return;
+    }
+    submitParams = Object.fromEntries(url.searchParams.entries());
 
     await route.fulfill({
       status: 200,
@@ -311,6 +340,7 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   expect(submitParams.status).toBe('pending');
   expect(submitParams.auth0Sub).toBe('auth0|submit-ui-e2e');
+  expect(submitParams.performerToken).toBe('So');
   expect(submitParams.pitchSystem).toBe('12-tet');
   expect(submitParams.pitchDescriptor).toBe('C♯/D♭');
   expect(submitParams.keyCenter).toBe('12-TET: C♯/D♭');
@@ -319,6 +349,62 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   const lookupText = String(await page.locator('[data-dx-submit-step="done"] .dx-submit-pill--accent').first().textContent() || '').trim();
   expect(lookupText).toMatch(GENERATED_LOOKUP_REGEX);
+});
+
+test('submit services chips use custom tooltip contract and sidebar guidance follows focused field', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok', rows: [] })});`,
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok', row: 99 })});`,
+    });
+  });
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
+  const step = page.locator('[data-dx-submit-step="metadata"]');
+  await step.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Tooltip focus sample');
+  await step.locator('.dx-submit-field', { hasText: 'Sample creator(s)' }).locator('input').fill('Creator Placeholder');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
+  await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
+  await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').focus();
+  await expect(page.locator('.dx-submit-command')).toContainText('Instrument guidance');
+
+  await page.getByRole('button', { name: 'Continue to license' }).click();
+  await page.getByRole('button', { name: 'Continue to upload' }).click();
+  await expect(page.locator('[data-dx-submit-step="upload"]')).toBeVisible();
+
+  const serviceChip = page.locator('[data-dx-submit-step="upload"] .dx-submit-badge', { hasText: 'Color grading' }).first();
+  await expect(serviceChip).toHaveAttribute('data-dx-tooltip', /color/i);
+  await expect(serviceChip).not.toHaveAttribute('title', /.+/);
+
+  const hasZwnj = await page.evaluate(() => {
+    const command = document.querySelector('.dx-submit-command');
+    return !!command && command.textContent.includes('\u200C');
+  });
+  expect(hasZwnj).toBeTruthy();
 });
 
 const PITCH_SERIALIZATION_SCENARIOS: Array<PitchSubmitScenario & { name: string }> = [

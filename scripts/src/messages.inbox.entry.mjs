@@ -407,12 +407,14 @@
   function resolveSubmissionLookup(row, fallbackYear, fallbackCounter) {
     const effective = toSafeText(row?.effectiveLookupNumber || row?.effective_lookup_number, '');
     const finalLookupNumber = toSafeText(row?.finalLookupNumber || row?.final_lookup_number, '');
+    const submissionLookupNumber = toSafeText(row?.submissionLookupNumber || row?.submission_lookup_number, '');
     const finalLookupBase = toSafeText(row?.finalLookupBase || row?.final_lookup_base, '');
     const generated = toSafeText(row?.submissionLookupGenerated || row?.submission_lookup_generated, '');
     const lookup = toSafeText(row?.lookup || row?.lookupNumber || row?.lookup_number, '');
     return (
       effective
       || finalLookupNumber
+      || submissionLookupNumber
       || finalLookupBase
       || generated
       || lookup
@@ -447,6 +449,8 @@
           license: row?.license,
           collectionType: row?.collectionType || row?.collection_type,
           lookup,
+          submissionLookupNumber: toSafeText(row?.submissionLookupNumber || row?.submission_lookup_number, ''),
+          finalLookupNumber: toSafeText(row?.finalLookupNumber || row?.final_lookup_number, ''),
         },
         createdAt,
         readAt: toSafeText(state.readAt, ''),
@@ -488,6 +492,8 @@
           status,
           license: toSafeText(value.license, ''),
           collectionType: toSafeText(value.collectionType || value.collection_type, ''),
+          submissionLookupNumber: toSafeText(value.submissionLookupNumber || value.submission_lookup_number, ''),
+          finalLookupNumber: toSafeText(value.finalLookupNumber || value.final_lookup_number, ''),
         },
         createdAt,
         readAt,

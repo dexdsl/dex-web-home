@@ -422,6 +422,8 @@ test('submission detail prefers effective/final lookup fields over legacy lookup
           status_raw: 'Pending Review',
           event_at: '2026-02-26T09:00:00.000Z',
           metadata_json: JSON.stringify({
+            submissionLookupNumber: 'SUB12-B.Pre Do A2026',
+            finalLookupNumber: 'B.Pre Do A2026 C.23',
             effectiveLookupNumber: 'B.Pre Do A2026 C.23',
           }),
         },
@@ -433,6 +435,9 @@ test('submission detail prefers effective/final lookup fields over legacy lookup
   await waitReady(page, '#dex-submission');
 
   await expect(page.locator('.dx-sub-title')).toHaveText('B.Pre Do A2026 C.23');
+  await expect(page.locator('#dx-sub-timeline')).toContainText(
+    'Lookup number finalized from SUB12-B.Pre Do A2026 to B.Pre Do A2026 C.23.',
+  );
 });
 
 test('submission detail acknowledge posts ack endpoint and updates stage rail', async ({ page }) => {

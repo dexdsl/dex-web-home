@@ -244,6 +244,36 @@
   opacity: 0.52;
 }
 
+#dex-submit .dx-submit-badge[data-dx-tooltip] {
+  position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #dex-submit .dx-submit-badge[data-dx-tooltip]:hover::before,
+  #dex-submit .dx-submit-badge[data-dx-tooltip]:focus-visible::before {
+    content: attr(data-dx-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    min-width: min(280px, 60vw);
+    max-width: min(360px, 74vw);
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(17, 24, 39, 0.24);
+    background: rgba(9, 14, 27, 0.95);
+    color: #f5f7fb;
+    font-family: var(--font-mono, "Courier Prime", monospace);
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    white-space: normal;
+    pointer-events: none;
+    z-index: 12;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  }
+}
+
 #dex-submit .dx-submit-list {
   margin: 0;
   padding-left: 18px;

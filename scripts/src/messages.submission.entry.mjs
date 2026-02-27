@@ -262,6 +262,66 @@
     return 'info';
   }
 
+  function formatEventLabel(eventType) {
+    const normalized = String(eventType || '').trim().toLowerCase();
+    const labelMap = {
+      lookup_generated: 'Lookup generated',
+      lookup_finalized: 'Lookup finalized',
+      bucket_assigned: 'Bucket assigned',
+      user_acknowledged: 'Acknowledged',
+    };
+    if (labelMap[normalized]) return labelMap[normalized];
+    const fallback = normalized.replace(/_/g, ' ');
+    if (!fallback) return 'Event';
+    return fallback.charAt(0).toUpperCase() + fallback.slice(1);
+  }
+
+  function buildLookupTransitionNote(eventType, metadata, publicNote) {
+    if (publicNote) return publicNote;
+    const normalized = String(eventType || '').trim().toLowerCase();
+    if (!['lookup_generated', 'lookup_finalized', 'bucket_assigned'].includes(normalized)) return '';
+
+    const fromLookup = pickFirstText([
+      metadata.fromLookup,
+      metadata.from_lookup,
+      metadata.previousLookupNumber,
+      metadata.previous_lookup_number,
+      metadata.submissionLookupNumber,
+      metadata.submission_lookup_number,
+      metadata.submissionLookupGenerated,
+      metadata.submission_lookup_generated,
+    ]);
+    const toLookup = pickFirstText([
+      metadata.toLookup,
+      metadata.to_lookup,
+      metadata.finalLookupNumber,
+      metadata.final_lookup_number,
+      metadata.effectiveLookupNumber,
+      metadata.effective_lookup_number,
+      metadata.lookupNumber,
+      metadata.lookup_number,
+      metadata.lookup,
+    ]);
+
+    if (normalized === 'lookup_generated') {
+      const generated = toLookup || fromLookup;
+      return generated ? `Submission lookup generated: ${generated}.` : '';
+    }
+
+    if (normalized === 'lookup_finalized') {
+      if (fromLookup && toLookup && fromLookup !== toLookup) {
+        return `Lookup number finalized from ${fromLookup} to ${toLookup}.`;
+      }
+      return toLookup ? `Lookup number finalized: ${toLookup}.` : '';
+    }
+
+    if (normalized === 'bucket_assigned') {
+      return toLookup ? `Bucket/file lookup assigned: ${toLookup}.` : '';
+    }
+
+    return '';
+  }
+
   function parseMetadata(value) {
     if (isObject(value)) return value;
     if (typeof value === 'string') {
@@ -310,6 +370,8 @@
           value.effective_lookup_number,
           value.finalLookupNumber,
           value.final_lookup_number,
+          value.submissionLookupNumber,
+          value.submission_lookup_number,
           value.finalLookupBase,
           value.final_lookup_base,
           value.submissionLookupGenerated,
@@ -319,6 +381,8 @@
           metadata.effective_lookup_number,
           metadata.finalLookupNumber,
           metadata.final_lookup_number,
+          metadata.submissionLookupNumber,
+          metadata.submission_lookup_number,
           metadata.finalLookupBase,
           metadata.final_lookup_base,
           metadata.submissionLookupGenerated,
@@ -329,10 +393,11 @@
         ]);
         const createdAt = toSafeText(value.eventAt || value.event_at || value.createdAt || value.created_at, '');
         const id = toSafeText(value.id, `timeline-${index + 1}`);
+        const displayNote = buildLookupTransitionNote(eventType, metadata, publicNote);
         return {
           id,
           eventType,
-          publicNote,
+          publicNote: displayNote || publicNote,
           statusRaw,
           libraryHref,
           sourceLink,
@@ -418,6 +483,8 @@
       threadPayload.effective_lookup_number,
       threadPayload.finalLookupNumber,
       threadPayload.final_lookup_number,
+      threadPayload.submissionLookupNumber,
+      threadPayload.submission_lookup_number,
       threadPayload.finalLookupBase,
       threadPayload.final_lookup_base,
       threadPayload.submissionLookupGenerated,
@@ -429,6 +496,8 @@
       ...mergedMeta.map((meta) => meta.effective_lookup_number),
       ...mergedMeta.map((meta) => meta.finalLookupNumber),
       ...mergedMeta.map((meta) => meta.final_lookup_number),
+      ...mergedMeta.map((meta) => meta.submissionLookupNumber),
+      ...mergedMeta.map((meta) => meta.submission_lookup_number),
       ...mergedMeta.map((meta) => meta.finalLookupBase),
       ...mergedMeta.map((meta) => meta.final_lookup_base),
       ...mergedMeta.map((meta) => meta.submissionLookupGenerated),
@@ -541,6 +610,8 @@
       match.effective_lookup_number,
       match.finalLookupNumber,
       match.final_lookup_number,
+      match.submissionLookupNumber,
+      match.submission_lookup_number,
       match.finalLookupBase,
       match.final_lookup_base,
       match.submissionLookupGenerated,
@@ -603,9 +674,9 @@
     const ackDisabled = Boolean(model.thread.acknowledgedAt) || acknowledgedFromRail;
 
     const timelineHtml = model.timeline.length
-      ? model.timeline
+        ? model.timeline
           .map((item) => {
-            const eventLabel = toSafeText(item.eventType, 'event').replace(/_/g, ' ');
+            const eventLabel = formatEventLabel(item.eventType);
             const note = item.publicNote ? `<p class="dx-sub-item-body">${escapeHtml(item.publicNote)}</p>` : '';
             const statusChip = item.statusRaw
               ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(item.eventType))}">${escapeHtml(item.statusRaw)}</span>`
@@ -736,6 +807,8 @@
         threadPayload.effective_lookup_number,
         threadPayload.finalLookupNumber,
         threadPayload.final_lookup_number,
+        threadPayload.submissionLookupNumber,
+        threadPayload.submission_lookup_number,
         threadPayload.finalLookupBase,
         threadPayload.final_lookup_base,
         threadPayload.submissionLookupGenerated,

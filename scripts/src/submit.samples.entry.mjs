@@ -18,9 +18,10 @@ import { animate } from 'framer-motion/dom';
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 3200;
   const SUBMIT_TIMEOUT_MS = 15000;
+  const JSONP_TIMEOUT_MS = 2500;
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
-  const DEFAULT_DAILY_LIMIT = 5;
+  const DEFAULT_WEEKLY_LIMIT = 4;
 
   const STEPS = [
     { key: 'intro', title: 'Program Brief', short: 'Brief' },
@@ -57,13 +58,44 @@ import { animate } from 'framer-motion/dom';
   ];
 
   const SERVICE_OPTIONS = [
-    { value: 'chop', label: 'Bucket chop', locked: true },
-    { value: 'credits', label: 'Dex credits roll', locked: true },
-    { value: 'render', label: '1080p/MP3 copies', locked: true },
-    { value: 'grade', label: 'Color grading' },
-    { value: 'mix', label: 'Mixing' },
-    { value: 'master', label: 'Mastering' },
-    { value: 'extra', label: 'Other edits (notes)' },
+    {
+      value: 'chop',
+      label: 'Bucket chop',
+      locked: true,
+      tooltip: 'Formal section cuts into A/B/C/D/E/X buckets for lookup-ready release packaging.',
+    },
+    {
+      value: 'credits',
+      label: 'Dex credits roll',
+      locked: true,
+      tooltip: 'Adds standard Dex attribution card and contribution metadata for the public release.',
+    },
+    {
+      value: 'render',
+      label: '1080p/MP3 copies',
+      locked: true,
+      tooltip: 'Creates delivery renditions for preview and accessibility while preserving source masters.',
+    },
+    {
+      value: 'grade',
+      label: 'Color grading',
+      tooltip: 'Shot-to-shot color balancing and tonal matching for publication consistency.',
+    },
+    {
+      value: 'mix',
+      label: 'Mixing',
+      tooltip: 'Balance and cleanup pass across stems/channels for release-ready intelligibility.',
+    },
+    {
+      value: 'master',
+      label: 'Mastering',
+      tooltip: 'Final loudness, spectral, and dynamics polish for distribution targets.',
+    },
+    {
+      value: 'extra',
+      label: 'Other edits (notes)',
+      tooltip: 'Custom requests described in notes: alt cuts, trims, or direction-specific revisions.',
+    },
   ];
 
   const LICENSE_OPTIONS = [
@@ -152,6 +184,82 @@ import { animate } from 'framer-motion/dom';
     done: 'Track status in your inbox submission timeline.',
   };
 
+  const FIELD_GUIDANCE = {
+    title: {
+      title: 'Title guidance',
+      body:
+        'Use a searchable working title that names instrument and technique. This becomes part of review and timeline context.',
+    },
+    creator: {
+      title: 'Creator guidance',
+      body:
+        'List credited performers exactly as they should appear publicly. Submission lookup performer token still comes from your account surname.',
+    },
+    category: {
+      title: 'Category guidance',
+      body: 'Choose the closest instrument family code. It sets the lookup instrument type prefix.',
+    },
+    instrument: {
+      title: 'Instrument guidance',
+      body:
+        'Use specific instrument wording. The first three alphabetic letters become the instrument token in generated submission lookup.',
+    },
+    bpm: {
+      title: 'Tempo guidance',
+      body: 'Optional. Add BPM when pulse matters for catalog filtering and downstream production use.',
+    },
+    pitchSystem: {
+      title: 'Pitch system guidance',
+      body: 'Select 12-TET, 24-TET, JI, atonal, or non-pitched. This drives key-center serialization.',
+    },
+    pitchDescriptor: {
+      title: 'Pitch descriptor guidance',
+      body:
+        'For 12-TET and 24-TET choose a root; for JI provide ratio/reference. Atonal and non-pitched skip descriptor.',
+    },
+    scaleQuality: {
+      title: 'Scale quality guidance',
+      body: 'Optional context like major, modal, maqam, raga, or other tonal system details.',
+    },
+    tags: {
+      title: 'Tag guidance',
+      body: 'Use concise comma-separated tags for articulation, dynamics, space, and usage cues.',
+    },
+    collectionType: {
+      title: 'Collection type guidance',
+      body:
+        'Audio, Video, Audio-visual, or Other. Type plus year becomes the TypeYear suffix in generated lookup.',
+    },
+    outputTypes: {
+      title: 'Output guidance',
+      body:
+        'Choose desired publish renditions. Keep this aligned with what your source actually supports to reduce revision loops.',
+    },
+    licenseType: {
+      title: 'License guidance',
+      body: 'Select the rights model before upload so publication and downstream usage are unambiguous.',
+    },
+    licenseConfirmed: {
+      title: 'Agreement guidance',
+      body: 'Confirm agreement before continuing. Unchecked state blocks progression to upload.',
+    },
+    link: {
+      title: 'Source link guidance',
+      body:
+        'Provide a stable public URL for source media. Access issues delay review and can move the submission to revision requested.',
+    },
+    services: {
+      title: 'Dex services guidance',
+      body:
+        'Each service chip includes scope details on hover/focus. Locked defaults are always applied for standard ingest.',
+    },
+    notes: {
+      title: 'Notes guidance',
+      body:
+        'Use notes for constraints, edit priorities, and context staff should see during review and timeline updates.',
+    },
+  };
+
   function createInitialMeta() {
     return {
       title: '',
@@ -176,13 +284,16 @@ import { animate } from 'framer-motion/dom';
     return {
       step: 0,
       prevProgress: 1 / STEPS.length,
-      quotaLeft: config.dailyLimit,
+      weeklyLimit: config.weeklyLimit,
+      weeklyUsed: 0,
+      quotaLeft: config.weeklyLimit,
       webappUrl: config.webappUrl,
       auth0Sub: '',
       meta: createInitialMeta(),
       licenseType: 'joint',
       lastSubmissionRow: '000',
       lastSubmissionLookup: '',
+      focusedField: '',
       submitting: false,
       submitTicket: 0,
     };
@@ -294,8 +405,8 @@ import { animate } from 'framer-motion/dom';
     return parseSurnameCandidate(user.name || user.nickname || user.email || '');
   }
 
-  function parsePerformerToken(creator) {
-    const surname = resolveAuthSurname() || parseSurnameCandidate(creator);
+  function parsePerformerToken() {
+    const surname = resolveAuthSurname();
     const letters = String(surname || '').replace(/[^A-Za-z]/g, '');
     if (!letters) return 'An';
     const token = letters.slice(0, 2).padEnd(2, 'X');
@@ -312,7 +423,7 @@ import { animate } from 'framer-motion/dom';
     const counter = formatCounter(counterValue);
     const instrumentType = parseInstrumentTypeCode(state?.meta?.category);
     const instrumentPrefix = toLookupWord(state?.meta?.instrument, 3, 'Unk');
-    const performerToken = parsePerformerToken(state?.meta?.creator);
+    const performerToken = parsePerformerToken();
     const collectionType = parseCollectionTypeCode(state?.meta?.collectionType);
     const year = new Date().getFullYear();
     return `SUB${counter}-${instrumentType}.${instrumentPrefix} ${performerToken} ${collectionType}${year}`;
@@ -325,6 +436,8 @@ import { animate } from 'framer-motion/dom';
         || value.effective_lookup_number
         || value.finalLookupNumber
         || value.final_lookup_number
+        || value.submissionLookupNumber
+        || value.submission_lookup_number
         || value.finalLookupBase
         || value.final_lookup_base
         || value.submissionLookupGenerated
@@ -342,6 +455,59 @@ import { animate } from 'framer-motion/dom';
     return el;
   }
 
+  function withCanonicalZwnj(value) {
+    const input = String(value ?? '');
+    if (!input) return '';
+    let output = '';
+    for (let index = 0; index < input.length; index += 1) {
+      const current = input[index];
+      const previous = index > 0 ? input[index - 1] : '';
+      const isDoubleLetter =
+        previous &&
+        /[A-Za-z]/.test(previous) &&
+        /[A-Za-z]/.test(current) &&
+        previous.toLowerCase() === current.toLowerCase();
+      if (isDoubleLetter) output += '\u200C';
+      output += current;
+    }
+    return output;
+  }
+
+  function createSidebarText(tag, className = '', value = '') {
+    return create(tag, className, withCanonicalZwnj(value));
+  }
+
+  function setFocusedField(fieldKey = '') {
+    const next = text(fieldKey);
+    if (!state || state.focusedField === next) return;
+    state.focusedField = next;
+    refreshCommandPanel();
+  }
+
+  function bindFieldFocus(control, fieldKey) {
+    if (!(control instanceof HTMLElement)) return;
+    control.setAttribute('data-dx-focus-key', fieldKey);
+    control.addEventListener('focus', () => {
+      setFocusedField(fieldKey);
+    });
+    control.addEventListener('blur', () => {
+      window.requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement)) {
+          setFocusedField('');
+          return;
+        }
+        if (!liveRoot?.contains(active)) {
+          setFocusedField('');
+          return;
+        }
+        if (!active.closest('[data-dx-focus-key]')) {
+          setFocusedField('');
+        }
+      });
+    });
+  }
+
   function isReducedMotion() {
     try {
       return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -357,10 +523,10 @@ import { animate } from 'framer-motion/dom';
         : {};
 
     const webappUrl = text(runtime.webappUrl || root?.dataset?.webappUrl || DEFAULT_WEBAPP_URL, DEFAULT_WEBAPP_URL);
-    const dailyLimitRaw = runtime.dailyLimit ?? root?.dataset?.dailyLimit ?? DEFAULT_DAILY_LIMIT;
-    const dailyLimit = Math.max(1, Math.min(99, Math.floor(number(dailyLimitRaw, DEFAULT_DAILY_LIMIT))));
+    const weeklyLimitRaw = runtime.weeklyLimit ?? runtime.dailyLimit ?? root?.dataset?.weeklyLimit ?? root?.dataset?.dailyLimit ?? DEFAULT_WEEKLY_LIMIT;
+    const weeklyLimit = Math.max(1, Math.min(99, Math.floor(number(weeklyLimitRaw, DEFAULT_WEEKLY_LIMIT))));
 
-    return { webappUrl, dailyLimit };
+    return { webappUrl, weeklyLimit };
   }
 
   function setFetchState(root, fetchState) {
@@ -382,6 +548,98 @@ import { animate } from 'framer-motion/dom';
       await delay(DX_MIN_SHEEN_MS - elapsed);
     }
     setFetchState(root, fetchState);
+  }
+
+  function getStartOfWeekLocal(referenceDate = new Date()) {
+    const start = new Date(referenceDate);
+    start.setHours(0, 0, 0, 0);
+    const day = start.getDay();
+    const mondayOffset = (day + 6) % 7;
+    start.setDate(start.getDate() - mondayOffset);
+    return start;
+  }
+
+  function toDate(value) {
+    if (value instanceof Date && Number.isFinite(value.getTime())) return value;
+    const raw = text(value);
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    if (!Number.isFinite(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function countCurrentWeekRows(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const start = getStartOfWeekLocal(new Date());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    let count = 0;
+    for (const row of rows) {
+      const timestamp = toDate(row?.timestamp);
+      if (!timestamp) continue;
+      if (timestamp >= start && timestamp < end) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  async function jsonpRequest(url, params = {}, timeoutMs = JSONP_TIMEOUT_MS) {
+    return new Promise((resolve, reject) => {
+      const callbackName = `dxSubmitJsonp_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+      const script = document.createElement('script');
+      let settled = false;
+      let timer = 0;
+
+      const cleanup = () => {
+        if (timer) window.clearTimeout(timer);
+        try {
+          delete window[callbackName];
+        } catch {
+          window[callbackName] = undefined;
+        }
+        if (script.isConnected) script.remove();
+      };
+
+      const settle = (handler, payload) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        handler(payload);
+      };
+
+      window[callbackName] = (payload) => {
+        settle(resolve, payload);
+      };
+
+      const query = new URLSearchParams({ ...params, callback: callbackName });
+      script.async = true;
+      script.src = `${url}?${query.toString()}`;
+      script.addEventListener('error', () => settle(reject, new Error('JSONP request failed')));
+      document.body.appendChild(script);
+
+      timer = window.setTimeout(() => {
+        settle(reject, new Error('JSONP request timeout'));
+      }, Math.max(250, timeoutMs));
+    });
+  }
+
+  async function refreshWeeklyQuotaFromSheet() {
+    if (!state || !text(state.webappUrl) || !text(state.auth0Sub)) return false;
+    try {
+      const response = await jsonpRequest(
+        state.webappUrl,
+        { action: 'list', auth0Sub: state.auth0Sub },
+        JSONP_TIMEOUT_MS,
+      );
+      const rows = response && typeof response === 'object' ? response.rows : [];
+      const weeklyUsed = countCurrentWeekRows(rows);
+      state.weeklyUsed = weeklyUsed;
+      state.quotaLeft = Math.max(0, state.weeklyLimit - weeklyUsed);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function showToast(message, isError = false) {
@@ -425,13 +683,23 @@ import { animate } from 'framer-motion/dom';
     return true;
   }
 
-  function toBadge(label, selected, onClick, disabled = false) {
+  function toBadge(label, selected, onClick, disabled = false, options = null) {
     const button = create('button', 'dx-submit-badge', label);
     button.type = 'button';
     if (selected) button.classList.add('is-selected');
     if (disabled) {
       button.classList.add('is-disabled');
       button.disabled = true;
+    }
+    const badgeOptions = options && typeof options === 'object' ? options : {};
+    const tooltip = text(badgeOptions.tooltip);
+    if (tooltip) {
+      button.setAttribute('data-dx-tooltip', tooltip);
+      button.setAttribute('aria-label', `${label}. ${tooltip}`);
+      button.removeAttribute('title');
+    }
+    if (text(badgeOptions.focusKey)) {
+      bindFieldFocus(button, text(badgeOptions.focusKey));
     }
     if (typeof onClick === 'function' && !disabled) {
       button.addEventListener('click', onClick);
@@ -505,7 +773,12 @@ import { animate } from 'framer-motion/dom';
     section.appendChild(specs);
 
     const footer = create('div', 'dx-submit-stage-actions');
-    const quota = create('p', 'dx-submit-copy dx-submit-copy--compact', `Daily uploads available: ${state.quotaLeft} / ${DEFAULT_DAILY_LIMIT}`);
+    const quota = create(
+      'p',
+      'dx-submit-copy dx-submit-copy--compact',
+      `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`,
+    );
+    quota.setAttribute('data-dx-submit-quota', 'true');
     const begin = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Begin');
     begin.type = 'button';
     begin.addEventListener('click', () => {
@@ -536,6 +809,7 @@ import { animate } from 'framer-motion/dom';
     titleInput.addEventListener('input', (event) => {
       state.meta.title = event.target.value;
     });
+    bindFieldFocus(titleInput, 'title');
     titleField.appendChild(titleInput);
     grid.appendChild(titleField);
 
@@ -548,6 +822,7 @@ import { animate } from 'framer-motion/dom';
     creatorInput.addEventListener('input', (event) => {
       state.meta.creator = event.target.value;
     });
+    bindFieldFocus(creatorInput, 'creator');
     creatorField.appendChild(creatorInput);
     grid.appendChild(creatorField);
 
@@ -562,6 +837,7 @@ import { animate } from 'framer-motion/dom';
     categorySelect.addEventListener('change', (event) => {
       state.meta.category = event.target.value;
     });
+    bindFieldFocus(categorySelect, 'category');
     categoryField.appendChild(categorySelect);
     grid.appendChild(categoryField);
 
@@ -574,6 +850,7 @@ import { animate } from 'framer-motion/dom';
     instrumentInput.addEventListener('input', (event) => {
       state.meta.instrument = event.target.value;
     });
+    bindFieldFocus(instrumentInput, 'instrument');
     instrumentField.appendChild(instrumentInput);
     grid.appendChild(instrumentField);
 
@@ -585,6 +862,7 @@ import { animate } from 'framer-motion/dom';
     bpmInput.addEventListener('input', (event) => {
       state.meta.bpm = event.target.value;
     });
+    bindFieldFocus(bpmInput, 'bpm');
     bpmField.appendChild(bpmInput);
     grid.appendChild(bpmField);
 
@@ -610,6 +888,7 @@ import { animate } from 'framer-motion/dom';
       syncLegacyPitchFields(state.meta);
       render();
     });
+    bindFieldFocus(pitchSystemSelect, 'pitchSystem');
     pitchSystemField.appendChild(pitchSystemSelect);
     grid.appendChild(pitchSystemField);
 
@@ -629,6 +908,7 @@ import { animate } from 'framer-motion/dom';
         state.meta.pitchDescriptor = event.target.value;
         syncLegacyPitchFields(state.meta);
       });
+      bindFieldFocus(keySelect, 'pitchDescriptor');
       keyField.appendChild(keySelect);
       grid.appendChild(keyField);
     } else if (currentPitchSystem === 'ji') {
@@ -643,6 +923,7 @@ import { animate } from 'framer-motion/dom';
         state.meta.pitchDescriptor = event.target.value;
         syncLegacyPitchFields(state.meta);
       });
+      bindFieldFocus(descriptorInput, 'pitchDescriptor');
       descriptorField.append(hint, descriptorInput);
       grid.appendChild(descriptorField);
     } else {
@@ -660,6 +941,7 @@ import { animate } from 'framer-motion/dom';
     scaleInput.addEventListener('input', (event) => {
       state.meta.scaleQuality = event.target.value;
     });
+    bindFieldFocus(scaleInput, 'scaleQuality');
     scaleField.appendChild(scaleInput);
     grid.appendChild(scaleField);
 
@@ -674,6 +956,8 @@ import { animate } from 'framer-motion/dom';
             state.meta.collectionType = entry.value;
             render();
           },
+          false,
+          { focusKey: 'collectionType' },
         ),
       );
     });
@@ -692,7 +976,7 @@ import { animate } from 'framer-motion/dom';
             state.meta.outputTypes = [...state.meta.outputTypes, entry.value];
           }
           render();
-        }),
+        }, false, { focusKey: 'outputTypes' }),
       );
     });
     outputField.appendChild(outputGroup);
@@ -707,6 +991,7 @@ import { animate } from 'framer-motion/dom';
     tagsInput.addEventListener('input', (event) => {
       state.meta.tags = event.target.value;
     });
+    bindFieldFocus(tagsInput, 'tags');
     tagsField.append(tagsHint, tagsInput);
     grid.appendChild(tagsField);
 
@@ -750,7 +1035,7 @@ import { animate } from 'framer-motion/dom';
         toBadge(entry.label, selectedOption, () => {
           state.licenseType = entry.id;
           render();
-        }),
+        }, false, { focusKey: 'licenseType' }),
       );
     });
     section.appendChild(optionGrid);
@@ -770,6 +1055,7 @@ import { animate } from 'framer-motion/dom';
     checkbox.addEventListener('change', () => {
       state.licenseConfirmed = checkbox.checked;
     });
+    bindFieldFocus(checkbox, 'licenseConfirmed');
     const agreeText = create('span', '', 'I reviewed and accept this license selection.');
     agree.append(checkbox, agreeText);
     section.appendChild(agree);
@@ -816,6 +1102,7 @@ import { animate } from 'framer-motion/dom';
     linkInput.addEventListener('input', (event) => {
       state.meta.link = event.target.value;
     });
+    bindFieldFocus(linkInput, 'link');
     linkField.appendChild(linkInput);
     section.appendChild(linkField);
 
@@ -831,7 +1118,7 @@ import { animate } from 'framer-motion/dom';
             state.meta.services = [...state.meta.services, entry.value];
           }
           render();
-        }, entry.locked),
+        }, entry.locked, { tooltip: entry.tooltip, focusKey: 'services' }),
       );
     });
     serviceField.appendChild(services);
@@ -845,6 +1132,7 @@ import { animate } from 'framer-motion/dom';
     notesInput.addEventListener('input', (event) => {
       state.meta.notes = event.target.value;
     });
+    bindFieldFocus(notesInput, 'notes');
     notesField.appendChild(notesInput);
     section.appendChild(notesField);
 
@@ -933,7 +1221,7 @@ import { animate } from 'framer-motion/dom';
     ];
 
     checks.forEach(([label, ok]) => {
-      const item = create('li', 'dx-submit-check-item', label);
+      const item = createSidebarText('li', 'dx-submit-check-item', label);
       item.classList.add(ok ? 'is-done' : 'is-pending');
       list.appendChild(item);
     });
@@ -941,29 +1229,43 @@ import { animate } from 'framer-motion/dom';
     return list;
   }
 
+  function resolveFocusedGuidance() {
+    const byField = FIELD_GUIDANCE[state.focusedField];
+    if (byField) return byField;
+    const stepKey = STEPS[state.step]?.key || 'intro';
+    return {
+      title: `Step guidance: ${STEPS[state.step]?.title || 'Submission'}`,
+      body: STEP_GUIDANCE[stepKey] || '',
+    };
+  }
+
   function buildCommandPanel() {
     const aside = create('aside', 'dx-submit-command dx-submit-surface');
 
     const cycle = create('section', 'dx-submit-command-card');
     cycle.append(
-      create('p', 'dx-submit-kicker', 'Review SLA'),
-      create('h3', 'dx-submit-command-title', 'Typical review within 7 days'),
-      create('p', 'dx-submit-copy dx-submit-copy--compact', 'Status updates post to your inbox timeline with timestamps and notes.'),
+      createSidebarText('p', 'dx-submit-kicker', 'Review SLA'),
+      createSidebarText('h3', 'dx-submit-command-title', 'Typical review within 7 days'),
+      createSidebarText(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}. Status updates post to your inbox timeline with timestamps and notes.`,
+      ),
     );
 
     const license = LICENSE_OPTIONS.find((entry) => entry.id === state.licenseType) || LICENSE_OPTIONS[0];
     const licenseCard = create('section', 'dx-submit-command-card');
     licenseCard.append(
-      create('p', 'dx-submit-kicker', 'License summary'),
-      create('h3', 'dx-submit-command-title', license.label),
-      create('p', 'dx-submit-copy dx-submit-copy--compact', license.summary),
+      createSidebarText('p', 'dx-submit-kicker', 'License summary'),
+      createSidebarText('h3', 'dx-submit-command-title', license.label),
+      createSidebarText('p', 'dx-submit-copy dx-submit-copy--compact', license.summary),
     );
 
     const pitchCard = create('section', 'dx-submit-command-card');
     pitchCard.append(
-      create('p', 'dx-submit-kicker', 'Pitch profile'),
-      create('h3', 'dx-submit-command-title', summarizePitch(state.meta)),
-      create(
+      createSidebarText('p', 'dx-submit-kicker', 'Pitch profile'),
+      createSidebarText('h3', 'dx-submit-command-title', summarizePitch(state.meta)),
+      createSidebarText(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
         'Use the pitch-root dropdown for 12-TET and 24-TET, or describe JI context. Atonal and non-pitched are first-class options.',
@@ -972,26 +1274,47 @@ import { animate } from 'framer-motion/dom';
 
     const checklist = create('section', 'dx-submit-command-card');
     checklist.append(
-      create('p', 'dx-submit-kicker', 'Required fields'),
+      createSidebarText('p', 'dx-submit-kicker', 'Required fields'),
       buildChecklist(),
     );
 
     const quality = create('section', 'dx-submit-command-card');
     quality.append(
-      create('p', 'dx-submit-kicker', 'Capture targets'),
-      create('p', 'dx-submit-copy dx-submit-copy--compact', 'Video: 3840×2160, H.265, 24fps. Audio: 48kHz, 24-bit WAV. Lower-res accepted.'),
+      createSidebarText('p', 'dx-submit-kicker', 'Capture targets'),
+      createSidebarText(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'Video: 3840×2160, H.265, 24fps. Audio: 48kHz, 24-bit WAV. Lower-res accepted.',
+      ),
     );
 
     const guide = create('section', 'dx-submit-command-card');
-    const stepKey = STEPS[state.step]?.key || 'intro';
+    const focused = resolveFocusedGuidance();
     guide.append(
-      create('p', 'dx-submit-kicker', 'Current step guidance'),
-      create('h3', 'dx-submit-command-title', STEPS[state.step]?.title || 'Submission'),
-      create('p', 'dx-submit-copy dx-submit-copy--compact', STEP_GUIDANCE[stepKey] || ''),
+      createSidebarText('p', 'dx-submit-kicker', state.focusedField ? 'Focused field guidance' : 'Current step guidance'),
+      createSidebarText('h3', 'dx-submit-command-title', focused.title),
+      createSidebarText('p', 'dx-submit-copy dx-submit-copy--compact', focused.body),
     );
 
     aside.append(cycle, licenseCard, pitchCard, checklist, quality, guide);
     return aside;
+  }
+
+  function refreshCommandPanel() {
+    if (!(liveRoot instanceof HTMLElement) || !state) return;
+    const current = liveRoot.querySelector('.dx-submit-command');
+    if (!(current instanceof HTMLElement)) return;
+    const next = buildCommandPanel();
+    current.replaceWith(next);
+  }
+
+  function refreshQuotaCopy() {
+    if (!(liveRoot instanceof HTMLElement) || !state) return;
+    const quota = liveRoot.querySelector('[data-dx-submit-quota]');
+    if (quota instanceof HTMLElement) {
+      quota.textContent = `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`;
+    }
+    refreshCommandPanel();
   }
 
   function buildLayout() {
@@ -1064,15 +1387,25 @@ import { animate } from 'framer-motion/dom';
       link: text(state.meta.link),
       notes: text(state.meta.notes),
       submissionYear: String(new Date().getFullYear()),
-      performerToken: parsePerformerToken(state.meta.creator),
+      performerToken: parsePerformerToken(),
       status: 'pending',
     };
   }
 
-  function submitPayload() {
+  async function submitPayload() {
     if (state.submitting) return;
     if (!text(state.meta.link)) {
       showToast('Missing link', true);
+      return;
+    }
+    const quotaVerified = await refreshWeeklyQuotaFromSheet();
+    if (!quotaVerified) {
+      showToast('Could not verify weekly quota right now. Please retry in a moment.', true);
+      return;
+    }
+    if (state.quotaLeft <= 0) {
+      showToast(`Weekly upload limit reached (${state.weeklyLimit}). Try again next week.`, true);
+      render();
       return;
     }
 
@@ -1109,6 +1442,8 @@ import { animate } from 'framer-motion/dom';
           : '';
         state.lastSubmissionRow = String(rowNumber || '').padStart(3, '0') || '000';
         state.lastSubmissionLookup = resolveLookupFromSubmitResponse(responsePayload, rowNumber || state.lastSubmissionRow);
+        state.weeklyUsed += 1;
+        state.quotaLeft = Math.max(0, state.weeklyLimit - state.weeklyUsed);
         state.step = 4;
         render();
         showToast('Submitted');
@@ -1189,6 +1524,11 @@ import { animate } from 'framer-motion/dom';
       state.auth0Sub = await resolveAuth0Sub(AUTH_TIMEOUT_MS);
       window.auth0Sub = state.auth0Sub || window.auth0Sub || '';
       render();
+      refreshWeeklyQuotaFromSheet()
+        .then((verified) => {
+          if (verified) refreshQuotaCopy();
+        })
+        .catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
       root.setAttribute('data-dx-submit-mounted', 'true');
       return true;

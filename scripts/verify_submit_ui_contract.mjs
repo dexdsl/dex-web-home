@@ -29,6 +29,7 @@ function verifySubmitRoute() {
   assertIncludes(routeRel, route, [
     'id="dex-submit"',
     'data-dx-fetch-state="loading"',
+    'data-weekly-limit="4"',
     '/css/components/dx-submit-samples.css',
     '/assets/js/submit.samples.js',
     'data-webapp-url="https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec"',
@@ -57,6 +58,9 @@ function verifySubmitRuntime() {
     'window.__DX_SUBMIT_SAMPLES_CONFIG',
     'pitchSystem',
     'pitchDescriptor',
+    'Weekly uploads available',
+    'refreshWeeklyQuotaFromSheet',
+    'withCanonicalZwnj',
     'serializePitchSelection',
     'Pitch system',
     'data-dx-submit-shell',
