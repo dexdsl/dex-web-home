@@ -227,7 +227,6 @@
   async function jsonpWithTimeout(url, timeoutMs) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxMsgCb${Math.random().toString(36).slice(2)}`;
-      const callbackRef = `window.${callbackName}`;
       const script = document.createElement('script');
       let settled = false;
       let timer = 0;
@@ -260,7 +259,7 @@
       }, timeoutMs);
 
       const separator = url.includes('?') ? '&' : '?';
-      script.src = `${url}${separator}callback=${encodeURIComponent(callbackRef)}`;
+      script.src = `${url}${separator}callback=${encodeURIComponent(callbackName)}`;
       document.body.appendChild(script);
     });
   }

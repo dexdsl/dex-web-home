@@ -849,7 +849,6 @@ import { animate } from 'framer-motion/dom';
   async function jsonpRequest(url, params = {}, timeoutMs = JSONP_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxSubmitJsonp_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
-      const callbackRef = `window.${callbackName}`;
       const script = document.createElement('script');
       let settled = false;
       let timer = 0;
@@ -871,7 +870,7 @@ import { animate } from 'framer-motion/dom';
         settle(resolve, payload);
       };
 
-      const query = new URLSearchParams({ ...params, callback: callbackRef });
+      const query = new URLSearchParams({ ...params, callback: callbackName });
       const separator = String(url).includes('?') ? '&' : '?';
       script.async = true;
       script.src = `${url}${separator}${query.toString()}`;
@@ -1772,7 +1771,6 @@ import { animate } from 'framer-motion/dom';
     await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
     const payload = buildPayload();
     const callbackName = `dxSubmitCallback_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
-    const callbackRef = `window.${callbackName}`;
     const script = document.createElement('script');
     const ticket = Date.now();
     state.submitTicket = ticket;
@@ -1851,7 +1849,7 @@ import { animate } from 'framer-motion/dom';
     };
 
     script.async = true;
-    script.src = `${state.webappUrl}?callback=${encodeURIComponent(callbackRef)}&${new URLSearchParams(payload).toString()}`;
+    script.src = `${state.webappUrl}?callback=${encodeURIComponent(callbackName)}&${new URLSearchParams(payload).toString()}`;
     script.addEventListener('error', () => onResolved(false));
     document.body.appendChild(script);
 

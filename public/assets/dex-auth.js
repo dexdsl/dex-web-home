@@ -259,7 +259,6 @@
   function jsonpWithTimeout(url, params, timeoutMs) {
     return new Promise(function (resolve, reject) {
       var callbackName = "dxAuthPrefetchCb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
-      var callbackRef = "window." + callbackName;
       var script = document.createElement("script");
       var settled = false;
       var timer = 0;
@@ -275,7 +274,7 @@
           } catch (err) {
             window[callbackName] = undefined;
           }
-        }, 2000);
+        }, 180000);
         if (script && script.parentNode) {
           script.parentNode.removeChild(script);
         }
@@ -295,7 +294,7 @@
         reject(new Error("JSONP request failed"));
       };
 
-      var query = new URLSearchParams(Object.assign({}, params || {}, { callback: callbackRef }));
+      var query = new URLSearchParams(Object.assign({}, params || {}, { callback: callbackName }));
       var sep = String(url).indexOf("?") >= 0 ? "&" : "?";
       script.src = String(url) + sep + query.toString();
       script.async = true;
