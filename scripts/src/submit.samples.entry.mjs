@@ -1712,6 +1712,7 @@ import { animate } from 'framer-motion/dom';
     const estimatedCounter = Math.max(1, Number(state.weeklyUsed || 0) + 1);
     const generatedLookup = buildGeneratedSubmissionLookup(estimatedCounter);
     return {
+      action: 'submit',
       auth0Sub: text(state.auth0Sub),
       title: text(state.meta.title),
       creator: text(state.meta.creator),

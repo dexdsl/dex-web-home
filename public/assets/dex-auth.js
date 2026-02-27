@@ -1,6 +1,11 @@
 (function () {
   "use strict";
 
+  if (window.__DEX_AUTH_RUNTIME_ACTIVE__) {
+    return;
+  }
+  window.__DEX_AUTH_RUNTIME_ACTIVE__ = true;
+
   var AUTH_UI_ID = "auth-ui";
   var DROPDOWN_OPEN_CLASS = "is-open";
   var AUTH_DROPDOWN_BLUR_UNDERLAY_ID = "dx-auth-menu-scope-blur";
@@ -1147,6 +1152,9 @@
   }
 
   function setUiState(auth, user) {
+    var prevAuth = !!lastUiAuth;
+    var prevUserSub = lastUiUser && (lastUiUser.sub || lastUiUser.user_id || lastUiUser.email) || "";
+    var nextUserSub = user && (user.sub || user.user_id || user.email) || "";
     lastUiAuth = !!auth;
     lastUiUser = user || null;
 
@@ -1165,18 +1173,23 @@
 
     applySecondaryButtonStyle(signInBtn);
     var fallbackAvatar = getDefaultAvatarDataUri(user && user.name);
-    avatar.src = fallbackAvatar;
 
     if (auth) {
       signInBtn.hidden = true;
       signInBtn.setAttribute("hidden", "hidden");
       profileWrap.hidden = false;
       profileWrap.removeAttribute("hidden");
-      avatar.src = (user && user.picture) ? user.picture : fallbackAvatar;
+      var desiredAvatar = (user && user.picture) ? user.picture : fallbackAvatar;
+      if (avatar.getAttribute("data-dx-avatar-src") !== desiredAvatar) {
+        avatar.src = desiredAvatar;
+        avatar.setAttribute("data-dx-avatar-src", desiredAvatar);
+      }
       if (user && user.name) {
         profileToggle.title = user.name;
       }
-      syncMessagesUnreadCount();
+      if (!prevAuth || prevUserSub !== nextUserSub) {
+        syncMessagesUnreadCount();
+      }
     } else {
       signInBtn.hidden = false;
       signInBtn.removeAttribute("hidden");
@@ -1186,6 +1199,10 @@
       signInBtn.style.visibility = "";
       profileWrap.hidden = true;
       profileWrap.setAttribute("hidden", "hidden");
+      if (avatar.getAttribute("data-dx-avatar-src") !== fallbackAvatar) {
+        avatar.src = fallbackAvatar;
+        avatar.setAttribute("data-dx-avatar-src", fallbackAvatar);
+      }
       closeDropdown();
       setMessagesUnreadBadge(0);
     }
