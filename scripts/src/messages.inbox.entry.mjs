@@ -665,17 +665,22 @@
       };
     }
 
-    const submissionsResponse = await fetchJsonWithTimeout(
-      `${apiBase}/me/submissions?limit=200&state=all`,
-      {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${authSnapshot.token}`,
-          'content-type': 'application/json',
+    let submissionsResponse = null;
+    try {
+      submissionsResponse = await fetchJsonWithTimeout(
+        `${apiBase}/me/submissions?limit=200&state=all`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: `Bearer ${authSnapshot.token}`,
+            'content-type': 'application/json',
+          },
         },
-      },
-      SUBMISSIONS_FETCH_TIMEOUT_MS,
-    );
+        SUBMISSIONS_FETCH_TIMEOUT_MS,
+      );
+    } catch {
+      submissionsResponse = { ok: false, status: 0, payload: null };
+    }
 
     if (submissionsResponse.ok) {
       const payload = isObject(submissionsResponse.payload) ? submissionsResponse.payload : {};
@@ -693,12 +698,17 @@
       });
 
       if (needsLegacyHydration && sub) {
-        const legacyResponse = await withTimeout(
-          jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-          JSONP_TIMEOUT_MS + 100,
-          { status: 'timeout', rows: [] },
-        );
-        const legacyRows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+        let legacyRows = [];
+        try {
+          const legacyResponse = await withTimeout(
+            jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+            JSONP_TIMEOUT_MS + 100,
+            { status: 'timeout', rows: [] },
+          );
+          legacyRows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+        } catch {
+          legacyRows = [];
+        }
         if (legacyRows.length) {
           const legacyRecords = normalizeSubmissionRecords(legacyRows, sub, submissionState);
           const legacyBySid = new Map();
@@ -749,6 +759,11 @@
             warning: '',
           };
         }
+
+        return {
+          records: normalizedRecords,
+          warning: 'Submission detail hydration is temporarily unavailable.',
+        };
       }
 
       return {
@@ -765,12 +780,25 @@
       };
     }
 
-    const legacyResponse = await withTimeout(
-      jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-      JSONP_TIMEOUT_MS + 100,
-      { status: 'timeout', rows: [] },
-    );
-    const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+    let rows = [];
+    try {
+      const legacyResponse = await withTimeout(
+        jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+        JSONP_TIMEOUT_MS + 100,
+        { status: 'timeout', rows: [] },
+      );
+      rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+    } catch {
+      rows = [];
+    }
+
+    if (!rows.length) {
+      return {
+        records: [],
+        warning: 'Submissions are temporarily unavailable.',
+      };
+    }
+
     return {
       records: normalizeSubmissionRecords(rows, sub, submissionState),
       warning: '',
@@ -786,17 +814,22 @@
     }
 
     const endpoint = `${apiBase}/me/messages?limit=200`;
-    const response = await fetchJsonWithTimeout(
-      endpoint,
-      {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${authSnapshot.token}`,
-          'content-type': 'application/json',
+    let response = null;
+    try {
+      response = await fetchJsonWithTimeout(
+        endpoint,
+        {
+          method: 'GET',
+          headers: {
+            authorization: `Bearer ${authSnapshot.token}`,
+            'content-type': 'application/json',
+          },
         },
-      },
-      SYSTEM_FETCH_TIMEOUT_MS,
-    );
+        SYSTEM_FETCH_TIMEOUT_MS,
+      );
+    } catch {
+      response = { ok: false, status: 0, payload: null };
+    }
 
     if (!response.ok) {
       return {
@@ -1199,12 +1232,16 @@
         if (!acknowledged) {
           const row = Number(record.metadata?.row);
           if (Number.isFinite(row)) {
-            const legacyResponse = await withTimeout(
-              jsonpWithTimeout(`${SHEET_API}?action=ack&row=${encodeURIComponent(String(row))}`, JSONP_TIMEOUT_MS),
-              JSONP_TIMEOUT_MS + 100,
-              { status: 'timeout' },
-            );
-            acknowledged = String(legacyResponse?.status || '').toLowerCase() === 'ok';
+            try {
+              const legacyResponse = await withTimeout(
+                jsonpWithTimeout(`${SHEET_API}?action=ack&row=${encodeURIComponent(String(row))}`, JSONP_TIMEOUT_MS),
+                JSONP_TIMEOUT_MS + 100,
+                { status: 'timeout' },
+              );
+              acknowledged = String(legacyResponse?.status || '').toLowerCase() === 'ok';
+            } catch {
+              acknowledged = false;
+            }
           }
         }
 
@@ -1289,20 +1326,33 @@
     const warnings = [];
     let hasFatal = false;
 
-    try {
-      const [submissionResult, systemResult] = await Promise.all([
-        loadSubmissionRecords(apiBase, authSnapshot, submissionState),
-        loadSystemRecords(apiBase, authSnapshot),
-      ]);
+    const settled = await Promise.allSettled([
+      loadSubmissionRecords(apiBase, authSnapshot, submissionState),
+      loadSystemRecords(apiBase, authSnapshot),
+    ]);
+
+    const submissionSettled = settled[0];
+    const systemSettled = settled[1];
+
+    if (submissionSettled.status === 'fulfilled') {
+      const submissionResult = submissionSettled.value;
       submissionRecords = Array.isArray(submissionResult.records) ? submissionResult.records : [];
-      systemRecords = Array.isArray(systemResult.records) ? systemResult.records : [];
       if (submissionResult.warning) warnings.push(submissionResult.warning);
-      if (systemResult.warning) warnings.push(systemResult.warning);
       writePrefetchedRecords(scope, 'submission', submissionRecords);
-      writePrefetchedRecords(scope, 'system', systemRecords);
-    } catch {
-      hasFatal = true;
+    } else {
+      warnings.push('Submissions are temporarily unavailable.');
     }
+
+    if (systemSettled.status === 'fulfilled') {
+      const systemResult = systemSettled.value;
+      systemRecords = Array.isArray(systemResult.records) ? systemResult.records : [];
+      if (systemResult.warning) warnings.push(systemResult.warning);
+      writePrefetchedRecords(scope, 'system', systemRecords);
+    } else {
+      warnings.push('System notifications are temporarily unavailable.');
+    }
+
+    hasFatal = submissionSettled.status === 'rejected' && systemSettled.status === 'rejected';
 
     if (hasFatal && model.records.length === 0) {
       ensureStyles();

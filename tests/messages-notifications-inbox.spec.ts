@@ -724,6 +724,34 @@ test('messages inbox degrades gracefully when system endpoint fails', async ({ p
   await expect(page.locator('[data-dx-msg-item][data-source-type="submission"]')).toHaveCount(2);
 });
 
+test('messages inbox keeps rendering system records when submissions fetch and sheet fallback both fail', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubSubmissionsJsonp(page);
+  await stubMessagesApi(page, 'success');
+
+  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/submissions**', async (route) => {
+    await route.abort();
+  });
+
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    if (action === 'list') {
+      await route.abort();
+      return;
+    }
+    await route.fallback();
+  });
+
+  await page.goto('/entry/messages/', { waitUntil: 'domcontentloaded' });
+  await waitForMessagesReady(page);
+
+  await expect(page.locator('.dx-msg-sub')).not.toContainText('Unable to load inbox right now.');
+  await expect(page.locator('.dx-msg-warning')).toContainText('Submissions are temporarily unavailable.');
+  await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);
+});
+
 test('messages inbox remounts on slot-ready events after route shell swaps', async ({ page }) => {
   await stubDexAuthRuntime(page, 'signed-in');
   await stubSubmissionsJsonp(page);
