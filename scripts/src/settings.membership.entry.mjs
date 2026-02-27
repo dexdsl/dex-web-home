@@ -39,6 +39,9 @@
   };
 
   const ALLOWED_INTERVALS = new Set(['month', 'year']);
+  const DESKTOP_RAIL_BREAKPOINT = 980;
+  const RAIL_VIEWPORT_GUTTER = 18;
+  const RAIL_MIN_HEIGHT = 280;
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -427,6 +430,10 @@
       this.busy = false;
       this.mounted = false;
       this.cache = {};
+      this.railSyncRaf = 0;
+      this.resizeObserver = null;
+      this.paneObserver = null;
+      this.onViewportChange = this.queueRailSync.bind(this);
     }
 
     render() {
@@ -446,22 +453,17 @@
         + '      <div class="dx-memv3-status-row"><span>Payment method</span><strong id="dxMemV3Pay">—</strong></div>'
         + '      <div class="dx-memv3-status-row"><span>Cancellation</span><strong id="dxMemV3Cancel">None scheduled</strong></div>'
         + '    </div>'
-        + '    <aside class="dx-memv3-impact">'
-        + '      <h3>Why this membership matters now</h3>'
-        + '      <ul>'
-        + '        <li><strong>Keep it open:</strong> Membership offsets hosting and bandwidth for the CC-BY commons.</li>'
-        + '        <li><strong>Fund sessions:</strong> Contributions directly support new artist recordings and publishing.</li>'
-        + '        <li><strong>Sustain quality:</strong> Predictable support keeps release quality and cadence high.</li>'
-        + '      </ul>'
-        + '      <p class="dx-memv3-trust">CC-BY archive remains open regardless of membership.</p>'
-        + '    </aside>'
         + '  </section>'
-        + '  <section class="dx-memv3-plan-panel">'
+        + '  <section class="dx-memv3-plan-panel" data-dx-tier-panel>'
         + '    <header class="dx-memv3-plan-head">'
         + '      <h3>Choose your support tier</h3>'
-        + '      <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
-        + '        <button type="button" data-interval="month" aria-pressed="true">Monthly</button>'
-        + '        <button type="button" data-interval="year" aria-pressed="false">Annual</button>'
+        + '      <div class="dx-memv3-interval-shell">'
+        + '        <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
+        + '          <span class="dx-memv3-interval-thumb" aria-hidden="true"></span>'
+        + '          <button type="button" data-interval="month" data-interval-index="0" aria-pressed="true">Monthly</button>'
+        + '          <button type="button" data-interval="year" data-interval-index="1" aria-pressed="false">Annual</button>'
+        + '        </div>'
+        + '        <p id="dxMemV3AnnualHint" class="dx-memv3-annual-hint">Switch to annual for lower effective pricing.</p>'
         + '      </div>'
         + '    </header>'
         + '    <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
@@ -512,6 +514,7 @@
         renewEl: $('#dxMemV3Renew', this.root),
         payEl: $('#dxMemV3Pay', this.root),
         cancelEl: $('#dxMemV3Cancel', this.root),
+        annualHint: $('#dxMemV3AnnualHint', this.root),
         intervalButtons: $$('[data-interval]', this.root),
         tierGrid: $('#dxMemV3TierGrid', this.root),
         selection: $('#dxMemV3Selection', this.root),
@@ -528,11 +531,15 @@
         portalHistoryBtn: $('#dxMemV3PortalHistory', this.root),
       };
 
+      this.root.setAttribute('data-dx-membership-rail', 'true');
+      this.root.setAttribute('data-dx-membership-rail-scrollable', 'false');
       this.root.setAttribute('data-dx-membership-state', 'loading');
       this.root.setAttribute('data-dx-interval', this.interval);
       this.bindEvents();
+      this.bindViewportObservers();
       this.renderTierCards();
       this.renderSelection();
+      this.queueRailSync();
     }
 
     setCardReady(card) {
@@ -584,10 +591,15 @@
             + ` data-dx-tier="${tier}"`
             + ` data-tier="${tier}"`
             + ` aria-pressed="${String(this.selectedTier === tier)}"`
+            + ` data-savings-percent="${String(savings.percent)}"`
+            + ` data-savings-amount="${String(savings.amount)}"`
           + '>'
+          + '  <span class="dx-memv3-tier-kicker">Support tier</span>'
           + `  <span class="dx-memv3-tier-name">${plan.name}</span>`
-          + `  <span class="dx-memv3-tier-price" data-price-month="${String(plan.month.amount)}" data-price-year="${String(plan.year.amount)}" data-currency="${txt(plan.month.currency, 'USD')}">${monthAmount}</span>`
-          + '  <span class="dx-memv3-tier-period">/ month</span>'
+          + '  <span class="dx-memv3-tier-price-wrap">'
+          + `    <span class="dx-memv3-tier-price" data-price-month="${String(plan.month.amount)}" data-price-year="${String(plan.year.amount)}" data-currency="${txt(plan.month.currency, 'USD')}">${monthAmount}</span>`
+          + '    <span class="dx-memv3-tier-period">/ month</span>'
+          + '  </span>'
           + `  <span class="dx-memv3-tier-impact">${plan.impact}</span>`
           + `  <span class="dx-memv3-tier-savings">${savingsCopy}</span>`
           + '</button>'
@@ -620,6 +632,38 @@
       });
 
       this.root.setAttribute('data-dx-interval', this.interval);
+      this.renderAnnualHint();
+      this.queueRailSync();
+    }
+
+    renderAnnualHint() {
+      if (!(this.cache.annualHint instanceof HTMLElement)) return;
+      const plans = Array.isArray(this.plans && this.plans.plans) ? this.plans.plans : [];
+      let bestPercent = 0;
+      let bestAmount = 0;
+      let bestCurrency = txt(this.plans && this.plans.currency, 'USD');
+
+      plans.forEach((plan) => {
+        const savings = annualSavings(plan);
+        if (savings.percent > bestPercent || (savings.percent === bestPercent && savings.amount > bestAmount)) {
+          bestPercent = savings.percent;
+          bestAmount = savings.amount;
+          bestCurrency = txt(plan && plan.year && plan.year.currency, bestCurrency).toUpperCase();
+        }
+      });
+
+      if (bestPercent > 0 && bestAmount > 0) {
+        if (this.interval === 'year') {
+          this.cache.annualHint.textContent = `Annual savings applied: up to ${bestPercent}% (${money(bestAmount, bestCurrency)} / year).`;
+        } else {
+          this.cache.annualHint.textContent = `Switch to annual and save up to ${bestPercent}% (${money(bestAmount, bestCurrency)} / year).`;
+        }
+        return;
+      }
+
+      this.cache.annualHint.textContent = this.interval === 'year'
+        ? 'Annual billing selected for sustained support.'
+        : 'Annual billing rewards sustained support.';
     }
 
     renderSelection() {
@@ -631,6 +675,8 @@
       const currency = this.interval === 'year' ? selectedPlan.year.currency : selectedPlan.month.currency;
       const intervalLabel = this.interval === 'year' ? 'Annual' : 'Monthly';
       this.cache.selection.textContent = `Selected: ${selectedPlan.name} · ${intervalLabel} · ${money(amount, currency)}`;
+      this.renderAnnualHint();
+      this.queueRailSync();
     }
 
     renderSummary() {
@@ -689,6 +735,7 @@
       this.updateTierVisuals();
       this.renderSelection();
       this.setCardReady(this.cache.membershipCard);
+      this.queueRailSync();
     }
 
     renderInvoices() {
@@ -709,6 +756,7 @@
         if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = false;
         if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = false;
         this.setCardReady(this.cache.billingCard);
+        this.queueRailSync();
         return;
       }
 
@@ -718,6 +766,7 @@
         if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = true;
         if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = true;
         this.setCardReady(this.cache.billingCard);
+        this.queueRailSync();
         return;
       }
 
@@ -750,6 +799,64 @@
       if (this.cache.ledgerError instanceof HTMLElement) this.cache.ledgerError.hidden = true;
       if (this.cache.ledgerRetry instanceof HTMLButtonElement) this.cache.ledgerRetry.hidden = true;
       this.setCardReady(this.cache.billingCard);
+      this.queueRailSync();
+    }
+
+    syncRailViewportFit() {
+      if (!(this.root instanceof HTMLElement)) return;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      if (viewportWidth < DESKTOP_RAIL_BREAKPOINT) {
+        this.root.style.removeProperty('--dx-membership-rail-max-h');
+        this.root.style.removeProperty('max-height');
+        this.root.style.removeProperty('overflow-y');
+        this.root.style.removeProperty('overflow-x');
+        this.root.style.removeProperty('overscroll-behavior-y');
+        this.root.setAttribute('data-dx-membership-rail-scrollable', 'false');
+        return;
+      }
+
+      const rect = this.root.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const availableHeight = Math.max(RAIL_MIN_HEIGHT, Math.floor(viewportHeight - rect.top - RAIL_VIEWPORT_GUTTER));
+      const shouldScroll = this.root.scrollHeight > availableHeight + 1;
+
+      this.root.style.setProperty('--dx-membership-rail-max-h', `${availableHeight}px`);
+      this.root.style.maxHeight = `${availableHeight}px`;
+      this.root.style.overflowX = 'hidden';
+      this.root.style.overflowY = shouldScroll ? 'auto' : 'visible';
+      this.root.style.overscrollBehaviorY = shouldScroll ? 'contain' : 'auto';
+      this.root.setAttribute('data-dx-membership-rail-scrollable', shouldScroll ? 'true' : 'false');
+    }
+
+    queueRailSync() {
+      if (this.railSyncRaf) cancelAnimationFrame(this.railSyncRaf);
+      this.railSyncRaf = requestAnimationFrame(() => {
+        this.railSyncRaf = 0;
+        this.syncRailViewportFit();
+      });
+    }
+
+    bindViewportObservers() {
+      window.addEventListener('resize', this.onViewportChange, { passive: true });
+      window.addEventListener('orientationchange', this.onViewportChange, { passive: true });
+      document.addEventListener('visibilitychange', this.onViewportChange, { passive: true });
+      window.addEventListener('hashchange', this.onViewportChange, { passive: true });
+
+      if (typeof ResizeObserver === 'function') {
+        this.resizeObserver = new ResizeObserver(() => this.queueRailSync());
+        this.resizeObserver.observe(this.root);
+        if (this.cache.membershipCard instanceof HTMLElement) this.resizeObserver.observe(this.cache.membershipCard);
+        if (this.cache.billingCard instanceof HTMLElement) this.resizeObserver.observe(this.cache.billingCard);
+      }
+
+      const pane = this.root.closest('#pane-membership');
+      if (pane && typeof MutationObserver === 'function') {
+        this.paneObserver = new MutationObserver(() => this.queueRailSync());
+        this.paneObserver.observe(pane, {
+          attributes: true,
+          attributeFilter: ['hidden', 'style', 'class', 'aria-hidden'],
+        });
+      }
     }
 
     bindEvents() {
@@ -1002,6 +1109,7 @@
 
       this.setCardReady(this.cache.membershipCard);
       this.setCardReady(this.cache.billingCard);
+      this.queueRailSync();
 
       const legacyPane = document.getElementById('dxLegacyMembershipPane');
       if (legacyPane instanceof HTMLElement) legacyPane.hidden = true;

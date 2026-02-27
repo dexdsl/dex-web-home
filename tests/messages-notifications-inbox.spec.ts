@@ -694,9 +694,24 @@ test('settings membership v3 renders trust-first status and production billing l
   await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
   await page.locator('#tab-membership').click();
 
-  await expect(page.locator('#dxMembershipV3Root')).toBeVisible();
-  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-state', /none|active|trialing|past_due|unpaid|canceled_at_period_end|canceled/);
+  const membershipRoot = page.locator('#dxMembershipV3Root');
+  await expect(membershipRoot).toBeVisible();
+  await expect(membershipRoot).toHaveAttribute('data-dx-membership-state', /none|active|trialing|past_due|unpaid|canceled_at_period_end|canceled/);
+  await expect(membershipRoot).toHaveAttribute('data-dx-membership-rail', 'true');
+  await expect(membershipRoot).toHaveAttribute('data-dx-membership-rail-scrollable', /true|false/);
   await expect(page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root [data-dx-tier-panel]')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root .dx-memv3-interval-thumb')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root .dx-memv3-impact')).toHaveCount(0);
+  await expect(page.locator('#asideWhy')).toBeVisible();
+
+  const railOverflowStateMatches = await membershipRoot.evaluate((node) => {
+    const attr = String(node.getAttribute('data-dx-membership-rail-scrollable') || '').toLowerCase();
+    if (window.innerWidth < 980) return attr === 'false';
+    const shouldScroll = node.scrollHeight > node.clientHeight + 1;
+    return shouldScroll ? attr === 'true' : attr === 'false';
+  });
+  expect(railOverflowStateMatches).toBe(true);
 
   await expect(page.locator('#dxBillingHistoryV3Card h2')).toContainText('Billing history');
   await expect(page.locator('#dxBillingHistoryV3Card')).not.toContainText('preview');

@@ -59,18 +59,26 @@ function verifyRuntime(failures) {
       'window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED = true',
       'window.__dxSettingsMembershipMount = mountMembershipV3',
       'data-dx-membership-state',
+      'data-dx-membership-rail',
+      'data-dx-membership-rail-scrollable',
       'data-dx-tier',
       'data-dx-interval',
+      'data-dx-tier-panel',
       'data-dx-billing-ledger',
       'data-dx-billing-row-status',
       'data-dx-billing-cta-primary',
       'Billing history',
       'dxMemV3RefreshInvoices',
       '/me/invoices?limit=12',
+      'syncRailViewportFit',
     ],
     'settings membership runtime source',
     failures,
   );
+
+  if (src.includes('dx-memv3-impact')) {
+    failures.push('settings membership runtime still contains internal impact markup');
+  }
 
   if (!fs.existsSync(RUNTIME_PUBLIC)) {
     failures.push('public membership runtime bundle is missing (run settings:membership:build)');
@@ -80,7 +88,11 @@ function verifyRuntime(failures) {
 function verifyCss(failures) {
   const requiredSelectors = [
     '#dxMembershipV3Root',
+    '#dxMembershipV3Root[data-dx-membership-rail-scrollable="true"]',
     '.dx-memv3-tier-grid',
+    '.dx-memv3-tier-kicker',
+    '.dx-memv3-tier-price-wrap',
+    '.dx-memv3-interval-thumb',
     '.dx-memv3-ledger',
     '[data-dx-billing-row-status="paid"]',
     '@media (prefers-reduced-motion: reduce)',

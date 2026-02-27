@@ -31,6 +31,9 @@ const REQUIRED_HANDLER_MARKERS = [
 const REQUIRED_V3_RUNTIME_MARKERS = [
   'window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED = true',
   'window.__dxSettingsMembershipMount = mountMembershipV3',
+  'data-dx-membership-rail',
+  'data-dx-membership-rail-scrollable',
+  'data-dx-tier-panel',
   'data-dx-billing-ledger',
   'data-dx-billing-row-status',
   'data-dx-billing-cta-primary',
@@ -42,6 +45,10 @@ const BANNED_MARKERS = [
   'if (window.DEX_AUTH && window.DEX_AUTH.ready)',
   'createAuth0Client({',
   'Billing history (preview)'
+];
+
+const BANNED_RUNTIME_MARKERS = [
+  'dx-memv3-impact'
 ];
 
 function readText(filePath) {
@@ -95,6 +102,12 @@ function verifyMembershipRuntimeContract(failures) {
   for (const marker of REQUIRED_V3_RUNTIME_MARKERS) {
     if (!runtimeSource.includes(marker)) {
       failures.push(`membership runtime missing marker: ${marker}`);
+    }
+  }
+
+  for (const marker of BANNED_RUNTIME_MARKERS) {
+    if (runtimeSource.includes(marker)) {
+      failures.push(`membership runtime still contains banned marker: ${marker}`);
     }
   }
 }
