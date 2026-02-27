@@ -701,6 +701,12 @@ test('settings membership v3 renders trust-first status and production billing l
   await expect(membershipRoot).toHaveAttribute('data-dx-membership-rail-scrollable', /true|false/);
   await expect(page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root [data-dx-tier-panel]')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierGate')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'false');
+  await page.locator('#dxMembershipV3Root #dxMemV3TierGate').click();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'true');
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-interval-thumb')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-impact')).toHaveCount(0);
   await expect(page.locator('#asideWhy')).toBeVisible();

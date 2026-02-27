@@ -428,6 +428,7 @@
       this.invoiceState = 'loading';
       this.error = '';
       this.busy = false;
+      this.tiersOpen = false;
       this.mounted = false;
       this.cache = {};
       this.railSyncRaf = 0;
@@ -455,25 +456,31 @@
         + '    </div>'
         + '  </section>'
         + '  <section class="dx-memv3-plan-panel" data-dx-tier-panel>'
-        + '    <header class="dx-memv3-plan-head">'
-        + '      <h3>Choose your support tier</h3>'
-        + '      <div class="dx-memv3-interval-shell">'
-        + '        <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
-        + '          <span class="dx-memv3-interval-thumb" aria-hidden="true"></span>'
-        + '          <button type="button" data-interval="month" data-interval-index="0" aria-pressed="true">Monthly</button>'
-        + '          <button type="button" data-interval="year" data-interval-index="1" aria-pressed="false">Annual</button>'
+        + '    <div class="dx-memv3-tier-gate">'
+        + '      <button type="button" id="dxMemV3TierGate" class="btn dx-memv3-tier-gate-btn" aria-expanded="false" aria-controls="dxMemV3TierComposer">Want to support? Consider membership tiers!</button>'
+        + '      <p class="note">Optional: open tier composer to customize plan and billing interval.</p>'
+        + '    </div>'
+        + '    <div id="dxMemV3TierComposer" class="dx-memv3-tier-composer" data-open="false" hidden>'
+        + '      <header class="dx-memv3-plan-head">'
+        + '        <h3>Choose your support tier</h3>'
+        + '        <div class="dx-memv3-interval-shell">'
+        + '          <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
+        + '            <span class="dx-memv3-interval-thumb" aria-hidden="true"></span>'
+        + '            <button type="button" data-interval="month" data-interval-index="0" aria-pressed="true">Monthly</button>'
+        + '            <button type="button" data-interval="year" data-interval-index="1" aria-pressed="false">Annual</button>'
+        + '          </div>'
+        + '          <p id="dxMemV3AnnualHint" class="dx-memv3-annual-hint">Switch to annual for lower effective pricing.</p>'
         + '        </div>'
-        + '        <p id="dxMemV3AnnualHint" class="dx-memv3-annual-hint">Switch to annual for lower effective pricing.</p>'
+        + '      </header>'
+        + '      <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
+        + '      <div class="dx-memv3-plan-summary">'
+        + '        <p id="dxMemV3Selection" class="dx-memv3-selection">Selected: Steward · Monthly · $6.99</p>'
+        + '        <label id="dxMemV3CoverWrap" class="dx-memv3-cover">'
+        + '          <input id="dxMemV3Cover" type="checkbox" />'
+        + '          <span>Cover fees (+2.9% + $0.30)</span>'
+        + '        </label>'
+        + '        <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
         + '      </div>'
-        + '    </header>'
-        + '    <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
-        + '    <div class="dx-memv3-plan-summary">'
-        + '      <p id="dxMemV3Selection" class="dx-memv3-selection">Selected: Steward · Monthly · $6.99</p>'
-        + '      <label id="dxMemV3CoverWrap" class="dx-memv3-cover">'
-        + '        <input id="dxMemV3Cover" type="checkbox" />'
-        + '        <span>Cover fees (+2.9% + $0.30)</span>'
-        + '      </label>'
-        + '      <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
         + '    </div>'
         + '    <div class="dx-memv3-actions">'
         + '      <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>Start membership</button>'
@@ -514,6 +521,8 @@
         renewEl: $('#dxMemV3Renew', this.root),
         payEl: $('#dxMemV3Pay', this.root),
         cancelEl: $('#dxMemV3Cancel', this.root),
+        tierGateBtn: $('#dxMemV3TierGate', this.root),
+        tierComposer: $('#dxMemV3TierComposer', this.root),
         annualHint: $('#dxMemV3AnnualHint', this.root),
         intervalButtons: $$('[data-interval]', this.root),
         tierGrid: $('#dxMemV3TierGrid', this.root),
@@ -535,10 +544,29 @@
       this.root.setAttribute('data-dx-membership-rail-scrollable', 'false');
       this.root.setAttribute('data-dx-membership-state', 'loading');
       this.root.setAttribute('data-dx-interval', this.interval);
+      this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.bindEvents();
       this.bindViewportObservers();
       this.renderTierCards();
+      this.setTierComposerOpen(this.tiersOpen);
       this.renderSelection();
+      this.queueRailSync();
+    }
+
+    setTierComposerOpen(nextOpen) {
+      this.tiersOpen = Boolean(nextOpen);
+      if (this.cache.tierComposer instanceof HTMLElement) {
+        this.cache.tierComposer.dataset.open = this.tiersOpen ? 'true' : 'false';
+        this.cache.tierComposer.hidden = !this.tiersOpen;
+        this.cache.tierComposer.setAttribute('aria-hidden', this.tiersOpen ? 'false' : 'true');
+      }
+      if (this.cache.tierGateBtn instanceof HTMLButtonElement) {
+        this.cache.tierGateBtn.setAttribute('aria-expanded', this.tiersOpen ? 'true' : 'false');
+        this.cache.tierGateBtn.textContent = this.tiersOpen
+          ? 'Hide membership tiers'
+          : 'Want to support? Consider membership tiers!';
+      }
+      this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.queueRailSync();
     }
 
@@ -875,6 +903,12 @@
           this.renderSelection();
         });
       });
+
+      if (this.cache.tierGateBtn instanceof HTMLButtonElement) {
+        this.cache.tierGateBtn.addEventListener('click', () => {
+          this.setTierComposerOpen(!this.tiersOpen);
+        });
+      }
 
       this.root.addEventListener('click', (event) => {
         const target = event.target;

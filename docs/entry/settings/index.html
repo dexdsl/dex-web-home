@@ -3518,6 +3518,10 @@ function fitProfileLayout(){
   const t = tabs.find(b => b.id === hash || ('tab-' + b.dataset.pane) === hash || b.dataset.pane === hash);
   const first = t || tabs[0];
 
+  tabs.forEach((btn) => {
+    btn.setAttribute('aria-selected', btn === first ? 'true' : 'false');
+    btn.tabIndex = (btn === first ? 0 : -1);
+  });
   first.setAttribute('aria-selected','true');
   panes.forEach((el, key) => el.hidden = (key !== first.dataset.pane));
   current = first.dataset.pane;

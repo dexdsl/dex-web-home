@@ -122,6 +122,29 @@
   gap: 12px;
 }
 
+#dxMembershipV3Root .dx-memv3-tier-gate {
+  display: grid;
+  gap: 6px;
+}
+
+#dxMembershipV3Root .dx-memv3-tier-gate-btn {
+  justify-self: start;
+  border-color: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  font: 700 clamp(11px, 1.2vw, 12px)/1 var(--font-heading, system-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#dxMembershipV3Root .dx-memv3-tier-composer {
+  display: none;
+  gap: 12px;
+}
+
+#dxMembershipV3Root .dx-memv3-tier-composer[data-open="true"] {
+  display: grid;
+}
+
 #dxMembershipV3Root .dx-memv3-plan-head {
   display: flex;
   align-items: flex-start;
@@ -135,6 +158,7 @@
   font: 700 clamp(14px, 1.8vw, 16px)/1.2 var(--font-heading, system-ui);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.84);
 }
 
 #dxMembershipV3Root .dx-memv3-interval-shell {
@@ -154,6 +178,7 @@
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.85);
   isolation: isolate;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 #dxMembershipV3Root .dx-memv3-interval-thumb {
@@ -217,78 +242,60 @@
 
 #dxMembershipV3Root .dx-memv3-tier {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
+  min-width: 0;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 14px;
-  background:
-    radial-gradient(120% 120% at 100% 0%, rgba(255, 107, 76, 0.14), transparent 58%),
-    radial-gradient(130% 120% at 0% 100%, rgba(53, 114, 255, 0.12), transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
-  padding: 14px 14px 13px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.78));
+  padding: 14px 16px;
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
-  gap: 6px;
+  gap: 8px;
   text-align: left;
   cursor: pointer;
-  min-height: 228px;
+  min-height: 188px;
   transition:
-    transform 200ms cubic-bezier(.2, .7, .2, 1),
-    box-shadow 220ms cubic-bezier(.2, .7, .2, 1),
-    border-color 220ms cubic-bezier(.2, .7, .2, 1),
-    filter 220ms cubic-bezier(.2, .7, .2, 1);
+    transform 180ms cubic-bezier(.2, .7, .2, 1),
+    box-shadow 180ms cubic-bezier(.2, .7, .2, 1),
+    border-color 180ms cubic-bezier(.2, .7, .2, 1),
+    background-color 180ms cubic-bezier(.2, .7, .2, 1);
 }
 
 #dxMembershipV3Root .dx-memv3-tier::before {
   content: '';
   position: absolute;
-  inset: -35%;
-  background: conic-gradient(from 120deg, rgba(255, 98, 64, 0.14), rgba(85, 126, 255, 0.12), rgba(255, 98, 64, 0.14));
+  inset: 0;
+  background: linear-gradient(120deg, transparent 15%, rgba(255, 255, 255, 0.52) 45%, transparent 76%);
   opacity: 0;
-  transform: rotate(0deg);
-  transition: opacity 220ms ease, transform 360ms cubic-bezier(.2, .7, .2, 1);
-  pointer-events: none;
-}
-
-#dxMembershipV3Root .dx-memv3-tier::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.56) 34%, transparent 56%);
   transform: translateX(-140%);
-  opacity: 0;
+  transition: transform 600ms cubic-bezier(.2, .7, .2, 1), opacity 260ms ease;
   pointer-events: none;
 }
 
 @media (hover: hover) {
   #dxMembershipV3Root .dx-memv3-tier:hover {
-    transform: translateY(-3px) scale(1.005);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
     border-color: rgba(0, 0, 0, 0.22);
-    filter: saturate(1.05);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.84));
   }
 
   #dxMembershipV3Root .dx-memv3-tier:hover::before {
-    opacity: 0.45;
-    transform: rotate(14deg);
-  }
-
-  #dxMembershipV3Root .dx-memv3-tier:hover::after {
     opacity: 1;
-    transform: translateX(140%);
-    transition: transform 760ms cubic-bezier(.2, .7, .2, 1), opacity 280ms ease;
+    transform: translateX(130%);
   }
 }
 
 #dxMembershipV3Root .dx-memv3-tier[aria-pressed="true"] {
-  border-color: rgba(255, 25, 16, 0.52);
-  box-shadow: 0 0 0 2px rgba(255, 25, 16, 0.16), 0 20px 36px rgba(0, 0, 0, 0.16);
+  border-color: rgba(255, 122, 16, 0.62);
+  box-shadow: 0 0 0 2px rgba(255, 122, 16, 0.4), 0 14px 30px rgba(255, 90, 16, 0.22);
   transform: translateY(-2px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 244, 236, 0.94));
 }
 
 #dxMembershipV3Root .dx-memv3-tier[aria-pressed="true"]::before {
-  opacity: 0.5;
-  transform: rotate(10deg);
+  opacity: 0.82;
+  transform: translateX(130%);
 }
 
 #dxMembershipV3Root .dx-memv3-tier-kicker {
@@ -300,40 +307,47 @@
 
 #dxMembershipV3Root .dx-memv3-tier-name {
   margin-top: 1px;
-  font: 700 clamp(20px, 2vw, 26px)/1.02 var(--font-heading, 'Typefesse', sans-serif);
+  font: 700 clamp(18px, 1.8vw, 24px)/1.02 var(--font-heading, 'Typefesse', sans-serif);
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
 }
 
 #dxMembershipV3Root .dx-memv3-tier-price-wrap {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 1px;
+  min-width: 0;
 }
 
 #dxMembershipV3Root .dx-memv3-tier-price {
-  font: 700 clamp(34px, 4vw, 50px)/0.9 var(--font-heading, 'Typefesse', sans-serif);
+  font: 700 clamp(30px, 3vw, 42px)/0.92 var(--font-heading, 'Typefesse', sans-serif);
   letter-spacing: 0;
+  overflow-wrap: normal;
 }
 
 #dxMembershipV3Root .dx-memv3-tier-period {
-  font: 600 clamp(13px, 1.4vw, 16px)/1 var(--font-mono, 'Courier Prime', monospace);
+  font: 600 clamp(12px, 1.1vw, 15px)/1 var(--font-mono, 'Courier Prime', monospace);
   color: rgba(0, 0, 0, 0.68);
+  white-space: nowrap;
 }
 
 #dxMembershipV3Root .dx-memv3-tier-impact {
-  margin-top: 2px;
-  font-size: 13.5px;
+  margin-top: 1px;
+  font-size: 12.5px;
   line-height: 1.35;
   color: rgba(0, 0, 0, 0.76);
-  max-width: 36ch;
+  max-width: 42ch;
+  overflow-wrap: anywhere;
 }
 
 #dxMembershipV3Root .dx-memv3-tier-savings {
   margin-top: auto;
-  font-size: 12.5px;
+  font-size: 11.8px;
   color: #154f94;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 #dxMembershipV3Root .dx-memv3-plan-summary {
@@ -522,12 +536,18 @@
     text-align: left;
   }
 
+  #dxMembershipV3Root .dx-memv3-tier-gate-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   #dxMembershipV3Root .dx-memv3-tier {
-    min-height: 206px;
+    min-height: 176px;
+    padding: 13px 14px;
   }
 
   #dxMembershipV3Root .dx-memv3-tier-price {
-    font-size: clamp(32px, 11vw, 44px);
+    font-size: clamp(27px, 9.2vw, 38px);
   }
 
   #dxMembershipV3Root .dx-memv3-actions {
