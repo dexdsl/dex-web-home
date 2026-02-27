@@ -43,7 +43,6 @@
     '/entry/achievements',
   ]);
   const PROFILE_STANDARD_CHROME_ROUTES = new Set([
-    '/entry/submit',
     '/entry/messages/submission',
   ]);
 
