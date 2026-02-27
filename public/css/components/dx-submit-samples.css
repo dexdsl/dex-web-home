@@ -147,6 +147,32 @@
   line-height: 1.44;
 }
 
+#dex-submit .dx-submit-action-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(155, 18, 18, 0.36);
+  border-radius: 10px;
+  background: rgba(170, 24, 24, 0.1);
+  padding: 10px 12px;
+}
+
+#dex-submit .dx-submit-action-kicker {
+  margin: 0;
+  color: #7f1414;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+#dex-submit .dx-submit-action-copy {
+  margin: 0;
+  color: #4a1010;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: clamp(13px, 1vw, 14px);
+  line-height: 1.45;
+}
+
 #dex-submit .dx-submit-progress-wrap {
   position: sticky;
   top: 0;

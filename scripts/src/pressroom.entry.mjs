@@ -1155,23 +1155,27 @@ import { animate } from 'framer-motion/dom';
     hostCard.appendChild(doneBlock);
 
     const footer = create('div', 'dx-press-nav');
-    const newRequest = createButton('Start another request', 'primary', () => {
+    const timelineRequestId = text(state.lastRequestId, text(state.activeRequestId, ''));
+
+    const openInbox = create('a', 'cta-btn dx-button-element dx-button-element--primary dx-button-size--md', 'Open inbox');
+    openInbox.href = '/entry/messages/';
+    footer.appendChild(openInbox);
+
+    const newRequest = createButton('Start another request', 'secondary', () => {
       state.form = createInitialForm();
       state.submitError = '';
       setStep(0);
       refreshMonthlyQuota({ useCache: false, forceLive: true }).catch(() => {});
     });
-    newRequest.disabled = !canBegin();
-
-    const showHistory = createButton('View lifecycle', 'secondary', () => {
-      if (!state.activeRequestId && state.requests[0]) {
-        state.activeRequestId = state.requests[0].requestId;
-      }
-      renderHistory();
-    });
-
-    footer.appendChild(showHistory);
+    newRequest.disabled = false;
     footer.appendChild(newRequest);
+
+    if (timelineRequestId) {
+      const openTimeline = create('a', 'cta-btn dx-button-element dx-button-element--secondary dx-button-size--sm', 'Open this timeline');
+      openTimeline.href = `/entry/messages/submission/?kind=pressroom&rid=${encodeURIComponent(timelineRequestId)}`;
+      footer.appendChild(openTimeline);
+    }
+
     hostCard.appendChild(footer);
   }
 

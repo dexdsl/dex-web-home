@@ -70,6 +70,55 @@ const SUBMISSION_DETAIL = {
   },
 };
 
+const PRESSROOM_ROWS = [
+  {
+    row: 19,
+    requestId: 'req-press-01',
+    status: 'in_review',
+    timestamp: '2026-02-27T03:00:00.000Z',
+    updatedAt: '2026-02-27T04:30:00.000Z',
+    name: 'Alex Tester',
+    email: 'alex@example.com',
+    project: 'Pressroom Launch Story',
+    desc: 'Requesting editorial coverage for launch updates.',
+    links: 'https://example.com/press-launch',
+    budget: '$2,500',
+    timeframe: 'Q2 2026',
+  },
+];
+
+const PRESSROOM_EVENTS: Record<string, Array<Record<string, unknown>>> = {
+  'req-press-01': [
+    {
+      eventId: 'press-evt-1',
+      requestId: 'req-press-01',
+      eventType: 'submitted',
+      statusRaw: 'submitted',
+      eventTimestamp: '2026-02-27T03:00:00.000Z',
+      sourceEventKey: 'req-press-01:submitted',
+      metadataJson: JSON.stringify({ sourceLink: 'https://example.com/press-launch' }),
+    },
+    {
+      eventId: 'press-evt-2',
+      requestId: 'req-press-01',
+      eventType: 'in_review',
+      statusRaw: 'in_review',
+      publicNote: 'Editorial team is reviewing your request.',
+      eventTimestamp: '2026-02-27T04:30:00.000Z',
+      sourceEventKey: 'req-press-01:in_review',
+    },
+    {
+      eventId: 'press-evt-dup',
+      requestId: 'req-press-01',
+      eventType: 'in_review',
+      statusRaw: 'in_review',
+      publicNote: '',
+      eventTimestamp: '2026-02-27T04:30:00.000Z',
+      sourceEventKey: 'req-press-01:in_review',
+    },
+  ],
+};
+
 async function stubHeaderRuntimes(page: Page): Promise<void> {
   await page.route('**/assets/js/header-slot.js', async (route) => {
     await route.fulfill({
@@ -290,6 +339,47 @@ async function stubLegacySubmissionApi(
   });
 }
 
+async function stubPressroomApi(
+  page: Page,
+  rows: Array<Record<string, unknown>> = PRESSROOM_ROWS,
+  eventsByRequest: Record<string, Array<Record<string, unknown>>> = PRESSROOM_EVENTS,
+): Promise<void> {
+  await page.route('https://script.google.com/macros/s/AKfycbwb2lOkJDN7rOJVmGHPzY3IBRByjrfMI0GH_TzUsXYDEXIjdIlqr-ZR0VKDWvoPmFjw/exec**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok', rows })});`,
+      });
+      return;
+    }
+
+    if (action === 'events_for_request') {
+      const requestId = String(url.searchParams.get('requestId') || '').trim();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok', events: eventsByRequest[requestId] || [] })});`,
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok' })});`,
+    });
+  });
+}
+
 async function waitReady(page: Page, selector: string): Promise<void> {
   const root = page.locator(selector);
   await expect(root).toBeVisible();
@@ -355,6 +445,27 @@ test('submission detail hard load restores header/footer chrome and can route ba
   ]);
 
   await waitReady(page, '#dex-msg');
+});
+
+test('messages detail supports kind=pressroom route and renders request timeline without acknowledge action', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page);
+  await stubPressroomApi(page);
+
+  await page.goto('/entry/messages/submission/?kind=pressroom&rid=req-press-01', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  await expect(page.locator('.dx-sub-kicker').first()).toContainText('request tracker');
+  await expect(page.locator('.dx-sub-title')).toHaveText('Pressroom Launch Story');
+  await expect(page.locator('.dx-sub-status')).toContainText('Request req-press-01');
+  await expect(page.locator('.dx-sub-grid .dx-sub-card').first()).toContainText('Request ID: req-press-01');
+  await expect(page.locator('.dx-sub-grid .dx-sub-card').first()).toContainText('Budget: $2,500');
+  await expect(page.locator('.dx-sub-grid .dx-sub-card').first()).toContainText('Timeframe: Q2 2026');
+  await expect(page.locator('#dx-sub-stage-rail')).toContainText('In review');
+  await expect(page.locator('#dx-sub-timeline')).toContainText('Editorial team is reviewing your request.');
+  await expect(page.locator('[data-dx-sub-action="ack"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Back to inbox' })).toHaveCount(1);
 });
 
 test('submission detail breadcrumb delimiter auto-morphs and spins on click', async ({ page }) => {

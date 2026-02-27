@@ -66,6 +66,8 @@ function verifySubmitRuntime() {
     'withCanonicalZwnj',
     'serializePitchSelection',
     'Pitch system',
+    'dx-submit-action-card',
+    'Weekly upload limit reached for this account.',
     'data-dx-submit-shell',
     'data-dx-submit-step',
     'data-dx-submit-progress',

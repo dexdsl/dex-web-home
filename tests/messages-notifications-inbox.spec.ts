@@ -57,6 +57,21 @@ const SUBMISSION_ROWS = [
   },
 ];
 
+const PRESSROOM_ROWS = [
+  {
+    row: 4,
+    requestId: 'req-press-01',
+    project: 'Pressroom Launch Story',
+    status: 'in_review',
+    name: 'Alex Tester',
+    email: 'alex@example.com',
+    links: 'https://example.com/pressroom-launch',
+    timeframe: 'Q2 2026',
+    timestamp: '2026-02-25T10:00:00.000Z',
+    updatedAt: '2026-02-26T12:00:00.000Z',
+  },
+];
+
 const SUBMISSION_THREADS_FIXTURE = [
   {
     submissionId: 'sub-001',
@@ -195,6 +210,7 @@ async function stubSubmissionsJsonp(page: Page): Promise<void> {
     const url = new URL(route.request().url());
     const callback = String(url.searchParams.get('callback') || '').trim();
     const action = String(url.searchParams.get('action') || '').trim();
+    const isPressroomScript = url.pathname.includes('AKfycbwb2lOkJDN7rOJVmGHPzY3IBRByjrfMI0GH_TzUsXYDEXIjdIlqr-ZR0VKDWvoPmFjw');
 
     if (!callback) {
       await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
@@ -203,7 +219,7 @@ async function stubSubmissionsJsonp(page: Page): Promise<void> {
 
     let payload: unknown = { status: 'error' };
     if (action === 'list') {
-      payload = { status: 'ok', rows: SUBMISSION_ROWS };
+      payload = { status: 'ok', rows: isPressroomScript ? PRESSROOM_ROWS : SUBMISSION_ROWS };
     } else if (action === 'ack') {
       payload = { status: 'ok' };
     }
@@ -681,8 +697,8 @@ test('messages inbox merges system + submissions and supports read/archive actio
   await page.goto('/entry/messages/', { waitUntil: 'domcontentloaded' });
   await waitForMessagesReady(page);
 
-  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
-  await expect(page.locator('#dx-msg-unread-count')).toContainText('2');
+  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(5);
+  await expect(page.locator('#dx-msg-unread-count')).toContainText('3');
   await expect(page.locator('[data-source-type="submission"] .dx-msg-link').first()).toHaveAttribute(
     'href',
     /\/entry\/messages\/submission\/\?sid=sub-001/,
@@ -691,6 +707,13 @@ test('messages inbox merges system + submissions and supports read/archive actio
   expect(submissionTitle).toContain('Brass Session');
   const lookupMatch = submissionTitle.match(/\((SUB\d{2}-[A-Z]\.[A-Za-z]{3}\s+[A-Za-z][A-Za-z\-']*\s+(?:A|V|AV|O)\d{4})\)$/);
   expect(lookupMatch?.[1] || '').toMatch(GENERATED_LOOKUP_REGEX);
+  await expect(page.locator('[data-source-type="pressroom"] .dx-msg-link').first()).toHaveAttribute(
+    'href',
+    /\/entry\/messages\/submission\/\?kind=pressroom&rid=req-press-01/,
+  );
+  await expect(page.locator('[data-source-type="pressroom"] .dx-msg-heading').first()).toContainText(
+    'Pressroom Launch Story (req-press-01)',
+  );
 
   await page.locator('[data-dx-msg-filter="system"]').click();
   await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);
@@ -724,6 +747,7 @@ test('messages inbox degrades gracefully when system endpoint fails', async ({ p
 
   await expect(page.locator('.dx-msg-warning')).toContainText('System notifications are temporarily unavailable.');
   await expect(page.locator('[data-dx-msg-item][data-source-type="submission"]')).toHaveCount(2);
+  await expect(page.locator('[data-dx-msg-item][data-source-type="pressroom"]')).toHaveCount(1);
 });
 
 test('messages inbox keeps rendering system records when submissions fetch and sheet fallback both fail', async ({ page }) => {
@@ -750,8 +774,10 @@ test('messages inbox keeps rendering system records when submissions fetch and s
   await waitForMessagesReady(page);
 
   await expect(page.locator('.dx-msg-sub')).not.toContainText('Unable to load inbox right now.');
-  await expect(page.locator('.dx-msg-warning')).toContainText('Submissions are temporarily unavailable.');
+  await expect(page.locator('.dx-msg-shell')).toContainText('Submissions are temporarily unavailable.');
+  await expect(page.locator('.dx-msg-shell')).toContainText('Pressroom requests are temporarily unavailable.');
   await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);
+  await expect(page.locator('[data-dx-msg-item][data-source-type="pressroom"]')).toHaveCount(0);
 });
 
 test('messages inbox remounts on slot-ready events after route shell swaps', async ({ page }) => {
@@ -761,7 +787,7 @@ test('messages inbox remounts on slot-ready events after route shell swaps', asy
 
   await page.goto('/entry/messages/', { waitUntil: 'domcontentloaded' });
   await waitForMessagesReady(page);
-  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
+  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(5);
 
   await page.evaluate(() => {
     const root = document.getElementById('dex-msg');
@@ -776,7 +802,7 @@ test('messages inbox remounts on slot-ready events after route shell swaps', asy
   });
 
   await waitForMessagesReady(page);
-  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(4);
+  await expect(page.locator('[data-dx-msg-item]')).toHaveCount(5);
 });
 
 test('messages inbox exits loading and shows sign-in prompt for signed-out users', async ({ page }) => {

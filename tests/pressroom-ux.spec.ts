@@ -138,27 +138,31 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+function stageHost(page: Page, step: string) {
+  return page.locator(`.dx-press-stage-host[data-dx-press-step="${step}"]`);
+}
+
 async function completeWizardToReview(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Begin request' }).click();
-  await expect(page.locator('[data-dx-press-step="contact"]')).toBeVisible();
+  await expect(stageHost(page, 'contact')).toBeVisible();
 
   await page.locator('.dx-press-field', { hasText: 'Contact name' }).locator('input').fill('Alex Tester');
   await page.locator('.dx-press-field', { hasText: 'Contact email' }).locator('input').fill('alex@example.com');
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.locator('[data-dx-press-step="project"]')).toBeVisible();
+  await expect(stageHost(page, 'project')).toBeVisible();
   await page.locator('.dx-press-field', { hasText: 'Project title' }).locator('input').fill('Pressroom V2 Launch Story');
   await page.locator('.dx-press-field', { hasText: 'Project description' }).locator('textarea').fill('Coverage request for release and lifecycle improvements.');
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.locator('[data-dx-press-step="details"]')).toBeVisible();
+  await expect(stageHost(page, 'details')).toBeVisible();
   await page.locator('.dx-press-field', { hasText: 'Source links' }).locator('input').fill('https://example.com/media');
   await page.locator('.dx-press-field', { hasText: 'Budget (USD)' }).locator('input').fill('2500');
   await page.locator('.dx-press-field', { hasText: 'Timeline' }).locator('input').fill('Draft in two weeks');
   await page.locator('.dx-press-field', { hasText: 'Timeframe' }).locator('input').fill('March 2026');
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.locator('[data-dx-press-step="review"]')).toBeVisible();
+  await expect(stageHost(page, 'review')).toBeVisible();
 }
 
 test('pressroom route mounts modern shell and removes legacy inline implementation', async ({ page }) => {
@@ -228,7 +232,7 @@ test('pressroom collapses to mobile single-column with readable controls', async
   await waitReady(page);
 
   await page.getByRole('button', { name: 'Begin request' }).click();
-  await expect(page.locator('[data-dx-press-step="contact"]')).toBeVisible();
+  await expect(stageHost(page, 'contact')).toBeVisible();
 
   const mobile = await page.evaluate(() => {
     const shell = document.querySelector('[data-dx-press-shell]') as HTMLElement | null;
@@ -304,8 +308,15 @@ test('pressroom enforces lock -> sheen -> done on successful submit', async ({ p
   await submit.click();
 
   await expect.poll(async () => page.locator('#dex-press').getAttribute('data-dx-press-submitting')).toBe('true');
-  await expect(page.locator('[data-dx-press-step="done"]')).toBeVisible();
-  await expect(page.locator('[data-dx-press-step="done"]')).toContainText('Request ID: req-press-99');
+  await expect(stageHost(page, 'done')).toBeVisible();
+  await expect(stageHost(page, 'done')).toContainText('Request ID: req-press-99');
+  await expect(page.getByRole('link', { name: 'Open inbox' })).toHaveAttribute('href', '/entry/messages/');
+  await expect(page.getByRole('button', { name: 'Start another request' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open this timeline' })).toHaveAttribute(
+    'href',
+    /\/entry\/messages\/submission\/\?kind=pressroom&rid=req-press-99/,
+  );
+  await expect(page.getByRole('button', { name: 'View lifecycle' })).toHaveCount(0);
 
   const appended = gas.getLastAppend();
   expect(appended).not.toBeNull();
@@ -330,9 +341,9 @@ test('pressroom submission failure is loud and remains on review', async ({ page
   await completeWizardToReview(page);
   await page.getByRole('button', { name: 'Submit request' }).click();
 
-  await expect(page.locator('[data-dx-press-step="review"]')).toBeVisible();
-  await expect(page.locator('[data-dx-press-step="review"]')).toContainText('Monthly request limit reached');
-  await expect(page.locator('[data-dx-press-step="review"]')).toContainText('Action required');
+  await expect(stageHost(page, 'review')).toBeVisible();
+  await expect(stageHost(page, 'review')).toContainText('Monthly request limit reached');
+  await expect(stageHost(page, 'review')).toContainText('Action required');
 });
 
 test('pressroom timeline dedupes duplicate events by sourceEventKey', async ({ page }) => {

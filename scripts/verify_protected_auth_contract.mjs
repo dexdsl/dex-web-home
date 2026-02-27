@@ -22,6 +22,15 @@ const PROFILE_PROTECTED_ROUTES = [
   '/entry/achievements',
 ];
 
+const PROFILE_MESH_ROUTES = [
+  '/submit',
+  '/messages',
+  '/entry/submit',
+  '/entry/messages',
+  '/entry/messages/submission',
+  '/entry/pressroom',
+];
+
 function readText(filePath) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Missing file: ${path.relative(ROOT, filePath)}`);
@@ -58,12 +67,16 @@ function main() {
 
   const authRoutes = extractRoutesFromObject(authText, 'var PROTECTED_PATHS =');
   const headerRoutes = extractRoutesFromSet(headerSlotText, 'const PROFILE_PROTECTED_ROUTES = new Set(');
+  const headerMeshRoutes = extractRoutesFromSet(headerSlotText, 'const PROFILE_SHOW_MESH_ROUTES = new Set(');
 
   if (authRoutes.size === 0) {
     failures.push('Could not parse PROTECTED_PATHS from public/assets/dex-auth.js');
   }
   if (headerRoutes.size === 0) {
     failures.push('Could not parse PROFILE_PROTECTED_ROUTES from public/assets/js/header-slot.js');
+  }
+  if (headerMeshRoutes.size === 0) {
+    failures.push('Could not parse PROFILE_SHOW_MESH_ROUTES from public/assets/js/header-slot.js');
   }
 
   for (const route of PROFILE_PROTECTED_ROUTES) {
@@ -72,6 +85,12 @@ function main() {
     }
     if (!headerRoutes.has(route)) {
       failures.push(`header-slot protected route set is missing ${route}`);
+    }
+  }
+
+  for (const route of PROFILE_MESH_ROUTES) {
+    if (!headerMeshRoutes.has(route)) {
+      failures.push(`header-slot mesh route set is missing ${route}`);
     }
   }
 

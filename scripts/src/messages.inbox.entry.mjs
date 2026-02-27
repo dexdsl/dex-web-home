@@ -15,13 +15,16 @@
   const JSONP_TIMEOUT_MS = 12000;
   const SYSTEM_FETCH_TIMEOUT_MS = 6000;
   const SUBMISSIONS_FETCH_TIMEOUT_MS = 6000;
+  const PRESSROOM_FETCH_TIMEOUT_MS = 6000;
   const ACTION_TIMEOUT_MS = 5000;
   const NON_SUB_RETENTION_DAYS = 90;
   const PREFETCH_SWR_MS = 60000;
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
+  const PRESSROOM_SHEET_API = 'https://script.google.com/macros/s/AKfycbwb2lOkJDN7rOJVmGHPzY3IBRByjrfMI0GH_TzUsXYDEXIjdIlqr-ZR0VKDWvoPmFjw/exec';
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SUBMISSION_STATE_PREFIX = 'dex:messages:submission-state:v1:';
   const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
+  const MESSAGE_PENDING_THREAD_KEY = 'dex:messages:pending-thread:v1';
   const FETCH_STATE_LOADING = 'loading';
   const FETCH_STATE_READY = 'ready';
   const FETCH_STATE_ERROR = 'error';
@@ -95,6 +98,15 @@
     return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
   }
 
+  function sanitizeRequestId(value) {
+    return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
+  }
+
+  function normalizeThreadKind(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'pressroom' ? 'pressroom' : 'submission';
+  }
+
   function setPendingSubmissionSid(sid) {
     const safeSid = sanitizeSubmissionId(sid);
     if (!safeSid) return;
@@ -104,14 +116,36 @@
     } catch {}
   }
 
-  function parseSubmissionSidFromHref(href) {
+  function setPendingMessageThread(thread) {
+    const value = isObject(thread) ? thread : {};
+    const kind = normalizeThreadKind(value.kind);
+    const sid = sanitizeSubmissionId(value.sid || '');
+    const rid = sanitizeRequestId(value.rid || '');
+    const payload = kind === 'pressroom'
+      ? { kind: 'pressroom', rid }
+      : { kind: 'submission', sid };
+
+    if (payload.kind === 'submission' && payload.sid) {
+      setPendingSubmissionSid(payload.sid);
+    }
+
+    window.__dxPendingMessageThread = payload;
+    try {
+      window.sessionStorage.setItem(MESSAGE_PENDING_THREAD_KEY, JSON.stringify(payload));
+    } catch {}
+  }
+
+  function parseThreadRefFromHref(href) {
     const rawHref = toSafeText(href, '');
-    if (!rawHref) return '';
+    if (!rawHref) return { kind: 'submission', sid: '', rid: '' };
     try {
       const parsed = new URL(rawHref, window.location.href);
-      return sanitizeSubmissionId(parsed.searchParams.get('sid'));
+      const kind = normalizeThreadKind(parsed.searchParams.get('kind'));
+      const sid = sanitizeSubmissionId(parsed.searchParams.get('sid'));
+      const rid = sanitizeRequestId(parsed.searchParams.get('rid'));
+      return { kind, sid, rid };
     } catch {
-      return '';
+      return { kind: 'submission', sid: '', rid: '' };
     }
   }
 
@@ -166,6 +200,20 @@
     return 'info';
   }
 
+  function normalizePressroomStatus(value) {
+    const normalized = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (['submitted', 'triage', 'in_review', 'needs_info', 'approved', 'closed'].includes(normalized)) {
+      return normalized;
+    }
+    return 'submitted';
+  }
+
+  function severityFromPressroomStatus(status) {
+    const normalized = normalizePressroomStatus(status);
+    if (normalized === 'needs_info') return 'warning';
+    return 'info';
+  }
+
   function getScope(authSnapshot) {
     const sub = toSafeText(authSnapshot?.sub, '');
     return sub || 'anon';
@@ -181,6 +229,10 @@
     return `messages:submissions:${scope}`;
   }
 
+  function getPrefetchPressroomKey(scope) {
+    return `messages:pressroom:${scope}`;
+  }
+
   function getPrefetchSystemKey(scope) {
     return `messages:system:${scope}`;
   }
@@ -188,9 +240,10 @@
   function readPrefetchedRecords(scope, sourceType) {
     const prefetch = getPrefetchRuntime();
     if (!prefetch || !scope) return null;
-    const key = sourceType === 'submission'
-      ? getPrefetchSubmissionsKey(scope)
-      : getPrefetchSystemKey(scope);
+    let key = '';
+    if (sourceType === 'submission') key = getPrefetchSubmissionsKey(scope);
+    else if (sourceType === 'pressroom') key = getPrefetchPressroomKey(scope);
+    else key = getPrefetchSystemKey(scope);
     const cached = prefetch.getFresh(key, PREFETCH_SWR_MS);
     if (!cached || !Array.isArray(cached.payload)) return null;
     return cached.payload;
@@ -199,9 +252,10 @@
   function writePrefetchedRecords(scope, sourceType, records) {
     const prefetch = getPrefetchRuntime();
     if (!prefetch || !scope || !Array.isArray(records)) return;
-    const key = sourceType === 'submission'
-      ? getPrefetchSubmissionsKey(scope)
-      : getPrefetchSystemKey(scope);
+    let key = '';
+    if (sourceType === 'submission') key = getPrefetchSubmissionsKey(scope);
+    else if (sourceType === 'pressroom') key = getPrefetchPressroomKey(scope);
+    else key = getPrefetchSystemKey(scope);
     prefetch.set(key, records, { scope });
   }
 
@@ -352,7 +406,7 @@
 
   function normalizeSourceType(value) {
     const sourceType = String(value || '').trim().toLowerCase();
-    if (sourceType === 'submission' || sourceType === 'system') return sourceType;
+    if (sourceType === 'submission' || sourceType === 'pressroom' || sourceType === 'system') return sourceType;
     return 'system';
   }
 
@@ -872,6 +926,99 @@
     };
   }
 
+  function composePressroomCardTitle(project, requestId, fallbackTitle) {
+    const safeProject = toSafeText(project, '');
+    const safeRequestId = sanitizeRequestId(requestId);
+    const fallback = toSafeText(fallbackTitle, 'Pressroom request');
+    if (safeProject && safeRequestId) return `${safeProject} (${safeRequestId})`;
+    if (safeProject) return safeProject;
+    if (safeRequestId) return safeRequestId;
+    return fallback;
+  }
+
+  function normalizePressroomRecords(rows, submissionState) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    return safeRows.map((row, index) => {
+      const value = isObject(row) ? row : {};
+      const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
+      const merged = { ...value, ...metadata };
+      const requestId = sanitizeRequestId(merged.requestId || merged.request_id || merged.id);
+      const statusRaw = toSafeText(merged.status, 'submitted');
+      const normalizedStatus = normalizePressroomStatus(statusRaw);
+      const recordId = requestId || `pressroom:${index + 1}:${toSafeText(merged.timestamp, 'unknown')}`;
+      const state = isObject(submissionState[recordId]) ? submissionState[recordId] : {};
+      const createdAt = toRecordDate(
+        merged.updatedAt
+        || merged.updated_at
+        || merged.timestamp
+        || merged.createdAt
+        || merged.created_at,
+      );
+      const project = toSafeText(merged.project || merged.title, '');
+      const requestTitle = composePressroomCardTitle(project, requestId, `Pressroom request ${index + 1}`);
+      const sourceLink = toSafeText(merged.links || merged.sourceLink || merged.source_link || merged.link, '');
+      return {
+        id: recordId,
+        sourceType: 'pressroom',
+        category: 'pressroom',
+        severity: severityFromPressroomStatus(normalizedStatus),
+        title: requestTitle,
+        body: toSafeText(merged.publicNote || merged.public_note || merged.desc || merged.description, ''),
+        href: requestId
+          ? `/entry/messages/submission/?kind=pressroom&rid=${encodeURIComponent(requestId)}`
+          : '/entry/pressroom/',
+        metadata: {
+          requestId,
+          status: normalizedStatus,
+          name: toSafeText(merged.name, ''),
+          email: toSafeText(merged.email, ''),
+          project,
+          desc: toSafeText(merged.desc || merged.description, ''),
+          links: sourceLink,
+          budget: toSafeText(merged.budget, ''),
+          timeline: toSafeText(merged.timeline, ''),
+          timeframe: toSafeText(merged.timeframe, ''),
+          timestamp: toSafeText(merged.timestamp, ''),
+          updatedAt: toSafeText(merged.updatedAt || merged.updated_at, ''),
+          sourceLink,
+        },
+        createdAt,
+        readAt: toSafeText(state.readAt, ''),
+        archivedAt: toSafeText(state.archivedAt, ''),
+        expiresAt: '',
+        permanent: true,
+      };
+    });
+  }
+
+  async function loadPressroomRecords(authSnapshot, submissionState) {
+    const sub = toSafeText(authSnapshot?.sub, '');
+    if (!sub) {
+      return {
+        records: [],
+        warning: '',
+      };
+    }
+
+    try {
+      const response = await withTimeout(
+        jsonpWithTimeout(`${PRESSROOM_SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+        JSONP_TIMEOUT_MS + 250,
+        { status: 'timeout', rows: [] },
+      );
+      const rows = Array.isArray(response?.rows) ? response.rows : [];
+      return {
+        records: normalizePressroomRecords(rows, submissionState),
+        warning: '',
+      };
+    } catch {
+      return {
+        records: [],
+        warning: 'Pressroom requests are temporarily unavailable.',
+      };
+    }
+  }
+
   async function mutateSystemRecord(apiBase, authSnapshot, recordId, action) {
     if (!authSnapshot.authenticated || !authSnapshot.token) {
       return { ok: false, status: 401 };
@@ -914,6 +1061,7 @@
       #dex-msg .dx-msg-list{display:grid;grid-template-columns:1fr;gap:10px;min-height:120px;}
       #dex-msg .dx-msg-item{border:1px solid rgba(255,255,255,.36);border-radius:9px;background:rgba(255,255,255,.7);padding:12px;display:grid;gap:10px;}
       #dex-msg .dx-msg-item[data-source-type='submission']{border-left:4px solid #ff1910;}
+      #dex-msg .dx-msg-item[data-source-type='pressroom']{border-left:4px solid #0b7285;}
       #dex-msg .dx-msg-item[data-source-type='system']{border-left:4px solid #1f2937;}
       #dex-msg .dx-msg-item[data-dx-msg-read='false']{box-shadow:inset 0 0 0 1px rgba(255,25,16,.3);}
       #dex-msg .dx-msg-item[data-dx-msg-archived='true']{opacity:.62;}
@@ -948,7 +1096,7 @@
 
   function normalizeFilter(value) {
     const filter = String(value || '').toLowerCase();
-    if (filter === 'submission' || filter === 'system') return filter;
+    if (filter === 'submission' || filter === 'pressroom' || filter === 'system') return filter;
     return 'all';
   }
 
@@ -956,6 +1104,7 @@
     return allRecords.filter((record) => {
       if (!includeArchived && record.archivedAt) return false;
       if (filter === 'submission') return record.sourceType === 'submission';
+      if (filter === 'pressroom') return record.sourceType === 'pressroom';
       if (filter === 'system') return record.sourceType === 'system';
       return true;
     });
@@ -1010,6 +1159,7 @@
     const filters = [
       { key: 'all', label: 'All' },
       { key: 'submission', label: 'Submissions' },
+      { key: 'pressroom', label: 'Pressroom' },
       { key: 'system', label: 'System' },
     ];
 
@@ -1024,7 +1174,11 @@
       ? `<p class="dx-msg-empty">No messages for this filter yet.</p>`
       : visible
         .map((record) => {
-          const sourceLabel = record.sourceType === 'submission' ? 'Submission' : 'System';
+          const sourceLabel = record.sourceType === 'submission'
+            ? 'Submission'
+            : record.sourceType === 'pressroom'
+              ? 'Pressroom'
+              : 'System';
           const readFlag = record.readAt ? 'true' : 'false';
           const archivedFlag = record.archivedAt ? 'true' : 'false';
           const markAction = record.readAt ? 'unread' : 'read';
@@ -1035,9 +1189,14 @@
             ? `<p class="dx-msg-body">${escapeHtml(record.body)}</p>`
             : '';
           const submissionSid = sanitizeSubmissionId(record.metadata?.submissionId || '');
+          const requestId = sanitizeRequestId(record.metadata?.requestId || '');
           const sidAttr = submissionSid ? ` data-dx-submission-sid="${escapeHtml(submissionSid)}"` : '';
+          const ridAttr = requestId ? ` data-dx-request-id="${escapeHtml(requestId)}"` : '';
+          const kindAttr = record.sourceType === 'pressroom'
+            ? ' data-dx-thread-kind="pressroom"'
+            : ' data-dx-thread-kind="submission"';
           const link = record.href
-            ? `<a class="dx-msg-link" href="${escapeHtml(record.href)}"${sidAttr}>Open</a>`
+            ? `<a class="dx-msg-link" href="${escapeHtml(record.href)}"${sidAttr}${ridAttr}${kindAttr}>Open</a>`
             : '';
           return `
             <article class="dx-msg-item" data-dx-msg-item data-source-type="${escapeHtml(record.sourceType)}" data-record-id="${escapeHtml(record.id)}" data-dx-msg-read="${readFlag}" data-dx-msg-archived="${archivedFlag}">
@@ -1068,7 +1227,7 @@
         <section class="dx-msg-head">
           <div>
             <h1 class="dx-msg-title">Inbox</h1>
-            <p class="dx-msg-sub">Submission messages and account notifications in one place.</p>
+            <p class="dx-msg-sub">Submission, Pressroom, and account messages in one place.</p>
           </div>
           <div class="dx-msg-controls">
             ${filterButtons}
@@ -1097,31 +1256,39 @@
     const eventOptions = { signal: eventAbortController.signal };
     const captureEventOptions = { signal: eventAbortController.signal, capture: true };
 
-    function cachePendingSidFromTarget(target) {
+    function cachePendingThreadFromTarget(target) {
       if (!(target instanceof Element)) return;
       const openLink = target.closest('a.dx-msg-link[href]');
       if (!(openLink instanceof HTMLAnchorElement)) return;
+      const kindFromData = normalizeThreadKind(openLink.getAttribute('data-dx-thread-kind'));
       const sidFromData = sanitizeSubmissionId(openLink.getAttribute('data-dx-submission-sid'));
-      const sidFromHref = parseSubmissionSidFromHref(openLink.getAttribute('href'));
-      const sid = sidFromData || sidFromHref;
-      if (sid) setPendingSubmissionSid(sid);
+      const ridFromData = sanitizeRequestId(openLink.getAttribute('data-dx-request-id'));
+      const hrefThread = parseThreadRefFromHref(openLink.getAttribute('href'));
+      const kind = kindFromData === 'pressroom' || hrefThread.kind === 'pressroom' ? 'pressroom' : 'submission';
+      const sid = sidFromData || hrefThread.sid;
+      const rid = ridFromData || hrefThread.rid;
+      if (kind === 'pressroom' && rid) {
+        setPendingMessageThread({ kind: 'pressroom', rid });
+        return;
+      }
+      if (sid) setPendingMessageThread({ kind: 'submission', sid });
     }
 
     root.addEventListener('pointerdown', (event) => {
-      cachePendingSidFromTarget(event.target);
+      cachePendingThreadFromTarget(event.target);
     }, captureEventOptions);
 
     root.addEventListener('keydown', (event) => {
       const key = event instanceof KeyboardEvent ? event.key : '';
       if (key !== 'Enter' && key !== ' ') return;
-      cachePendingSidFromTarget(event.target);
+      cachePendingThreadFromTarget(event.target);
     }, captureEventOptions);
 
     root.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
-      cachePendingSidFromTarget(target);
+      cachePendingThreadFromTarget(target);
 
       const filterKey = target.getAttribute('data-dx-msg-filter');
       if (filterKey) {
@@ -1141,7 +1308,7 @@
 
         for (const record of visible) {
           record.readAt = markedAt;
-          if (record.sourceType === 'submission') {
+          if (record.sourceType !== 'system') {
             updateSubmissionState(context.scope, context.submissionState, record.id, { readAt: markedAt });
           }
         }
@@ -1170,7 +1337,7 @@
         const previous = record.readAt;
         record.readAt = now;
 
-        if (record.sourceType === 'submission') {
+        if (record.sourceType !== 'system') {
           updateSubmissionState(context.scope, context.submissionState, record.id, { readAt: now });
         } else {
           const response = await mutateSystemRecord(context.apiBase, context.authSnapshot, record.id, 'read');
@@ -1188,7 +1355,7 @@
         const previous = record.readAt;
         record.readAt = '';
 
-        if (record.sourceType === 'submission') {
+        if (record.sourceType !== 'system') {
           updateSubmissionState(context.scope, context.submissionState, record.id, { readAt: '' });
         } else {
           const response = await mutateSystemRecord(context.apiBase, context.authSnapshot, record.id, 'unread');
@@ -1206,7 +1373,7 @@
         const previous = record.archivedAt;
         record.archivedAt = now;
 
-        if (record.sourceType === 'submission') {
+        if (record.sourceType !== 'system') {
           updateSubmissionState(context.scope, context.submissionState, record.id, { archivedAt: now });
         } else {
           const response = await mutateSystemRecord(context.apiBase, context.authSnapshot, record.id, 'archive');
@@ -1288,7 +1455,7 @@
         <section class="dx-msg-head">
           <div>
             <h1 class="dx-msg-title">Inbox</h1>
-            <p class="dx-msg-sub">Sign in to view your submission messages and account notifications.</p>
+            <p class="dx-msg-sub">Sign in to view submission, Pressroom, and account messages.</p>
           </div>
         </section>
         <p class="dx-msg-empty" id="dx-msg-signin">Please sign in to view your inbox.</p>
@@ -1316,15 +1483,19 @@
     }
 
     const cachedSubmissionRecords = readPrefetchedRecords(scope, 'submission') || [];
+    const cachedPressroomRecords = readPrefetchedRecords(scope, 'pressroom') || [];
     const cachedSystemRecords = readPrefetchedRecords(scope, 'system') || [];
     const model = {
-      records: mergeRecords(cachedSubmissionRecords, cachedSystemRecords),
+      records: mergeRecords(
+        mergeRecords(cachedSubmissionRecords, cachedPressroomRecords),
+        cachedSystemRecords,
+      ),
       filter: 'all',
       showArchived: false,
       warnings: [],
     };
 
-    if (cachedSubmissionRecords.length > 0 || cachedSystemRecords.length > 0) {
+    if (cachedSubmissionRecords.length > 0 || cachedPressroomRecords.length > 0 || cachedSystemRecords.length > 0) {
       model.warnings.push('Refreshing inbox…');
       render(root, model);
       bindHandlers(root, model, {
@@ -1336,17 +1507,20 @@
     }
 
     let submissionRecords = [];
+    let pressroomRecords = [];
     let systemRecords = [];
     const warnings = [];
     let hasFatal = false;
 
     const settled = await Promise.allSettled([
       loadSubmissionRecords(apiBase, authSnapshot, submissionState),
+      loadPressroomRecords(authSnapshot, submissionState),
       loadSystemRecords(apiBase, authSnapshot),
     ]);
 
     const submissionSettled = settled[0];
-    const systemSettled = settled[1];
+    const pressroomSettled = settled[1];
+    const systemSettled = settled[2];
 
     if (submissionSettled.status === 'fulfilled') {
       const submissionResult = submissionSettled.value;
@@ -1355,6 +1529,15 @@
       writePrefetchedRecords(scope, 'submission', submissionRecords);
     } else {
       warnings.push('Submissions are temporarily unavailable.');
+    }
+
+    if (pressroomSettled.status === 'fulfilled') {
+      const pressroomResult = pressroomSettled.value;
+      pressroomRecords = Array.isArray(pressroomResult.records) ? pressroomResult.records : [];
+      if (pressroomResult.warning) warnings.push(pressroomResult.warning);
+      writePrefetchedRecords(scope, 'pressroom', pressroomRecords);
+    } else {
+      warnings.push('Pressroom requests are temporarily unavailable.');
     }
 
     if (systemSettled.status === 'fulfilled') {
@@ -1366,7 +1549,10 @@
       warnings.push('System notifications are temporarily unavailable.');
     }
 
-    hasFatal = submissionSettled.status === 'rejected' && systemSettled.status === 'rejected';
+    hasFatal =
+      submissionSettled.status === 'rejected'
+      && pressroomSettled.status === 'rejected'
+      && systemSettled.status === 'rejected';
 
     if (hasFatal && model.records.length === 0) {
       ensureStyles();
@@ -1389,7 +1575,7 @@
     }
 
     if (!hasFatal) {
-      model.records = mergeRecords(submissionRecords, systemRecords);
+      model.records = mergeRecords(mergeRecords(submissionRecords, pressroomRecords), systemRecords);
       model.warnings = warnings;
     } else if (model.records.length > 0) {
       model.warnings = ['Showing cached inbox data while live sync recovers.'];

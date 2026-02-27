@@ -651,6 +651,8 @@ test('submit intro locks Begin when weekly quota is exhausted for the signed-in 
   const begin = page.getByRole('button', { name: 'Begin' });
   await expect(begin).toBeDisabled();
   await expect(page.locator('[data-dx-submit-step="intro"]')).toBeVisible();
+  await expect(page.locator('[data-dx-submit-step="intro"]')).toContainText('Action required');
+  await expect(page.locator('[data-dx-submit-step="intro"]')).toContainText('Weekly upload limit reached for this account.');
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toHaveCount(0);
 });
 

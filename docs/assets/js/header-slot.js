@@ -52,6 +52,7 @@
     '/entry/submit',
     '/entry/messages',
     '/entry/messages/submission',
+    '/entry/pressroom',
   ]);
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);

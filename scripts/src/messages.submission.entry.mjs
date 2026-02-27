@@ -22,7 +22,9 @@
   const MIN_SHELL_MS = 120;
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
+  const PRESSROOM_SHEET_API = 'https://script.google.com/macros/s/AKfycbwb2lOkJDN7rOJVmGHPzY3IBRByjrfMI0GH_TzUsXYDEXIjdIlqr-ZR0VKDWvoPmFjw/exec';
   const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
+  const MESSAGE_PENDING_THREAD_KEY = 'dex:messages:pending-thread:v1';
   const PREFETCH_SWR_MS = 60000;
   const INITIAL_ROUTE_URL = String(window.location.href || '');
 
@@ -117,6 +119,15 @@
     return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
   }
 
+  function sanitizeRequestId(value) {
+    return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
+  }
+
+  function normalizeThreadKind(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'pressroom' ? 'pressroom' : 'submission';
+  }
+
   function readPendingSubmissionSid({ consume = false } = {}) {
     const fromWindow = sanitizeSubmissionId(window.__dxPendingSubmissionSid || '');
     if (fromWindow) {
@@ -143,6 +154,40 @@
       } catch {}
     }
     return fromStorage;
+  }
+
+  function readPendingThreadRef({ consume = false } = {}) {
+    const fromWindow = isObject(window.__dxPendingMessageThread) ? window.__dxPendingMessageThread : null;
+    if (fromWindow) {
+      const kind = normalizeThreadKind(fromWindow.kind);
+      const sid = sanitizeSubmissionId(fromWindow.sid || '');
+      const rid = sanitizeRequestId(fromWindow.rid || '');
+      if (consume) {
+        window.__dxPendingMessageThread = null;
+        try {
+          window.sessionStorage.removeItem(MESSAGE_PENDING_THREAD_KEY);
+        } catch {}
+      }
+      if (kind === 'pressroom' && rid) return { kind: 'pressroom', sid: '', rid };
+      if (sid) return { kind: 'submission', sid, rid: '' };
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(MESSAGE_PENDING_THREAD_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object') {
+        const kind = normalizeThreadKind(parsed.kind);
+        const sid = sanitizeSubmissionId(parsed.sid || '');
+        const rid = sanitizeRequestId(parsed.rid || '');
+        if (consume) {
+          window.sessionStorage.removeItem(MESSAGE_PENDING_THREAD_KEY);
+        }
+        if (kind === 'pressroom' && rid) return { kind: 'pressroom', sid: '', rid };
+        if (sid) return { kind: 'submission', sid, rid: '' };
+      }
+    } catch {}
+
+    return { kind: 'submission', sid: '', rid: '' };
   }
 
   function parseTimestamp(value) {
@@ -182,6 +227,18 @@
     return raw;
   }
 
+  function extractLinks(value) {
+    const raw = toSafeText(value, '');
+    if (!raw) return [];
+    const matches = raw.match(/https?:\/\/[^\s,]+/gi) || [];
+    const normalized = matches
+      .map((item) => normalizeHref(item))
+      .filter(Boolean);
+    if (normalized.length > 0) return Array.from(new Set(normalized));
+    const fallback = normalizeHref(raw);
+    return fallback ? [fallback] : [];
+  }
+
   function extractGoogleDriveFileId(value) {
     const href = normalizeHref(value);
     if (!href) return '';
@@ -215,9 +272,15 @@
     return runtime;
   }
 
-  function getSubmissionDetailPrefetchKey(scope, sid) {
-    if (!scope || !sid) return '';
-    return `submission:detail:${scope}:${sid}`;
+  function getSubmissionDetailPrefetchKey(scope, threadRef) {
+    const value = isObject(threadRef) ? threadRef : {};
+    const kind = normalizeThreadKind(value.kind);
+    const sid = sanitizeSubmissionId(value.sid || '');
+    const rid = sanitizeRequestId(value.rid || '');
+    if (!scope) return '';
+    const identifier = kind === 'pressroom' ? rid : sid;
+    if (!identifier) return '';
+    return `submission:detail:${scope}:${kind}:${identifier}`;
   }
 
   async function resolveAuthSnapshot(timeoutMs = AUTH_TIMEOUT_MS) {
@@ -339,57 +402,68 @@
     });
   }
 
-  function parseSidFromLocation(routeUrl = '') {
-    let sid = '';
-    if (!sid && INITIAL_ROUTE_URL) {
-      try {
-        const parsedInitial = new URL(INITIAL_ROUTE_URL, window.location.origin);
-        sid = toSafeText(parsedInitial.searchParams.get('sid'), '');
-      } catch {}
+  function readThreadRefFromUrl(urlValue = '') {
+    try {
+      const parsed = new URL(String(urlValue || ''), window.location.origin);
+      const params = new URLSearchParams(parsed.search || '');
+      const kind = normalizeThreadKind(params.get('kind'));
+      const sid = sanitizeSubmissionId(params.get('sid'));
+      const rid = sanitizeRequestId(params.get('rid'));
+      if (kind === 'pressroom' && rid) return { kind: 'pressroom', sid: '', rid };
+      if (sid) return { kind: 'submission', sid, rid: '' };
+      return { kind: 'submission', sid: '', rid: '' };
+    } catch {
+      return { kind: 'submission', sid: '', rid: '' };
     }
-
-    if (routeUrl) {
-      try {
-        const parsed = new URL(String(routeUrl), window.location.origin);
-        const routeParams = new URLSearchParams(parsed.search || '');
-        sid = toSafeText(routeParams.get('sid'), '');
-      } catch {}
-    }
-
-    if (!sid) {
-      const params = new URLSearchParams(window.location.search || '');
-      sid = toSafeText(params.get('sid'), '');
-    }
-
-    if (!sid) {
-      const cachedRouteUrl = toSafeText(window.__dxLastSlotUrl, '');
-      if (cachedRouteUrl) {
-        try {
-          const parsed = new URL(cachedRouteUrl, window.location.origin);
-          const routeParams = new URLSearchParams(parsed.search || '');
-          sid = toSafeText(routeParams.get('sid'), '');
-        } catch {}
-      }
-    }
-
-    if (!sid) {
-      sid = readPendingSubmissionSid({ consume: false });
-    }
-
-    return sanitizeSubmissionId(sid);
   }
 
-  async function resolveSid(routeUrl = '') {
-    let sid = parseSidFromLocation(routeUrl);
-    if (sid) return sid;
+  function parseThreadRefFromLocation(routeUrl = '') {
+    const candidates = [];
+    if (INITIAL_ROUTE_URL) candidates.push(INITIAL_ROUTE_URL);
+    if (routeUrl) candidates.push(routeUrl);
+    if (window.location?.href) candidates.push(window.location.href);
+    if (window.__dxLastSlotUrl) candidates.push(String(window.__dxLastSlotUrl));
+
+    for (const candidate of candidates) {
+      const ref = readThreadRefFromUrl(candidate);
+      if (ref.kind === 'pressroom' && ref.rid) return ref;
+      if (ref.sid) return ref;
+    }
+
+    const pendingThread = readPendingThreadRef({ consume: false });
+    if (pendingThread.kind === 'pressroom' && pendingThread.rid) return pendingThread;
+    if (pendingThread.sid) return pendingThread;
+
+    const pendingSid = readPendingSubmissionSid({ consume: false });
+    if (pendingSid) return { kind: 'submission', sid: pendingSid, rid: '' };
+    return { kind: 'submission', sid: '', rid: '' };
+  }
+
+  async function resolveThreadRef(routeUrl = '') {
+    let ref = parseThreadRefFromLocation(routeUrl);
+    if ((ref.kind === 'pressroom' && ref.rid) || ref.sid) return ref;
 
     for (const waitMs of [16, 32, 64, 96, 140, 220, 320, 480]) {
       await delay(waitMs);
-      sid = parseSidFromLocation(routeUrl);
-      if (sid) return sid;
+      ref = parseThreadRefFromLocation(routeUrl);
+      if ((ref.kind === 'pressroom' && ref.rid) || ref.sid) return ref;
     }
 
-    return '';
+    return { kind: 'submission', sid: '', rid: '' };
+  }
+
+  function getThreadIdentifier(threadRef) {
+    const value = isObject(threadRef) ? threadRef : {};
+    const kind = normalizeThreadKind(value.kind);
+    return kind === 'pressroom'
+      ? sanitizeRequestId(value.rid || '')
+      : sanitizeSubmissionId(value.sid || '');
+  }
+
+  function getThreadLabel(threadRef) {
+    const value = isObject(threadRef) ? threadRef : {};
+    const kind = normalizeThreadKind(value.kind);
+    return kind === 'pressroom' ? 'request timeline' : 'submission timeline';
   }
 
   function severityChipClass(value) {
@@ -402,7 +476,7 @@
   function stageSeverity(stage) {
     const normalized = String(stage || '').toLowerCase();
     if (normalized === 'rejected') return 'critical';
-    if (normalized === 'revision_requested') return 'warning';
+    if (normalized === 'revision_requested' || normalized === 'needs_info') return 'warning';
     return 'info';
   }
 
@@ -414,6 +488,14 @@
       bucket_assigned: 'Bucket assigned',
       acknowledged: 'Acknowledged',
       user_acknowledged: 'Acknowledged',
+      request_submitted: 'Submitted',
+      submitted: 'Submitted',
+      triage: 'Triage',
+      in_review: 'In review',
+      needs_info: 'Needs info',
+      approved: 'Approved',
+      closed: 'Closed',
+      public_note: 'Update',
     };
     if (labelMap[normalized]) return labelMap[normalized];
     const fallback = normalized.replace(/_/g, ' ');
@@ -625,11 +707,21 @@
     const buckets = new Map();
     rows.forEach((row, index) => {
       const value = isObject(row) ? row : {};
+      const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
       const eventType = normalizeEventType(value.eventType);
       const timestamp = parseTimestamp(value.createdAt);
       const timestampKey = timestamp === null ? '' : new Date(Math.floor(timestamp / 1000) * 1000).toISOString();
       const fallbackKey = toSafeText(value.id, '') || `index:${index}`;
-      const key = `${eventType}|${timestampKey || fallbackKey}`;
+      const sourceEventKey = toSafeText(
+        value.sourceEventKey
+        || value.source_event_key
+        || metadata.sourceEventKey
+        || metadata.source_event_key,
+        '',
+      );
+      const key = sourceEventKey
+        ? `source:${sourceEventKey}`
+        : `${eventType}|${timestampKey || fallbackKey}`;
       const score = timelineEventScore(value);
 
       if (!buckets.has(key)) {
@@ -761,9 +853,17 @@
         ]));
         const createdAt = toSafeText(value.eventAt || value.event_at || value.createdAt || value.created_at, '');
         const id = toSafeText(value.id, `timeline-${index + 1}`);
+        const sourceEventKey = toSafeText(
+          value.sourceEventKey
+          || value.source_event_key
+          || metadata.sourceEventKey
+          || metadata.source_event_key,
+          '',
+        );
         const displayNote = buildLookupTransitionNote(eventType, metadata, publicNote);
         return {
           id,
+          sourceEventKey,
           eventType,
           publicNote: displayNote || publicNote,
           statusRaw,
@@ -825,6 +925,52 @@
       } else if (timelineSet.has(key)) {
         state = 'done';
       } else if (key === 'accepted' && current === 'in_library') {
+        state = 'done';
+      }
+      return {
+        ...step,
+        state,
+        at: '',
+      };
+    });
+  }
+
+  function normalizePressroomStageRail(payloadStageRail, timeline, thread) {
+    const fallback = [
+      { key: 'submitted', label: 'Submitted' },
+      { key: 'triage', label: 'Triage' },
+      { key: 'in_review', label: 'In review' },
+      { key: 'needs_info', label: 'Needs info' },
+      { key: 'approved', label: 'Approved' },
+      { key: 'closed', label: 'Closed' },
+    ];
+
+    if (isObject(payloadStageRail) && Array.isArray(payloadStageRail.steps)) {
+      return payloadStageRail.steps.map((step, index) => {
+        const value = isObject(step) ? step : {};
+        return {
+          key: toSafeText(value.key, `stage-${index + 1}`),
+          label: toSafeText(value.label, toSafeText(value.key, 'Stage')),
+          state: toSafeText(value.state, 'todo'),
+          at: toSafeText(value.at, ''),
+        };
+      });
+    }
+
+    const timelineSet = new Set();
+    for (const event of Array.isArray(timeline) ? timeline : []) {
+      timelineSet.add(normalizePressroomStatus(event.eventType || event.statusRaw || ''));
+    }
+    const current = normalizePressroomStatus(thread?.currentStage || thread?.currentStatusRaw || '');
+
+    return fallback.map((step) => {
+      const key = step.key;
+      let state = 'todo';
+      if (current === key) {
+        state = 'active';
+      } else if (timelineSet.has(key)) {
+        state = 'done';
+      } else if (key === 'approved' && current === 'closed') {
         state = 'done';
       }
       return {
@@ -1151,6 +1297,22 @@
     return 'reviewing';
   }
 
+  function normalizePressroomStatus(statusRaw) {
+    const normalized = String(statusRaw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if ([
+      'submitted',
+      'request_submitted',
+      'triage',
+      'in_review',
+      'needs_info',
+      'approved',
+      'closed',
+    ].includes(normalized)) {
+      return normalized === 'request_submitted' ? 'submitted' : normalized;
+    }
+    return 'submitted';
+  }
+
   function hasTimelineEvent(timeline, ...eventTypes) {
     const wanted = new Set(eventTypes.map((value) => String(value || '').toLowerCase()).filter(Boolean));
     if (!wanted.size) return false;
@@ -1469,14 +1631,21 @@
     `;
   }
 
-  function renderLoading(root, sid = '') {
-    const lookupLabel = toSafeText(sid, '');
+  function renderLoading(root, threadRef = null) {
+    const ref = isObject(threadRef) ? threadRef : { kind: 'submission', sid: '', rid: '' };
+    const kind = normalizeThreadKind(ref.kind);
+    const isPressroom = kind === 'pressroom';
+    const identifier = getThreadIdentifier(ref);
+    const heading = identifier
+      ? `${isPressroom ? 'Request' : 'Submission'} ${identifier.slice(0, 8)}`
+      : (isPressroom ? 'Request Timeline' : 'Submission Timeline');
+
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell data-dx-sub-loading="true">
-        ${renderBreadcrumb('submission timeline')}
+        ${renderBreadcrumb(getThreadLabel(ref))}
         <section class="dx-sub-head">
-          <p class="dx-sub-kicker">submission tracker</p>
-          <h1 class="dx-sub-title">${escapeHtml(lookupLabel ? `Submission ${lookupLabel.slice(0, 8)}` : 'Submission Timeline')}</h1>
+          <p class="dx-sub-kicker">${isPressroom ? 'request tracker' : 'submission tracker'}</p>
+          <h1 class="dx-sub-title">${escapeHtml(heading)}</h1>
           <div class="dx-sub-status">
             <span class="dx-sub-chip">Fetching</span>
             <span class="dx-sub-chip">Syncing timeline</span>
@@ -1484,8 +1653,8 @@
         </section>
         <section class="dx-sub-grid">
           <article class="dx-sub-card">
-            <p class="dx-sub-kicker">Submission</p>
-            <p class="dx-sub-item-body">Loading submission details…</p>
+            <p class="dx-sub-kicker">${isPressroom ? 'Request' : 'Submission'}</p>
+            <p class="dx-sub-item-body">Loading details…</p>
           </article>
           <article class="dx-sub-card">
             <p class="dx-sub-kicker">Links</p>
@@ -1513,28 +1682,32 @@
     mountBreadcrumbMotion();
   }
 
-  function renderSignIn(root) {
+  function renderSignIn(root, threadRef = null) {
+    const ref = isObject(threadRef) ? threadRef : { kind: 'submission' };
+    const isPressroom = normalizeThreadKind(ref.kind) === 'pressroom';
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
-        ${renderBreadcrumb('submission timeline')}
+        ${renderBreadcrumb(getThreadLabel(ref))}
         <section class="dx-sub-head">
-          <p class="dx-sub-kicker">submission tracker</p>
-          <h1 class="dx-sub-title">Submission Timeline</h1>
-          <p class="dx-sub-empty" id="dx-sub-signin">Please sign in to view submission details.</p>
+          <p class="dx-sub-kicker">${isPressroom ? 'request tracker' : 'submission tracker'}</p>
+          <h1 class="dx-sub-title">${isPressroom ? 'Request Timeline' : 'Submission Timeline'}</h1>
+          <p class="dx-sub-empty" id="dx-sub-signin">Please sign in to view ${isPressroom ? 'request' : 'submission'} details.</p>
         </section>
       </aside>
     `;
     mountBreadcrumbMotion();
   }
 
-  function renderError(root, title, message) {
+  function renderError(root, title, message, threadRef = null) {
+    const ref = isObject(threadRef) ? threadRef : { kind: 'submission' };
+    const isPressroom = normalizeThreadKind(ref.kind) === 'pressroom';
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
-        ${renderBreadcrumb('submission timeline')}
+        ${renderBreadcrumb(getThreadLabel(ref))}
         <section class="dx-sub-head">
-          <p class="dx-sub-kicker">submission tracker</p>
-          <h1 class="dx-sub-title">${escapeHtml(title || 'Submission Timeline')}</h1>
-          <p class="dx-sub-empty">${escapeHtml(message || 'Unable to load this submission right now.')}</p>
+          <p class="dx-sub-kicker">${isPressroom ? 'request tracker' : 'submission tracker'}</p>
+          <h1 class="dx-sub-title">${escapeHtml(title || (isPressroom ? 'Request Timeline' : 'Submission Timeline'))}</h1>
+          <p class="dx-sub-empty">${escapeHtml(message || `Unable to load this ${isPressroom ? 'request' : 'submission'} right now.`)}</p>
         </section>
       </aside>
     `;
@@ -1542,36 +1715,42 @@
   }
 
   function renderReady(root, model) {
+    const kind = normalizeThreadKind(model?.kind || model?.thread?.kind);
+    const isPressroom = kind === 'pressroom';
     const acknowledgedFromRail = model.stageRail.some(
       (step) => step.key === 'acknowledged' && (step.state === 'active' || step.state === 'done'),
     );
-    const ackDisabled = Boolean(model.thread.acknowledgedAt) || acknowledgedFromRail;
+    const ackDisabled = isPressroom || Boolean(model.thread.acknowledgedAt) || acknowledgedFromRail;
+    const sourceLinks = Array.isArray(model.thread.sourceLinks) && model.thread.sourceLinks.length > 0
+      ? model.thread.sourceLinks
+      : extractLinks(model.thread.sourceLink || model.thread.request?.links || '');
 
     const timelineHtml = model.timeline.length
-        ? model.timeline
-          .map((item) => {
-            const eventLabel = formatEventLabel(item.eventType);
-            const note = item.publicNote ? `<p class="dx-sub-item-body">${escapeHtml(item.publicNote)}</p>` : '';
-            const statusChip = item.statusRaw
-              ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(item.eventType))}">${escapeHtml(item.statusRaw)}</span>`
-              : '';
-            const eventLink = normalizeHref(item.sourceLink || item.libraryHref || '');
-            const link = eventLink
-              ? `<a class="dx-sub-link" href="${escapeHtml(eventLink)}" target="_blank" rel="noopener">Submission link</a>`
-              : '';
+      ? model.timeline
+        .map((item) => {
+          const eventLabel = formatEventLabel(item.eventType);
+          const note = item.publicNote ? `<p class="dx-sub-item-body">${escapeHtml(item.publicNote)}</p>` : '';
+          const statusChip = item.statusRaw
+            ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(item.eventType))}">${escapeHtml(item.statusRaw)}</span>`
+            : '';
+          const eventLink = normalizeHref(item.sourceLink || item.libraryHref || '');
+          const linkLabel = isPressroom ? 'Request link' : 'Submission link';
+          const link = eventLink
+            ? `<a class="dx-sub-link" href="${escapeHtml(eventLink)}" target="_blank" rel="noopener">${linkLabel}</a>`
+            : '';
 
-            return `
-              <article class="dx-sub-item" data-dx-sub-item data-event-id="${escapeHtml(item.id)}">
-                <div class="dx-sub-item-head">
-                  <p class="dx-sub-item-type">${escapeHtml(eventLabel)}</p>
-                  <p class="dx-sub-item-time">${escapeHtml(toDateTime(item.createdAt))}</p>
-                </div>
-                ${note}
-                <div class="dx-sub-links">${statusChip}${link}</div>
-              </article>
-            `;
-          })
-          .join('')
+          return `
+            <article class="dx-sub-item" data-dx-sub-item data-event-id="${escapeHtml(item.id)}">
+              <div class="dx-sub-item-head">
+                <p class="dx-sub-item-type">${escapeHtml(eventLabel)}</p>
+                <p class="dx-sub-item-time">${escapeHtml(toDateTime(item.createdAt))}</p>
+              </div>
+              ${note}
+              <div class="dx-sub-links">${statusChip}${link}</div>
+            </article>
+          `;
+        })
+        .join('')
       : '<p class="dx-sub-empty">No timeline events yet.</p>';
 
     const stageRailHtml = model.stageRail
@@ -1586,15 +1765,18 @@
       .join('');
 
     const warningHtml = model.warning ? `<p class="dx-sub-warning">${escapeHtml(model.warning)}</p>` : '';
-    const submissionLinkHref = normalizeHref(model.thread.sourceLink || '');
+    const primaryLinkHref = sourceLinks[0] || normalizeHref(model.thread.sourceLink || '');
     const publishedLinkHref = normalizeHref(model.thread.libraryHref || '');
-    const sourceLink = submissionLinkHref
-      ? `<a class="dx-sub-link" href="${escapeHtml(submissionLinkHref)}" target="_blank" rel="noopener">Submission link</a>`
+    const sourceLink = primaryLinkHref
+      ? `<a class="dx-sub-link" href="${escapeHtml(primaryLinkHref)}" target="_blank" rel="noopener">${isPressroom ? 'Request link' : 'Submission link'}</a>`
       : '';
-    const releaseLink = publishedLinkHref
+    const extraLinks = sourceLinks.slice(1).map(
+      (href, index) => `<a class="dx-sub-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Additional link ${index + 2}</a>`,
+    ).join('');
+    const releaseLink = (!isPressroom && publishedLinkHref)
       ? `<a class="dx-sub-link" href="${escapeHtml(publishedLinkHref)}" target="_blank" rel="noopener">Published release link</a>`
       : '';
-    const previewHref = toGoogleDrivePreviewHref(submissionLinkHref);
+    const previewHref = toGoogleDrivePreviewHref(primaryLinkHref);
     const previewHtml = previewHref
       ? `
         <div class="dx-sub-preview" data-dx-sub-preview="drive">
@@ -1605,7 +1787,7 @@
             data-dx-sub-action="preview-drive"
             data-dx-sub-preview-src="${escapeHtml(previewHref)}"
           >Load Drive preview</button>
-          <p class="dx-sub-item-body">Preview works for publicly shared files. If unavailable, open the submission link.</p>
+          <p class="dx-sub-item-body">Preview works for publicly shared files. If unavailable, open the link directly.</p>
           <div class="dx-sub-preview-slot" data-dx-sub-preview-slot></div>
         </div>
       `
@@ -1616,56 +1798,86 @@
       : toSafeText(model.thread.title, '');
     const titleLine = resolvedThreadTitle
       ? `<p class="dx-sub-item-body">${escapeHtml(resolvedThreadTitle)}</p>`
-      : model.thread.lookup
+      : (!isPressroom && model.thread.lookup)
         ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.lookup)}</p>`
-        : '<p class="dx-sub-item-body">Submission</p>';
+        : `<p class="dx-sub-item-body">${isPressroom ? 'Pressroom request' : 'Submission'}</p>`;
     const creatorLine = model.thread.creator
-      ? `<p class="dx-sub-item-body">Creator: ${escapeHtml(model.thread.creator)}</p>`
+      ? `<p class="dx-sub-item-body">${isPressroom ? 'Contact' : 'Creator'}: ${escapeHtml(model.thread.creator)}</p>`
       : '';
     const submittedAtLine = model.thread.submittedAt
-      ? `<p class="dx-sub-item-body">Submitted: ${escapeHtml(toDateTime(model.thread.submittedAt))}</p>`
+      ? `<p class="dx-sub-item-body">${isPressroom ? 'Requested' : 'Submitted'}: ${escapeHtml(toDateTime(model.thread.submittedAt))}</p>`
       : '';
-    const instrumentLine = model.thread.instrument
+    const instrumentLine = model.thread.instrument && !isPressroom
       ? `<p class="dx-sub-item-body">Instrument: ${escapeHtml(model.thread.instrument)}</p>`
       : '';
-    const categoryLine = model.thread.category
+    const categoryLine = model.thread.category && !isPressroom
       ? `<p class="dx-sub-item-body">Category: ${escapeHtml(model.thread.category)}</p>`
       : '';
     const statusLine = model.thread.currentStatusRaw
       ? `<p class="dx-sub-item-body">Status: ${escapeHtml(model.thread.currentStatusRaw)}</p>`
       : '';
+    const requestIdLine = isPressroom && model.thread.requestId
+      ? `<p class="dx-sub-item-body">Request ID: ${escapeHtml(model.thread.requestId)}</p>`
+      : '';
+    const requestBudgetLine = isPressroom && model.thread.request?.budget
+      ? `<p class="dx-sub-item-body">Budget: ${escapeHtml(model.thread.request.budget)}</p>`
+      : '';
+    const requestTimeframeLine = isPressroom && model.thread.request?.timeframe
+      ? `<p class="dx-sub-item-body">Timeframe: ${escapeHtml(model.thread.request.timeframe)}</p>`
+      : '';
 
     const displayLookup = toSafeText(model.thread.lookup, '');
-    const activeLookup = pickPreferredLookup(
-      pickFirstText([
-        model.thread.finalLookupNumber,
-        model.thread.lookup,
-        model.thread.submissionLookupNumber,
-      ]),
-      '',
-    );
+    const activeLookup = isPressroom
+      ? ''
+      : pickPreferredLookup(
+        pickFirstText([
+          model.thread.finalLookupNumber,
+          model.thread.lookup,
+          model.thread.submissionLookupNumber,
+        ]),
+        '',
+      );
     const lookupLine = activeLookup
       ? `<p class="dx-sub-item-body">Lookup: ${escapeHtml(activeLookup)}</p>`
       : '';
-    const submissionIdLine = model.thread.submissionId
+    const submissionIdLine = (!isPressroom && model.thread.submissionId)
       ? `<p class="dx-sub-item-body">Submission ID: ${escapeHtml(model.thread.submissionId)}</p>`
       : '';
-    const displayTitle = resolvedThreadTitle
-      || ((!isPlaceholderSubmissionLookup(displayLookup) && displayLookup) ? displayLookup : '')
-      || 'Submission';
+    const displayTitle = isPressroom
+      ? (resolvedThreadTitle || toSafeText(model.thread.requestId, '') || 'Request')
+      : (
+        resolvedThreadTitle
+        || ((!isPlaceholderSubmissionLookup(displayLookup) && displayLookup) ? displayLookup : '')
+        || 'Submission'
+      );
+
+    const actionsHtml = isPressroom
+      ? `
+          <a class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--secondary" href="/entry/messages/">Back to inbox</a>
+        `
+      : `
+          <button
+            type="button"
+            class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--primary"
+            data-dx-sub-action="ack"
+            ${ackDisabled ? 'disabled' : ''}
+          >Acknowledge</button>
+          <a class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--secondary" href="/entry/messages/">Back to inbox</a>
+        `;
 
     root.innerHTML = `
-      <aside class="dx-sub-shell" data-dx-submission-shell>
-        ${renderBreadcrumb('submission timeline')}
+      <aside class="dx-sub-shell" data-dx-submission-shell data-dx-sub-kind="${escapeHtml(kind)}">
+        ${renderBreadcrumb(getThreadLabel({ kind }))}
         <section class="dx-sub-head">
-          <p class="dx-sub-kicker">submission tracker</p>
+          <p class="dx-sub-kicker">${isPressroom ? 'request tracker' : 'submission tracker'}</p>
           <h1 class="dx-sub-title">${escapeHtml(displayTitle)}</h1>
           <div class="dx-sub-status">
             <span class="dx-sub-chip ${severityChipClass(stageSeverity(model.thread.currentStage))}">${escapeHtml(
-              model.thread.currentStage.replace(/_/g, ' '),
+              String(model.thread.currentStage || (isPressroom ? 'submitted' : 'reviewing')).replace(/_/g, ' '),
             )}</span>
             <span class="dx-sub-chip">Updated ${escapeHtml(toDateTime(model.thread.updatedAt))}</span>
             ${activeLookup ? `<span class="dx-sub-chip">Lookup ${escapeHtml(activeLookup)}</span>` : ''}
+            ${isPressroom && model.thread.requestId ? `<span class="dx-sub-chip">Request ${escapeHtml(model.thread.requestId)}</span>` : ''}
           </div>
         </section>
 
@@ -1673,7 +1885,7 @@
 
         <section class="dx-sub-grid">
           <article class="dx-sub-card">
-            <p class="dx-sub-kicker">Submission</p>
+            <p class="dx-sub-kicker">${isPressroom ? 'Request' : 'Submission'}</p>
             ${titleLine}
             ${creatorLine}
             ${submittedAtLine}
@@ -1682,25 +1894,20 @@
             ${statusLine}
             ${lookupLine}
             ${submissionIdLine}
+            ${requestIdLine}
+            ${requestBudgetLine}
+            ${requestTimeframeLine}
           </article>
           <article class="dx-sub-card">
-            <p class="dx-sub-kicker">Links</p>
-            <div class="dx-sub-links">${sourceLink}${releaseLink}</div>
+            <p class="dx-sub-kicker">${isPressroom ? 'Request links' : 'Links'}</p>
+            <div class="dx-sub-links">${sourceLink}${extraLinks}${releaseLink}</div>
             ${previewHtml}
           </article>
         </section>
 
         ${warningHtml}
 
-        <div class="dx-sub-actions">
-          <button
-            type="button"
-            class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--primary"
-            data-dx-sub-action="ack"
-            ${ackDisabled ? 'disabled' : ''}
-          >Acknowledge</button>
-          <a class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--secondary" href="/entry/messages/">Back to inbox</a>
-        </div>
+        <div class="dx-sub-actions">${actionsHtml}</div>
 
         <section class="dx-sub-timeline" id="dx-sub-timeline">${timelineHtml}</section>
       </aside>
@@ -1836,7 +2043,183 @@
     };
     const scope = toSafeText(authSnapshot?.sub, '');
     const prefetch = getPrefetchRuntime();
-    const cacheKey = getSubmissionDetailPrefetchKey(scope, sid);
+    const cacheKey = getSubmissionDetailPrefetchKey(scope, { kind: 'submission', sid });
+    if (prefetch && cacheKey) {
+      prefetch.set(cacheKey, resolved, { scope });
+    }
+    return resolved;
+  }
+
+  async function loadPressroomDetail(authSnapshot, requestId) {
+    const safeRequestId = sanitizeRequestId(requestId);
+    if (!safeRequestId) {
+      return { ok: false, status: 400, payload: { error: 'MISSING_REQUEST_ID' } };
+    }
+    const sub = toSafeText(authSnapshot?.sub, '');
+    if (!sub) {
+      return { ok: false, status: 401, payload: { error: 'AUTH_REQUIRED' } };
+    }
+
+    let listPayload = null;
+    try {
+      listPayload = await withTimeout(
+        jsonpWithTimeout(
+          `${PRESSROOM_SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`,
+          JSONP_TIMEOUT_MS,
+        ),
+        JSONP_TIMEOUT_MS + 250,
+        { status: 'timeout', rows: [] },
+      );
+    } catch {
+      listPayload = null;
+    }
+    if (!isObject(listPayload) || String(listPayload.status || '').toLowerCase() !== 'ok') {
+      return { ok: false, status: 502, payload: listPayload || { error: 'PRESSROOM_LIST_UNAVAILABLE' } };
+    }
+
+    const listRows = Array.isArray(listPayload.rows) ? listPayload.rows : [];
+    const rowMatch = listRows.find((row) => {
+      const value = isObject(row) ? row : {};
+      return sanitizeRequestId(value.requestId || value.request_id || value.id) === safeRequestId;
+    });
+    if (!isObject(rowMatch)) {
+      return { ok: false, status: 404, payload: { error: 'REQUEST_NOT_FOUND' } };
+    }
+
+    let eventsPayload = null;
+    try {
+      eventsPayload = await withTimeout(
+        jsonpWithTimeout(
+          `${PRESSROOM_SHEET_API}?action=events_for_request&auth0Sub=${encodeURIComponent(sub)}&requestId=${encodeURIComponent(safeRequestId)}`,
+          JSONP_TIMEOUT_MS,
+        ),
+        JSONP_TIMEOUT_MS + 250,
+        { status: 'timeout', events: [] },
+      );
+    } catch {
+      eventsPayload = null;
+    }
+
+    const rowMeta = parseMetadata(
+      rowMatch.metadata || rowMatch.metadata_json || rowMatch.metadataJson || rowMatch.meta,
+    );
+    const mergedRow = { ...rowMeta, ...rowMatch };
+    const statusRaw = toSafeText(mergedRow.status, 'submitted');
+    const normalizedStatus = normalizePressroomStatus(statusRaw);
+    const sourceLinks = extractLinks(mergedRow.links || mergedRow.sourceLink || mergedRow.source_link || mergedRow.link);
+
+    const thread = {
+      kind: 'pressroom',
+      requestId: safeRequestId,
+      submissionId: '',
+      lookup: safeRequestId,
+      submissionLookupNumber: '',
+      finalLookupNumber: '',
+      title: toSafeText(mergedRow.project || mergedRow.title, ''),
+      creator: toSafeText(mergedRow.name || mergedRow.creator, ''),
+      instrument: '',
+      category: 'pressroom',
+      submittedAt: toSafeText(
+        mergedRow.clientSubmittedAt
+        || mergedRow.client_submitted_at
+        || mergedRow.timestamp,
+        '',
+      ),
+      currentStage: normalizedStatus,
+      currentStatusRaw: statusRaw,
+      updatedAt: toSafeText(mergedRow.updatedAt || mergedRow.updated_at || mergedRow.timestamp, ''),
+      acknowledgedAt: '',
+      sourceLink: sourceLinks[0] || '',
+      sourceLinks,
+      libraryHref: '',
+      request: {
+        email: toSafeText(mergedRow.email, ''),
+        budget: toSafeText(mergedRow.budget, ''),
+        timeline: toSafeText(mergedRow.timeline, ''),
+        timeframe: toSafeText(mergedRow.timeframe, ''),
+      },
+    };
+
+    const rawEvents = isObject(eventsPayload) && Array.isArray(eventsPayload.events)
+      ? eventsPayload.events
+      : [];
+
+    const mappedEvents = rawEvents.map((row, index) => {
+      const value = isObject(row) ? row : {};
+      const metadata = parseMetadata(value.metadataJson || value.metadata_json || value.metadata || value.meta);
+      const eventTypeRaw = toSafeText(value.eventType || value.event_type || value.stage || value.statusRaw || value.status_raw, '');
+      const eventType = normalizePressroomStatus(eventTypeRaw || statusRaw);
+      const status = toSafeText(value.statusRaw || value.status_raw, statusRaw || eventType);
+      const publicNote = toSafeText(value.publicNote || value.public_note, '');
+      const sourceLink = pickFirstText([
+        value.sourceLink,
+        value.source_link,
+        metadata.sourceLink,
+        metadata.source_link,
+        metadata.links,
+        metadata.link,
+        sourceLinks[0],
+      ]);
+      const createdAt = toSafeText(value.eventTimestamp || value.event_timestamp || value.createdAt || value.created_at, '');
+      return {
+        id: toSafeText(value.eventId || value.event_id || value.id, `pressroom-event-${index + 1}`),
+        sourceEventKey: toSafeText(value.sourceEventKey || value.source_event_key, ''),
+        eventType,
+        publicNote,
+        statusRaw: status,
+        libraryHref: '',
+        sourceLink: normalizeHref(sourceLink),
+        title: thread.title,
+        creator: thread.creator,
+        instrument: '',
+        category: 'pressroom',
+        submittedAt: thread.submittedAt,
+        lookup: '',
+        createdAt,
+        metadata,
+      };
+    });
+
+    if (mappedEvents.length === 0) {
+      mappedEvents.push({
+        id: `${safeRequestId}-submitted`,
+        sourceEventKey: `request:${safeRequestId}:submitted`,
+        eventType: 'submitted',
+        publicNote: '',
+        statusRaw,
+        libraryHref: '',
+        sourceLink: thread.sourceLink,
+        title: thread.title,
+        creator: thread.creator,
+        instrument: '',
+        category: 'pressroom',
+        submittedAt: thread.submittedAt,
+        lookup: '',
+        createdAt: thread.submittedAt || thread.updatedAt || nowIso(),
+        metadata: {},
+      });
+    }
+
+    const timeline = normalizeTimeline(mappedEvents);
+    const stageRail = normalizePressroomStageRail(
+      isObject(eventsPayload) ? (eventsPayload.stageRail || eventsPayload.stage_rail || null) : null,
+      timeline,
+      thread,
+    );
+
+    const resolved = {
+      ok: true,
+      status: 200,
+      kind: 'pressroom',
+      thread,
+      timeline,
+      stageRail,
+      warning: '',
+    };
+
+    const scope = toSafeText(authSnapshot?.sub, '');
+    const prefetch = getPrefetchRuntime();
+    const cacheKey = getSubmissionDetailPrefetchKey(scope, { kind: 'pressroom', rid: safeRequestId });
     if (prefetch && cacheKey) {
       prefetch.set(cacheKey, resolved, { scope });
     }
@@ -1907,15 +2290,23 @@
           if (control instanceof HTMLElement) control.setAttribute('disabled', 'disabled');
         }
 
-        const ack = await acknowledgeSubmission(context.apiBase, context.authSnapshot, context.sid);
+        if (normalizeThreadKind(context?.threadRef?.kind) !== 'submission' || !toSafeText(context?.threadRef?.sid, '')) {
+          return;
+        }
+
+        const sid = sanitizeSubmissionId(context.threadRef.sid);
+        if (!sid) return;
+
+        const ack = await acknowledgeSubmission(context.apiBase, context.authSnapshot, sid);
         if (ack.ok) {
           const acknowledgedAt = new Date().toISOString();
           context.model.thread.acknowledgedAt = acknowledgedAt;
-          const next = await loadSubmissionDetail(context.apiBase, context.authSnapshot, context.sid);
+          const next = await loadSubmissionDetail(context.apiBase, context.authSnapshot, sid);
           if (next.ok) {
             if (!next.thread.acknowledgedAt) {
               next.thread.acknowledgedAt = acknowledgedAt;
             }
+            next.kind = 'submission';
             context.model = next;
             renderReady(root, context.model);
             bindActions(root, context);
@@ -1934,22 +2325,31 @@
   async function boot(root, options = {}) {
     const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
-    renderLoading(root);
+    const initialThreadRef = await resolveThreadRef(options.routeUrl || '');
+    renderLoading(root, initialThreadRef);
 
-    const sid = await resolveSid(options.routeUrl || '');
-    if (!sid) {
-      renderError(root, 'Submission Timeline', 'Missing or invalid submission id.');
+    const threadRef = await resolveThreadRef(options.routeUrl || '');
+    const identifier = getThreadIdentifier(threadRef);
+    if (!identifier) {
+      renderError(
+        root,
+        normalizeThreadKind(threadRef.kind) === 'pressroom' ? 'Request Timeline' : 'Submission Timeline',
+        `Missing or invalid ${normalizeThreadKind(threadRef.kind) === 'pressroom' ? 'request' : 'submission'} id.`,
+        threadRef,
+      );
       const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_READY);
       return;
     }
+
+    readPendingThreadRef({ consume: true });
     readPendingSubmissionSid({ consume: true });
-    renderLoading(root, sid);
+    renderLoading(root, threadRef);
 
     const authSnapshot = await resolveAuthSnapshot(AUTH_TIMEOUT_MS);
     if (!authSnapshot.authenticated || !authSnapshot.token) {
-      renderSignIn(root);
+      renderSignIn(root, threadRef);
       const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_READY);
@@ -1959,28 +2359,41 @@
     const apiBase = toApiBase(root);
     const scope = toSafeText(authSnapshot?.sub, '');
     const prefetch = getPrefetchRuntime();
-    const cacheKey = getSubmissionDetailPrefetchKey(scope, sid);
+    const cacheKey = getSubmissionDetailPrefetchKey(scope, threadRef);
     let renderedFromCache = false;
 
     if (prefetch && cacheKey) {
       const cached = prefetch.getFresh(cacheKey, PREFETCH_SWR_MS);
       if (cached?.payload?.ok) {
-        renderReady(root, cached.payload);
+        const cachedModel = cached.payload;
+        cachedModel.kind = normalizeThreadKind(cachedModel.kind || threadRef.kind);
+        if (cachedModel.thread && typeof cachedModel.thread === 'object') {
+          cachedModel.thread.kind = cachedModel.kind;
+        }
+        renderReady(root, cachedModel);
         bindActions(root, {
-          sid,
+          threadRef,
           apiBase,
           authSnapshot,
-          model: cached.payload,
+          model: cachedModel,
         });
         renderedFromCache = true;
       }
     }
 
-    const model = await loadSubmissionDetail(apiBase, authSnapshot, sid);
+    const model = normalizeThreadKind(threadRef.kind) === 'pressroom'
+      ? await loadPressroomDetail(authSnapshot, threadRef.rid)
+      : await loadSubmissionDetail(apiBase, authSnapshot, threadRef.sid);
 
     if (!model.ok) {
       if (model.status === 403 || model.status === 404) {
-        renderError(root, 'Submission Timeline', 'Submission not found for this account.');
+        const isPressroom = normalizeThreadKind(threadRef.kind) === 'pressroom';
+        renderError(
+          root,
+          isPressroom ? 'Request Timeline' : 'Submission Timeline',
+          `${isPressroom ? 'Request' : 'Submission'} not found for this account.`,
+          threadRef,
+        );
         const elapsed = performance.now() - startTs;
         if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
         setFetchState(root, FETCH_STATE_READY);
@@ -1993,11 +2406,24 @@
         setFetchState(root, FETCH_STATE_READY);
         return;
       }
-      renderError(root, 'Submission Timeline', 'Unable to load this submission right now.');
+      renderError(
+        root,
+        normalizeThreadKind(threadRef.kind) === 'pressroom' ? 'Request Timeline' : 'Submission Timeline',
+        `Unable to load this ${normalizeThreadKind(threadRef.kind) === 'pressroom' ? 'request' : 'submission'} right now.`,
+        threadRef,
+      );
       const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_ERROR);
       return;
+    }
+
+    model.kind = normalizeThreadKind(model.kind || threadRef.kind);
+    if (model.thread && typeof model.thread === 'object') {
+      model.thread.kind = model.kind;
+      if (model.kind === 'pressroom' && !toSafeText(model.thread.requestId, '')) {
+        model.thread.requestId = sanitizeRequestId(threadRef.rid);
+      }
     }
 
     renderReady(root, model);
@@ -2005,7 +2431,7 @@
       prefetch.set(cacheKey, model, { scope });
     }
     bindActions(root, {
-      sid,
+      threadRef,
       apiBase,
       authSnapshot,
       model,
@@ -2043,7 +2469,7 @@
       root.setAttribute('data-dx-sub-mounted', 'true');
       return true;
     } catch {
-      renderError(root, 'Submission Timeline', 'Unable to load this submission right now.');
+      renderError(root, 'Submission Timeline', 'Unable to load this submission right now.', { kind: 'submission' });
       setFetchState(root, FETCH_STATE_ERROR);
       return false;
     } finally {

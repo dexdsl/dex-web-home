@@ -65,6 +65,9 @@ function verifyPressroomRuntime() {
     'data-dx-press-timeline',
     'data-dx-press-quota-source',
     'Monthly requests available',
+    'Open inbox',
+    'Open this timeline',
+    'kind=pressroom&rid=',
   ]);
 
   for (const relPath of [

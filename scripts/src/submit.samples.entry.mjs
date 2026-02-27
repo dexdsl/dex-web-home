@@ -1124,6 +1124,10 @@ import { animate } from 'framer-motion/dom';
     });
     section.appendChild(specs);
 
+    if (state.quotaResolved && state.quotaLeft <= 0) {
+      section.appendChild(buildQuotaActionCard());
+    }
+
     const footer = create('div', 'dx-submit-stage-actions');
     const quota = create(
       'p',
@@ -1150,6 +1154,13 @@ import { animate } from 'framer-motion/dom';
     section.appendChild(footer);
 
     return section;
+  }
+
+  function buildQuotaActionCard() {
+    const actionCard = create('article', 'dx-submit-action-card');
+    actionCard.appendChild(create('p', 'dx-submit-action-kicker', 'Action required'));
+    actionCard.appendChild(create('p', 'dx-submit-action-copy', 'Weekly upload limit reached for this account.'));
+    return actionCard;
   }
 
   function buildMetadataStep() {
@@ -1688,6 +1699,22 @@ import { animate } from 'framer-motion/dom';
       begin.classList.toggle('is-disabled', quotaLocked);
       begin.setAttribute('aria-disabled', quotaLocked ? 'true' : 'false');
     }
+
+    const intro = liveRoot.querySelector('[data-dx-submit-step="intro"]');
+    if (intro instanceof HTMLElement) {
+      const existingCard = intro.querySelector('.dx-submit-action-card');
+      if (state.quotaResolved && state.quotaLeft <= 0) {
+        if (!(existingCard instanceof HTMLElement)) {
+          const footer = intro.querySelector('.dx-submit-stage-actions');
+          const card = buildQuotaActionCard();
+          if (footer instanceof HTMLElement) intro.insertBefore(card, footer);
+          else intro.appendChild(card);
+        }
+      } else if (existingCard instanceof HTMLElement) {
+        existingCard.remove();
+      }
+    }
+
     refreshCommandPanel();
   }
 

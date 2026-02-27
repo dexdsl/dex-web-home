@@ -30,6 +30,9 @@ function verifySubmissionRuntime() {
     '/me/submissions/',
     '/ack',
     'stageRail',
+    'PRESSROOM_SHEET_API',
+    'events_for_request',
+    'normalizePressroomStageRail',
     'data-dx-fetch-state',
     'data-dx-sub-stage-rail',
   ]);
@@ -41,6 +44,8 @@ function verifySubmissionRuntime() {
   assertIncludes('scripts/src/messages.inbox.entry.mjs', inboxSource, [
     '/me/submissions?limit=200&state=all',
     '/entry/messages/submission/?sid=',
+    '/entry/messages/submission/?kind=pressroom&rid=',
+    'sourceType: \'pressroom\'',
     '/me/submissions/',
     '/ack',
   ]);
@@ -54,6 +59,7 @@ function verifySubmissionRuntime() {
     assertIncludes(relPath, text, [
       '__dxSubmissionTimelineRuntimeLoaded',
       'me/submissions/',
+      'events_for_request',
       'entry/messages/',
     ]);
   }
