@@ -777,6 +777,7 @@ body.homepage #dex-faq .spark-accordion__item {
   border: 1px solid rgba(255, 255, 255, 0.42) !important;
   border-radius: var(--dx-radius-md, 10px) !important;
   box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  padding: var(--space-4, 1.5rem) var(--space-3, 1rem) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   isolation: isolate !important;
@@ -1186,6 +1187,79 @@ body.dx-route-profile-protected {
       - var(--dx-profile-footer-height-effective)
     )
   ) !important;
+}
+
+/* Submit + submission detail keep auth protection but use standard header/footer chrome flow. */
+body.dx-route-standard-chrome {
+  --dx-profile-home-card-footer-gap: 0px !important;
+  --dx-profile-footer-bottom: max(var(--dx-fixed-header-top, 12px), calc(var(--dx-safe-bottom) + 4px)) !important;
+  --dx-profile-footer-height-effective: 0px !important;
+  --dx-profile-shell-height: auto !important;
+}
+
+body.dx-slot-enabled.dx-route-standard-chrome,
+html body.dx-slot-enabled.dx-route-standard-chrome {
+  overflow: auto !important;
+  height: auto !important;
+}
+
+body.dx-slot-enabled.dx-route-standard-chrome #dx-slot-scroll-root {
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  inset: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.dx-slot-enabled.dx-route-standard-chrome #dx-slot-foreground-root {
+  padding-bottom: max(var(--dx-fixed-header-top, 12px), env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.dx-route-standard-chrome #footer-sections {
+  position: relative !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+body.dx-route-standard-chrome #footer-sections .page-section,
+body.dx-route-standard-chrome #footer-sections .content-wrapper,
+body.dx-route-standard-chrome #footer-sections .content,
+body.dx-route-standard-chrome #footer-sections .fluid-engine,
+body.dx-route-standard-chrome #footer-sections .fe-block,
+body.dx-route-standard-chrome #footer-sections .dx-block,
+body.dx-route-standard-chrome #footer-sections .dx-block-content,
+body.dx-route-standard-chrome #footer-sections .dx-code-container {
+  position: relative !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.dx-route-standard-chrome #footer-sections .dex-footer,
+body.dx-route-standard-chrome .dex-footer.dx-profile-footer-portaled {
+  position: relative !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  width: var(--dx-header-frame-width-vw) !important;
+  max-width: var(--dx-header-frame-width-vw) !important;
+  margin: 0 auto calc(var(--dx-fixed-header-top, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.dx-route-standard-chrome :is(#dex-submit, #dex-submission) {
+  position: relative !important;
+  z-index: calc(var(--dx-layer-foreground) + 2) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 html body.dx-slot-enabled.dx-route-profile-protected,

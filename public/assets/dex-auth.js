@@ -682,6 +682,21 @@
     });
   }
 
+  function bindSlotLifecycleRepair() {
+    if (document.documentElement.dataset.dexAuthSlotRepairBound) {
+      return;
+    }
+    document.documentElement.dataset.dexAuthSlotRepairBound = "1";
+    var scheduleRepair = function () {
+      window.setTimeout(function () {
+        repairAuthUiIfMissing();
+      }, 0);
+    };
+    window.addEventListener("dx:slotready", scheduleRepair);
+    window.addEventListener("dx:route-transition-in:end", scheduleRepair);
+    window.addEventListener("pageshow", scheduleRepair);
+  }
+
   function repairAuthUiIfMissing() {
     if (uiRepairQueued) {
       return;
@@ -1422,6 +1437,7 @@
         var cfg = getResolvedCfg();
       ensureAuthUi();
       bindUiResizeSync();
+      bindSlotLifecycleRepair();
       startAuthUiObserver();
       if (!cfg) {
         logError("Missing host Auth0 configuration; auth features disabled.");

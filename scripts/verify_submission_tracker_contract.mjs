@@ -87,10 +87,12 @@ function verifyProtectedRoutes() {
   const headerRuntime = readText('public/assets/js/header-slot.js');
   assertIncludes('public/assets/js/header-slot.js', headerRuntime, [
     "'/entry/messages',",
+    'const PROFILE_STANDARD_CHROME_ROUTES = new Set([',
+    "'/entry/messages/submission',",
+    'PROFILE_STANDARD_CHROME_ROUTE_CLASS',
+    'isProfileStandardChromePath(',
+    'document.body.classList.toggle(PROFILE_STANDARD_CHROME_ROUTE_CLASS, isStandardChrome);',
   ]);
-  if (headerRuntime.includes("'/entry/messages/submission',")) {
-    FAILURES.push('public/assets/js/header-slot.js should not treat /entry/messages/submission as fixed-profile route');
-  }
 }
 
 function main() {

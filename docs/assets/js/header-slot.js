@@ -19,6 +19,7 @@
   const ROUTE_TRANSITION_IN_START = 'dx:route-transition-in:start';
   const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
   const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
+  const PROFILE_STANDARD_CHROME_ROUTE_CLASS = 'dx-route-standard-chrome';
   const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
   const PROFILE_FOOTER_PORTALED_CLASS = 'dx-profile-footer-portaled';
   const IOS_SAFARI_CLASS = 'dx-ios-safari';
@@ -36,9 +37,14 @@
     '/entry/favorites',
     '/entry/submit',
     '/entry/messages',
+    '/entry/messages/submission',
     '/entry/pressroom',
     '/entry/settings',
     '/entry/achievements',
+  ]);
+  const PROFILE_STANDARD_CHROME_ROUTES = new Set([
+    '/entry/submit',
+    '/entry/messages/submission',
   ]);
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);
@@ -215,6 +221,11 @@
     return PROFILE_PROTECTED_ROUTES.has(normalized);
   }
 
+  function isProfileStandardChromePath(pathname) {
+    const normalized = normalizeProfileRoutePath(pathname);
+    return PROFILE_STANDARD_CHROME_ROUTES.has(normalized);
+  }
+
   function getProfileFooterSourceElement(root = document) {
     if (!root || !root.querySelector) return null;
     const sectionFooter = root.querySelector('#footer-sections .dex-footer');
@@ -291,7 +302,8 @@
 
   function syncProfileFooterPlacementNow() {
     const isProtectedRoute = document.body && document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
-    if (isProtectedRoute) {
+    const isStandardChromeRoute = document.body && document.body.classList.contains(PROFILE_STANDARD_CHROME_ROUTE_CLASS);
+    if (isProtectedRoute && !isStandardChromeRoute) {
       if (isMobileViewport()) {
         restoreProfileFooterFromPortal();
         return;
@@ -327,7 +339,8 @@
   function syncProfileViewportMetricsNow() {
     if (!document.body || !document.documentElement) return;
     const isProtectedRoute = document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
-    if (!isProtectedRoute) {
+    const isStandardChromeRoute = document.body.classList.contains(PROFILE_STANDARD_CHROME_ROUTE_CLASS);
+    if (!isProtectedRoute || isStandardChromeRoute) {
       syncProfileFooterPlacementNow();
       document.documentElement.style.removeProperty(PROFILE_FOOTER_HEIGHT_VAR);
       return;
@@ -376,7 +389,9 @@
 
   function syncProfileProtectedRouteState(pathname) {
     const isProtected = isProfileProtectedPath(pathname);
+    const isStandardChrome = isProfileStandardChromePath(pathname);
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
+    document.body.classList.toggle(PROFILE_STANDARD_CHROME_ROUTE_CLASS, isStandardChrome);
     syncProfileFooterPlacementNow();
     scheduleProfileViewportMetricsSync();
     if (isProtected) {
@@ -1267,8 +1282,8 @@
     return renderHeadingText(input, options);
   }
 
-  function dispatchSlotReady(scrollRoot, foregroundRoot) {
-    const detail = { scrollRoot, foregroundRoot };
+  function dispatchSlotReady(scrollRoot, foregroundRoot, routeUrl = window.location.href) {
+    const detail = { scrollRoot, foregroundRoot, url: String(routeUrl || window.location.href) };
     try {
       window.dispatchEvent(new CustomEvent('dx:slotready', { detail }));
       return;
@@ -2577,7 +2592,7 @@
       scrollRoot.scrollTop = 0;
     }
 
-    dispatchSlotReady(scrollRoot, foregroundRoot);
+    dispatchSlotReady(scrollRoot, foregroundRoot, targetUrl.href);
     scheduleProfileViewportMetricsSync();
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
@@ -2671,6 +2686,7 @@
       }
 
       const finalUrl = toAbsoluteUrl(response.url || targetUrl.href, targetUrl.href) || targetUrl;
+      finalUrl.search = targetUrl.search;
       finalUrl.hash = targetUrl.hash;
 
       await applyRouteDocument(parsed, finalUrl, options);
@@ -2785,7 +2801,7 @@
         scrollRoot.scrollTop = initialScroll;
       }
       scrollToHashTarget(window.location.hash);
-      dispatchSlotReady(scrollRoot, foregroundRoot);
+      dispatchSlotReady(scrollRoot, foregroundRoot, window.location.href);
       installHomeHeroAligner();
       normalizeMobileBurgerHooks(document);
       applyHeadingTypographyAndSupportHooks(document);

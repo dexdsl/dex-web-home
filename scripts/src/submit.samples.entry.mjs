@@ -102,6 +102,33 @@ import { animate } from 'framer-motion/dom';
     'B',
   ];
 
+  const KEY_CENTER_24_TET_OPTIONS = [
+    'C',
+    'C quarter-sharp',
+    'C♯/D♭',
+    'D quarter-flat',
+    'D',
+    'D quarter-sharp',
+    'D♯/E♭',
+    'E quarter-flat',
+    'E',
+    'E quarter-sharp',
+    'F',
+    'F quarter-sharp',
+    'F♯/G♭',
+    'G quarter-flat',
+    'G',
+    'G quarter-sharp',
+    'G♯/A♭',
+    'A quarter-flat',
+    'A',
+    'A quarter-sharp',
+    'A♯/B♭',
+    'B quarter-flat',
+    'B',
+    'B quarter-sharp',
+  ];
+
   const PITCH_SYSTEM_OPTIONS = [
     { value: '12-tet', label: '12-TET' },
     { value: '24-tet', label: '24-TET' },
@@ -111,7 +138,6 @@ import { animate } from 'framer-motion/dom';
   ];
 
   const PITCH_DESCRIPTOR_HINTS = {
-    '24-tet': 'Examples: C quarter-sharp, D -50c, A 3/4-sharp',
     ji: 'Examples: 5/4 on C, 7/4 on D, 11-limit drone on A',
   };
 
@@ -193,6 +219,23 @@ import { animate } from 'framer-motion/dom';
     if (system === 'ji') return descriptor ? `JI: ${descriptor}` : 'JI';
     if (!descriptor) return '';
     return `12-TET: ${descriptor}`;
+  }
+
+  function isPitchRootDropdownSystem(pitchSystem) {
+    return pitchSystem === '12-tet' || pitchSystem === '24-tet';
+  }
+
+  function getPitchRootOptions(pitchSystem) {
+    if (pitchSystem === '24-tet') return KEY_CENTER_24_TET_OPTIONS;
+    if (pitchSystem === '12-tet') return KEY_CENTER_OPTIONS;
+    return [];
+  }
+
+  function normalizePitchDescriptorForSystem(pitchSystem, descriptor) {
+    if (!isPitchRootDropdownSystem(pitchSystem)) return descriptor;
+    const options = getPitchRootOptions(pitchSystem);
+    const normalized = text(descriptor);
+    return options.includes(normalized) ? normalized : '';
   }
 
   function syncLegacyPitchFields(meta) {
@@ -470,9 +513,7 @@ import { animate } from 'framer-motion/dom';
 
     const currentPitchSystem = normalizePitchSystem(state.meta.pitchSystem);
     state.meta.pitchSystem = currentPitchSystem;
-    if (currentPitchSystem === '12-tet' && !KEY_CENTER_OPTIONS.includes(text(state.meta.pitchDescriptor))) {
-      state.meta.pitchDescriptor = '';
-    }
+    state.meta.pitchDescriptor = normalizePitchDescriptorForSystem(currentPitchSystem, state.meta.pitchDescriptor);
     syncLegacyPitchFields(state.meta);
 
     const pitchSystemField = wrapField('Pitch system');
@@ -485,9 +526,7 @@ import { animate } from 'framer-motion/dom';
     pitchSystemSelect.value = currentPitchSystem;
     pitchSystemSelect.addEventListener('change', (event) => {
       state.meta.pitchSystem = normalizePitchSystem(event.target.value);
-      if (state.meta.pitchSystem === '12-tet' && !KEY_CENTER_OPTIONS.includes(text(state.meta.pitchDescriptor))) {
-        state.meta.pitchDescriptor = '';
-      }
+      state.meta.pitchDescriptor = normalizePitchDescriptorForSystem(state.meta.pitchSystem, state.meta.pitchDescriptor);
       if (state.meta.pitchSystem === 'atonal' || state.meta.pitchSystem === 'non-pitched') {
         state.meta.pitchDescriptor = '';
       }
@@ -498,13 +537,13 @@ import { animate } from 'framer-motion/dom';
     pitchSystemField.appendChild(pitchSystemSelect);
     grid.appendChild(pitchSystemField);
 
-    if (currentPitchSystem === '12-tet') {
-      const keyField = wrapField('Key center');
+    if (isPitchRootDropdownSystem(currentPitchSystem)) {
+      const keyField = wrapField('Pitch root');
       const keySelect = create('select', 'dx-submit-input');
-      const emptyOption = create('option', '', 'Select key center');
+      const emptyOption = create('option', '', 'Select pitch root');
       emptyOption.value = '';
       keySelect.appendChild(emptyOption);
-      KEY_CENTER_OPTIONS.forEach((value) => {
+      getPitchRootOptions(currentPitchSystem).forEach((value) => {
         const option = create('option', '', value);
         option.value = value;
         keySelect.appendChild(option);
@@ -517,15 +556,13 @@ import { animate } from 'framer-motion/dom';
       });
       keyField.appendChild(keySelect);
       grid.appendChild(keyField);
-    } else if (currentPitchSystem === '24-tet' || currentPitchSystem === 'ji') {
-      const descriptorLabel = currentPitchSystem === '24-tet' ? '24-TET pitch descriptor' : 'JI pitch descriptor';
-      const descriptorField = wrapField(descriptorLabel);
-      const hint = create('p', 'dx-submit-copy dx-submit-copy--compact', PITCH_DESCRIPTOR_HINTS[currentPitchSystem]);
+    } else if (currentPitchSystem === 'ji') {
+      const descriptorField = wrapField('JI pitch descriptor');
+      const hint = create('p', 'dx-submit-copy dx-submit-copy--compact', PITCH_DESCRIPTOR_HINTS.ji);
       const descriptorInput = create('input', 'dx-submit-input');
       descriptorInput.type = 'text';
       descriptorInput.maxLength = 120;
-      descriptorInput.placeholder =
-        currentPitchSystem === '24-tet' ? 'Ex: C quarter-sharp' : 'Ex: 5/4 on C';
+      descriptorInput.placeholder = 'Ex: 5/4 on C';
       descriptorInput.value = text(state.meta.pitchDescriptor);
       descriptorInput.addEventListener('input', (event) => {
         state.meta.pitchDescriptor = event.target.value;
@@ -855,7 +892,7 @@ import { animate } from 'framer-motion/dom';
       create(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
-        'Use 12-TET note selection, or describe 24-TET/JI context. Atonal and non-pitched are first-class options.',
+        'Use the pitch-root dropdown for 12-TET and 24-TET, or describe JI context. Atonal and non-pitched are first-class options.',
       ),
     );
 

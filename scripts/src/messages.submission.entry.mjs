@@ -165,10 +165,23 @@
     }
   }
 
-  function parseSidFromLocation() {
-    const params = new URLSearchParams(window.location.search || '');
-    const sid = toSafeText(params.get('sid'), '').replace(/[^a-zA-Z0-9._:-]/g, '');
-    return sid;
+  function parseSidFromLocation(routeUrl = '') {
+    let sid = '';
+
+    if (routeUrl) {
+      try {
+        const parsed = new URL(String(routeUrl), window.location.origin);
+        const routeParams = new URLSearchParams(parsed.search || '');
+        sid = toSafeText(routeParams.get('sid'), '');
+      } catch {}
+    }
+
+    if (!sid) {
+      const params = new URLSearchParams(window.location.search || '');
+      sid = toSafeText(params.get('sid'), '');
+    }
+
+    return sid.replace(/[^a-zA-Z0-9._:-]/g, '');
   }
 
   function severityChipClass(value) {
@@ -689,11 +702,11 @@
     );
   }
 
-  async function boot(root) {
+  async function boot(root, options = {}) {
     const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
 
-    const sid = parseSidFromLocation();
+    const sid = parseSidFromLocation(options.routeUrl || '');
     if (!sid) {
       renderError(root, 'Submission Timeline', 'Missing or invalid submission id.');
       const elapsed = performance.now() - startTs;
@@ -757,7 +770,7 @@
     if (force) root.removeAttribute('data-dx-sub-mounted');
 
     try {
-      await boot(root);
+      await boot(root, options);
       root.setAttribute('data-dx-sub-mounted', 'true');
       return true;
     } catch {
@@ -768,12 +781,14 @@
     }
   }
 
-  window.__dxSubmissionTimelineMount = () => {
-    mount().catch(() => {});
+  window.__dxSubmissionTimelineMount = (options = {}) => {
+    mount(options).catch(() => {});
   };
 
-  window.addEventListener('dx:slotready', () => {
-    mount({ force: true }).catch(() => {});
+  window.addEventListener('dx:slotready', (event) => {
+    const detail = (event && isObject(event.detail)) ? event.detail : {};
+    const routeUrl = toSafeText(detail.url, '');
+    mount({ force: true, routeUrl }).catch(() => {});
   });
 
   if (document.readyState === 'loading') {

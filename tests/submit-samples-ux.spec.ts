@@ -109,10 +109,8 @@ async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario):
 
   await step.locator('.dx-submit-field', { hasText: 'Pitch system' }).locator('select').selectOption(scenario.pitchSystem);
 
-  if (scenario.pitchSystem === '12-tet') {
-    await step.locator('.dx-submit-field', { hasText: 'Key center' }).locator('select').selectOption(scenario.descriptor || 'C');
-  } else if (scenario.pitchSystem === '24-tet') {
-    await step.locator('.dx-submit-field', { hasText: '24-TET pitch descriptor' }).locator('input').fill(scenario.descriptor || '');
+  if (scenario.pitchSystem === '12-tet' || scenario.pitchSystem === '24-tet') {
+    await step.locator('.dx-submit-field', { hasText: 'Pitch root' }).locator('select').selectOption(scenario.descriptor || 'C');
   } else if (scenario.pitchSystem === 'ji') {
     await step.locator('.dx-submit-field', { hasText: 'JI pitch descriptor' }).locator('input').fill(scenario.descriptor || '');
   }
@@ -261,7 +259,7 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   await step.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
   await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
   await step.locator('.dx-submit-field', { hasText: 'Pitch system' }).locator('select').selectOption('12-tet');
-  await step.locator('.dx-submit-field', { hasText: 'Key center' }).locator('select').selectOption('C♯/D♭');
+  await step.locator('.dx-submit-field', { hasText: 'Pitch root' }).locator('select').selectOption('C♯/D♭');
   await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
@@ -318,7 +316,7 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
 const PITCH_SERIALIZATION_SCENARIOS: Array<PitchSubmitScenario & { name: string }> = [
   {
-    name: '24-TET descriptor',
+    name: '24-TET root',
     pitchSystem: '24-tet',
     descriptor: 'C quarter-sharp',
     expectedKeyCenter: '24-TET: C quarter-sharp',
