@@ -70,6 +70,16 @@ function verifyGlassParityContract(failures) {
   const slotRuntime = readText(SLOT_RUNTIME_PATH);
   const authRuntime = readText(AUTH_RUNTIME_PATH);
 
+  const requiredSlotMarkers = [
+    'bootstrapPersistentChromeIfMissing',
+    'getHeaderElement(document) || await bootstrapPersistentChromeIfMissing()',
+  ];
+  for (const marker of requiredSlotMarkers) {
+    if (!slotRuntime.includes(marker)) {
+      failures.push(`header-slot runtime missing required protected-route bootstrap marker: ${marker}`);
+    }
+  }
+
   const requiredBaseCssMarkers = [
     '--dx-glass-shell-bg: var(--dx-header-glass-bg);',
     '--dx-glass-shell-rim: var(--dx-header-glass-rim);',

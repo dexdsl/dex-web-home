@@ -31,7 +31,11 @@ function verifySubmissionRuntime() {
     '/ack',
     'stageRail',
     'data-dx-fetch-state',
+    'data-dx-sub-stage-rail',
   ]);
+  if (sourceText.includes('dx-submission-runtime-style')) {
+    FAILURES.push(`${sourceRel} should not inject runtime style blocks anymore`);
+  }
 
   const inboxSource = readText('scripts/src/messages.inbox.entry.mjs');
   assertIncludes('scripts/src/messages.inbox.entry.mjs', inboxSource, [
@@ -62,6 +66,7 @@ function verifySubmissionRoute() {
     'id="dex-submission"',
     'data-dx-fetch-state="loading"',
     'data-api="https://dex-api.spring-fog-8edd.workers.dev"',
+    '/css/components/dx-submission-tracker.css',
     '/assets/js/messages.submission.js',
   ]);
 
@@ -81,8 +86,11 @@ function verifyProtectedRoutes() {
 
   const headerRuntime = readText('public/assets/js/header-slot.js');
   assertIncludes('public/assets/js/header-slot.js', headerRuntime, [
-    "'/entry/messages/submission',",
+    "'/entry/messages',",
   ]);
+  if (headerRuntime.includes("'/entry/messages/submission',")) {
+    FAILURES.push('public/assets/js/header-slot.js should not treat /entry/messages/submission as fixed-profile route');
+  }
 }
 
 function main() {

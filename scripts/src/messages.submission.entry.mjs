@@ -49,11 +49,7 @@
   }
 
   function toApiBase(root) {
-    const configured =
-      root?.dataset?.api ||
-      window.DEX_API_BASE_URL ||
-      window.DEX_API_ORIGIN ||
-      DEFAULT_API;
+    const configured = root?.dataset?.api || window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_API;
     return String(configured || DEFAULT_API).trim().replace(/\/+$/, '');
   }
 
@@ -175,51 +171,6 @@
     return sid;
   }
 
-  function ensureStyles() {
-    if (document.getElementById('dx-submission-runtime-style')) return;
-    const style = document.createElement('style');
-    style.id = 'dx-submission-runtime-style';
-    style.textContent = `
-      #dex-submission{width:100%;}
-      #dex-submission .dx-sub-shell{display:grid;gap:12px;padding:16px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:rgba(255,255,255,.18);backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);box-shadow:0 8px 24px rgba(0,0,0,.12);font-family:'Courier New',monospace;color:#171a1f;}
-      #dex-submission .dx-sub-head{display:grid;gap:8px;}
-      #dex-submission .dx-sub-kicker{margin:0;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;color:rgba(17,24,39,.7);}
-      #dex-submission .dx-sub-title{margin:0;font-family:'Typefesse',sans-serif;font-size:clamp(1.2rem,3.1vw,1.9rem);line-height:1.12;}
-      #dex-submission .dx-sub-status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-      #dex-submission .dx-sub-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.45);border-radius:7px;padding:4px 8px;font-size:.74rem;background:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.02em;}
-      #dex-submission .dx-sub-chip--critical{background:rgba(168,27,27,.14);border-color:rgba(168,27,27,.34);}
-      #dex-submission .dx-sub-chip--warning{background:rgba(193,116,0,.14);border-color:rgba(193,116,0,.34);}
-      #dex-submission .dx-sub-chip--info{background:rgba(22,80,173,.11);border-color:rgba(22,80,173,.26);}
-      #dex-submission .dx-sub-stage-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;}
-      #dex-submission .dx-sub-stage{border:1px solid rgba(255,255,255,.32);border-radius:8px;padding:8px;background:rgba(255,255,255,.5);display:grid;gap:4px;min-height:62px;}
-      #dex-submission .dx-sub-stage[data-state='done']{border-color:rgba(18,116,35,.46);background:rgba(27,138,50,.14);}
-      #dex-submission .dx-sub-stage[data-state='active']{border-color:rgba(255,25,16,.52);background:rgba(255,25,16,.13);box-shadow:inset 0 0 0 1px rgba(255,25,16,.27);}
-      #dex-submission .dx-sub-stage[data-state='todo']{opacity:.76;}
-      #dex-submission .dx-sub-stage-label{margin:0;font-size:.82rem;font-weight:700;}
-      #dex-submission .dx-sub-stage-time{margin:0;font-size:.74rem;color:rgba(17,24,39,.7);}
-      #dex-submission .dx-sub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-      #dex-submission .dx-sub-card{border:1px solid rgba(255,255,255,.34);border-radius:8px;padding:10px;background:rgba(255,255,255,.58);display:grid;gap:6px;}
-      #dex-submission .dx-sub-links{display:flex;gap:8px;flex-wrap:wrap;}
-      #dex-submission .dx-sub-link{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;color:#111827;text-decoration:none;}
-      #dex-submission .dx-sub-link:hover{text-decoration:underline;}
-      #dex-submission .dx-sub-timeline{display:grid;gap:8px;}
-      #dex-submission .dx-sub-item{border:1px solid rgba(255,255,255,.32);border-radius:8px;padding:10px;background:rgba(255,255,255,.66);display:grid;gap:6px;}
-      #dex-submission .dx-sub-item-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
-      #dex-submission .dx-sub-item-type{margin:0;font-size:.78rem;letter-spacing:.03em;text-transform:uppercase;color:rgba(17,24,39,.72);}
-      #dex-submission .dx-sub-item-time{margin:0;font-size:.74rem;color:rgba(17,24,39,.72);}
-      #dex-submission .dx-sub-item-body{margin:0;font-size:.88rem;line-height:1.35;color:#111827;}
-      #dex-submission .dx-sub-actions{display:flex;gap:8px;flex-wrap:wrap;}
-      #dex-submission .dx-sub-btn{appearance:none;border:1px solid rgba(255,255,255,.42);background:rgba(255,255,255,.6);color:#111827;border-radius:8px;padding:7px 10px;font-size:.8rem;line-height:1;cursor:pointer;}
-      #dex-submission .dx-sub-btn:disabled{opacity:.5;cursor:not-allowed;}
-      #dex-submission .dx-sub-warning{margin:0;padding:10px 12px;border:1px solid rgba(255,180,0,.45);border-radius:8px;background:rgba(255,191,0,.14);font-size:.85rem;}
-      #dex-submission .dx-sub-empty{margin:0;padding:14px 12px;border:1px dashed rgba(17,24,39,.3);border-radius:9px;background:rgba(255,255,255,.45);font-size:.9rem;}
-      @media (max-width:880px){
-        #dex-submission .dx-sub-grid{grid-template-columns:1fr;}
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   function severityChipClass(value) {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'critical') return 'dx-sub-chip--critical';
@@ -234,15 +185,50 @@
     return 'info';
   }
 
+  function parseMetadata(value) {
+    if (isObject(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (isObject(parsed)) return parsed;
+      } catch {}
+    }
+    return {};
+  }
+
+  function pickFirstText(values, fallback = '') {
+    for (const value of values) {
+      const text = toSafeText(value, '');
+      if (text) return text;
+    }
+    return fallback;
+  }
+
   function normalizeTimeline(timeline) {
     const rows = Array.isArray(timeline) ? timeline : [];
     return rows
       .map((row, index) => {
         const value = isObject(row) ? row : {};
+        const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
         const eventType = toSafeText(value.eventType || value.event_type || value.stage, 'event');
         const publicNote = toSafeText(value.publicNote || value.public_note, '');
         const statusRaw = toSafeText(value.statusRaw || value.status_raw, '');
-        const libraryHref = toSafeText(value.libraryHref || value.library_href, '');
+        const libraryHref = pickFirstText([
+          value.libraryHref,
+          value.library_href,
+          metadata.libraryHref,
+          metadata.library_href,
+        ]);
+        const sourceLink = pickFirstText([
+          value.sourceLink,
+          value.source_link,
+          metadata.sourceLink,
+          metadata.source_link,
+          metadata.link,
+        ]);
+        const title = pickFirstText([value.title, metadata.title, metadata.submissionTitle, metadata.submission_title]);
+        const creator = pickFirstText([value.creator, metadata.creator, metadata.artist]);
+        const lookup = pickFirstText([value.lookup, metadata.lookup, metadata.lookupNumber, metadata.lookup_number]);
         const createdAt = toSafeText(value.eventAt || value.event_at || value.createdAt || value.created_at, '');
         const id = toSafeText(value.id, `timeline-${index + 1}`);
         return {
@@ -251,7 +237,12 @@
           publicNote,
           statusRaw,
           libraryHref,
+          sourceLink,
+          title,
+          creator,
+          lookup,
           createdAt,
+          metadata,
         };
       })
       .sort((a, b) => {
@@ -308,9 +299,155 @@
     });
   }
 
+  function hydrateThreadFromFallbacks(thread, threadPayload, timeline) {
+    const payloadMeta = parseMetadata(
+      threadPayload.metadata || threadPayload.metadata_json || threadPayload.metadataJson || threadPayload.meta,
+    );
+    const eventMetas = [];
+    const timelineEvents = Array.isArray(timeline) ? timeline : [];
+    for (let index = timelineEvents.length - 1; index >= 0; index -= 1) {
+      const item = timelineEvents[index];
+      if (isObject(item?.metadata) && Object.keys(item.metadata).length > 0) {
+        eventMetas.push(item.metadata);
+      }
+    }
+    const mergedMeta = [payloadMeta, ...eventMetas];
+    const latestEvent = timelineEvents.length > 0 ? timelineEvents[timelineEvents.length - 1] : null;
+
+    thread.lookup = pickFirstText([
+      thread.lookup,
+      threadPayload.lookup,
+      threadPayload.lookupNumber,
+      threadPayload.lookup_number,
+      ...mergedMeta.map((meta) => meta.lookup),
+      ...mergedMeta.map((meta) => meta.lookupNumber),
+      ...mergedMeta.map((meta) => meta.lookup_number),
+      latestEvent?.lookup,
+    ]);
+
+    thread.title = pickFirstText([
+      thread.title,
+      threadPayload.title,
+      threadPayload.submissionTitle,
+      threadPayload.submission_title,
+      ...mergedMeta.map((meta) => meta.title),
+      ...mergedMeta.map((meta) => meta.submissionTitle),
+      ...mergedMeta.map((meta) => meta.submission_title),
+      latestEvent?.title,
+    ]);
+
+    thread.creator = pickFirstText([
+      thread.creator,
+      threadPayload.creator,
+      threadPayload.artist,
+      ...mergedMeta.map((meta) => meta.creator),
+      ...mergedMeta.map((meta) => meta.artist),
+      latestEvent?.creator,
+    ]);
+
+    thread.sourceLink = pickFirstText([
+      thread.sourceLink,
+      threadPayload.sourceLink,
+      threadPayload.source_link,
+      threadPayload.link,
+      ...mergedMeta.map((meta) => meta.sourceLink),
+      ...mergedMeta.map((meta) => meta.source_link),
+      ...mergedMeta.map((meta) => meta.link),
+      latestEvent?.sourceLink,
+    ]);
+
+    thread.libraryHref = pickFirstText([
+      thread.libraryHref,
+      threadPayload.libraryHref,
+      threadPayload.library_href,
+      ...mergedMeta.map((meta) => meta.libraryHref),
+      ...mergedMeta.map((meta) => meta.library_href),
+      latestEvent?.libraryHref,
+    ]);
+
+    thread.currentStatusRaw = pickFirstText([
+      thread.currentStatusRaw,
+      threadPayload.currentStatusRaw,
+      threadPayload.current_status_raw,
+      threadPayload.statusRaw,
+      threadPayload.status_raw,
+      threadPayload.status,
+      latestEvent?.statusRaw,
+    ]);
+
+    thread.updatedAt = pickFirstText([
+      thread.updatedAt,
+      threadPayload.updatedAt,
+      threadPayload.updated_at,
+      threadPayload.receivedAt,
+      threadPayload.received_at,
+      latestEvent?.createdAt,
+    ]);
+
+    return thread;
+  }
+
+  function shouldHydrateFromThreadList(thread) {
+    return !toSafeText(thread.title) || !toSafeText(thread.creator) || !toSafeText(thread.sourceLink);
+  }
+
+  async function hydrateThreadFromList(apiBase, authSnapshot, sid, thread) {
+    if (!authSnapshot?.authenticated || !authSnapshot?.token) return thread;
+    if (!shouldHydrateFromThreadList(thread)) return thread;
+
+    const listResponse = await fetchJsonWithTimeout(
+      `${apiBase}/me/submissions?limit=200&state=all`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${authSnapshot.token}`,
+          'content-type': 'application/json',
+        },
+      },
+      FETCH_TIMEOUT_MS,
+    );
+    if (!listResponse.ok) return thread;
+
+    const listPayload = isObject(listResponse.payload) ? listResponse.payload : {};
+    const rows = Array.isArray(listPayload.threads)
+      ? listPayload.threads
+      : (Array.isArray(listPayload.items) ? listPayload.items : []);
+    if (!rows.length) return thread;
+
+    const match = rows.find((row) => {
+      const value = isObject(row) ? row : {};
+      const rowSid = toSafeText(value.submissionId || value.submission_id, '');
+      return rowSid && rowSid === sid;
+    });
+    if (!isObject(match)) return thread;
+
+    thread.lookup = pickFirstText([thread.lookup, match.lookup, match.lookupNumber, match.lookup_number]);
+    thread.title = pickFirstText([thread.title, match.title, match.submissionTitle, match.submission_title]);
+    thread.creator = pickFirstText([thread.creator, match.creator, match.artist]);
+    thread.currentStatusRaw = pickFirstText([
+      thread.currentStatusRaw,
+      match.currentStatusRaw,
+      match.current_status_raw,
+      match.statusRaw,
+      match.status_raw,
+      match.status,
+    ]);
+    thread.sourceLink = pickFirstText([thread.sourceLink, match.sourceLink, match.source_link, match.link]);
+    thread.libraryHref = pickFirstText([thread.libraryHref, match.libraryHref, match.library_href]);
+    thread.updatedAt = pickFirstText([
+      thread.updatedAt,
+      match.updatedAt,
+      match.updated_at,
+      match.receivedAt,
+      match.received_at,
+    ]);
+
+    return thread;
+  }
+
   function renderSignIn(root) {
     root.innerHTML = `
-      <aside class="dx-sub-shell">
+      <aside class="dx-sub-shell" data-dx-submission-shell>
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">Submission Timeline</h1>
@@ -322,7 +459,7 @@
 
   function renderError(root, title, message) {
     root.innerHTML = `
-      <aside class="dx-sub-shell">
+      <aside class="dx-sub-shell" data-dx-submission-shell>
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">${escapeHtml(title || 'Submission Timeline')}</h1>
@@ -332,48 +469,50 @@
     `;
   }
 
-  function renderTimeline(root, model) {
-    ensureStyles();
+  function renderReady(root, model) {
+    const acknowledgedFromRail = model.stageRail.some(
+      (step) => step.key === 'acknowledged' && (step.state === 'active' || step.state === 'done'),
+    );
+    const ackDisabled = Boolean(model.thread.acknowledgedAt) || acknowledgedFromRail;
+
     const timelineHtml = model.timeline.length
       ? model.timeline
-        .map((event) => {
-          const typeLabel = toSafeText(event.eventType, 'event').replace(/_/g, ' ');
-          const body = event.publicNote
-            ? `<p class="dx-sub-item-body">${escapeHtml(event.publicNote)}</p>`
-            : '';
-          const status = event.statusRaw
-            ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(event.eventType))}">${escapeHtml(event.statusRaw)}</span>`
-            : '';
-          const libraryLink = event.libraryHref
-            ? `<a class="dx-sub-link" href="${escapeHtml(event.libraryHref)}">Library link</a>`
-            : '';
-          return `
-            <article class="dx-sub-item" data-dx-sub-item data-event-id="${escapeHtml(event.id)}">
-              <div class="dx-sub-item-head">
-                <p class="dx-sub-item-type">${escapeHtml(typeLabel)}</p>
-                <p class="dx-sub-item-time">${escapeHtml(toDateTime(event.createdAt))}</p>
-              </div>
-              ${body}
-              <div class="dx-sub-links">${status}${libraryLink}</div>
-            </article>
-          `;
-        })
-        .join('')
-      : `<p class="dx-sub-empty">No timeline events yet.</p>`;
+          .map((item) => {
+            const eventLabel = toSafeText(item.eventType, 'event').replace(/_/g, ' ');
+            const note = item.publicNote ? `<p class="dx-sub-item-body">${escapeHtml(item.publicNote)}</p>` : '';
+            const statusChip = item.statusRaw
+              ? `<span class="dx-sub-chip ${severityChipClass(stageSeverity(item.eventType))}">${escapeHtml(item.statusRaw)}</span>`
+              : '';
+            const link = item.libraryHref
+              ? `<a class="dx-sub-link" href="${escapeHtml(item.libraryHref)}">Library link</a>`
+              : '';
 
-    const railHtml = model.stageRail
-      .map((step) => `
-        <article class="dx-sub-stage" data-state="${escapeHtml(step.state)}">
-          <p class="dx-sub-stage-label">${escapeHtml(step.label)}</p>
-          <p class="dx-sub-stage-time">${escapeHtml(step.at ? toDateTime(step.at) : '')}</p>
-        </article>
-      `)
+            return `
+              <article class="dx-sub-item" data-dx-sub-item data-event-id="${escapeHtml(item.id)}">
+                <div class="dx-sub-item-head">
+                  <p class="dx-sub-item-type">${escapeHtml(eventLabel)}</p>
+                  <p class="dx-sub-item-time">${escapeHtml(toDateTime(item.createdAt))}</p>
+                </div>
+                ${note}
+                <div class="dx-sub-links">${statusChip}${link}</div>
+              </article>
+            `;
+          })
+          .join('')
+      : '<p class="dx-sub-empty">No timeline events yet.</p>';
+
+    const stageRailHtml = model.stageRail
+      .map(
+        (step) => `
+          <article class="dx-sub-stage" data-state="${escapeHtml(step.state)}" data-dx-sub-stage="${escapeHtml(step.key)}">
+            <p class="dx-sub-stage-label">${escapeHtml(step.label)}</p>
+            <p class="dx-sub-stage-time">${escapeHtml(step.at ? toDateTime(step.at) : '')}</p>
+          </article>
+        `,
+      )
       .join('');
 
-    const warningHtml = model.warning
-      ? `<p class="dx-sub-warning">${escapeHtml(model.warning)}</p>`
-      : '';
-
+    const warningHtml = model.warning ? `<p class="dx-sub-warning">${escapeHtml(model.warning)}</p>` : '';
     const sourceLink = model.thread.sourceLink
       ? `<a class="dx-sub-link" href="${escapeHtml(model.thread.sourceLink)}">Source submission</a>`
       : '';
@@ -381,25 +520,37 @@
       ? `<a class="dx-sub-link" href="${escapeHtml(model.thread.libraryHref)}">In library</a>`
       : '';
 
+    const titleLine = model.thread.title
+      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.title)}</p>`
+      : '<p class="dx-sub-item-body">Untitled submission</p>';
+    const creatorLine = model.thread.creator
+      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.creator)}</p>`
+      : '';
+    const statusLine = model.thread.currentStatusRaw
+      ? `<p class="dx-sub-item-body">${escapeHtml(model.thread.currentStatusRaw)}</p>`
+      : '';
+
     root.innerHTML = `
-      <aside class="dx-sub-shell">
+      <aside class="dx-sub-shell" data-dx-submission-shell>
         <section class="dx-sub-head">
           <p class="dx-sub-kicker">submission tracker</p>
           <h1 class="dx-sub-title">${escapeHtml(model.thread.lookup || model.thread.title || 'Submission')}</h1>
           <div class="dx-sub-status">
-            <span class="dx-sub-chip ${severityChipClass(stageSeverity(model.thread.currentStage))}">${escapeHtml(model.thread.currentStage.replace(/_/g, ' '))}</span>
+            <span class="dx-sub-chip ${severityChipClass(stageSeverity(model.thread.currentStage))}">${escapeHtml(
+              model.thread.currentStage.replace(/_/g, ' '),
+            )}</span>
             <span class="dx-sub-chip">Updated ${escapeHtml(toDateTime(model.thread.updatedAt))}</span>
           </div>
         </section>
 
-        <section class="dx-sub-stage-rail" id="dx-sub-stage-rail">${railHtml}</section>
+        <section class="dx-sub-stage-rail" id="dx-sub-stage-rail" data-dx-sub-stage-rail="true">${stageRailHtml}</section>
 
         <section class="dx-sub-grid">
           <article class="dx-sub-card">
             <p class="dx-sub-kicker">Submission</p>
-            <p class="dx-sub-item-body">${escapeHtml(model.thread.title || 'Untitled submission')}</p>
-            <p class="dx-sub-item-body">${escapeHtml(model.thread.creator || '')}</p>
-            <p class="dx-sub-item-body">${escapeHtml(model.thread.currentStatusRaw || '')}</p>
+            ${titleLine}
+            ${creatorLine}
+            ${statusLine}
           </article>
           <article class="dx-sub-card">
             <p class="dx-sub-kicker">Links</p>
@@ -409,12 +560,15 @@
 
         ${warningHtml}
 
-        <section>
-          <div class="dx-sub-actions">
-            <button type="button" class="dx-sub-btn" data-dx-sub-action="ack" ${model.thread.acknowledgedAt ? 'disabled' : ''}>Acknowledge</button>
-            <a class="dx-sub-btn" href="/entry/messages/">Back to inbox</a>
-          </div>
-        </section>
+        <div class="dx-sub-actions">
+          <button
+            type="button"
+            class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--primary"
+            data-dx-sub-action="ack"
+            ${ackDisabled ? 'disabled' : ''}
+          >Acknowledge</button>
+          <a class="dx-sub-btn dx-button-element dx-button-size--sm dx-button-element--secondary" href="/entry/messages/">Back to inbox</a>
+        </div>
 
         <section class="dx-sub-timeline" id="dx-sub-timeline">${timelineHtml}</section>
       </aside>
@@ -443,32 +597,38 @@
     }
 
     const payload = isObject(response.payload) ? response.payload : {};
-    const threadRaw = isObject(payload.thread) ? payload.thread : {};
-    const timelineRaw = normalizeTimeline(payload.timeline);
+    const threadPayload = isObject(payload.thread)
+      ? payload.thread
+      : (isObject(payload.submission) ? payload.submission : {});
+    const timeline = normalizeTimeline(payload.timeline || payload.events);
+
     const thread = {
-      submissionId: toSafeText(threadRaw.submissionId || threadRaw.submission_id, sid),
-      lookup: toSafeText(threadRaw.lookup, ''),
-      title: toSafeText(threadRaw.title, ''),
-      creator: toSafeText(threadRaw.creator, ''),
-      currentStage: toSafeText(threadRaw.currentStage || threadRaw.current_stage, 'reviewing'),
-      currentStatusRaw: toSafeText(threadRaw.currentStatusRaw || threadRaw.current_status_raw, ''),
-      updatedAt: toSafeText(threadRaw.updatedAt || threadRaw.updated_at, ''),
-      acknowledgedAt: toSafeText(threadRaw.acknowledgedAt || threadRaw.acknowledged_at, ''),
-      sourceLink: toSafeText(threadRaw.sourceLink || threadRaw.source_link, ''),
-      libraryHref: toSafeText(threadRaw.libraryHref || threadRaw.library_href, ''),
+      submissionId: toSafeText(threadPayload.submissionId || threadPayload.submission_id, sid),
+      lookup: toSafeText(threadPayload.lookup, ''),
+      title: toSafeText(threadPayload.title, ''),
+      creator: toSafeText(threadPayload.creator, ''),
+      currentStage: toSafeText(threadPayload.currentStage || threadPayload.current_stage, 'reviewing'),
+      currentStatusRaw: toSafeText(threadPayload.currentStatusRaw || threadPayload.current_status_raw, ''),
+      updatedAt: toSafeText(threadPayload.updatedAt || threadPayload.updated_at, ''),
+      acknowledgedAt: toSafeText(threadPayload.acknowledgedAt || threadPayload.acknowledged_at, ''),
+      sourceLink: toSafeText(threadPayload.sourceLink || threadPayload.source_link, ''),
+      libraryHref: toSafeText(threadPayload.libraryHref || threadPayload.library_href, ''),
     };
+
+    hydrateThreadFromFallbacks(thread, threadPayload, timeline);
+    await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
 
     return {
       ok: true,
       status: response.status,
       thread,
-      timeline: timelineRaw,
-      stageRail: normalizeStageRail(payload.stageRail || payload.stage_rail, timelineRaw, thread),
+      timeline,
+      stageRail: normalizeStageRail(payload.stageRail || payload.stage_rail || payload.rail, timeline, thread),
       warning: '',
     };
   }
 
-  async function postAcknowledge(apiBase, authSnapshot, sid) {
+  async function acknowledgeSubmission(apiBase, authSnapshot, sid) {
     return fetchJsonWithTimeout(
       `${apiBase}/me/submissions/${encodeURIComponent(sid)}/ack`,
       {
@@ -482,7 +642,7 @@
     );
   }
 
-  function bindHandlers(root, context) {
+  function bindActions(root, context) {
     if (root.__dxSubmissionEventAbortController instanceof AbortController) {
       try {
         root.__dxSubmissionEventAbortController.abort();
@@ -492,39 +652,51 @@
     const controller = new AbortController();
     root.__dxSubmissionEventAbortController = controller;
 
-    root.addEventListener('click', async (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const action = target.getAttribute('data-dx-sub-action');
-      if (action !== 'ack') return;
+    root.addEventListener(
+      'click',
+      async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.getAttribute('data-dx-sub-action') !== 'ack') return;
 
-      target.setAttribute('disabled', 'disabled');
-      const ack = await postAcknowledge(context.apiBase, context.authSnapshot, context.sid);
-      if (ack.ok) {
-        const detail = await loadSubmissionDetail(context.apiBase, context.authSnapshot, context.sid);
-        if (detail.ok) {
-          context.model = detail;
-          renderTimeline(root, context.model);
-          bindHandlers(root, context);
-          return;
+        target.setAttribute('disabled', 'disabled');
+        const ackControls = Array.from(document.querySelectorAll('[data-dx-sub-action="ack"]'));
+        for (const control of ackControls) {
+          if (control instanceof HTMLElement) control.setAttribute('disabled', 'disabled');
         }
-      }
 
-      context.model.warning = 'Unable to acknowledge this submission right now.';
-      renderTimeline(root, context.model);
-      bindHandlers(root, context);
-    }, { signal: controller.signal });
+        const ack = await acknowledgeSubmission(context.apiBase, context.authSnapshot, context.sid);
+        if (ack.ok) {
+          const acknowledgedAt = new Date().toISOString();
+          context.model.thread.acknowledgedAt = acknowledgedAt;
+          const next = await loadSubmissionDetail(context.apiBase, context.authSnapshot, context.sid);
+          if (next.ok) {
+            if (!next.thread.acknowledgedAt) {
+              next.thread.acknowledgedAt = acknowledgedAt;
+            }
+            context.model = next;
+            renderReady(root, context.model);
+            bindActions(root, context);
+            return;
+          }
+        }
+
+        context.model.warning = 'Unable to acknowledge this submission right now.';
+        renderReady(root, context.model);
+        bindActions(root, context);
+      },
+      { signal: controller.signal },
+    );
   }
 
   async function boot(root) {
-    ensureStyles();
-    const start = performance.now();
+    const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
 
     const sid = parseSidFromLocation();
     if (!sid) {
       renderError(root, 'Submission Timeline', 'Missing or invalid submission id.');
-      const elapsed = performance.now() - start;
+      const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_READY);
       return;
@@ -533,39 +705,40 @@
     const authSnapshot = await resolveAuthSnapshot(AUTH_TIMEOUT_MS);
     if (!authSnapshot.authenticated || !authSnapshot.token) {
       renderSignIn(root);
-      const elapsed = performance.now() - start;
+      const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_READY);
       return;
     }
 
     const apiBase = toApiBase(root);
-    const detail = await loadSubmissionDetail(apiBase, authSnapshot, sid);
-    if (!detail.ok) {
-      if (detail.status === 403 || detail.status === 404) {
+    const model = await loadSubmissionDetail(apiBase, authSnapshot, sid);
+
+    if (!model.ok) {
+      if (model.status === 403 || model.status === 404) {
         renderError(root, 'Submission Timeline', 'Submission not found for this account.');
-        const elapsed = performance.now() - start;
+        const elapsed = performance.now() - startTs;
         if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
         setFetchState(root, FETCH_STATE_READY);
         return;
       }
 
       renderError(root, 'Submission Timeline', 'Unable to load this submission right now.');
-      const elapsed = performance.now() - start;
+      const elapsed = performance.now() - startTs;
       if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
       setFetchState(root, FETCH_STATE_ERROR);
       return;
     }
 
-    renderTimeline(root, detail);
-    bindHandlers(root, {
+    renderReady(root, model);
+    bindActions(root, {
       sid,
       apiBase,
       authSnapshot,
-      model: detail,
+      model,
     });
 
-    const elapsed = performance.now() - start;
+    const elapsed = performance.now() - startTs;
     if (elapsed < MIN_SHELL_MS) await delay(MIN_SHELL_MS - elapsed);
     setFetchState(root, FETCH_STATE_READY);
   }
@@ -575,10 +748,10 @@
     if (!(root instanceof HTMLElement)) return false;
 
     const force = !!options.force;
-    const booting = root.getAttribute('data-dx-sub-booting') === 'true';
-    const mounted = root.getAttribute('data-dx-sub-mounted') === 'true';
-    if (booting) return true;
-    if (mounted && !force) return true;
+    const isBooting = root.getAttribute('data-dx-sub-booting') === 'true';
+    const isMounted = root.getAttribute('data-dx-sub-mounted') === 'true';
+    if (isBooting) return true;
+    if (isMounted && !force) return true;
 
     root.setAttribute('data-dx-sub-booting', 'true');
     if (force) root.removeAttribute('data-dx-sub-mounted');
@@ -595,21 +768,23 @@
     }
   }
 
-  function scheduleMount(options = {}) {
-    mount(options).catch(() => {});
-  }
-
   window.__dxSubmissionTimelineMount = () => {
-    scheduleMount();
+    mount().catch(() => {});
   };
 
   window.addEventListener('dx:slotready', () => {
-    scheduleMount({ force: true });
+    mount({ force: true }).catch(() => {});
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => scheduleMount(), { once: true });
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        mount().catch(() => {});
+      },
+      { once: true },
+    );
   } else {
-    scheduleMount();
+    mount().catch(() => {});
   }
 })();

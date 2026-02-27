@@ -66,6 +66,14 @@ const SYNC_MAP = [
     targets: ['css/components/dx-call-editorial.css', 'docs/css/components/dx-call-editorial.css'],
   },
   {
+    source: 'public/css/components/dx-submit-samples.css',
+    targets: ['css/components/dx-submit-samples.css', 'docs/css/components/dx-submit-samples.css'],
+  },
+  {
+    source: 'public/css/components/dx-submission-tracker.css',
+    targets: ['css/components/dx-submission-tracker.css', 'docs/css/components/dx-submission-tracker.css'],
+  },
+  {
     source: 'public/css/components/dx-controls.css',
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },

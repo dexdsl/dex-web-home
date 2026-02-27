@@ -9,6 +9,10 @@ const FILES = {
   dexCss: path.join(ROOT, 'public', 'assets', 'css', 'dex.css'),
   pollsRuntime: path.join(ROOT, 'public', 'assets', 'js', 'polls.app.js'),
   pollsRuntimeSource: path.join(ROOT, 'scripts', 'src', 'polls.app.entry.mjs'),
+  submitRuntime: path.join(ROOT, 'public', 'assets', 'js', 'submit.samples.js'),
+  submitRuntimeSource: path.join(ROOT, 'scripts', 'src', 'submit.samples.entry.mjs'),
+  messagesRuntime: path.join(ROOT, 'public', 'assets', 'js', 'messages.inbox.js'),
+  messagesRuntimeSource: path.join(ROOT, 'scripts', 'src', 'messages.inbox.entry.mjs'),
 };
 
 const COVERED_ROUTES = [
@@ -103,8 +107,22 @@ function verifyRouteContracts(failures) {
         || (fs.existsSync(FILES.pollsRuntimeSource)
           && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.pollsRuntimeSource)))
       );
+    const minSheenInSubmitRuntime = contract.file === 'docs/entry/submit/index.html'
+      && (
+        (fs.existsSync(FILES.submitRuntime)
+          && /DX_MIN_SHEEN_MS(?:\s*=\s*120\b|=120\b)/.test(readText(FILES.submitRuntime)))
+        || (fs.existsSync(FILES.submitRuntimeSource)
+          && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.submitRuntimeSource)))
+      );
+    const minSheenInMessagesRuntime = (contract.file === 'docs/entry/messages/index.html' || contract.file === 'docs/messages.html')
+      && (
+        (fs.existsSync(FILES.messagesRuntime)
+          && /DX_MIN_SHEEN_MS(?:\s*=\s*120\b|=120\b)/.test(readText(FILES.messagesRuntime)))
+        || (fs.existsSync(FILES.messagesRuntimeSource)
+          && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.messagesRuntimeSource)))
+      );
 
-    if (!minSheenInHtml && !minSheenInPollsRuntime) {
+    if (!minSheenInHtml && !minSheenInPollsRuntime && !minSheenInSubmitRuntime && !minSheenInMessagesRuntime) {
       failures.push(`${relPath} missing DX_MIN_SHEEN_MS = 120 contract`);
     }
 

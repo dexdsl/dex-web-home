@@ -130,10 +130,14 @@ async function stubMessagesApis(
   options: {
     detailStatus?: 200 | 404 | 403;
     actionHits?: string[];
+    listThreads?: unknown[];
+    detailPayload?: Record<string, unknown>;
   } = {},
 ): Promise<void> {
   const detailStatus = options.detailStatus ?? 200;
   const actionHits = options.actionHits || [];
+  const listThreads = Array.isArray(options.listThreads) ? options.listThreads : [SUBMISSION_THREAD];
+  const detailPayload = options.detailPayload || SUBMISSION_DETAIL;
 
   await page.route('https://dex-api.spring-fog-8edd.workers.dev/**', async (route) => {
     const request = route.request();
@@ -151,7 +155,7 @@ async function stubMessagesApis(
         status: 200,
         headers: CORS_HEADERS,
         contentType: 'application/json',
-        body: JSON.stringify({ threads: [SUBMISSION_THREAD] }),
+        body: JSON.stringify({ threads: listThreads }),
       });
       return;
     }
@@ -204,7 +208,7 @@ async function stubMessagesApis(
         headers: CORS_HEADERS,
         contentType: 'application/json',
         body: detailStatus === 200
-          ? JSON.stringify(SUBMISSION_DETAIL)
+          ? JSON.stringify(detailPayload)
           : JSON.stringify({ error: detailStatus === 403 ? 'Forbidden' : 'Not found' }),
       });
       return;
@@ -270,8 +274,28 @@ test('submission inbox open navigates to timeline detail route', async ({ page }
   ]);
 
   await waitReady(page, '#dex-submission');
+  await expect(page.locator('[data-dx-sub-stage-rail]')).toBeVisible();
   await expect(page.locator('#dx-sub-stage-rail')).toContainText('Sent');
   await expect(page.locator('#dx-sub-stage-rail')).toContainText('Received');
+});
+
+test('submission detail hard load restores header/footer chrome and can route back to inbox', async ({ page }) => {
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page);
+
+  await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  await expect(page.locator('.header-announcement-bar-wrapper').first()).toBeVisible();
+  await expect(page.locator('.dex-footer').first()).toBeVisible();
+
+  const backToInbox = page.locator('#dex-submission a[href="/entry/messages/"]').first();
+  await Promise.all([
+    page.waitForURL('**/entry/messages/**'),
+    backToInbox.click(),
+  ]);
+
+  await waitReady(page, '#dex-msg');
 });
 
 test('submission detail renders timeline and excludes internal note text', async ({ page }) => {
@@ -284,6 +308,58 @@ test('submission detail renders timeline and excludes internal note text', async
 
   await expect(page.locator('#dex-submission')).toContainText('Received and queued.');
   await expect(page.locator('#dex-submission')).not.toContainText('staff only note');
+});
+
+test('submission detail hydrates sparse payload fields from metadata and list fallbacks', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page, {
+    listThreads: [
+      {
+        submissionId: 'sub-001',
+        lookup: 'Sub. A 12.Joint',
+        title: 'Brass Session',
+        creator: 'John Doe',
+        sourceLink: '/entry/submit/',
+        currentStatusRaw: 'Pending Review',
+        updatedAt: '2026-02-26T09:00:00.000Z',
+      },
+    ],
+    detailPayload: {
+      thread: {
+        submission_id: 'sub-001',
+        lookup: '',
+        title: '',
+        creator: '',
+        current_status_raw: '',
+        source_link: '',
+        library_href: '',
+        updated_at: '2026-02-26T09:00:00.000Z',
+      },
+      timeline: [
+        {
+          id: 'evt-2',
+          event_type: 'received',
+          status_raw: 'Pending Review',
+          event_at: '2026-02-26T09:00:00.000Z',
+          metadata_json: JSON.stringify({
+            title: 'Brass Session',
+            creator: 'John Doe',
+            source_link: '/entry/submit/',
+            lookup: 'Sub. A 12.Joint',
+          }),
+        },
+      ],
+    },
+  });
+
+  await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  await expect(page.locator('#dex-submission')).toContainText('Brass Session');
+  await expect(page.locator('#dex-submission')).toContainText('John Doe');
+  await expect(page.locator('#dex-submission')).toContainText('Pending Review');
+  await expect(page.locator('#dex-submission')).toContainText('Source submission');
 });
 
 test('submission detail acknowledge posts ack endpoint and updates stage rail', async ({ page }) => {

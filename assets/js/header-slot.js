@@ -36,7 +36,6 @@
     '/entry/favorites',
     '/entry/submit',
     '/entry/messages',
-    '/entry/messages/submission',
     '/entry/pressroom',
     '/entry/settings',
     '/entry/achievements',
@@ -100,6 +99,66 @@
     const wrapper = root.querySelector('.header-announcement-bar-wrapper');
     if (!wrapper) return null;
     return wrapper.closest('header') || wrapper;
+  }
+
+  async function bootstrapPersistentChromeIfMissing() {
+    if (!(document.body instanceof HTMLElement)) return getHeaderElement(document);
+
+    const existingHeader = getHeaderElement(document);
+    if (existingHeader) return existingHeader;
+
+    const templateCandidates = ['/', '/index.html'];
+    for (const templatePath of templateCandidates) {
+      try {
+        const response = await fetch(templatePath, {
+          credentials: 'same-origin',
+          headers: { accept: 'text/html,*/*;q=0.9' },
+        });
+        const contentType = String(response.headers.get('content-type') || '');
+        if (!response.ok || !contentType.includes('text/html')) continue;
+
+        const html = await response.text();
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+        if (!parsed || !parsed.body) continue;
+
+        const sourceHeader = getHeaderElement(parsed);
+        if (!(sourceHeader instanceof HTMLElement)) continue;
+
+        syncHtmlAttributes(parsed);
+        syncBodyAttributes(parsed.body);
+
+        for (const backdropId of ['scroll-gradient-bg', 'gooey-mesh-wrapper']) {
+          if (document.getElementById(backdropId)) continue;
+          const sourceBackdrop = parsed.getElementById(backdropId);
+          if (!(sourceBackdrop instanceof HTMLElement)) continue;
+          const importedBackdrop = document.importNode(sourceBackdrop, true);
+          if (document.body.firstChild) {
+            document.body.insertBefore(importedBackdrop, document.body.firstChild);
+          } else {
+            document.body.appendChild(importedBackdrop);
+          }
+        }
+
+        const importedHeader = document.importNode(sourceHeader, true);
+        if (document.body.firstChild) {
+          document.body.insertBefore(importedHeader, document.body.firstChild);
+        } else {
+          document.body.appendChild(importedHeader);
+        }
+
+        if (!getProfileFooterSourceElement(document)) {
+          const sourceFooter = getProfileFooterSourceElement(parsed);
+          if (sourceFooter instanceof HTMLElement) {
+            document.body.appendChild(document.importNode(sourceFooter, true));
+          }
+        }
+
+        const hydratedHeader = getHeaderElement(document);
+        if (hydratedHeader) return hydratedHeader;
+      } catch {}
+    }
+
+    return getHeaderElement(document);
   }
 
   function isHttpUrl(url) {
@@ -2677,11 +2736,11 @@
     });
   }
 
-  function init() {
+  async function init() {
     ensureViewportFitCover();
     installIosSafariViewportSync();
 
-    const headerElement = getHeaderElement(document);
+    const headerElement = getHeaderElement(document) || await bootstrapPersistentChromeIfMissing();
     if (!headerElement) return;
 
     const container = headerElement.parentElement || document.body;
@@ -2730,8 +2789,10 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      void init();
+    }, { once: true });
   } else {
-    init();
+    void init();
   }
 })();
