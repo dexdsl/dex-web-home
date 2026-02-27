@@ -1530,6 +1530,18 @@ body.dx-route-profile-protected #gooey-mesh-wrapper {
   pointer-events: none !important;
 }
 
+body.dx-route-show-mesh #scroll-gradient-bg {
+  display: block !important;
+}
+
+body.dx-route-show-mesh #gooey-mesh-wrapper {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: var(--dx-layer-gooey) !important;
+  pointer-events: none !important;
+}
+
 @supports selector(.fluid-engine:has(#dex-favorites)) {
   body.dx-route-profile-protected :is(
     .page-section:has(#dex-favorites),

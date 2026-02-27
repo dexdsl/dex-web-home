@@ -3,7 +3,10 @@
   if (window.__dxSubmissionTimelineRuntimeLoaded) {
     if (typeof window.__dxSubmissionTimelineMount === 'function') {
       try {
-        window.__dxSubmissionTimelineMount();
+        window.__dxSubmissionTimelineMount({
+          force: true,
+          routeUrl: String(window.__dxLastSlotUrl || window.location.href || ''),
+        });
       } catch {}
     }
     return;
@@ -181,7 +184,31 @@
       sid = toSafeText(params.get('sid'), '');
     }
 
+    if (!sid) {
+      const cachedRouteUrl = toSafeText(window.__dxLastSlotUrl, '');
+      if (cachedRouteUrl) {
+        try {
+          const parsed = new URL(cachedRouteUrl, window.location.origin);
+          const routeParams = new URLSearchParams(parsed.search || '');
+          sid = toSafeText(routeParams.get('sid'), '');
+        } catch {}
+      }
+    }
+
     return sid.replace(/[^a-zA-Z0-9._:-]/g, '');
+  }
+
+  async function resolveSid(routeUrl = '') {
+    let sid = parseSidFromLocation(routeUrl);
+    if (sid) return sid;
+
+    for (const waitMs of [16, 48, 96]) {
+      await delay(waitMs);
+      sid = parseSidFromLocation(routeUrl);
+      if (sid) return sid;
+    }
+
+    return '';
   }
 
   function severityChipClass(value) {
@@ -706,7 +733,7 @@
     const startTs = performance.now();
     setFetchState(root, FETCH_STATE_LOADING);
 
-    const sid = parseSidFromLocation(options.routeUrl || '');
+    const sid = await resolveSid(options.routeUrl || '');
     if (!sid) {
       renderError(root, 'Submission Timeline', 'Missing or invalid submission id.');
       const elapsed = performance.now() - startTs;

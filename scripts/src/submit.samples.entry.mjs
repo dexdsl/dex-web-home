@@ -454,6 +454,8 @@ import { animate } from 'framer-motion/dom';
     titleInput.value = state.meta.title;
     titleInput.addEventListener('input', (event) => {
       state.meta.title = event.target.value;
+    });
+    titleInput.addEventListener('blur', () => {
       refreshCommandOnly();
     });
     titleField.appendChild(titleInput);
@@ -467,6 +469,8 @@ import { animate } from 'framer-motion/dom';
     creatorInput.value = state.meta.creator;
     creatorInput.addEventListener('input', (event) => {
       state.meta.creator = event.target.value;
+    });
+    creatorInput.addEventListener('blur', () => {
       refreshCommandOnly();
     });
     creatorField.appendChild(creatorInput);
@@ -495,6 +499,8 @@ import { animate } from 'framer-motion/dom';
     instrumentInput.value = state.meta.instrument;
     instrumentInput.addEventListener('input', (event) => {
       state.meta.instrument = event.target.value;
+    });
+    instrumentInput.addEventListener('blur', () => {
       refreshCommandOnly();
     });
     instrumentField.appendChild(instrumentInput);
@@ -567,6 +573,8 @@ import { animate } from 'framer-motion/dom';
       descriptorInput.addEventListener('input', (event) => {
         state.meta.pitchDescriptor = event.target.value;
         syncLegacyPitchFields(state.meta);
+      });
+      descriptorInput.addEventListener('blur', () => {
         refreshCommandOnly();
       });
       descriptorField.append(hint, descriptorInput);

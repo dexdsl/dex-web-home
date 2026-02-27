@@ -20,6 +20,7 @@
   const ROUTE_TRANSITION_IN_END = 'dx:route-transition-in:end';
   const PROFILE_PROTECTED_ROUTE_CLASS = 'dx-route-profile-protected';
   const PROFILE_STANDARD_CHROME_ROUTE_CLASS = 'dx-route-standard-chrome';
+  const PROFILE_SHOW_MESH_ROUTE_CLASS = 'dx-route-show-mesh';
   const PROFILE_FOOTER_HEIGHT_VAR = '--dx-profile-footer-height';
   const PROFILE_FOOTER_PORTALED_CLASS = 'dx-profile-footer-portaled';
   const IOS_SAFARI_CLASS = 'dx-ios-safari';
@@ -43,6 +44,13 @@
     '/entry/achievements',
   ]);
   const PROFILE_STANDARD_CHROME_ROUTES = new Set([
+    '/entry/messages/submission',
+  ]);
+  const PROFILE_SHOW_MESH_ROUTES = new Set([
+    '/submit',
+    '/messages',
+    '/entry/submit',
+    '/entry/messages',
     '/entry/messages/submission',
   ]);
 
@@ -225,6 +233,11 @@
     return PROFILE_STANDARD_CHROME_ROUTES.has(normalized);
   }
 
+  function isProfileShowMeshPath(pathname) {
+    const normalized = normalizeProfileRoutePath(pathname);
+    return PROFILE_SHOW_MESH_ROUTES.has(normalized);
+  }
+
   function getProfileFooterSourceElement(root = document) {
     if (!root || !root.querySelector) return null;
     const sectionFooter = root.querySelector('#footer-sections .dex-footer');
@@ -389,8 +402,10 @@
   function syncProfileProtectedRouteState(pathname) {
     const isProtected = isProfileProtectedPath(pathname);
     const isStandardChrome = isProfileStandardChromePath(pathname);
+    const showMesh = isProfileShowMeshPath(pathname);
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
     document.body.classList.toggle(PROFILE_STANDARD_CHROME_ROUTE_CLASS, isStandardChrome);
+    document.body.classList.toggle(PROFILE_SHOW_MESH_ROUTE_CLASS, showMesh);
     syncProfileFooterPlacementNow();
     scheduleProfileViewportMetricsSync();
     if (isProtected) {
@@ -1283,6 +1298,7 @@
 
   function dispatchSlotReady(scrollRoot, foregroundRoot, routeUrl = window.location.href) {
     const detail = { scrollRoot, foregroundRoot, url: String(routeUrl || window.location.href) };
+    window.__dxLastSlotUrl = detail.url;
     try {
       window.dispatchEvent(new CustomEvent('dx:slotready', { detail }));
       return;
