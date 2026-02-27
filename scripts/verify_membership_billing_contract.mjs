@@ -31,9 +31,11 @@ const REQUIRED_HANDLER_MARKERS = [
 const REQUIRED_V3_RUNTIME_MARKERS = [
   'window.__DX_SETTINGS_MEMBERSHIP_V3_ENABLED = true',
   'window.__dxSettingsMembershipMount = mountMembershipV3',
+  'data-dx-membership-cta-mode',
   'data-dx-membership-rail',
   'data-dx-membership-rail-scrollable',
   'data-dx-tier-panel',
+  'dxMemV3SupportHeading',
   'data-dx-billing-ledger',
   'data-dx-billing-row-status',
   'data-dx-billing-cta-primary',

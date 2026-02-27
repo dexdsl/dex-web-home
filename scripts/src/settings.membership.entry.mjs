@@ -335,23 +335,69 @@
     return payload;
   }
 
-  function primaryActionForStatus(status) {
+  function hasCurrentMembershipStatus(status) {
     const s = clampStatus(status);
-    if (s === 'past_due' || s === 'unpaid') {
-      return { label: 'Fix payment method', mode: 'portal-payment' };
-    }
-    if (s === 'active' || s === 'trialing' || s === 'canceled_at_period_end') {
-      return { label: 'Change plan', mode: 'checkout' };
-    }
-    return { label: 'Start membership', mode: 'checkout' };
+    return (
+      s === 'active'
+      || s === 'trialing'
+      || s === 'canceled_at_period_end'
+      || s === 'past_due'
+      || s === 'unpaid'
+    );
   }
 
-  function secondaryActionForStatus(status) {
-    const s = clampStatus(status);
-    if (s === 'past_due' || s === 'unpaid') {
-      return { label: 'Open Customer Portal', mode: 'portal-manage' };
+  function hasPortalDirtyState(summary) {
+    if (!summary || typeof summary !== 'object') return false;
+    if (hasCurrentMembershipStatus(summary.status)) return false;
+    if (summary.hasDefaultPaymentMethod === true) return true;
+    return Boolean(txt(summary.defaultPaymentLast4));
+  }
+
+  function deriveMembershipCtaModel(summary, tiersOpen) {
+    const normalizedSummary = summary && typeof summary === 'object'
+      ? summary
+      : normalizeSummary(null);
+
+    const status = clampStatus(normalizedSummary.status);
+    const hasCurrentMembership = hasCurrentMembershipStatus(status);
+    const portalManageAvailable = normalizedSummary.customerPortalEnabled !== false;
+    const portalDirty = hasPortalDirtyState(normalizedSummary);
+    const pauseResume = pauseResumeLabel(normalizedSummary);
+    const allowComposer = !hasCurrentMembership || (status !== 'past_due' && status !== 'unpaid');
+
+    const model = {
+      status,
+      hasCurrentMembership,
+      portalDirty,
+      portalManageAvailable,
+      supportHeadingVisible: !hasCurrentMembership,
+      supportHeadingText: 'Want to support?',
+      primary: { label: 'View membership', mode: 'view-membership', visible: true },
+      secondary: {
+        label: 'Manage billing',
+        mode: 'portal-manage',
+        visible: !hasCurrentMembership && portalDirty && portalManageAvailable,
+      },
+      pauseResume,
+      allowComposer,
+      showComposerCheckout: Boolean(allowComposer && tiersOpen),
+      composerCheckoutLabel: hasCurrentMembership ? 'Continue to checkout' : 'Start membership',
+      showCoverFees: Boolean(allowComposer && tiersOpen),
+    };
+
+    if (hasCurrentMembership) {
+      model.supportHeadingVisible = false;
+      model.secondary.visible = portalManageAvailable;
+      model.secondary.label = 'Manage billing';
+      if (status === 'past_due' || status === 'unpaid') {
+        model.primary = { label: 'Fix payment method', mode: 'portal-payment', visible: true };
+      } else {
+        model.primary = { label: 'Change plan', mode: 'view-membership', visible: true };
+      }
     }
-    return { label: 'Manage billing', mode: 'portal-manage' };
+
+    model.ctaMode = txt(model.primary.mode, 'view-membership');
+    return model;
   }
 
   function pauseResumeLabel(summary) {
@@ -456,10 +502,7 @@
         + '    </div>'
         + '  </section>'
         + '  <section class="dx-memv3-plan-panel" data-dx-tier-panel>'
-        + '    <div class="dx-memv3-tier-gate">'
-        + '      <button type="button" id="dxMemV3TierGate" class="btn dx-memv3-tier-gate-btn" aria-expanded="false" aria-controls="dxMemV3TierComposer">Want to support? Consider membership tiers!</button>'
-        + '      <p class="note">Optional: open tier composer to customize plan and billing interval.</p>'
-        + '    </div>'
+        + '    <h3 id="dxMemV3SupportHeading" class="dx-memv3-support-heading" hidden>Want to support?</h3>'
         + '    <div id="dxMemV3TierComposer" class="dx-memv3-tier-composer" data-open="false" hidden>'
         + '      <header class="dx-memv3-plan-head">'
         + '        <h3>Choose your support tier</h3>'
@@ -479,12 +522,13 @@
         + '          <input id="dxMemV3Cover" type="checkbox" />'
         + '          <span>Cover fees (+2.9% + $0.30)</span>'
         + '        </label>'
+        + '        <button type="button" id="dxMemV3ComposerCheckout" class="cta dx-memv3-composer-checkout">Start membership</button>'
         + '        <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
         + '      </div>'
         + '    </div>'
         + '    <div class="dx-memv3-actions">'
-        + '      <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>Start membership</button>'
-        + '      <button type="button" id="dxMemV3Secondary" class="cta-primary">Manage billing</button>'
+        + '      <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>View membership</button>'
+        + '      <button type="button" id="dxMemV3Secondary" class="cta-primary" hidden>Manage billing</button>'
         + '      <button type="button" id="dxMemV3PauseResume" class="btn" hidden></button>'
         + '    </div>'
         + '    <p id="dxMemV3Error" class="dx-memv3-error" hidden></p>'
@@ -521,7 +565,7 @@
         renewEl: $('#dxMemV3Renew', this.root),
         payEl: $('#dxMemV3Pay', this.root),
         cancelEl: $('#dxMemV3Cancel', this.root),
-        tierGateBtn: $('#dxMemV3TierGate', this.root),
+        supportHeading: $('#dxMemV3SupportHeading', this.root),
         tierComposer: $('#dxMemV3TierComposer', this.root),
         annualHint: $('#dxMemV3AnnualHint', this.root),
         intervalButtons: $$('[data-interval]', this.root),
@@ -529,6 +573,7 @@
         selection: $('#dxMemV3Selection', this.root),
         coverWrap: $('#dxMemV3CoverWrap', this.root),
         coverInput: $('#dxMemV3Cover', this.root),
+        composerCheckoutBtn: $('#dxMemV3ComposerCheckout', this.root),
         primaryCta: $('#dxMemV3Primary', this.root),
         secondaryCta: $('#dxMemV3Secondary', this.root),
         pauseResumeBtn: $('#dxMemV3PauseResume', this.root),
@@ -543,6 +588,7 @@
       this.root.setAttribute('data-dx-membership-rail', 'true');
       this.root.setAttribute('data-dx-membership-rail-scrollable', 'false');
       this.root.setAttribute('data-dx-membership-state', 'loading');
+      this.root.setAttribute('data-dx-membership-cta-mode', 'view-membership');
       this.root.setAttribute('data-dx-interval', this.interval);
       this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.bindEvents();
@@ -559,12 +605,6 @@
         this.cache.tierComposer.dataset.open = this.tiersOpen ? 'true' : 'false';
         this.cache.tierComposer.hidden = !this.tiersOpen;
         this.cache.tierComposer.setAttribute('aria-hidden', this.tiersOpen ? 'false' : 'true');
-      }
-      if (this.cache.tierGateBtn instanceof HTMLButtonElement) {
-        this.cache.tierGateBtn.setAttribute('aria-expanded', this.tiersOpen ? 'true' : 'false');
-        this.cache.tierGateBtn.textContent = this.tiersOpen
-          ? 'Hide membership tiers'
-          : 'Want to support? Consider membership tiers!';
       }
       this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.queueRailSync();
@@ -587,6 +627,7 @@
     setBusy(nextBusy) {
       this.busy = Boolean(nextBusy);
       const controls = [
+        this.cache.composerCheckoutBtn,
         this.cache.primaryCta,
         this.cache.secondaryCta,
         this.cache.pauseResumeBtn,
@@ -709,12 +750,12 @@
 
     renderSummary() {
       const plansByTier = new Map(this.plans.plans.map((plan) => [plan.tier, plan]));
-      const status = clampStatus(this.summary.status);
-      const primaryAction = primaryActionForStatus(status);
-      const secondaryAction = secondaryActionForStatus(status);
-      const pauseResume = pauseResumeLabel(this.summary);
+      const ctaModel = deriveMembershipCtaModel(this.summary, this.tiersOpen);
+      const status = ctaModel.status;
+      const pauseResume = ctaModel.pauseResume;
 
       this.root.setAttribute('data-dx-membership-state', status);
+      this.root.setAttribute('data-dx-membership-cta-mode', txt(ctaModel.ctaMode, 'view-membership'));
 
       if (this.cache.stateChip instanceof HTMLElement) {
         this.cache.stateChip.textContent = statusLabel(status);
@@ -734,19 +775,34 @@
           : 'None scheduled';
       }
 
+      if (this.cache.supportHeading instanceof HTMLElement) {
+        this.cache.supportHeading.hidden = !ctaModel.supportHeadingVisible;
+        this.cache.supportHeading.textContent = ctaModel.supportHeadingText;
+      }
+
       if (this.cache.primaryCta instanceof HTMLButtonElement) {
-        this.cache.primaryCta.textContent = primaryAction.label;
-        this.cache.primaryCta.dataset.action = primaryAction.mode;
+        this.cache.primaryCta.hidden = ctaModel.primary.visible === false;
+        this.cache.primaryCta.textContent = ctaModel.primary.label;
+        this.cache.primaryCta.dataset.action = ctaModel.primary.mode;
       }
 
       if (this.cache.secondaryCta instanceof HTMLButtonElement) {
-        this.cache.secondaryCta.textContent = secondaryAction.label;
-        this.cache.secondaryCta.dataset.action = secondaryAction.mode;
+        this.cache.secondaryCta.hidden = !ctaModel.secondary.visible;
+        this.cache.secondaryCta.textContent = ctaModel.secondary.label;
+        this.cache.secondaryCta.dataset.action = ctaModel.secondary.mode;
       }
 
-      const checkoutActive = primaryAction.mode === 'checkout';
+      if (!ctaModel.allowComposer && this.tiersOpen) {
+        this.setTierComposerOpen(false);
+      }
+
+      if (this.cache.composerCheckoutBtn instanceof HTMLButtonElement) {
+        this.cache.composerCheckoutBtn.hidden = !ctaModel.showComposerCheckout;
+        this.cache.composerCheckoutBtn.textContent = ctaModel.composerCheckoutLabel;
+      }
+
       if (this.cache.coverWrap instanceof HTMLElement) {
-        this.cache.coverWrap.hidden = !checkoutActive || this.plans.coverFeesEnabled === false;
+        this.cache.coverWrap.hidden = !ctaModel.showCoverFees || this.plans.coverFeesEnabled === false;
       }
 
       if (this.cache.pauseResumeBtn instanceof HTMLButtonElement) {
@@ -904,12 +960,6 @@
         });
       });
 
-      if (this.cache.tierGateBtn instanceof HTMLButtonElement) {
-        this.cache.tierGateBtn.addEventListener('click', () => {
-          this.setTierComposerOpen(!this.tiersOpen);
-        });
-      }
-
       this.root.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
@@ -926,6 +976,13 @@
         this.cache.primaryCta.addEventListener('click', async () => {
           if (this.busy) return;
           await this.handlePrimaryAction();
+        });
+      }
+
+      if (this.cache.composerCheckoutBtn instanceof HTMLButtonElement) {
+        this.cache.composerCheckoutBtn.addEventListener('click', async () => {
+          if (this.busy) return;
+          await this.startCheckout();
         });
       }
 
@@ -963,6 +1020,14 @@
     async handlePrimaryAction() {
       const mode = txt(this.cache.primaryCta && this.cache.primaryCta.dataset.action);
       if (!mode) return;
+
+      if (mode === 'view-membership') {
+        if (!this.tiersOpen) {
+          this.setTierComposerOpen(true);
+        }
+        this.renderSummary();
+        return;
+      }
 
       if (mode === 'portal-payment') {
         await this.handlePortalFlow('payment_method_update');

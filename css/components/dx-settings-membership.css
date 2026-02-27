@@ -122,18 +122,12 @@
   gap: 12px;
 }
 
-#dxMembershipV3Root .dx-memv3-tier-gate {
-  display: grid;
-  gap: 6px;
-}
-
-#dxMembershipV3Root .dx-memv3-tier-gate-btn {
-  justify-self: start;
-  border-color: rgba(0, 0, 0, 0.18);
-  background: rgba(255, 255, 255, 0.72);
-  font: 700 clamp(11px, 1.2vw, 12px)/1 var(--font-heading, system-ui);
+#dxMembershipV3Root .dx-memv3-support-heading {
+  margin: 0;
+  font: 700 clamp(14px, 1.8vw, 16px)/1.2 var(--font-heading, system-ui);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.84);
 }
 
 #dxMembershipV3Root .dx-memv3-tier-composer {
@@ -374,6 +368,10 @@
   height: 15px;
 }
 
+#dxMembershipV3Root .dx-memv3-composer-checkout {
+  justify-self: start;
+}
+
 #dxMembershipV3Root .dx-memv3-actions {
   margin-top: 11px;
   display: flex;
@@ -536,14 +534,14 @@
     text-align: left;
   }
 
-  #dxMembershipV3Root .dx-memv3-tier-gate-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
   #dxMembershipV3Root .dx-memv3-tier {
     min-height: 176px;
     padding: 13px 14px;
+  }
+
+  #dxMembershipV3Root .dx-memv3-composer-checkout {
+    width: 100%;
+    justify-content: center;
   }
 
   #dxMembershipV3Root .dx-memv3-tier-price {

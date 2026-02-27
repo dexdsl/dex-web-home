@@ -473,6 +473,23 @@ async function stubMessagesApi(
   });
 }
 
+async function stubMembershipSummary(page: Page, summary: Record<string, unknown>): Promise<void> {
+  const body = JSON.stringify(summary);
+  const matcher = /\/me\/billing\/summary(?:\?.*)?$|\/me\/subscription(?:\?.*)?$/;
+  await page.route(matcher, async (route) => {
+    if (route.request().method().toUpperCase() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: CORS_HEADERS,
+      contentType: 'application/json',
+      body,
+    });
+  });
+}
+
 async function waitForMessagesReady(page: Page): Promise<void> {
   const root = page.locator('#dex-msg');
   await expect(root).toBeVisible();
@@ -690,6 +707,11 @@ test('settings membership v3 renders trust-first status and production billing l
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page, 'signed-in');
   await stubMessagesApi(page, 'success');
+  await stubMembershipSummary(page, {
+    status: 'none',
+    customer_portal_enabled: true,
+    has_default_payment_method: false,
+  });
 
   await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
   await page.locator('#tab-membership').click();
@@ -697,16 +719,22 @@ test('settings membership v3 renders trust-first status and production billing l
   const membershipRoot = page.locator('#dxMembershipV3Root');
   await expect(membershipRoot).toBeVisible();
   await expect(membershipRoot).toHaveAttribute('data-dx-membership-state', /none|active|trialing|past_due|unpaid|canceled_at_period_end|canceled/);
+  await expect(membershipRoot).toHaveAttribute('data-dx-membership-cta-mode', 'view-membership');
   await expect(membershipRoot).toHaveAttribute('data-dx-membership-rail', 'true');
   await expect(membershipRoot).toHaveAttribute('data-dx-membership-rail-scrollable', /true|false/);
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SupportHeading')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SupportHeading')).toContainText('Want to support?');
   await expect(page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]')).toContainText('View membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root [data-dx-tier-panel]')).toBeVisible();
-  await expect(page.locator('#dxMembershipV3Root #dxMemV3TierGate')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'false');
-  await page.locator('#dxMembershipV3Root #dxMemV3TierGate').click();
+  await page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]').click();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'true');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toContainText('Start membership');
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-interval-thumb')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-impact')).toHaveCount(0);
   await expect(page.locator('#asideWhy')).toBeVisible();
@@ -725,6 +753,65 @@ test('settings membership v3 renders trust-first status and production billing l
 
   const headers = await page.locator('#dxBillingHistoryV3Card thead th').allTextContents();
   expect(headers.map((value) => value.trim())).toEqual(['Date', 'Invoice', 'Status', 'Amount', 'Receipt']);
+});
+
+test('settings membership v3 shows view membership + manage billing for no-membership portal-dirty state', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+  await stubMembershipSummary(page, {
+    status: 'none',
+    customer_portal_enabled: true,
+    has_default_payment_method: true,
+    default_payment_method_last4: '4242',
+  });
+
+  await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SupportHeading')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('View membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toContainText('Manage billing');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3PauseResume')).toBeHidden();
+});
+
+test('settings membership v3 shows current-membership actions for active and payment-required states', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApi(page, 'success');
+  await stubMembershipSummary(page, {
+    status: 'active',
+    tier: 'M',
+    interval: 'month',
+    customer_portal_enabled: true,
+    current_period_end: 1773014400,
+  });
+
+  await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SupportHeading')).toBeHidden();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Change plan');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toContainText('Manage billing');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3PauseResume')).toBeVisible();
+
+  await page.unroute(/\/me\/billing\/summary(?:\?.*)?$|\/me\/subscription(?:\?.*)?$/);
+  await stubMembershipSummary(page, {
+    status: 'past_due',
+    customer_portal_enabled: true,
+    has_default_payment_method: true,
+    default_payment_method_last4: '1111',
+  });
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#tab-membership').click();
+
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SupportHeading')).toBeHidden();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Fix payment method');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Secondary')).toContainText('Manage billing');
 });
 
 test('messages inbox merges system + submissions and supports read/archive actions', async ({ page }) => {

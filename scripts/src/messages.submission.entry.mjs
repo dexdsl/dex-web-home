@@ -1117,15 +1117,16 @@
     thread.sourceLink = normalizeHref(thread.sourceLink);
     thread.libraryHref = normalizeHref(thread.libraryHref);
 
-    thread.currentStatusRaw = pickFirstText([
-      thread.currentStatusRaw,
+    thread.currentStatusRaw = pickPreferredSubmissionStatus(
       threadPayload.currentStatusRaw,
       threadPayload.current_status_raw,
       threadPayload.statusRaw,
       threadPayload.status_raw,
       threadPayload.status,
       latestEvent?.statusRaw,
-    ]);
+      thread.currentStatusRaw,
+    );
+    thread.currentStage = statusRawToStage(thread.currentStatusRaw || thread.currentStage);
 
     thread.updatedAt = pickFirstText([
       thread.updatedAt,
@@ -1152,6 +1153,7 @@
       || !toSafeText(thread.creator)
       || !toSafeText(thread.sourceLink)
       || !toSafeText(thread.submissionLookupNumber)
+      || isGenericSubmissionStatus(thread.currentStatusRaw)
     );
   }
 
@@ -1241,14 +1243,20 @@
       thread.title = hydratedTitle || toSafeText(thread.title, '');
     }
     thread.creator = pickFirstText([thread.creator, match.creator, match.artist, matchMeta.creator, matchMeta.artist]);
-    thread.currentStatusRaw = pickFirstText([
-      thread.currentStatusRaw,
+    thread.currentStatusRaw = pickPreferredSubmissionStatus(
       match.currentStatusRaw,
       match.current_status_raw,
       match.statusRaw,
       match.status_raw,
       match.status,
-    ]);
+      matchMeta.currentStatusRaw,
+      matchMeta.current_status_raw,
+      matchMeta.statusRaw,
+      matchMeta.status_raw,
+      matchMeta.status,
+      thread.currentStatusRaw,
+    );
+    thread.currentStage = statusRawToStage(thread.currentStatusRaw);
     thread.sourceLink = pickFirstText([thread.sourceLink, match.sourceLink, match.source_link, match.link, matchMeta.sourceLink, matchMeta.source_link, matchMeta.link]);
     thread.libraryHref = pickFirstText([thread.libraryHref, match.libraryHref, match.library_href, matchMeta.libraryHref, matchMeta.library_href]);
     thread.instrument = pickFirstText([thread.instrument, match.instrument, matchMeta.instrument]);
@@ -1311,6 +1319,36 @@
       return normalized === 'request_submitted' ? 'submitted' : normalized;
     }
     return 'submitted';
+  }
+
+  function normalizeStatusToken(statusRaw) {
+    return String(statusRaw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+
+  function isGenericSubmissionStatus(statusRaw) {
+    const normalized = normalizeStatusToken(statusRaw);
+    if (!normalized) return true;
+    return (
+      normalized === 'pending'
+      || normalized === 'reviewing'
+      || normalized === 'review'
+      || normalized === 'pending_review'
+      || normalized === 'submitted'
+      || normalized === 'in_review'
+    );
+  }
+
+  function pickPreferredSubmissionStatus(...values) {
+    let first = '';
+    let generic = '';
+    for (const value of values) {
+      const text = toSafeText(value, '');
+      if (!text) continue;
+      if (!first) first = text;
+      if (!isGenericSubmissionStatus(text)) return text;
+      if (!generic) generic = text;
+    }
+    return generic || first || '';
   }
 
   function hasTimelineEvent(timeline, ...eventTypes) {
@@ -1466,6 +1504,63 @@
     return `Submission ${sid.slice(0, 8)}`;
   }
 
+  async function findLegacySubmissionRowById(authSnapshot, sid) {
+    const sub = toSafeText(authSnapshot?.sub, '');
+    if (!sub) return null;
+    const safeSid = sanitizeSubmissionId(sid);
+    if (!safeSid) return null;
+    try {
+      const legacyResponse = await withTimeout(
+        jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+        JSONP_TIMEOUT_MS + 250,
+        { status: 'timeout', rows: [] },
+      );
+      const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+      const match = rows.find((row) => {
+        const rowSid = sanitizeSubmissionId(row?.submissionId || row?.submission_id);
+        return rowSid && rowSid === safeSid;
+      });
+      return isObject(match) ? match : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function hydrateSubmissionStatusFromLegacySheet(authSnapshot, sid, thread) {
+    if (!isObject(thread)) return thread;
+    if (!isGenericSubmissionStatus(thread.currentStatusRaw)) return thread;
+
+    const legacyRow = await findLegacySubmissionRowById(authSnapshot, sid);
+    if (!isObject(legacyRow)) return thread;
+
+    thread.currentStatusRaw = pickPreferredSubmissionStatus(
+      legacyRow.status,
+      legacyRow.statusRaw,
+      legacyRow.status_raw,
+      thread.currentStatusRaw,
+    );
+    thread.currentStage = statusRawToStage(thread.currentStatusRaw);
+
+    if (!toSafeText(thread.title) || isUntitledSubmissionTitle(thread.title)) {
+      thread.title = pickFirstText([legacyRow.title, legacyRow.submissionTitle, legacyRow.submission_title, thread.title], '');
+    }
+    thread.creator = pickFirstText([thread.creator, legacyRow.creator, legacyRow.artist], '');
+    thread.instrument = pickFirstText([thread.instrument, legacyRow.instrument, legacyRow.instrument_raw], '');
+    thread.category = pickFirstText([thread.category, legacyRow.category, legacyRow.category_raw], '');
+    thread.sourceLink = normalizeHref(pickFirstText([thread.sourceLink, legacyRow.link, legacyRow.sourceLink, legacyRow.source_link], ''));
+    thread.libraryHref = normalizeHref(pickFirstText([thread.libraryHref, legacyRow.libraryHref, legacyRow.library_href], ''));
+    thread.submittedAt = pickFirstText([
+      thread.submittedAt,
+      legacyRow.clientSubmittedAt,
+      legacyRow.client_submitted_at,
+      legacyRow.timestamp,
+    ], '');
+    thread.updatedAt = pickFirstText([thread.updatedAt, legacyRow.timestamp], thread.updatedAt || nowIso());
+    applyCanonicalThreadLookup(thread);
+
+    return thread;
+  }
+
   async function loadSubmissionDetailFallback(apiBase, authSnapshot, sid, failingStatus = 0) {
     const thread = {
       submissionId: sid,
@@ -1495,30 +1590,22 @@
       && (toSafeText(thread.sourceLink) || toSafeText(thread.libraryHref))
     );
 
-    const sub = toSafeText(authSnapshot?.sub, '');
     let legacyRow = null;
-    if (sub && !essentialsFromThreadList) {
-      try {
-        const legacyResponse = await withTimeout(
-          jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-          JSONP_TIMEOUT_MS + 250,
-          { status: 'timeout', rows: [] },
-        );
-        const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
-        legacyRow = rows.find((row) => {
-          const rowSid = sanitizeSubmissionId(row?.submissionId || row?.submission_id);
-          return rowSid && rowSid === sid;
-        }) || null;
-      } catch {
-        legacyRow = null;
-      }
+    if (!essentialsFromThreadList || isGenericSubmissionStatus(thread.currentStatusRaw)) {
+      legacyRow = await findLegacySubmissionRowById(authSnapshot, sid);
     }
 
     if (!legacyRow && !thread.title && !thread.lookup) {
       return null;
     }
 
-    const legacyStatus = toSafeText(legacyRow?.status, thread.currentStatusRaw || 'pending');
+    const legacyStatus = pickPreferredSubmissionStatus(
+      legacyRow?.status,
+      legacyRow?.statusRaw,
+      legacyRow?.status_raw,
+      thread.currentStatusRaw,
+      'pending',
+    );
     const sentAt = toSafeText(
       legacyRow?.clientSubmittedAt || legacyRow?.client_submitted_at || legacyRow?.timestamp || thread.updatedAt,
       '',
@@ -2008,6 +2095,9 @@
     try {
       await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
     } catch {}
+    try {
+      await hydrateSubmissionStatusFromLegacySheet(authSnapshot, sid, thread);
+    } catch {}
 
     const isSparseThread = !toSafeText(thread.title)
       || isUntitledSubmissionTitle(thread.title)
@@ -2104,7 +2194,12 @@
       rowMatch.metadata || rowMatch.metadata_json || rowMatch.metadataJson || rowMatch.meta,
     );
     const mergedRow = { ...rowMeta, ...rowMatch };
-    const statusRaw = toSafeText(mergedRow.status, 'submitted');
+    const statusRaw = toSafeText(
+      mergedRow.status
+      || mergedRow.statusRaw
+      || mergedRow.status_raw,
+      'submitted',
+    );
     const normalizedStatus = normalizePressroomStatus(statusRaw);
     const sourceLinks = extractLinks(mergedRow.links || mergedRow.sourceLink || mergedRow.source_link || mergedRow.link);
 
