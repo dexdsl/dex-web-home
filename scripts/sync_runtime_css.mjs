@@ -74,6 +74,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-submission-tracker.css', 'docs/css/components/dx-submission-tracker.css'],
   },
   {
+    source: 'public/css/components/dx-pressroom.css',
+    targets: ['css/components/dx-pressroom.css', 'docs/css/components/dx-pressroom.css'],
+  },
+  {
     source: 'public/css/components/dx-controls.css',
     targets: ['css/components/dx-controls.css', 'docs/css/components/dx-controls.css'],
   },

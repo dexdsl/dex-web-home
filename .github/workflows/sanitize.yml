@@ -71,6 +71,9 @@ jobs:
       - name: Verify submit UI contract
         run: npm run verify:submit-ui
 
+      - name: Verify pressroom UI contract
+        run: npm run verify:pressroom-ui
+
       - name: Verify newsletter contract
         run: npm run verify:newsletter
 
@@ -121,6 +124,9 @@ jobs:
 
       - name: Submit samples UX test
         run: npm run test:submit-samples-ux
+
+      - name: Pressroom UX test
+        run: npm run test:pressroom-ux
 
       - name: Newsletter migration test
         run: npm run test:newsletter
