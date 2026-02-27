@@ -1047,23 +1047,20 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   }
 
   function createSeasonCarouselArrow(direction) {
-    const button = create('button', `dx-catalog-index-season-arrow dx-catalog-index-season-arrow--${direction}`);
+    const sideClass = direction === 'left' ? 'nav-left' : 'nav-right';
+    const button = create('button', `dx-catalog-index-season-arrow dx-catalog-index-season-arrow--${direction} nav ${sideClass}`);
     button.type = 'button';
     button.setAttribute('aria-label', direction === 'left' ? 'Previous' : 'Next');
     if (direction === 'left') {
       button.innerHTML = `
-        <span class="dx-catalog-index-season-arrow-bg" aria-hidden="true"></span>
-        <svg class="dx-catalog-index-season-arrow-icon" viewBox="0 0 24 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path class="dx-catalog-index-season-arrow-icon-path" d="M7.87012 13L2.00021 7L7.87012 1"/>
-          <path class="dx-catalog-index-season-arrow-icon-path" d="M22.9653 7L3.03948 7"/>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
         </svg>
       `;
     } else {
       button.innerHTML = `
-        <span class="dx-catalog-index-season-arrow-bg" aria-hidden="true"></span>
-        <svg class="dx-catalog-index-season-arrow-icon" viewBox="0 0 24 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path class="dx-catalog-index-season-arrow-icon-path" d="M16.1299 1L21.9998 7L16.1299 13"/>
-          <path class="dx-catalog-index-season-arrow-icon-path" d="M1.03472 7H20.9605"/>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>
       `;
     }
