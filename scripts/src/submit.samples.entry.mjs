@@ -18,6 +18,7 @@ import { animate } from 'framer-motion/dom';
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 3200;
   const SUBMIT_TIMEOUT_MS = 15000;
+  const SUBMIT_MIN_LOADING_MS = 420;
   const JSONP_TIMEOUT_MS = 8000;
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
@@ -286,7 +287,8 @@ import { animate } from 'framer-motion/dom';
       prevProgress: 1 / STEPS.length,
       weeklyLimit: config.weeklyLimit,
       weeklyUsed: 0,
-      quotaLeft: config.weeklyLimit,
+      quotaLeft: 0,
+      quotaResolved: false,
       webappUrl: config.webappUrl,
       auth0Sub: '',
       meta: createInitialMeta(),
@@ -734,6 +736,35 @@ import { animate } from 'framer-motion/dom';
     return count;
   }
 
+  function parsePositiveInt(value, fallback = null) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+    return parsed;
+  }
+
+  function quotaSummaryText() {
+    if (!state?.quotaResolved) return 'Weekly uploads available: checking your account quota…';
+    return `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`;
+  }
+
+  function getQuotaLockReason() {
+    if (!state) return '';
+    if (!text(state.auth0Sub)) return 'Sign in required to verify weekly upload quota.';
+    if (state.quotaResolved && state.quotaLeft <= 0) return `Weekly upload limit reached (${state.weeklyLimit}/${state.weeklyLimit}).`;
+    return '';
+  }
+
+  function isQuotaLocked() {
+    return Boolean(getQuotaLockReason());
+  }
+
+  function guardQuotaForProgression(showReason = true) {
+    const reason = getQuotaLockReason();
+    if (!reason) return true;
+    if (showReason) showToast(reason, true);
+    return false;
+  }
+
   function releaseJsonpCallback(callbackName) {
     if (!callbackName) return;
     try {
@@ -794,15 +825,32 @@ import { animate } from 'framer-motion/dom';
         JSONP_TIMEOUT_MS,
       );
       const rows = response && typeof response === 'object' ? response.rows : [];
+      const responseWeeklyLimit = parsePositiveInt(
+        response && typeof response === 'object' ? response.weeklyLimit : null,
+        null,
+      );
       const responseWeeklyUsed = Number.parseInt(
         String(response && typeof response === 'object' ? response.weeklyUsed : ''),
         10,
       );
+      const responseWeeklyRemaining = parsePositiveInt(
+        response && typeof response === 'object' ? response.weeklyRemaining : null,
+        null,
+      );
+      if (responseWeeklyLimit !== null) {
+        state.weeklyLimit = Math.max(1, Math.min(99, responseWeeklyLimit));
+      }
       const weeklyUsed = Number.isFinite(responseWeeklyUsed)
         ? Math.max(0, responseWeeklyUsed)
         : countCurrentWeekRows(rows);
-      state.weeklyUsed = weeklyUsed;
-      state.quotaLeft = Math.max(0, state.weeklyLimit - weeklyUsed);
+      if (responseWeeklyRemaining !== null) {
+        state.quotaLeft = Math.max(0, Math.min(state.weeklyLimit, responseWeeklyRemaining));
+        state.weeklyUsed = Math.max(0, state.weeklyLimit - state.quotaLeft);
+      } else {
+        state.weeklyUsed = weeklyUsed;
+        state.quotaLeft = Math.max(0, state.weeklyLimit - weeklyUsed);
+      }
+      state.quotaResolved = true;
       return true;
     } catch {
       return false;
@@ -943,12 +991,21 @@ import { animate } from 'framer-motion/dom';
     const quota = create(
       'p',
       'dx-submit-copy dx-submit-copy--compact',
-      `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`,
+      quotaSummaryText(),
     );
     quota.setAttribute('data-dx-submit-quota', 'true');
     const begin = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Begin');
     begin.type = 'button';
+    begin.setAttribute('data-dx-submit-begin', 'true');
+    const quotaLocked = isQuotaLocked();
+    begin.disabled = quotaLocked;
+    begin.classList.toggle('is-disabled', quotaLocked);
+    begin.setAttribute('aria-disabled', quotaLocked ? 'true' : 'false');
     begin.addEventListener('click', () => {
+      if (!guardQuotaForProgression(true)) {
+        refreshQuotaCopy();
+        return;
+      }
       state.step = 1;
       render();
     });
@@ -1175,6 +1232,7 @@ import { animate } from 'framer-motion/dom';
     const next = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Continue to license');
     next.type = 'button';
     next.addEventListener('click', () => {
+      if (!guardQuotaForProgression(true)) return;
       if (!validateMeta()) return;
       state.step = 2;
       render();
@@ -1240,6 +1298,7 @@ import { animate } from 'framer-motion/dom';
     const next = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Continue to upload');
     next.type = 'button';
     next.addEventListener('click', () => {
+      if (!guardQuotaForProgression(true)) return;
       if (!state.licenseConfirmed) {
         showToast('Please confirm license acceptance.', true);
         return;
@@ -1416,7 +1475,7 @@ import { animate } from 'framer-motion/dom';
       createSidebarText(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
-        `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}. Status updates post to your inbox timeline with timestamps and notes.`,
+        `${quotaSummaryText()}. Status updates post to your inbox timeline with timestamps and notes.`,
       ),
     );
 
@@ -1479,9 +1538,49 @@ import { animate } from 'framer-motion/dom';
     if (!(liveRoot instanceof HTMLElement) || !state) return;
     const quota = liveRoot.querySelector('[data-dx-submit-quota]');
     if (quota instanceof HTMLElement) {
-      quota.textContent = `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`;
+      quota.textContent = quotaSummaryText();
+    }
+    const begin = liveRoot.querySelector('[data-dx-submit-begin]');
+    if (begin instanceof HTMLButtonElement) {
+      const quotaLocked = isQuotaLocked();
+      begin.disabled = quotaLocked;
+      begin.classList.toggle('is-disabled', quotaLocked);
+      begin.setAttribute('aria-disabled', quotaLocked ? 'true' : 'false');
     }
     refreshCommandPanel();
+  }
+
+  function applySubmitBusyLock(root) {
+    if (!(root instanceof HTMLElement) || !state) return;
+    const submitting = !!state.submitting;
+    if (submitting) {
+      root.setAttribute('data-dx-submit-submitting', 'true');
+      root.setAttribute('aria-busy', 'true');
+    } else {
+      root.removeAttribute('data-dx-submit-submitting');
+      if (root.getAttribute('data-dx-fetch-state') !== FETCH_STATE_LOADING) {
+        root.removeAttribute('aria-busy');
+      }
+      return;
+    }
+
+    root.querySelectorAll('button,input,select,textarea').forEach((node) => {
+      if (
+        node instanceof HTMLButtonElement
+        || node instanceof HTMLInputElement
+        || node instanceof HTMLSelectElement
+        || node instanceof HTMLTextAreaElement
+      ) {
+        node.disabled = true;
+      }
+    });
+
+    root.querySelectorAll('a').forEach((node) => {
+      if (!(node instanceof HTMLAnchorElement)) return;
+      node.setAttribute('aria-disabled', 'true');
+      node.setAttribute('tabindex', '-1');
+      node.classList.add('is-disabled');
+    });
   }
 
   function buildLayout() {
@@ -1565,19 +1664,25 @@ import { animate } from 'framer-motion/dom';
       showToast('Missing link', true);
       return;
     }
-    const quotaVerified = await refreshWeeklyQuotaFromSheet();
-    if (!quotaVerified) {
-      showToast('Could not verify weekly quota right now. Please retry in a moment.', true);
-      return;
-    }
-    if (state.quotaLeft <= 0) {
-      showToast(`Weekly upload limit reached (${state.weeklyLimit}). Try again next week.`, true);
-      render();
-      return;
-    }
 
     state.submitting = true;
     render();
+    const submitStartTs = performance.now();
+
+    const quotaVerified = await refreshWeeklyQuotaFromSheet();
+    if (!quotaVerified) {
+      state.submitting = false;
+      render();
+      showToast('Could not verify weekly quota right now. Please retry in a moment.', true);
+      refreshQuotaCopy();
+      return;
+    }
+    if (!guardQuotaForProgression(true)) {
+      state.submitting = false;
+      render();
+      refreshQuotaCopy();
+      return;
+    }
 
     const payload = buildPayload();
     const callbackName = `dxSubmitCallback_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
@@ -1596,23 +1701,57 @@ import { animate } from 'framer-motion/dom';
       settled = true;
       cleanup();
 
-      if (state.submitTicket !== ticket) return;
-      state.submitting = false;
+      const finish = () => {
+        if (state.submitTicket !== ticket) return;
+        state.submitting = false;
 
-      if (success) {
-        const rowNumber = responsePayload && typeof responsePayload === 'object'
-          ? (responsePayload.row ?? responsePayload.sourceRow ?? '')
-          : '';
-        state.lastSubmissionRow = String(rowNumber || '').padStart(3, '0') || '000';
-        state.lastSubmissionLookup = resolveLookupFromSubmitResponse(responsePayload, rowNumber || state.lastSubmissionRow);
-        state.weeklyUsed += 1;
-        state.quotaLeft = Math.max(0, state.weeklyLimit - state.weeklyUsed);
-        state.step = 4;
-        render();
-        showToast('Submitted');
+        if (success) {
+          const rowNumber = responsePayload && typeof responsePayload === 'object'
+            ? (responsePayload.row ?? responsePayload.sourceRow ?? '')
+            : '';
+          state.lastSubmissionRow = String(rowNumber || '').padStart(3, '0') || '000';
+          state.lastSubmissionLookup = resolveLookupFromSubmitResponse(responsePayload, rowNumber || state.lastSubmissionRow);
+          const payloadWeeklyLimit = parsePositiveInt(
+            responsePayload && typeof responsePayload === 'object' ? responsePayload.weeklyLimit : null,
+            null,
+          );
+          const payloadWeeklyRemaining = parsePositiveInt(
+            responsePayload && typeof responsePayload === 'object' ? responsePayload.weeklyRemaining : null,
+            null,
+          );
+          const payloadWeeklyUsed = parsePositiveInt(
+            responsePayload && typeof responsePayload === 'object' ? responsePayload.weeklyUsed : null,
+            null,
+          );
+          if (payloadWeeklyLimit !== null) {
+            state.weeklyLimit = Math.max(1, Math.min(99, payloadWeeklyLimit));
+          }
+          if (payloadWeeklyRemaining !== null) {
+            state.quotaLeft = Math.max(0, Math.min(state.weeklyLimit, payloadWeeklyRemaining));
+            state.weeklyUsed = Math.max(0, state.weeklyLimit - state.quotaLeft);
+          } else if (payloadWeeklyUsed !== null) {
+            state.weeklyUsed = Math.max(0, payloadWeeklyUsed);
+            state.quotaLeft = Math.max(0, state.weeklyLimit - state.weeklyUsed);
+          } else {
+            state.weeklyUsed += 1;
+            state.quotaLeft = Math.max(0, state.weeklyLimit - state.weeklyUsed);
+          }
+          state.quotaResolved = true;
+          state.step = 4;
+          render();
+          showToast('Submitted');
+        } else {
+          render();
+          showToast('Error submitting', true);
+        }
+      };
+
+      const elapsed = performance.now() - submitStartTs;
+      const remaining = Math.max(0, SUBMIT_MIN_LOADING_MS - elapsed);
+      if (remaining > 0) {
+        window.setTimeout(finish, remaining);
       } else {
-        render();
-        showToast('Error submitting', true);
+        finish();
       }
     }
 
@@ -1643,6 +1782,7 @@ import { animate } from 'framer-motion/dom';
     const toastStack = create('div', 'dx-submit-toast-stack');
     toastStack.setAttribute('data-dx-submit-toasts', 'true');
     liveRoot.appendChild(toastStack);
+    applySubmitBusyLock(liveRoot);
 
     applyMotion(liveRoot);
     bindSubmitTooltips(liveRoot);
@@ -1691,7 +1831,11 @@ import { animate } from 'framer-motion/dom';
       render();
       refreshWeeklyQuotaFromSheet()
         .then((verified) => {
-          if (verified) refreshQuotaCopy();
+          if (verified) {
+            refreshQuotaCopy();
+            return;
+          }
+          refreshQuotaCopy();
         })
         .catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
@@ -1714,6 +1858,23 @@ import { animate } from 'framer-motion/dom';
 
   document.addEventListener('dx:slotready', () => {
     mount({ force: true }).catch(() => {});
+  });
+
+  document.addEventListener('dex-auth:ready', () => {
+    if (!state) return;
+    resolveAuth0Sub(AUTH_TIMEOUT_MS)
+      .then((sub) => {
+        if (!text(sub)) return false;
+        if (state.auth0Sub !== sub) {
+          state.auth0Sub = sub;
+          window.auth0Sub = sub;
+        }
+        return refreshWeeklyQuotaFromSheet();
+      })
+      .then(() => {
+        refreshQuotaCopy();
+      })
+      .catch(() => {});
   });
 
   if (document.readyState === 'loading') {

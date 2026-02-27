@@ -66,6 +66,13 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+async function waitBeginReady(page: Page) {
+  const begin = page.getByRole('button', { name: 'Begin' });
+  await expect(begin).toBeVisible();
+  await expect.poll(async () => begin.isDisabled()).toBe(false);
+  return begin;
+}
+
 type PitchSystemValue = '12-tet' | '24-tet' | 'ji' | 'atonal' | 'non-pitched';
 
 type PitchSubmitScenario = {
@@ -114,7 +121,8 @@ async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario):
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
-  await page.getByRole('button', { name: 'Begin' }).click();
+  const begin = await waitBeginReady(page);
+  await begin.click();
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
 
   const step = page.locator('[data-dx-submit-step="metadata"]');
@@ -227,7 +235,8 @@ test('submit page collapses to single-column on mobile with readable field text'
   expect(stack.commandTop).toBeGreaterThanOrEqual(stack.mainBottom - 2);
   expect(stack.verticalGap).toBeGreaterThanOrEqual(-2);
 
-  await page.getByRole('button', { name: 'Begin' }).click();
+  const begin = await waitBeginReady(page);
+  await begin.click();
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
 
   const fontSize = await page.evaluate(() => {
@@ -277,7 +286,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
-  await page.getByRole('button', { name: 'Begin' }).click();
+  const begin = await waitBeginReady(page);
+  await begin.click();
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
@@ -381,7 +391,8 @@ test('submit services chips use custom tooltip contract and sidebar guidance fol
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
-  await page.getByRole('button', { name: 'Begin' }).click();
+  const begin = await waitBeginReady(page);
+  await begin.click();
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
   const step = page.locator('[data-dx-submit-step="metadata"]');
   await step.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Tooltip focus sample');
@@ -466,7 +477,8 @@ test('submit quota JSONP timeout never throws late callback reference errors', a
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
-  await page.getByRole('button', { name: 'Begin' }).click();
+  const begin = await waitBeginReady(page);
+  await begin.click();
   await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
   const step = page.locator('[data-dx-submit-step="metadata"]');
   await step.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Late JSONP callback');
@@ -523,6 +535,134 @@ for (const scenario of PITCH_SERIALIZATION_SCENARIOS) {
     expect(params.keyCenter).toBe(scenario.expectedKeyCenter);
   });
 }
+
+test('submit intro locks Begin when weekly quota is exhausted for the signed-in user', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({
+          status: 'ok',
+          rows: [],
+          weeklyLimit: 4,
+          weeklyUsed: 4,
+          weeklyRemaining: 0,
+        })});`,
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok', row: 101 })});`,
+    });
+  });
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await expect(page.locator('#dex-submit')).toContainText('Weekly uploads available: 0 / 4');
+  const begin = page.getByRole('button', { name: 'Begin' });
+  await expect(begin).toBeDisabled();
+  await expect(page.locator('[data-dx-submit-step="intro"]')).toBeVisible();
+  await expect(page.locator('[data-dx-submit-step="metadata"]')).toHaveCount(0);
+});
+
+test('submit flow locks controls, shows fetching sheen, then proceeds to done', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({
+          status: 'ok',
+          rows: [],
+          weeklyLimit: 4,
+          weeklyUsed: 0,
+          weeklyRemaining: 4,
+        })});`,
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', row: 122 })}); } }, 700);`,
+    });
+  });
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+  const begin = await waitBeginReady(page);
+  await begin.click();
+
+  const metaStep = page.locator('[data-dx-submit-step="metadata"]');
+  await expect(metaStep).toBeVisible();
+  await metaStep.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Submit lock sequence');
+  await metaStep.locator('.dx-submit-field', { hasText: 'Sample creator(s)' }).locator('input').fill('Queue Lock');
+  await metaStep.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
+  await metaStep.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
+  await metaStep.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
+
+  await page.getByRole('button', { name: 'Continue to license' }).click();
+  await page.getByRole('button', { name: 'Continue to upload' }).click();
+  const uploadStep = page.locator('[data-dx-submit-step="upload"]');
+  await expect(uploadStep).toBeVisible();
+  await uploadStep.locator('.dx-submit-field', { hasText: 'Public source link' }).locator('input').fill('https://drive.google.com/sequence-source');
+
+  await uploadStep.getByRole('button', { name: /Submit sample/i }).click();
+
+  const root = page.locator('#dex-submit');
+  await expect(root).toHaveAttribute('data-dx-submit-submitting', 'true');
+  await expect(uploadStep.locator('.dx-submit-field', { hasText: 'Public source link' }).locator('input')).toBeDisabled();
+  await expect(uploadStep.getByRole('button', { name: 'Back' })).toBeDisabled();
+  await expect(uploadStep.getByRole('button', { name: /Submitting/i })).toBeDisabled();
+
+  const sheenState = await page.evaluate(() => {
+    const root = document.getElementById('dex-submit');
+    const main = root?.querySelector('.dx-submit-main');
+    if (!(root instanceof HTMLElement) || !(main instanceof HTMLElement)) return null;
+    const pseudo = window.getComputedStyle(main, '::after');
+    return {
+      submitting: root.getAttribute('data-dx-submit-submitting') || '',
+      pseudoContent: pseudo.content,
+      animationName: pseudo.animationName || '',
+    };
+  });
+  expect(sheenState).not.toBeNull();
+  if (!sheenState) return;
+  expect(sheenState.submitting).toBe('true');
+  expect(sheenState.pseudoContent).not.toBe('none');
+  expect(sheenState.animationName).toContain('dx-submit-fetch-sheen');
+
+  await page.waitForTimeout(150);
+  await expect(page.locator('[data-dx-submit-step="done"]')).toHaveCount(0);
+  await expect(page.locator('[data-dx-submit-step="done"]')).toBeVisible();
+  await expect(root).not.toHaveAttribute('data-dx-submit-submitting', 'true');
+});
 
 test('submit hard-load uses standard footer geometry and icon sprite', async ({ page }) => {
   const viewport = page.viewportSize();
