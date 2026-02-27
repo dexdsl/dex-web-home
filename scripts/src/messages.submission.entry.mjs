@@ -60,6 +60,39 @@
     }, 30000);
   }
 
+  function mountBreadcrumbMotion() {
+    const runMount = () => {
+      if (typeof window.dexBreadcrumbMotionMount === 'function') {
+        try {
+          window.dexBreadcrumbMotionMount();
+        } catch {}
+      }
+    };
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(runMount);
+    } else {
+      window.setTimeout(runMount, 0);
+    }
+
+    if (typeof window.dexBreadcrumbMotionMount === 'function') return;
+    if (window.__dxSubmissionBreadcrumbMountPending) return;
+
+    window.__dxSubmissionBreadcrumbMountPending = true;
+    window.addEventListener(
+      'dex:breadcrumb-motion-ready',
+      () => {
+        window.__dxSubmissionBreadcrumbMountPending = false;
+        if (typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(runMount);
+        } else {
+          window.setTimeout(runMount, 0);
+        }
+      },
+      { once: true },
+    );
+  }
+
   function setFetchState(root, state) {
     if (!root) return;
     root.setAttribute('data-dx-fetch-state', state);
@@ -1467,6 +1500,7 @@
         </div>
       </aside>
     `;
+    mountBreadcrumbMotion();
   }
 
   function renderSignIn(root) {
@@ -1480,6 +1514,7 @@
         </section>
       </aside>
     `;
+    mountBreadcrumbMotion();
   }
 
   function renderError(root, title, message) {
@@ -1493,6 +1528,7 @@
         </section>
       </aside>
     `;
+    mountBreadcrumbMotion();
   }
 
   function renderReady(root, model) {
@@ -1659,6 +1695,7 @@
         <section class="dx-sub-timeline" id="dx-sub-timeline">${timelineHtml}</section>
       </aside>
     `;
+    mountBreadcrumbMotion();
   }
 
   async function loadSubmissionDetail(apiBase, authSnapshot, sid) {

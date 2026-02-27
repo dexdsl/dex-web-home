@@ -357,6 +357,55 @@ test('submission detail hard load restores header/footer chrome and can route ba
   await waitReady(page, '#dex-msg');
 });
 
+test('submission detail breadcrumb delimiter auto-morphs and spins on click', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page);
+
+  await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  const delimiter = page.locator('[data-dex-breadcrumb-delimiter]').first();
+  const path = delimiter.locator('[data-dex-breadcrumb-path]').first();
+  await expect(delimiter).toBeVisible();
+  await expect(path).toBeVisible();
+
+  const before = await delimiter.evaluate((node) => {
+    const pathNode = node.querySelector('[data-dex-breadcrumb-path]');
+    return {
+      d: pathNode ? pathNode.getAttribute('d') : '',
+      color: getComputedStyle(node).color,
+      transform: getComputedStyle(node).transform,
+    };
+  });
+
+  await page.waitForTimeout(2200);
+
+  const afterAuto = await delimiter.evaluate((node) => {
+    const pathNode = node.querySelector('[data-dex-breadcrumb-path]');
+    return {
+      d: pathNode ? pathNode.getAttribute('d') : '',
+      color: getComputedStyle(node).color,
+      transform: getComputedStyle(node).transform,
+    };
+  });
+
+  expect(afterAuto.d !== before.d || afterAuto.color !== before.color).toBeTruthy();
+
+  const preClickTransform = afterAuto.transform;
+  await delimiter.click();
+  await expect
+    .poll(
+      async () =>
+        delimiter.evaluate(
+          (node, expectedTransform) => getComputedStyle(node).transform !== expectedTransform,
+          preClickTransform,
+        ),
+      { timeout: 1800 },
+    )
+    .toBe(true);
+});
+
 test('submission detail browser back resolves slot content and URL together', async ({ page }) => {
   await stubDexAuthRuntime(page, 'signed-in');
   await stubMessagesApis(page);
