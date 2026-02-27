@@ -301,6 +301,7 @@ import { animate } from 'framer-motion/dom';
 
   let state = null;
   let liveRoot = null;
+  let activeSubmitTooltipTarget = null;
 
   function text(value, fallback = '') {
     const normalized = String(value ?? '').trim();
@@ -542,6 +543,155 @@ import { animate } from 'framer-motion/dom';
     return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
   }
 
+  function canUsePointerHoverTooltip() {
+    try {
+      return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    } catch {
+      return true;
+    }
+  }
+
+  function ensureSubmitTooltipLayer() {
+    let layer = document.getElementById('dx-submit-tooltip-layer');
+    if (layer instanceof HTMLElement) return layer;
+    layer = document.createElement('div');
+    layer.id = 'dx-submit-tooltip-layer';
+    layer.setAttribute('role', 'tooltip');
+    layer.setAttribute('aria-hidden', 'true');
+    layer.hidden = true;
+    document.body.appendChild(layer);
+    return layer;
+  }
+
+  function hideSubmitTooltip() {
+    activeSubmitTooltipTarget = null;
+    const layer = document.getElementById('dx-submit-tooltip-layer');
+    if (!(layer instanceof HTMLElement)) return;
+    layer.hidden = true;
+    layer.textContent = '';
+    layer.setAttribute('aria-hidden', 'true');
+  }
+
+  function positionSubmitTooltip(layer, target) {
+    if (!(layer instanceof HTMLElement) || !(target instanceof HTMLElement)) return;
+    const viewportPadding = 8;
+    layer.style.left = '0px';
+    layer.style.top = '0px';
+    layer.style.maxWidth = `${Math.max(160, Math.min(280, window.innerWidth - viewportPadding * 2))}px`;
+
+    const targetRect = target.getBoundingClientRect();
+    const tooltipRect = layer.getBoundingClientRect();
+
+    let left = targetRect.right - tooltipRect.width;
+    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+    let top = targetRect.bottom + 8;
+    if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+      top = targetRect.top - tooltipRect.height - 8;
+    }
+    top = Math.max(viewportPadding, top);
+
+    layer.style.left = `${Math.round(left)}px`;
+    layer.style.top = `${Math.round(top)}px`;
+  }
+
+  function showSubmitTooltip(target) {
+    if (!(target instanceof HTMLElement)) return;
+    const tooltip = text(target.getAttribute('data-dx-tooltip'));
+    if (!tooltip) {
+      hideSubmitTooltip();
+      return;
+    }
+    const layer = ensureSubmitTooltipLayer();
+    layer.textContent = tooltip;
+    layer.hidden = false;
+    layer.setAttribute('aria-hidden', 'false');
+    positionSubmitTooltip(layer, target);
+    activeSubmitTooltipTarget = target;
+  }
+
+  function resolveTooltipTarget(input) {
+    if (!(input instanceof Element)) return null;
+    const target = input.closest('[data-dx-tooltip]');
+    if (!(target instanceof HTMLElement)) return null;
+    if (!(liveRoot instanceof HTMLElement) || !liveRoot.contains(target)) return null;
+    return target;
+  }
+
+  function bindSubmitTooltips(scope) {
+    if (!(scope instanceof HTMLElement)) return;
+
+    if (scope.__dxSubmitTooltipAbortController instanceof AbortController) {
+      try {
+        scope.__dxSubmitTooltipAbortController.abort();
+      } catch {}
+    }
+
+    const controller = new AbortController();
+    scope.__dxSubmitTooltipAbortController = controller;
+    const options = { signal: controller.signal };
+    const hoverEnabled = canUsePointerHoverTooltip();
+
+    scope.querySelectorAll('[data-dx-tooltip]').forEach((node) => {
+      if (node instanceof HTMLElement) {
+        node.removeAttribute('title');
+      }
+    });
+
+    if (hoverEnabled) {
+      scope.addEventListener('pointerover', (event) => {
+        const target = resolveTooltipTarget(event.target);
+        if (!target) return;
+        if (activeSubmitTooltipTarget === target) return;
+        showSubmitTooltip(target);
+      }, options);
+
+      scope.addEventListener('pointerout', (event) => {
+        if (!(activeSubmitTooltipTarget instanceof HTMLElement)) return;
+        const next = resolveTooltipTarget(event.relatedTarget);
+        if (next === activeSubmitTooltipTarget) return;
+        if (next) {
+          showSubmitTooltip(next);
+          return;
+        }
+        hideSubmitTooltip();
+      }, options);
+    }
+
+    scope.addEventListener('focusin', (event) => {
+      const target = resolveTooltipTarget(event.target);
+      if (!target) return;
+      showSubmitTooltip(target);
+    }, options);
+
+    scope.addEventListener('focusout', (event) => {
+      const next = resolveTooltipTarget(event.relatedTarget);
+      if (next) {
+        showSubmitTooltip(next);
+        return;
+      }
+      hideSubmitTooltip();
+    }, options);
+
+    window.addEventListener('scroll', () => {
+      if (activeSubmitTooltipTarget instanceof HTMLElement) {
+        const layer = document.getElementById('dx-submit-tooltip-layer');
+        if (layer instanceof HTMLElement && !layer.hidden) {
+          positionSubmitTooltip(layer, activeSubmitTooltipTarget);
+        }
+      }
+    }, { signal: controller.signal, passive: true });
+
+    window.addEventListener('resize', () => {
+      if (activeSubmitTooltipTarget instanceof HTMLElement) {
+        const layer = document.getElementById('dx-submit-tooltip-layer');
+        if (layer instanceof HTMLElement && !layer.hidden) {
+          positionSubmitTooltip(layer, activeSubmitTooltipTarget);
+        }
+      }
+    }, options);
+  }
+
   async function finalizeFetchState(root, startTs, fetchState = FETCH_STATE_READY) {
     const elapsed = performance.now() - startTs;
     if (elapsed < DX_MIN_SHEEN_MS) {
@@ -584,6 +734,20 @@ import { animate } from 'framer-motion/dom';
     return count;
   }
 
+  function releaseJsonpCallback(callbackName) {
+    if (!callbackName) return;
+    try {
+      window[callbackName] = () => {};
+    } catch {}
+    window.setTimeout(() => {
+      try {
+        delete window[callbackName];
+      } catch {
+        window[callbackName] = undefined;
+      }
+    }, 30000);
+  }
+
   async function jsonpRequest(url, params = {}, timeoutMs = JSONP_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       const callbackName = `dxSubmitJsonp_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
@@ -593,11 +757,7 @@ import { animate } from 'framer-motion/dom';
 
       const cleanup = () => {
         if (timer) window.clearTimeout(timer);
-        try {
-          delete window[callbackName];
-        } catch {
-          window[callbackName] = undefined;
-        }
+        releaseJsonpCallback(callbackName);
         if (script.isConnected) script.remove();
       };
 
@@ -1420,11 +1580,7 @@ import { animate } from 'framer-motion/dom';
     let settled = false;
 
     function cleanup() {
-      try {
-        delete window[callbackName];
-      } catch {
-        window[callbackName] = undefined;
-      }
+      releaseJsonpCallback(callbackName);
       if (script.isConnected) script.remove();
     }
 
@@ -1474,6 +1630,7 @@ import { animate } from 'framer-motion/dom';
   function render() {
     if (!(liveRoot instanceof HTMLElement) || !state) return;
 
+    hideSubmitTooltip();
     liveRoot.innerHTML = '';
     liveRoot.appendChild(buildLayout());
     const toastStack = create('div', 'dx-submit-toast-stack');
@@ -1481,6 +1638,7 @@ import { animate } from 'framer-motion/dom';
     liveRoot.appendChild(toastStack);
 
     applyMotion(liveRoot);
+    bindSubmitTooltips(liveRoot);
   }
 
   async function resolveAuth0Sub(timeoutMs = AUTH_TIMEOUT_MS) {

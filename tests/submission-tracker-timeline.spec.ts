@@ -128,7 +128,7 @@ async function stubDexAuthRuntime(page: Page, mode: AuthMode): Promise<void> {
 async function stubMessagesApis(
   page: Page,
   options: {
-    detailStatus?: 200 | 404 | 403;
+    detailStatus?: 200 | 404 | 403 | 500;
     actionHits?: string[];
     listThreads?: unknown[];
     detailPayload?: Record<string, unknown>;
@@ -247,6 +247,45 @@ async function stubMessagesApis(
       headers: CORS_HEADERS,
       contentType: 'application/json',
       body: JSON.stringify({ error: 'NOT_FOUND', path: pathname }),
+    });
+  });
+}
+
+async function stubLegacySubmissionApi(
+  page: Page,
+  rows: Array<Record<string, unknown>> = [],
+): Promise<void> {
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok', rows })});`,
+      });
+      return;
+    }
+
+    if (action === 'ack') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `${callback}(${JSON.stringify({ status: 'ok' })});`,
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok' })});`,
     });
   });
 }
@@ -477,4 +516,31 @@ test('submission detail returns safe error state for non-owner or missing sid', 
   await waitReady(page, '#dex-submission');
 
   await expect(page.locator('#dex-submission')).toContainText('Submission not found for this account');
+});
+
+test('submission detail falls back to legacy feed when worker detail returns 500', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page, { detailStatus: 500 });
+  await stubLegacySubmissionApi(page, [
+    {
+      row: 12,
+      submissionId: 'sub-001',
+      timestamp: '2026-02-26T09:00:00.000Z',
+      clientSubmittedAt: '2026-02-26T08:59:00.000Z',
+      status: 'pending review',
+      notes: 'Legacy feed note for timeline fallback.',
+      link: '/entry/submit/',
+      submissionLookupNumber: 'SUB12-B.Pre Do A2026',
+    },
+  ]);
+
+  await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  await expect(page.locator('#dex-submission')).toContainText('Timeline sync is catching up');
+  await expect(page.locator('#dex-submission')).toContainText('Legacy feed note for timeline fallback.');
+  await expect(page.locator('#dx-sub-stage-rail')).toContainText('Sent');
+  await expect(page.locator('#dx-sub-stage-rail')).toContainText('Received');
+  await expect(page.locator('#dex-submission')).not.toContainText('Unable to load this submission right now.');
 });

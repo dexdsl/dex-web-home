@@ -399,12 +399,95 @@ test('submit services chips use custom tooltip contract and sidebar guidance fol
   const serviceChip = page.locator('[data-dx-submit-step="upload"] .dx-submit-badge', { hasText: 'Color grading' }).first();
   await expect(serviceChip).toHaveAttribute('data-dx-tooltip', /color/i);
   await expect(serviceChip).not.toHaveAttribute('title', /.+/);
+  await serviceChip.hover();
+
+  const tooltip = page.locator('#dx-submit-tooltip-layer');
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText('Shot-to-shot color balancing');
+
+  const tooltipMeta = await page.evaluate(() => {
+    const layer = document.getElementById('dx-submit-tooltip-layer');
+    if (!(layer instanceof HTMLElement)) return null;
+    const style = window.getComputedStyle(layer);
+    return {
+      parentTag: layer.parentElement?.tagName || '',
+      position: style.position,
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+    };
+  });
+  expect(tooltipMeta).not.toBeNull();
+  if (!tooltipMeta) return;
+  expect(tooltipMeta.parentTag).toBe('BODY');
+  expect(tooltipMeta.position).toBe('fixed');
+  expect(tooltipMeta.backgroundColor).not.toBe('rgba(9, 14, 27, 0.95)');
 
   const hasZwnj = await page.evaluate(() => {
     const command = document.querySelector('.dx-submit-command');
     return !!command && command.textContent.includes('\u200C');
   });
   expect(hasZwnj).toBeTruthy();
+});
+
+test('submit quota JSONP timeout never throws late callback reference errors', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => {
+    pageErrors.push(String(error?.message || error));
+  });
+
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+  await page.route('https://script.google.com/macros/**', async (route) => {
+    const url = new URL(route.request().url());
+    const action = String(url.searchParams.get('action') || '').toLowerCase();
+    const callback = String(url.searchParams.get('callback') || '').trim();
+    if (!callback) {
+      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
+      return;
+    }
+
+    if (action === 'list') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `setTimeout(function(){ if (typeof ${callback} === 'function') { ${callback}(${JSON.stringify({ status: 'ok', rows: [] })}); } }, 7000);`,
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ status: 'ok', row: 100 })});`,
+    });
+  });
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await expect(page.locator('[data-dx-submit-step="metadata"]')).toBeVisible();
+  const step = page.locator('[data-dx-submit-step="metadata"]');
+  await step.locator('.dx-submit-field', { hasText: 'Proposed sample title' }).locator('input').fill('Late JSONP callback');
+  await step.locator('.dx-submit-field', { hasText: 'Sample creator(s)' }).locator('input').fill('No Reference Error');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument category' }).locator('select').selectOption('B - Brass');
+  await step.locator('.dx-submit-field', { hasText: 'Instrument' }).locator('input').fill('Prepared Trombone');
+  await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
+
+  await page.getByRole('button', { name: 'Continue to license' }).click();
+  await page.getByRole('button', { name: 'Continue to upload' }).click();
+  const uploadStep = page.locator('[data-dx-submit-step="upload"]');
+  await uploadStep.locator('.dx-submit-field', { hasText: 'Public source link' }).locator('input').fill('https://drive.google.com/mock-source');
+  await page.getByRole('button', { name: /Submit sample/i }).click();
+
+  await expect(page.locator('.dx-submit-toast--error').last()).toContainText('Could not verify weekly quota');
+  await page.waitForTimeout(7300);
+
+  const refErrors = pageErrors.filter(
+    (message) => message.includes('dxSubmitJsonp_') && message.includes('is not defined'),
+  );
+  expect(refErrors).toHaveLength(0);
 });
 
 const PITCH_SERIALIZATION_SCENARIOS: Array<PitchSubmitScenario & { name: string }> = [

@@ -245,33 +245,28 @@
 }
 
 #dex-submit .dx-submit-badge[data-dx-tooltip] {
-  position: relative;
+  cursor: help;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  #dex-submit .dx-submit-badge[data-dx-tooltip]:hover::before,
-  #dex-submit .dx-submit-badge[data-dx-tooltip]:focus-visible::before {
-    content: attr(data-dx-tooltip);
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 8px);
-    transform: translateX(-50%);
-    min-width: min(280px, 60vw);
-    max-width: min(360px, 74vw);
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(17, 24, 39, 0.24);
-    background: rgba(9, 14, 27, 0.95);
-    color: #f5f7fb;
-    font-family: var(--font-mono, "Courier Prime", monospace);
-    font-size: 12px;
-    line-height: 1.35;
-    letter-spacing: 0.01em;
-    white-space: normal;
-    pointer-events: none;
-    z-index: 12;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
-  }
+#dx-submit-tooltip-layer {
+  position: fixed;
+  inset: auto auto auto auto;
+  z-index: 1200;
+  width: max-content;
+  max-width: min(280px, 92vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  color: #111;
+  font: 600 11px/1.35 var(--font-body, system-ui);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  white-space: normal;
+}
+
+#dx-submit-tooltip-layer[hidden] {
+  display: none;
 }
 
 #dex-submit .dx-submit-list {

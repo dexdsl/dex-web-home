@@ -18,8 +18,10 @@
   const FETCH_STATE_ERROR = 'error';
   const AUTH_TIMEOUT_MS = 6000;
   const FETCH_TIMEOUT_MS = 7000;
+  const JSONP_TIMEOUT_MS = 6000;
   const MIN_SHELL_MS = 120;
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
+  const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
 
   function isObject(value) {
@@ -40,6 +42,20 @@
 
   function delay(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
+  }
+
+  function releaseJsonpCallback(callbackName) {
+    if (!callbackName) return;
+    try {
+      window[callbackName] = () => {};
+    } catch {}
+    window.setTimeout(() => {
+      try {
+        delete window[callbackName];
+      } catch {
+        window[callbackName] = undefined;
+      }
+    }, 30000);
   }
 
   function setFetchState(root, state) {
@@ -199,6 +215,46 @@
     } finally {
       window.clearTimeout(timer);
     }
+  }
+
+  async function jsonpWithTimeout(url, timeoutMs = JSONP_TIMEOUT_MS) {
+    return new Promise((resolve, reject) => {
+      const callbackName = `dxSubDetailCb${Math.random().toString(36).slice(2)}`;
+      const script = document.createElement('script');
+      let settled = false;
+      let timer = 0;
+
+      function cleanup() {
+        if (timer) window.clearTimeout(timer);
+        releaseJsonpCallback(callbackName);
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[callbackName] = (payload) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(payload);
+      };
+
+      script.onerror = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error('JSONP request failed'));
+      };
+
+      timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error('JSONP request timed out'));
+      }, Math.max(250, timeoutMs));
+
+      const separator = url.includes('?') ? '&' : '?';
+      script.src = `${url}${separator}callback=${callbackName}`;
+      document.body.appendChild(script);
+    });
   }
 
   function parseSidFromLocation(routeUrl = '') {
@@ -643,6 +699,160 @@
     return thread;
   }
 
+  function statusRawToStage(statusRaw) {
+    const normalized = String(statusRaw || '').trim().toLowerCase();
+    if (!normalized) return 'reviewing';
+    if (normalized.includes('acknowledged')) return 'acknowledged';
+    if (normalized.includes('revision')) return 'revision_requested';
+    if (normalized.includes('accepted')) return 'accepted';
+    if (normalized.includes('rejected')) return 'rejected';
+    if (normalized.includes('released') || normalized.includes('published') || normalized.includes('in library')) {
+      return 'in_library';
+    }
+    if (normalized.includes('pending') || normalized.includes('review') || normalized.includes('submitted')) {
+      return 'reviewing';
+    }
+    return 'reviewing';
+  }
+
+  function resolveLookupFromLegacyRow(row, fallbackLookup, fallbackSid) {
+    const legacy = isObject(row) ? row : {};
+    const lookup = pickFirstText([
+      legacy.effectiveLookupNumber,
+      legacy.effective_lookup_number,
+      legacy.finalLookupNumber,
+      legacy.final_lookup_number,
+      legacy.submissionLookupNumber,
+      legacy.submission_lookup_number,
+      legacy.finalLookupBase,
+      legacy.final_lookup_base,
+      legacy.submissionLookupGenerated,
+      legacy.submission_lookup_generated,
+      legacy.lookup,
+      legacy.lookupNumber,
+      legacy.lookup_number,
+      fallbackLookup,
+    ]);
+    if (lookup) return lookup;
+    const sid = toSafeText(fallbackSid, '');
+    if (!sid) return 'Submission';
+    return `Submission ${sid.slice(0, 8)}`;
+  }
+
+  async function loadSubmissionDetailFallback(apiBase, authSnapshot, sid, failingStatus = 0) {
+    const thread = {
+      submissionId: sid,
+      lookup: '',
+      title: '',
+      creator: '',
+      currentStage: 'reviewing',
+      currentStatusRaw: '',
+      updatedAt: '',
+      acknowledgedAt: '',
+      sourceLink: '',
+      libraryHref: '',
+    };
+
+    await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
+
+    const sub = toSafeText(authSnapshot?.sub, '');
+    let legacyRow = null;
+    if (sub) {
+      const legacyResponse = await withTimeout(
+        jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+        JSONP_TIMEOUT_MS + 100,
+        { status: 'timeout', rows: [] },
+      );
+      const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+      legacyRow = rows.find((row) => {
+        const rowSid = sanitizeSubmissionId(row?.submissionId || row?.submission_id);
+        return rowSid && rowSid === sid;
+      }) || null;
+    }
+
+    if (!legacyRow && !thread.title && !thread.lookup) {
+      return null;
+    }
+
+    const legacyStatus = toSafeText(legacyRow?.status, thread.currentStatusRaw || 'pending');
+    const sentAt = toSafeText(
+      legacyRow?.clientSubmittedAt || legacyRow?.client_submitted_at || legacyRow?.timestamp || thread.updatedAt,
+      '',
+    );
+    const receivedAt = toSafeText(legacyRow?.timestamp || sentAt || thread.updatedAt, '');
+    const reviewStage = statusRawToStage(legacyStatus);
+    const notes = toSafeText(legacyRow?.notes || legacyRow?.note, '');
+
+    thread.lookup = resolveLookupFromLegacyRow(legacyRow, thread.lookup, sid);
+    thread.title = pickFirstText([legacyRow?.title, legacyRow?.submissionTitle, thread.title], 'Untitled submission');
+    thread.creator = pickFirstText([legacyRow?.creator, legacyRow?.artist, thread.creator], '');
+    thread.currentStatusRaw = legacyStatus;
+    thread.currentStage = reviewStage;
+    thread.sourceLink = pickFirstText([legacyRow?.link, legacyRow?.sourceLink, thread.sourceLink], '');
+    thread.libraryHref = pickFirstText([legacyRow?.libraryHref, legacyRow?.library_href, thread.libraryHref], '');
+    thread.updatedAt = pickFirstText([receivedAt, thread.updatedAt], new Date().toISOString());
+
+    const timeline = [];
+    if (sentAt) {
+      timeline.push({
+        id: `${sid}-sent`,
+        eventType: 'sent',
+        publicNote: '',
+        statusRaw: 'submitted',
+        libraryHref: '',
+        sourceLink: thread.sourceLink,
+        title: thread.title,
+        creator: thread.creator,
+        lookup: thread.lookup,
+        createdAt: sentAt,
+        metadata: {},
+      });
+    }
+    if (receivedAt) {
+      timeline.push({
+        id: `${sid}-received`,
+        eventType: 'received',
+        publicNote: notes,
+        statusRaw: legacyStatus,
+        libraryHref: thread.libraryHref,
+        sourceLink: thread.sourceLink,
+        title: thread.title,
+        creator: thread.creator,
+        lookup: thread.lookup,
+        createdAt: receivedAt,
+        metadata: {},
+      });
+    }
+    if (!sentAt && !receivedAt) {
+      timeline.push({
+        id: `${sid}-status`,
+        eventType: reviewStage,
+        publicNote: notes,
+        statusRaw: legacyStatus,
+        libraryHref: thread.libraryHref,
+        sourceLink: thread.sourceLink,
+        title: thread.title,
+        creator: thread.creator,
+        lookup: thread.lookup,
+        createdAt: thread.updatedAt || new Date().toISOString(),
+        metadata: {},
+      });
+    }
+
+    const warning = failingStatus >= 500
+      ? 'Timeline sync is catching up. Showing latest submission details.'
+      : 'Using legacy submissions feed while timeline sync catches up.';
+
+    return {
+      ok: true,
+      status: 200,
+      thread,
+      timeline,
+      stageRail: normalizeStageRail(null, timeline, thread),
+      warning,
+    };
+  }
+
   function renderSignIn(root) {
     root.innerHTML = `
       <aside class="dx-sub-shell" data-dx-submission-shell>
@@ -787,6 +997,12 @@
     );
 
     if (!response.ok) {
+      if (response.status !== 403 && response.status !== 404) {
+        const fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+        if (fallback) {
+          return fallback;
+        }
+      }
       return {
         ok: false,
         status: response.status,

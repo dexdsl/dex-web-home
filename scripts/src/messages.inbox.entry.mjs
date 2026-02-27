@@ -45,6 +45,20 @@
     return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
   }
 
+  function releaseJsonpCallback(callbackName) {
+    if (!callbackName) return;
+    try {
+      window[callbackName] = () => {};
+    } catch {}
+    window.setTimeout(() => {
+      try {
+        delete window[callbackName];
+      } catch {
+        window[callbackName] = undefined;
+      }
+    }, 30000);
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -173,11 +187,7 @@
 
       function cleanup() {
         if (timer) window.clearTimeout(timer);
-        try {
-          delete window[callbackName];
-        } catch {
-          window[callbackName] = undefined;
-        }
+        releaseJsonpCallback(callbackName);
         if (script.parentNode) script.parentNode.removeChild(script);
       }
 
@@ -553,7 +563,7 @@
     const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
     return {
       records: normalizeSubmissionRecords(rows, sub, submissionState),
-      warning: 'Using legacy submissions feed while timeline sync catches up.',
+      warning: '',
     };
   }
 
@@ -828,20 +838,27 @@
     const eventAbortController = new AbortController();
     root.__dxMessagesEventAbortController = eventAbortController;
     const eventOptions = { signal: eventAbortController.signal };
+    const captureEventOptions = { signal: eventAbortController.signal, capture: true };
+
+    function cachePendingSidFromTarget(target) {
+      if (!(target instanceof Element)) return;
+      const openLink = target.closest('a.dx-msg-link[href]');
+      if (!(openLink instanceof HTMLAnchorElement)) return;
+      const sidFromData = sanitizeSubmissionId(openLink.getAttribute('data-dx-submission-sid'));
+      const sidFromHref = parseSubmissionSidFromHref(openLink.getAttribute('href'));
+      const sid = sidFromData || sidFromHref;
+      if (sid) setPendingSubmissionSid(sid);
+    }
+
+    root.addEventListener('pointerdown', (event) => {
+      cachePendingSidFromTarget(event.target);
+    }, captureEventOptions);
 
     root.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
-      const openLink = target.closest('a.dx-msg-link[href]');
-      if (openLink instanceof HTMLAnchorElement) {
-        const sidFromData = sanitizeSubmissionId(openLink.getAttribute('data-dx-submission-sid'));
-        const sidFromHref = parseSubmissionSidFromHref(openLink.getAttribute('href'));
-        const sid = sidFromData || sidFromHref;
-        if (sid) {
-          setPendingSubmissionSid(sid);
-        }
-      }
+      cachePendingSidFromTarget(target);
 
       const filterKey = target.getAttribute('data-dx-msg-filter');
       if (filterKey) {
