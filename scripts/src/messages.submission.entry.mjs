@@ -20,6 +20,7 @@
   const FETCH_TIMEOUT_MS = 7000;
   const MIN_SHELL_MS = 120;
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
+  const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
 
   function isObject(value) {
     return typeof value === 'object' && value !== null;
@@ -59,6 +60,38 @@
   function toSafeText(value, fallback = '') {
     const raw = String(value == null ? '' : value).trim();
     return raw || fallback;
+  }
+
+  function sanitizeSubmissionId(value) {
+    return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
+  }
+
+  function readPendingSubmissionSid({ consume = false } = {}) {
+    const fromWindow = sanitizeSubmissionId(window.__dxPendingSubmissionSid || '');
+    if (fromWindow) {
+      if (consume) {
+        window.__dxPendingSubmissionSid = '';
+        try {
+          window.sessionStorage.removeItem(SUBMISSION_PENDING_SID_KEY);
+        } catch {}
+      }
+      return fromWindow;
+    }
+
+    let fromStorage = '';
+    try {
+      fromStorage = sanitizeSubmissionId(window.sessionStorage.getItem(SUBMISSION_PENDING_SID_KEY) || '');
+    } catch {
+      fromStorage = '';
+    }
+
+    if (!fromStorage) return '';
+    if (consume) {
+      try {
+        window.sessionStorage.removeItem(SUBMISSION_PENDING_SID_KEY);
+      } catch {}
+    }
+    return fromStorage;
   }
 
   function parseTimestamp(value) {
@@ -195,7 +228,11 @@
       }
     }
 
-    return sid.replace(/[^a-zA-Z0-9._:-]/g, '');
+    if (!sid) {
+      sid = readPendingSubmissionSid({ consume: false });
+    }
+
+    return sanitizeSubmissionId(sid);
   }
 
   async function resolveSid(routeUrl = '') {
@@ -268,7 +305,28 @@
         ]);
         const title = pickFirstText([value.title, metadata.title, metadata.submissionTitle, metadata.submission_title]);
         const creator = pickFirstText([value.creator, metadata.creator, metadata.artist]);
-        const lookup = pickFirstText([value.lookup, metadata.lookup, metadata.lookupNumber, metadata.lookup_number]);
+        const lookup = pickFirstText([
+          value.effectiveLookupNumber,
+          value.effective_lookup_number,
+          value.finalLookupNumber,
+          value.final_lookup_number,
+          value.finalLookupBase,
+          value.final_lookup_base,
+          value.submissionLookupGenerated,
+          value.submission_lookup_generated,
+          value.lookup,
+          metadata.effectiveLookupNumber,
+          metadata.effective_lookup_number,
+          metadata.finalLookupNumber,
+          metadata.final_lookup_number,
+          metadata.finalLookupBase,
+          metadata.final_lookup_base,
+          metadata.submissionLookupGenerated,
+          metadata.submission_lookup_generated,
+          metadata.lookup,
+          metadata.lookupNumber,
+          metadata.lookup_number,
+        ]);
         const createdAt = toSafeText(value.eventAt || value.event_at || value.createdAt || value.created_at, '');
         const id = toSafeText(value.id, `timeline-${index + 1}`);
         return {
@@ -356,9 +414,25 @@
 
     thread.lookup = pickFirstText([
       thread.lookup,
+      threadPayload.effectiveLookupNumber,
+      threadPayload.effective_lookup_number,
+      threadPayload.finalLookupNumber,
+      threadPayload.final_lookup_number,
+      threadPayload.finalLookupBase,
+      threadPayload.final_lookup_base,
+      threadPayload.submissionLookupGenerated,
+      threadPayload.submission_lookup_generated,
       threadPayload.lookup,
       threadPayload.lookupNumber,
       threadPayload.lookup_number,
+      ...mergedMeta.map((meta) => meta.effectiveLookupNumber),
+      ...mergedMeta.map((meta) => meta.effective_lookup_number),
+      ...mergedMeta.map((meta) => meta.finalLookupNumber),
+      ...mergedMeta.map((meta) => meta.final_lookup_number),
+      ...mergedMeta.map((meta) => meta.finalLookupBase),
+      ...mergedMeta.map((meta) => meta.final_lookup_base),
+      ...mergedMeta.map((meta) => meta.submissionLookupGenerated),
+      ...mergedMeta.map((meta) => meta.submission_lookup_generated),
       ...mergedMeta.map((meta) => meta.lookup),
       ...mergedMeta.map((meta) => meta.lookupNumber),
       ...mergedMeta.map((meta) => meta.lookup_number),
@@ -461,7 +535,20 @@
     });
     if (!isObject(match)) return thread;
 
-    thread.lookup = pickFirstText([thread.lookup, match.lookup, match.lookupNumber, match.lookup_number]);
+    thread.lookup = pickFirstText([
+      thread.lookup,
+      match.effectiveLookupNumber,
+      match.effective_lookup_number,
+      match.finalLookupNumber,
+      match.final_lookup_number,
+      match.finalLookupBase,
+      match.final_lookup_base,
+      match.submissionLookupGenerated,
+      match.submission_lookup_generated,
+      match.lookup,
+      match.lookupNumber,
+      match.lookup_number,
+    ]);
     thread.title = pickFirstText([thread.title, match.title, match.submissionTitle, match.submission_title]);
     thread.creator = pickFirstText([thread.creator, match.creator, match.artist]);
     thread.currentStatusRaw = pickFirstText([
@@ -644,7 +731,17 @@
 
     const thread = {
       submissionId: toSafeText(threadPayload.submissionId || threadPayload.submission_id, sid),
-      lookup: toSafeText(threadPayload.lookup, ''),
+      lookup: pickFirstText([
+        threadPayload.effectiveLookupNumber,
+        threadPayload.effective_lookup_number,
+        threadPayload.finalLookupNumber,
+        threadPayload.final_lookup_number,
+        threadPayload.finalLookupBase,
+        threadPayload.final_lookup_base,
+        threadPayload.submissionLookupGenerated,
+        threadPayload.submission_lookup_generated,
+        threadPayload.lookup,
+      ]),
       title: toSafeText(threadPayload.title, ''),
       creator: toSafeText(threadPayload.creator, ''),
       currentStage: toSafeText(threadPayload.currentStage || threadPayload.current_stage, 'reviewing'),
@@ -741,6 +838,7 @@
       setFetchState(root, FETCH_STATE_READY);
       return;
     }
+    readPendingSubmissionSid({ consume: true });
 
     const authSnapshot = await resolveAuthSnapshot(AUTH_TIMEOUT_MS);
     if (!authSnapshot.authenticated || !authSnapshot.token) {
@@ -790,7 +888,16 @@
     const force = !!options.force;
     const isBooting = root.getAttribute('data-dx-sub-booting') === 'true';
     const isMounted = root.getAttribute('data-dx-sub-mounted') === 'true';
-    if (isBooting) return true;
+    if (isBooting) {
+      if (force) {
+        root.setAttribute('data-dx-sub-pending-mount', 'true');
+        const pendingRouteUrl = toSafeText(options.routeUrl, '');
+        if (pendingRouteUrl) {
+          root.setAttribute('data-dx-sub-pending-route-url', pendingRouteUrl);
+        }
+      }
+      return true;
+    }
     if (isMounted && !force) return true;
 
     root.setAttribute('data-dx-sub-booting', 'true');
@@ -805,6 +912,13 @@
       return false;
     } finally {
       root.removeAttribute('data-dx-sub-booting');
+      const shouldRerun = root.getAttribute('data-dx-sub-pending-mount') === 'true';
+      if (shouldRerun) {
+        const pendingRouteUrl = toSafeText(root.getAttribute('data-dx-sub-pending-route-url'), '');
+        root.removeAttribute('data-dx-sub-pending-mount');
+        root.removeAttribute('data-dx-sub-pending-route-url');
+        mount({ force: true, routeUrl: pendingRouteUrl || toSafeText(options.routeUrl, '') }).catch(() => {});
+      }
     }
   }
 

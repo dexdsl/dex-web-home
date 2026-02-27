@@ -20,6 +20,7 @@
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SUBMISSION_STATE_PREFIX = 'dex:messages:submission-state:v1:';
+  const SUBMISSION_PENDING_SID_KEY = 'dex:messages:pending-submission-sid';
   const FETCH_STATE_LOADING = 'loading';
   const FETCH_STATE_READY = 'ready';
   const FETCH_STATE_ERROR = 'error';
@@ -62,6 +63,30 @@
   function toSafeText(value, fallback = '') {
     const raw = String(value == null ? '' : value).trim();
     return raw || fallback;
+  }
+
+  function sanitizeSubmissionId(value) {
+    return toSafeText(value, '').replace(/[^a-zA-Z0-9._:-]/g, '');
+  }
+
+  function setPendingSubmissionSid(sid) {
+    const safeSid = sanitizeSubmissionId(sid);
+    if (!safeSid) return;
+    window.__dxPendingSubmissionSid = safeSid;
+    try {
+      window.sessionStorage.setItem(SUBMISSION_PENDING_SID_KEY, safeSid);
+    } catch {}
+  }
+
+  function parseSubmissionSidFromHref(href) {
+    const rawHref = toSafeText(href, '');
+    if (!rawHref) return '';
+    try {
+      const parsed = new URL(rawHref, window.location.href);
+      return sanitizeSubmissionId(parsed.searchParams.get('sid'));
+    } catch {
+      return '';
+    }
   }
 
   function toApiBase(root) {
@@ -320,11 +345,79 @@
     return `submission:${sub || 'anon'}:${rowNumber}:${timestamp}`;
   }
 
-  function buildSubmissionLookup(row, fallbackYear) {
-    const collectionType = toSafeText(row?.collectionType || row?.collection_type, 'U');
-    const rowNumber = toSafeText(row?.row, '0');
-    const license = toSafeText(row?.license, 'NA');
-    return `Sub. ${collectionType}${fallbackYear} ${rowNumber}.${license}`;
+  function toLookupWord(value, length, fallback) {
+    const letters = String(value || '').replace(/[^A-Za-z]/g, '');
+    if (!letters) return fallback;
+    const padded = letters.slice(0, Math.max(1, length)).padEnd(length, 'X').slice(0, length);
+    return `${padded.charAt(0).toUpperCase()}${padded.slice(1).toLowerCase()}`;
+  }
+
+  function parseCollectionTypeCode(value) {
+    const raw = toSafeText(value, '').toUpperCase();
+    if (raw === 'AV') return 'AV';
+    if (raw === 'A' || raw.includes('AUDIO')) return 'A';
+    if (raw === 'V' || raw.includes('VIDEO')) return 'V';
+    return 'O';
+  }
+
+  function parseInstrumentTypeCode(category) {
+    const raw = toSafeText(category, '').toUpperCase();
+    const first = raw.match(/[A-Z]/)?.[0] || '';
+    return ['K', 'B', 'E', 'S', 'W', 'P', 'V', 'X'].includes(first) ? first : 'X';
+  }
+
+  function parseSurnameCandidate(value) {
+    const raw = toSafeText(value, '');
+    if (!raw) return '';
+    if (raw.includes(',')) return toSafeText(raw.split(',')[0], '');
+    const parts = raw.split(/\s+/).filter(Boolean);
+    return toSafeText(parts[parts.length - 1], '');
+  }
+
+  function parsePerformerToken(performer, creator) {
+    const source = toSafeText(performer, '') || parseSurnameCandidate(creator);
+    const letters = source.replace(/[^A-Za-z]/g, '');
+    if (!letters) return 'An';
+    const token = letters.slice(0, 2).padEnd(2, 'X');
+    return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
+  }
+
+  function formatCounter(value) {
+    const parsed = Number.parseInt(String(value || '0'), 10);
+    const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    return String(safe).padStart(2, '0');
+  }
+
+  function buildSubmissionLookup(row, fallbackYear, fallbackCounter) {
+    const rowCounter = toSafeText(row?.submissionSerial || row?.submission_serial || row?.row, '');
+    const counter = formatCounter(rowCounter || fallbackCounter || 1);
+    const category = toSafeText(row?.category || row?.category_raw || row?.instrumentCategory, '');
+    const instrument = toSafeText(row?.instrument || row?.instrument_raw, '');
+    const performer = toSafeText(row?.performerToken || row?.performer_token, '');
+    const creator = toSafeText(row?.creator || row?.creator_raw || row?.artist, '');
+    const instrumentType = parseInstrumentTypeCode(category);
+    const instrumentPrefix = toLookupWord(instrument, 3, 'Unk');
+    const performerToken = parsePerformerToken(performer, creator);
+    const collectionType = parseCollectionTypeCode(row?.collectionType || row?.collection_type);
+    const year = Number.parseInt(String(row?.submissionYear || row?.submission_year || fallbackYear || new Date().getFullYear()), 10);
+    const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
+    return `SUB${counter}-${instrumentType}.${instrumentPrefix} ${performerToken} ${collectionType}${safeYear}`;
+  }
+
+  function resolveSubmissionLookup(row, fallbackYear, fallbackCounter) {
+    const effective = toSafeText(row?.effectiveLookupNumber || row?.effective_lookup_number, '');
+    const finalLookupNumber = toSafeText(row?.finalLookupNumber || row?.final_lookup_number, '');
+    const finalLookupBase = toSafeText(row?.finalLookupBase || row?.final_lookup_base, '');
+    const generated = toSafeText(row?.submissionLookupGenerated || row?.submission_lookup_generated, '');
+    const lookup = toSafeText(row?.lookup || row?.lookupNumber || row?.lookup_number, '');
+    return (
+      effective
+      || finalLookupNumber
+      || finalLookupBase
+      || generated
+      || lookup
+      || buildSubmissionLookup(row, fallbackYear, fallbackCounter)
+    );
   }
 
   function normalizeSubmissionRecords(rows, sub, submissionState) {
@@ -336,12 +429,13 @@
       const state = isObject(submissionState[id]) ? submissionState[id] : {};
       const status = toSafeText(row?.status, 'Submitted');
       const createdAt = toRecordDate(row?.timestamp || row?.createdAt || row?.created_at);
+      const lookup = resolveSubmissionLookup(row, fallbackYear, (index + 1));
       return {
         id,
         sourceType: 'submission',
         category: 'submissions',
         severity: severityFromSubmissionStatus(status),
-        title: buildSubmissionLookup(row, fallbackYear),
+        title: lookup,
         body: toSafeText(row?.notes || row?.note, ''),
         href: submissionId
           ? `/entry/messages/submission/?sid=${encodeURIComponent(submissionId)}`
@@ -352,6 +446,7 @@
           status,
           license: row?.license,
           collectionType: row?.collectionType || row?.collection_type,
+          lookup,
         },
         createdAt,
         readAt: toSafeText(state.readAt, ''),
@@ -371,7 +466,8 @@
       const state = isObject(submissionState[id]) ? submissionState[id] : {};
       const status = toSafeText(value.currentStatusRaw || value.current_status_raw, 'Submitted');
       const createdAt = toRecordDate(value.updatedAt || value.updated_at || value.receivedAt || value.received_at || value.createdAt || value.created_at);
-      const lookup = toSafeText(value.lookup, '');
+      const fallbackYear = Number.parseInt(String(value.submissionYear || value.submission_year || new Date().getFullYear()), 10);
+      const lookup = resolveSubmissionLookup(value, fallbackYear, (index + 1));
       const title = lookup || toSafeText(value.title, `Submission ${index + 1}`);
       const sourceRow = value.sourceRow || value.source_row || '';
       const readAt = toSafeText(value.acknowledgedAt || value.acknowledged_at || state.readAt, '');
@@ -665,8 +761,10 @@
           const body = record.body
             ? `<p class="dx-msg-body">${escapeHtml(record.body)}</p>`
             : '';
+          const submissionSid = sanitizeSubmissionId(record.metadata?.submissionId || '');
+          const sidAttr = submissionSid ? ` data-dx-submission-sid="${escapeHtml(submissionSid)}"` : '';
           const link = record.href
-            ? `<a class="dx-msg-link" href="${escapeHtml(record.href)}">Open</a>`
+            ? `<a class="dx-msg-link" href="${escapeHtml(record.href)}"${sidAttr}>Open</a>`
             : '';
           return `
             <article class="dx-msg-item" data-dx-msg-item data-source-type="${escapeHtml(record.sourceType)}" data-record-id="${escapeHtml(record.id)}" data-dx-msg-read="${readFlag}" data-dx-msg-archived="${archivedFlag}">
@@ -728,6 +826,16 @@
     root.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+
+      const openLink = target.closest('a.dx-msg-link[href]');
+      if (openLink instanceof HTMLAnchorElement) {
+        const sidFromData = sanitizeSubmissionId(openLink.getAttribute('data-dx-submission-sid'));
+        const sidFromHref = parseSubmissionSidFromHref(openLink.getAttribute('href'));
+        const sid = sidFromData || sidFromHref;
+        if (sid) {
+          setPendingSubmissionSid(sid);
+        }
+      }
 
       const filterKey = target.getAttribute('data-dx-msg-filter');
       if (filterKey) {

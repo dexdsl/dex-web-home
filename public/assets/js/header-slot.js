@@ -114,6 +114,57 @@
     return wrapper.closest('header') || wrapper;
   }
 
+  async function ensureBackdropElementsFromTemplateIfMissing() {
+    if (!(document.body instanceof HTMLElement)) return;
+    const hasGradient = !!document.getElementById('scroll-gradient-bg');
+    const hasMesh = !!document.getElementById('gooey-mesh-wrapper');
+    const hasSprite = !!document.querySelector('svg[data-usage="social-icons-svg"]');
+    if (hasGradient && hasMesh && hasSprite) return;
+
+    const templateCandidates = ['/', '/index.html'];
+    for (const templatePath of templateCandidates) {
+      try {
+        const response = await fetch(templatePath, {
+          credentials: 'same-origin',
+          headers: { accept: 'text/html,*/*;q=0.9' },
+        });
+        const contentType = String(response.headers.get('content-type') || '');
+        if (!response.ok || !contentType.includes('text/html')) continue;
+
+        const html = await response.text();
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+        if (!parsed || !parsed.body) continue;
+
+        for (const backdropId of ['scroll-gradient-bg', 'gooey-mesh-wrapper']) {
+          if (document.getElementById(backdropId)) continue;
+          const sourceBackdrop = parsed.getElementById(backdropId);
+          if (!(sourceBackdrop instanceof HTMLElement)) continue;
+          const importedBackdrop = document.importNode(sourceBackdrop, true);
+          if (document.body.firstChild) {
+            document.body.insertBefore(importedBackdrop, document.body.firstChild);
+          } else {
+            document.body.appendChild(importedBackdrop);
+          }
+        }
+
+        if (!document.querySelector('svg[data-usage="social-icons-svg"]')) {
+          const sourceSprite = parsed.querySelector('svg[data-usage="social-icons-svg"]');
+          if (sourceSprite instanceof SVGElement) {
+            const importedSprite = document.importNode(sourceSprite, true);
+            if (document.body.firstChild) {
+              document.body.insertBefore(importedSprite, document.body.firstChild);
+            } else {
+              document.body.appendChild(importedSprite);
+            }
+          }
+        }
+
+        ensureBackdropLayersOutsideForeground();
+        return;
+      } catch {}
+    }
+  }
+
   async function bootstrapPersistentChromeIfMissing() {
     if (!(document.body instanceof HTMLElement)) return getHeaderElement(document);
 
@@ -406,6 +457,9 @@
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
     document.body.classList.toggle(PROFILE_STANDARD_CHROME_ROUTE_CLASS, isStandardChrome);
     document.body.classList.toggle(PROFILE_SHOW_MESH_ROUTE_CLASS, showMesh);
+    if (showMesh) {
+      void ensureBackdropElementsFromTemplateIfMissing();
+    }
     syncProfileFooterPlacementNow();
     scheduleProfileViewportMetricsSync();
     if (isProtected) {
@@ -2704,6 +2758,16 @@
       finalUrl.search = targetUrl.search;
       finalUrl.hash = targetUrl.hash;
 
+      if (options.pushHistory) {
+        try {
+          history.pushState(
+            { [HISTORY_SLOT_KEY]: true, [HISTORY_SCROLL_KEY]: 0 },
+            parsed.title || document.title,
+            finalUrl.href,
+          );
+        } catch {}
+      }
+
       await applyRouteDocument(parsed, finalUrl, options);
       dispatchRouteTransitionEvent(ROUTE_TRANSITION_IN_START, transitionDetail);
       didDispatchInStart = true;
@@ -2713,12 +2777,6 @@
       ]);
       dispatchRouteTransitionEvent(ROUTE_TRANSITION_IN_END, transitionDetail);
       didDispatchInEnd = true;
-
-      if (options.pushHistory) {
-        try {
-          history.pushState({ [HISTORY_SLOT_KEY]: true, [HISTORY_SCROLL_KEY]: 0 }, parsed.title || document.title, finalUrl.href);
-        } catch {}
-      }
 
       return true;
     } catch (error) {

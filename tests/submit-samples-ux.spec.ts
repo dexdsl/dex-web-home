@@ -6,6 +6,8 @@ const CORS_HEADERS = {
   'access-control-allow-headers': 'authorization,content-type',
 };
 
+const GENERATED_LOOKUP_REGEX = /^SUB\d{2}-[A-Z]\.[A-Za-z]{3}\s+[A-Za-z][A-Za-z\-']*\s+(?:A|V|AV|O)\d{4}$/;
+
 async function stubHeaderRuntimes(page: Page): Promise<void> {
   await page.route('**/assets/js/header-slot.js', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.__dxHeaderSlotStub = true;' });
@@ -301,6 +303,8 @@ test('submit wizard enforces required fields and keeps payload key contract on s
       'license',
       'link',
       'notes',
+      'submissionYear',
+      'performerToken',
       'status',
     ]),
   );
@@ -312,6 +316,9 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   expect(submitParams.keyCenter).toBe('12-TET: C♯/D♭');
   expect(submitParams.collectionType).toBe('A');
   expect(submitParams.link).toBe('https://drive.google.com/mock-source');
+
+  const lookupText = String(await page.locator('[data-dx-submit-step="done"] .dx-submit-pill--accent').first().textContent() || '').trim();
+  expect(lookupText).toMatch(GENERATED_LOOKUP_REGEX);
 });
 
 const PITCH_SERIALIZATION_SCENARIOS: Array<PitchSubmitScenario & { name: string }> = [

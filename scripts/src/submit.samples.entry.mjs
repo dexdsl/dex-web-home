@@ -182,6 +182,7 @@ import { animate } from 'framer-motion/dom';
       meta: createInitialMeta(),
       licenseType: 'joint',
       lastSubmissionRow: '000',
+      lastSubmissionLookup: '',
       submitting: false,
       submitTicket: 0,
     };
@@ -252,6 +253,86 @@ import { animate } from 'framer-motion/dom';
     if (!meta || typeof meta !== 'object') return 'Unspecified';
     const serialized = text(syncLegacyPitchFields(meta));
     return serialized || 'Unspecified';
+  }
+
+  function toLookupWord(value, length, fallback) {
+    const letters = String(value || '').replace(/[^A-Za-z]/g, '');
+    if (!letters) return fallback;
+    const normalized = letters.slice(0, Math.max(1, length)).padEnd(length, 'X').slice(0, length);
+    return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1).toLowerCase()}`;
+  }
+
+  function parseCollectionTypeCode(value) {
+    const raw = text(value, '').toUpperCase();
+    if (raw === 'AV') return 'AV';
+    if (raw === 'A' || raw.includes('AUDIO')) return 'A';
+    if (raw === 'V' || raw.includes('VIDEO')) return 'V';
+    return 'O';
+  }
+
+  function parseInstrumentTypeCode(value) {
+    const raw = text(value, '').toUpperCase();
+    const first = raw.match(/[A-Z]/)?.[0] || '';
+    return ['K', 'B', 'E', 'S', 'W', 'P', 'V', 'X'].includes(first) ? first : 'X';
+  }
+
+  function parseSurnameCandidate(value) {
+    const raw = text(value, '');
+    if (!raw) return '';
+    if (raw.includes(',')) return text(raw.split(',')[0], '');
+    const parts = raw.split(/\s+/).filter(Boolean);
+    return text(parts[parts.length - 1], '');
+  }
+
+  function resolveAuthSurname() {
+    const user = window.AUTH0_USER && typeof window.AUTH0_USER === 'object'
+      ? window.AUTH0_USER
+      : null;
+    if (!user) return '';
+    const direct = text(user.family_name || user.surname || user.last_name, '');
+    if (direct) return direct;
+    return parseSurnameCandidate(user.name || user.nickname || user.email || '');
+  }
+
+  function parsePerformerToken(creator) {
+    const surname = resolveAuthSurname() || parseSurnameCandidate(creator);
+    const letters = String(surname || '').replace(/[^A-Za-z]/g, '');
+    if (!letters) return 'An';
+    const token = letters.slice(0, 2).padEnd(2, 'X');
+    return `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`;
+  }
+
+  function formatCounter(value) {
+    const parsed = Number.parseInt(String(value || '0'), 10);
+    const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    return String(safe).padStart(2, '0');
+  }
+
+  function buildGeneratedSubmissionLookup(counterValue) {
+    const counter = formatCounter(counterValue);
+    const instrumentType = parseInstrumentTypeCode(state?.meta?.category);
+    const instrumentPrefix = toLookupWord(state?.meta?.instrument, 3, 'Unk');
+    const performerToken = parsePerformerToken(state?.meta?.creator);
+    const collectionType = parseCollectionTypeCode(state?.meta?.collectionType);
+    const year = new Date().getFullYear();
+    return `SUB${counter}-${instrumentType}.${instrumentPrefix} ${performerToken} ${collectionType}${year}`;
+  }
+
+  function resolveLookupFromSubmitResponse(response, rowNumber) {
+    const value = response && typeof response === 'object' ? response : {};
+    const lookup = text(
+      value.effectiveLookupNumber
+        || value.effective_lookup_number
+        || value.finalLookupNumber
+        || value.final_lookup_number
+        || value.finalLookupBase
+        || value.final_lookup_base
+        || value.submissionLookupGenerated
+        || value.submission_lookup_generated
+        || value.lookup,
+      '',
+    );
+    return lookup || buildGeneratedSubmissionLookup(rowNumber);
   }
 
   function create(tag, className = '', value = '') {
@@ -455,9 +536,6 @@ import { animate } from 'framer-motion/dom';
     titleInput.addEventListener('input', (event) => {
       state.meta.title = event.target.value;
     });
-    titleInput.addEventListener('blur', () => {
-      refreshCommandOnly();
-    });
     titleField.appendChild(titleInput);
     grid.appendChild(titleField);
 
@@ -469,9 +547,6 @@ import { animate } from 'framer-motion/dom';
     creatorInput.value = state.meta.creator;
     creatorInput.addEventListener('input', (event) => {
       state.meta.creator = event.target.value;
-    });
-    creatorInput.addEventListener('blur', () => {
-      refreshCommandOnly();
     });
     creatorField.appendChild(creatorInput);
     grid.appendChild(creatorField);
@@ -486,7 +561,6 @@ import { animate } from 'framer-motion/dom';
     categorySelect.value = state.meta.category;
     categorySelect.addEventListener('change', (event) => {
       state.meta.category = event.target.value;
-      refreshCommandOnly();
     });
     categoryField.appendChild(categorySelect);
     grid.appendChild(categoryField);
@@ -499,9 +573,6 @@ import { animate } from 'framer-motion/dom';
     instrumentInput.value = state.meta.instrument;
     instrumentInput.addEventListener('input', (event) => {
       state.meta.instrument = event.target.value;
-    });
-    instrumentInput.addEventListener('blur', () => {
-      refreshCommandOnly();
     });
     instrumentField.appendChild(instrumentInput);
     grid.appendChild(instrumentField);
@@ -537,7 +608,6 @@ import { animate } from 'framer-motion/dom';
         state.meta.pitchDescriptor = '';
       }
       syncLegacyPitchFields(state.meta);
-      refreshCommandOnly();
       render();
     });
     pitchSystemField.appendChild(pitchSystemSelect);
@@ -558,7 +628,6 @@ import { animate } from 'framer-motion/dom';
       keySelect.addEventListener('change', (event) => {
         state.meta.pitchDescriptor = event.target.value;
         syncLegacyPitchFields(state.meta);
-        refreshCommandOnly();
       });
       keyField.appendChild(keySelect);
       grid.appendChild(keyField);
@@ -573,9 +642,6 @@ import { animate } from 'framer-motion/dom';
       descriptorInput.addEventListener('input', (event) => {
         state.meta.pitchDescriptor = event.target.value;
         syncLegacyPitchFields(state.meta);
-      });
-      descriptorInput.addEventListener('blur', () => {
-        refreshCommandOnly();
       });
       descriptorField.append(hint, descriptorInput);
       grid.appendChild(descriptorField);
@@ -810,8 +876,7 @@ import { animate } from 'framer-motion/dom';
     section.appendChild(create('p', 'dx-submit-kicker', 'Submission sent'));
     section.appendChild(create('h2', 'dx-submit-title', 'Submission received. Timeline is now active.'));
 
-    const year = new Date().getFullYear();
-    const lookup = `Sub. ${text(state.meta.collectionType || 'X')}${year} ${state.lastSubmissionRow}.${state.licenseType}`;
+    const lookup = text(state.lastSubmissionLookup, buildGeneratedSubmissionLookup(state.lastSubmissionRow));
 
     const badgeRow = create('div', 'dx-submit-pill-group');
     badgeRow.append(
@@ -839,6 +904,7 @@ import { animate } from 'framer-motion/dom';
       state.meta = createInitialMeta();
       state.licenseType = 'joint';
       state.licenseConfirmed = true;
+      state.lastSubmissionLookup = '';
       render();
     });
 
@@ -977,19 +1043,6 @@ import { animate } from 'framer-motion/dom';
     }
   }
 
-  function refreshCommandOnly() {
-    if (!(liveRoot instanceof HTMLElement)) return;
-    const next = buildCommandPanel();
-    const current = liveRoot.querySelector('.dx-submit-command');
-    if (!(current instanceof HTMLElement)) return;
-    current.replaceWith(next);
-    if (!isReducedMotion()) {
-      Array.from(next.querySelectorAll('.dx-submit-command-card')).forEach((card, index) => {
-        animate(card, { opacity: [0, 1], y: [8, 0] }, { duration: 0.2, delay: index * 0.02, ease: 'easeOut' });
-      });
-    }
-  }
-
   function buildPayload() {
     syncLegacyPitchFields(state.meta);
     return {
@@ -1010,6 +1063,8 @@ import { animate } from 'framer-motion/dom';
       license: text(state.licenseType, 'joint'),
       link: text(state.meta.link),
       notes: text(state.meta.notes),
+      submissionYear: String(new Date().getFullYear()),
+      performerToken: parsePerformerToken(state.meta.creator),
       status: 'pending',
     };
   }
@@ -1040,7 +1095,7 @@ import { animate } from 'framer-motion/dom';
       if (script.isConnected) script.remove();
     }
 
-    function onResolved(success, rowNumber = '') {
+    function onResolved(success, responsePayload = null) {
       if (settled) return;
       settled = true;
       cleanup();
@@ -1049,7 +1104,11 @@ import { animate } from 'framer-motion/dom';
       state.submitting = false;
 
       if (success) {
+        const rowNumber = responsePayload && typeof responsePayload === 'object'
+          ? (responsePayload.row ?? responsePayload.sourceRow ?? '')
+          : '';
         state.lastSubmissionRow = String(rowNumber || '').padStart(3, '0') || '000';
+        state.lastSubmissionLookup = resolveLookupFromSubmitResponse(responsePayload, rowNumber || state.lastSubmissionRow);
         state.step = 4;
         render();
         showToast('Submitted');
@@ -1061,7 +1120,7 @@ import { animate } from 'framer-motion/dom';
 
     window[callbackName] = (response) => {
       if (response && response.status === 'ok') {
-        onResolved(true, response.row);
+        onResolved(true, response);
       } else {
         onResolved(false);
       }

@@ -65,6 +65,9 @@ jobs:
       - name: Verify submission tracker contract
         run: npm run verify:submission-tracker
 
+      - name: Verify submission lookup contract
+        run: npm run verify:submission-lookup
+
       - name: Verify submit UI contract
         run: npm run verify:submit-ui
 
@@ -112,6 +115,9 @@ jobs:
 
       - name: Submission tracker timeline test
         run: npm run test:submission-tracker
+
+      - name: Submission lookup lifecycle test
+        run: npm run test:submission-lookup
 
       - name: Submit samples UX test
         run: npm run test:submit-samples-ux

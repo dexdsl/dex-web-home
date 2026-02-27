@@ -9,6 +9,8 @@ const CORS_HEADERS = {
   'access-control-allow-headers': 'authorization,content-type',
 };
 
+const GENERATED_LOOKUP_REGEX = /^SUB\d{2}-[A-Z]\.[A-Za-z]{3}\s+[A-Za-z][A-Za-z\-']*\s+(?:A|V|AV|O)\d{4}$/;
+
 const SYSTEM_MESSAGES_FIXTURE = [
   {
     id: 'sys-001',
@@ -58,7 +60,7 @@ const SUBMISSION_ROWS = [
 const SUBMISSION_THREADS_FIXTURE = [
   {
     submissionId: 'sub-001',
-    lookup: 'Sub. A 12.Joint',
+    lookup: 'SUB12-B.Pre Do A2026',
     title: 'Brass Session',
     creator: 'John Doe',
     currentStage: 'reviewing',
@@ -73,7 +75,7 @@ const SUBMISSION_THREADS_FIXTURE = [
   },
   {
     submissionId: 'sub-002',
-    lookup: 'Sub. C 8.CC0',
+    lookup: 'SUB08-K.Org Do AV2026',
     title: 'Organ Session',
     creator: 'Jane Doe',
     currentStage: 'accepted',
@@ -91,7 +93,7 @@ const SUBMISSION_THREADS_FIXTURE = [
 const SUBMISSION_DETAIL_FIXTURE: Record<string, unknown> = {
   thread: {
     submissionId: 'sub-001',
-    lookup: 'Sub. A 12.Joint',
+    lookup: 'SUB12-B.Pre Do A2026',
     title: 'Brass Session',
     creator: 'John Doe',
     currentStage: 'reviewing',
@@ -685,6 +687,8 @@ test('messages inbox merges system + submissions and supports read/archive actio
     'href',
     /\/entry\/messages\/submission\/\?sid=sub-001/,
   );
+  const submissionTitle = String(await page.locator('[data-source-type="submission"] .dx-msg-heading').first().textContent() || '').trim();
+  expect(submissionTitle).toMatch(GENERATED_LOOKUP_REGEX);
 
   await page.locator('[data-dx-msg-filter="system"]').click();
   await expect(page.locator('[data-dx-msg-item][data-source-type="system"]')).toHaveCount(2);

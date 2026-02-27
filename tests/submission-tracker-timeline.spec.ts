@@ -10,7 +10,7 @@ const CORS_HEADERS = {
 
 const SUBMISSION_THREAD = {
   submissionId: 'sub-001',
-  lookup: 'Sub. A 12.Joint',
+  lookup: 'SUB12-B.Pre Do A2026',
   title: 'Brass Session',
   creator: 'John Doe',
   currentStage: 'reviewing',
@@ -27,7 +27,7 @@ const SUBMISSION_THREAD = {
 const SUBMISSION_DETAIL = {
   thread: {
     submissionId: 'sub-001',
-    lookup: 'Sub. A 12.Joint',
+    lookup: 'SUB12-B.Pre Do A2026',
     title: 'Brass Session',
     creator: 'John Doe',
     currentStage: 'reviewing',
@@ -337,7 +337,7 @@ test('submission detail hydrates sparse payload fields from metadata and list fa
     listThreads: [
       {
         submissionId: 'sub-001',
-        lookup: 'Sub. A 12.Joint',
+        lookup: 'SUB12-B.Pre Do A2026',
         title: 'Brass Session',
         creator: 'John Doe',
         sourceLink: '/entry/submit/',
@@ -366,7 +366,7 @@ test('submission detail hydrates sparse payload fields from metadata and list fa
             title: 'Brass Session',
             creator: 'John Doe',
             source_link: '/entry/submit/',
-            lookup: 'Sub. A 12.Joint',
+            lookup: 'SUB12-B.Pre Do A2026',
           }),
         },
       ],
@@ -380,6 +380,59 @@ test('submission detail hydrates sparse payload fields from metadata and list fa
   await expect(page.locator('#dex-submission')).toContainText('John Doe');
   await expect(page.locator('#dex-submission')).toContainText('Pending Review');
   await expect(page.locator('#dex-submission')).toContainText('Source submission');
+});
+
+test('submission detail prefers effective/final lookup fields over legacy lookup', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page, 'signed-in');
+  await stubMessagesApis(page, {
+    listThreads: [
+      {
+        submissionId: 'sub-001',
+        lookup: 'Sub. Legacy 12',
+        submissionLookupGenerated: 'SUB12-B.Pre Do A2026',
+        finalLookupBase: 'B.Pre Do A2026',
+        finalLookupNumber: 'B.Pre Do A2026 C.23',
+        effectiveLookupNumber: 'B.Pre Do A2026 C.23',
+        title: 'Brass Session',
+        creator: 'John Doe',
+        currentStatusRaw: 'Pending Review',
+        updatedAt: '2026-02-26T09:00:00.000Z',
+      },
+    ],
+    detailPayload: {
+      thread: {
+        submission_id: 'sub-001',
+        lookup: 'Sub. Legacy 12',
+        submissionLookupGenerated: 'SUB12-B.Pre Do A2026',
+        finalLookupBase: 'B.Pre Do A2026',
+        finalLookupNumber: 'B.Pre Do A2026 C.23',
+        effectiveLookupNumber: 'B.Pre Do A2026 C.23',
+        title: 'Brass Session',
+        creator: 'John Doe',
+        current_status_raw: 'Pending Review',
+        source_link: '/entry/submit/',
+        updated_at: '2026-02-26T09:00:00.000Z',
+      },
+      timeline: [
+        {
+          id: 'evt-lookup',
+          event_type: 'lookup_finalized',
+          stage: 'reviewing',
+          status_raw: 'Pending Review',
+          event_at: '2026-02-26T09:00:00.000Z',
+          metadata_json: JSON.stringify({
+            effectiveLookupNumber: 'B.Pre Do A2026 C.23',
+          }),
+        },
+      ],
+    },
+  });
+
+  await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
+  await waitReady(page, '#dex-submission');
+
+  await expect(page.locator('.dx-sub-title')).toHaveText('B.Pre Do A2026 C.23');
 });
 
 test('submission detail acknowledge posts ack endpoint and updates stage rail', async ({ page }) => {
