@@ -12,7 +12,7 @@
 
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 6000;
-  const JSONP_TIMEOUT_MS = 6000;
+  const JSONP_TIMEOUT_MS = 12000;
   const SYSTEM_FETCH_TIMEOUT_MS = 6000;
   const SUBMISSIONS_FETCH_TIMEOUT_MS = 6000;
   const ACTION_TIMEOUT_MS = 5000;
@@ -702,7 +702,7 @@
         try {
           const legacyResponse = await withTimeout(
             jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-            JSONP_TIMEOUT_MS + 100,
+            JSONP_TIMEOUT_MS + 250,
             { status: 'timeout', rows: [] },
           );
           legacyRows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
@@ -762,7 +762,7 @@
 
         return {
           records: normalizedRecords,
-          warning: 'Submission detail hydration is temporarily unavailable.',
+          warning: '',
         };
       }
 
@@ -784,7 +784,7 @@
     try {
       const legacyResponse = await withTimeout(
         jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-        JSONP_TIMEOUT_MS + 100,
+        JSONP_TIMEOUT_MS + 250,
         { status: 'timeout', rows: [] },
       );
       rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];

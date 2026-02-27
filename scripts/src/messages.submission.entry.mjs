@@ -18,7 +18,7 @@
   const FETCH_STATE_ERROR = 'error';
   const AUTH_TIMEOUT_MS = 6000;
   const FETCH_TIMEOUT_MS = 7000;
-  const JSONP_TIMEOUT_MS = 6000;
+  const JSONP_TIMEOUT_MS = 12000;
   const MIN_SHELL_MS = 120;
   const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const SHEET_API = 'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
@@ -1012,18 +1012,22 @@
   async function hydrateThreadFromList(apiBase, authSnapshot, sid, thread) {
     if (!authSnapshot?.authenticated || !authSnapshot?.token) return thread;
     if (!shouldHydrateFromThreadList(thread)) return thread;
-
-    const listResponse = await fetchJsonWithTimeout(
-      `${apiBase}/me/submissions?limit=200&state=all`,
-      {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${authSnapshot.token}`,
-          'content-type': 'application/json',
+    let listResponse = null;
+    try {
+      listResponse = await fetchJsonWithTimeout(
+        `${apiBase}/me/submissions?limit=200&state=all`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: `Bearer ${authSnapshot.token}`,
+            'content-type': 'application/json',
+          },
         },
-      },
-      FETCH_TIMEOUT_MS,
-    );
+        FETCH_TIMEOUT_MS,
+      );
+    } catch {
+      return thread;
+    }
     if (!listResponse.ok) return thread;
 
     const listPayload = isObject(listResponse.payload) ? listResponse.payload : {};
@@ -1319,7 +1323,9 @@
       libraryHref: '',
     };
 
-    await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
+    try {
+      await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
+    } catch {}
 
     const essentialsFromThreadList = (
       toSafeText(thread.title)
@@ -1330,16 +1336,20 @@
     const sub = toSafeText(authSnapshot?.sub, '');
     let legacyRow = null;
     if (sub && !essentialsFromThreadList) {
-      const legacyResponse = await withTimeout(
-        jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
-        JSONP_TIMEOUT_MS + 100,
-        { status: 'timeout', rows: [] },
-      );
-      const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
-      legacyRow = rows.find((row) => {
-        const rowSid = sanitizeSubmissionId(row?.submissionId || row?.submission_id);
-        return rowSid && rowSid === sid;
-      }) || null;
+      try {
+        const legacyResponse = await withTimeout(
+          jsonpWithTimeout(`${SHEET_API}?action=list&auth0Sub=${encodeURIComponent(sub)}`, JSONP_TIMEOUT_MS),
+          JSONP_TIMEOUT_MS + 250,
+          { status: 'timeout', rows: [] },
+        );
+        const rows = Array.isArray(legacyResponse?.rows) ? legacyResponse.rows : [];
+        legacyRow = rows.find((row) => {
+          const rowSid = sanitizeSubmissionId(row?.submissionId || row?.submission_id);
+          return rowSid && rowSid === sid;
+        }) || null;
+      } catch {
+        legacyRow = null;
+      }
     }
 
     if (!legacyRow && !thread.title && !thread.lookup) {
@@ -1713,7 +1723,12 @@
 
     if (!response.ok) {
       if (response.status !== 403 && response.status !== 404) {
-        const fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+        let fallback = null;
+        try {
+          fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+        } catch {
+          fallback = null;
+        }
         if (fallback) {
           return fallback;
         }
@@ -1783,7 +1798,9 @@
     applyCanonicalThreadLookup(thread);
 
     hydrateThreadFromFallbacks(thread, threadPayload, timeline);
-    await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
+    try {
+      await hydrateThreadFromList(apiBase, authSnapshot, sid, thread);
+    } catch {}
 
     const isSparseThread = !toSafeText(thread.title)
       || isUntitledSubmissionTitle(thread.title)
@@ -1793,7 +1810,12 @@
 
     let warning = '';
     if (isSparseThread) {
-      const fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+      let fallback = null;
+      try {
+        fallback = await loadSubmissionDetailFallback(apiBase, authSnapshot, sid, response.status);
+      } catch {
+        fallback = null;
+      }
       if (fallback?.ok) {
         hydrateThreadFromFallbacks(thread, fallback.thread || {}, fallback.timeline || []);
         timeline = normalizeTimeline([...(timeline || []), ...((fallback.timeline || []))]);
@@ -2021,6 +2043,7 @@
       root.setAttribute('data-dx-sub-mounted', 'true');
       return true;
     } catch {
+      renderError(root, 'Submission Timeline', 'Unable to load this submission right now.');
       setFetchState(root, FETCH_STATE_ERROR);
       return false;
     } finally {
