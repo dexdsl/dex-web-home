@@ -374,11 +374,12 @@
   }
 
   function formatEventLabel(eventType) {
-    const normalized = String(eventType || '').trim().toLowerCase();
+    const normalized = normalizeEventType(eventType);
     const labelMap = {
       lookup_generated: 'Lookup generated',
       lookup_finalized: 'Lookup finalized',
       bucket_assigned: 'Bucket assigned',
+      acknowledged: 'Acknowledged',
       user_acknowledged: 'Acknowledged',
     };
     if (labelMap[normalized]) return labelMap[normalized];
@@ -465,13 +466,141 @@
     return title === 'untitled submission' || title === 'untitled';
   }
 
+  function normalizeEventType(eventType) {
+    const normalized = String(eventType || '').trim().toLowerCase();
+    if (!normalized) return 'event';
+    if (normalized === 'user_acknowledged') return 'acknowledged';
+    return normalized;
+  }
+
+  function pickPreferredLookup(primaryValue, secondaryValue) {
+    const primary = toSafeText(primaryValue, '');
+    const secondary = toSafeText(secondaryValue, '');
+    if (primary && !isPlaceholderSubmissionLookup(primary)) return primary;
+    if (secondary && !isPlaceholderSubmissionLookup(secondary)) return secondary;
+    return primary || secondary;
+  }
+
+  function pickPreferredTitle(primaryValue, secondaryValue) {
+    const primary = toSafeText(primaryValue, '');
+    const secondary = toSafeText(secondaryValue, '');
+    if (primary && !isUntitledSubmissionTitle(primary)) return primary;
+    if (secondary && !isUntitledSubmissionTitle(secondary)) return secondary;
+    return primary || secondary;
+  }
+
+  function isDerivedTimelineId(id) {
+    const value = toSafeText(id, '');
+    if (!value) return false;
+    return /-(lookup-generated|lookup-finalized|status-[a-z_]+|acknowledged|in-library|sent|received)$/i.test(value);
+  }
+
+  function timelineEventScore(event) {
+    const value = isObject(event) ? event : {};
+    const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
+    let score = 0;
+    if (toSafeText(value.publicNote, '')) score += 5;
+    if (toSafeText(value.sourceLink, '')) score += 3;
+    if (toSafeText(value.libraryHref, '')) score += 3;
+    if (pickPreferredLookup(value.lookup, '')) score += 3;
+    if (pickPreferredTitle(value.title, '')) score += 2;
+    if (toSafeText(value.creator, '')) score += 1;
+    if (toSafeText(value.instrument, '')) score += 1;
+    if (toSafeText(value.category, '')) score += 1;
+    if (toSafeText(value.statusRaw, '')) score += 1;
+    if (toSafeText(value.submittedAt, '')) score += 1;
+    if (
+      toSafeText(metadata.fromLookup, '')
+      || toSafeText(metadata.from_lookup, '')
+      || toSafeText(metadata.toLookup, '')
+      || toSafeText(metadata.to_lookup, '')
+      || toSafeText(metadata.lookup, '')
+      || toSafeText(metadata.lookupNumber, '')
+      || toSafeText(metadata.lookup_number, '')
+    ) {
+      score += 2;
+    }
+    if (!isDerivedTimelineId(value.id)) score += 1;
+    return score;
+  }
+
+  function mergeTimelineEvent(primaryEvent, secondaryEvent) {
+    const primary = isObject(primaryEvent) ? primaryEvent : {};
+    const secondary = isObject(secondaryEvent) ? secondaryEvent : {};
+    const primaryMeta = parseMetadata(primary.metadata || primary.metadata_json || primary.metadataJson || primary.meta);
+    const secondaryMeta = parseMetadata(secondary.metadata || secondary.metadata_json || secondary.metadataJson || secondary.meta);
+    return {
+      ...primary,
+      id: toSafeText(primary.id, '') || toSafeText(secondary.id, ''),
+      eventType: normalizeEventType(primary.eventType || secondary.eventType),
+      publicNote: toSafeText(primary.publicNote, '') || toSafeText(secondary.publicNote, ''),
+      statusRaw: toSafeText(primary.statusRaw, '') || toSafeText(secondary.statusRaw, ''),
+      libraryHref: normalizeHref(toSafeText(primary.libraryHref, '') || toSafeText(secondary.libraryHref, '')),
+      sourceLink: normalizeHref(toSafeText(primary.sourceLink, '') || toSafeText(secondary.sourceLink, '')),
+      title: pickPreferredTitle(primary.title, secondary.title),
+      creator: toSafeText(primary.creator, '') || toSafeText(secondary.creator, ''),
+      instrument: toSafeText(primary.instrument, '') || toSafeText(secondary.instrument, ''),
+      category: toSafeText(primary.category, '') || toSafeText(secondary.category, ''),
+      submittedAt: toSafeText(primary.submittedAt, '') || toSafeText(secondary.submittedAt, ''),
+      lookup: pickPreferredLookup(primary.lookup, secondary.lookup),
+      createdAt: toSafeText(primary.createdAt, '') || toSafeText(secondary.createdAt, ''),
+      metadata: {
+        ...secondaryMeta,
+        ...primaryMeta,
+      },
+    };
+  }
+
+  function dedupeTimeline(timeline) {
+    const rows = Array.isArray(timeline) ? timeline : [];
+    const buckets = new Map();
+    rows.forEach((row, index) => {
+      const value = isObject(row) ? row : {};
+      const eventType = normalizeEventType(value.eventType);
+      const timestamp = parseTimestamp(value.createdAt);
+      const timestampKey = timestamp === null ? '' : new Date(Math.floor(timestamp / 1000) * 1000).toISOString();
+      const fallbackKey = toSafeText(value.id, '') || `index:${index}`;
+      const key = `${eventType}|${timestampKey || fallbackKey}`;
+      const score = timelineEventScore(value);
+
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          index,
+          item: mergeTimelineEvent({ ...value, eventType }, {}),
+          score,
+        });
+        return;
+      }
+
+      const existing = buckets.get(key);
+      if (!existing) return;
+      if (score > existing.score || (score === existing.score && index > existing.index)) {
+        existing.item = mergeTimelineEvent({ ...value, eventType }, existing.item);
+        existing.index = index;
+        existing.score = timelineEventScore(existing.item);
+      } else {
+        existing.item = mergeTimelineEvent(existing.item, { ...value, eventType });
+        existing.score = timelineEventScore(existing.item);
+      }
+    });
+
+    return Array.from(buckets.values())
+      .sort((a, b) => {
+        const tsA = parseTimestamp(a.item?.createdAt) || 0;
+        const tsB = parseTimestamp(b.item?.createdAt) || 0;
+        if (tsA !== tsB) return tsA - tsB;
+        return a.index - b.index;
+      })
+      .map((entry) => entry.item);
+  }
+
   function normalizeTimeline(timeline) {
     const rows = Array.isArray(timeline) ? timeline : [];
-    return rows
+    const normalized = rows
       .map((row, index) => {
         const value = isObject(row) ? row : {};
         const metadata = parseMetadata(value.metadata || value.metadata_json || value.metadataJson || value.meta);
-        const eventType = toSafeText(value.eventType || value.event_type || value.stage, 'event');
+        const eventType = normalizeEventType(value.eventType || value.event_type || value.stage);
         const publicNote = toSafeText(value.publicNote || value.public_note, '');
         const statusRaw = toSafeText(value.statusRaw || value.status_raw, '');
         const libraryHref = pickFirstText([
@@ -552,6 +681,7 @@
         const tsB = parseTimestamp(b.createdAt) || 0;
         return tsA - tsB;
       });
+    return dedupeTimeline(normalized);
   }
 
   function normalizeStageRail(payloadStageRail, timeline, thread) {
@@ -1389,6 +1519,20 @@
       : '';
 
     const displayLookup = toSafeText(model.thread.lookup, '');
+    const activeLookup = pickPreferredLookup(
+      pickFirstText([
+        model.thread.finalLookupNumber,
+        model.thread.lookup,
+        model.thread.submissionLookupNumber,
+      ]),
+      '',
+    );
+    const lookupLine = activeLookup
+      ? `<p class="dx-sub-item-body">Lookup: ${escapeHtml(activeLookup)}</p>`
+      : '';
+    const submissionIdLine = model.thread.submissionId
+      ? `<p class="dx-sub-item-body">Submission ID: ${escapeHtml(model.thread.submissionId)}</p>`
+      : '';
     const displayTitle = (!isPlaceholderSubmissionLookup(displayLookup) && displayLookup)
       || resolvedThreadTitle
       || 'Submission';
@@ -1404,6 +1548,7 @@
               model.thread.currentStage.replace(/_/g, ' '),
             )}</span>
             <span class="dx-sub-chip">Updated ${escapeHtml(toDateTime(model.thread.updatedAt))}</span>
+            ${activeLookup ? `<span class="dx-sub-chip">Lookup ${escapeHtml(activeLookup)}</span>` : ''}
           </div>
         </section>
 
@@ -1418,6 +1563,8 @@
             ${instrumentLine}
             ${categoryLine}
             ${statusLine}
+            ${lookupLine}
+            ${submissionIdLine}
           </article>
           <article class="dx-sub-card">
             <p class="dx-sub-kicker">Links</p>
