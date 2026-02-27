@@ -18,6 +18,7 @@ import { animate } from 'framer-motion/dom';
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 3200;
   const SUBMIT_TIMEOUT_MS = 15000;
+  const SUBMIT_QUOTA_VERIFY_TIMEOUT_MS = 8000;
   const SUBMIT_MIN_LOADING_MS = 420;
   const JSONP_TIMEOUT_MS = 8000;
   const PREFETCH_SWR_MS = 60000;
@@ -301,12 +302,14 @@ import { animate } from 'framer-motion/dom';
       focusedField: '',
       submitting: false,
       submitTicket: 0,
+      submitError: '',
     };
   }
 
   let state = null;
   let liveRoot = null;
   let activeSubmitTooltipTarget = null;
+  let lastQuotaFetchError = '';
 
   function text(value, fallback = '') {
     const normalized = String(value ?? '').trim();
@@ -905,7 +908,9 @@ import { animate } from 'framer-motion/dom';
     const useCache = opts.useCache !== false;
     const allowRetry = opts.allowRetry !== false;
     const timeoutMs = Math.max(500, Number(opts.timeoutMs || JSONP_TIMEOUT_MS));
+    lastQuotaFetchError = '';
     if (!state || !text(state.webappUrl) || !text(state.auth0Sub)) {
+      lastQuotaFetchError = 'missing auth identity or submit endpoint';
       setQuotaSource('none');
       return false;
     }
@@ -925,7 +930,10 @@ import { animate } from 'framer-motion/dom';
         timeoutMs,
       );
       const ok = applyQuotaPayload(response);
-      if (!ok) return false;
+      if (!ok) {
+        lastQuotaFetchError = 'quota response missing expected fields';
+        return false;
+      }
       writeCachedQuota(state.auth0Sub, response);
       setQuotaSource('live');
       return true;
@@ -937,15 +945,53 @@ import { animate } from 'framer-motion/dom';
       if (!allowRetry) return false;
       await delay(QUOTA_RETRY_DELAY_MS + Math.floor(Math.random() * 140));
       return await fetchLiveQuota();
-    } catch {
+    } catch (error) {
+      lastQuotaFetchError = text(error?.message, 'quota request failed');
       if (allowRetry) {
         try {
           await delay(QUOTA_RETRY_DELAY_MS + Math.floor(Math.random() * 140));
           return await fetchLiveQuota();
-        } catch {}
+        } catch (retryError) {
+          lastQuotaFetchError = text(retryError?.message, lastQuotaFetchError || 'quota retry failed');
+        }
       }
       return Boolean(state.quotaResolved && !forceLive);
     }
+  }
+
+  function describeQuotaFailure() {
+    const detail = text(lastQuotaFetchError, '');
+    if (!detail) return 'Could not verify weekly quota right now. Please retry in a moment.';
+    if (detail.toLowerCase().includes('timeout')) {
+      return `Could not verify weekly quota right now. Timeout after ${SUBMIT_QUOTA_VERIFY_TIMEOUT_MS / 1000}s.`;
+    }
+    return `Could not verify weekly quota right now. Detail: ${detail}.`;
+  }
+
+  function describeSubmitFailure(responsePayload, failureCode = '') {
+    if (responsePayload && typeof responsePayload === 'object') {
+      const payloadStatus = text(responsePayload.status, '');
+      const payloadCode = text(responsePayload.code, '');
+      const payloadMessage = text(responsePayload.message, '');
+      const weeklyLimit = parsePositiveInt(responsePayload.weeklyLimit, null);
+      const weeklyUsed = parsePositiveInt(responsePayload.weeklyUsed, null);
+      if (payloadStatus === 'error' && payloadCode === 'weekly_limit_reached') {
+        if (weeklyLimit !== null && weeklyUsed !== null) {
+          return `Weekly upload limit reached (${Math.min(weeklyUsed, weeklyLimit)}/${weeklyLimit}).`;
+        }
+        return 'Weekly upload limit reached.';
+      }
+      if (payloadMessage) return `Submission failed: ${payloadMessage}`;
+      if (payloadCode) return `Submission failed: ${payloadCode}`;
+    }
+
+    if (failureCode === 'submit_timeout') {
+      return `Submission request timed out (${SUBMIT_TIMEOUT_MS / 1000}s). No row was written.`;
+    }
+    if (failureCode === 'script_error') {
+      return 'Submission request failed to load the GAS endpoint script.';
+    }
+    return 'Submission failed before completion. No row was written.';
   }
 
   function showToast(message, isError = false) {
@@ -1453,6 +1499,10 @@ import { animate } from 'framer-motion/dom';
     notesField.appendChild(notesInput);
     section.appendChild(notesField);
 
+    if (text(state.submitError)) {
+      section.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', state.submitError));
+    }
+
     const actions = create('div', 'dx-submit-stage-actions');
     const back = create('button', 'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary', 'Back');
     back.type = 'button';
@@ -1762,19 +1812,21 @@ import { animate } from 'framer-motion/dom';
     }
 
     state.submitting = true;
+    state.submitError = '';
     render();
     const submitStartTs = performance.now();
 
     const quotaVerified = await refreshWeeklyQuotaFromSheet({
       useCache: false,
       forceLive: true,
-      allowRetry: true,
-      timeoutMs: 3400,
+      allowRetry: false,
+      timeoutMs: SUBMIT_QUOTA_VERIFY_TIMEOUT_MS,
     });
     if (!quotaVerified) {
       state.submitting = false;
+      state.submitError = describeQuotaFailure();
       render();
-      showToast('Could not verify weekly quota right now. Please retry in a moment.', true);
+      showToast(state.submitError, true);
       refreshQuotaCopy();
       return;
     }
@@ -1798,7 +1850,7 @@ import { animate } from 'framer-motion/dom';
       if (script.isConnected) script.remove();
     }
 
-    function onResolved(success, responsePayload = null) {
+    function onResolved(success, responsePayload = null, failureCode = '') {
       if (settled) return;
       settled = true;
       cleanup();
@@ -1843,8 +1895,9 @@ import { animate } from 'framer-motion/dom';
           render();
           showToast('Submitted');
         } else {
+          state.submitError = describeSubmitFailure(responsePayload, failureCode);
           render();
-          showToast('Error submitting', true);
+          showToast(state.submitError, true);
         }
       };
 
@@ -1861,17 +1914,17 @@ import { animate } from 'framer-motion/dom';
       if (response && response.status === 'ok') {
         onResolved(true, response);
       } else {
-        onResolved(false);
+        onResolved(false, response, 'submit_rejected');
       }
     };
 
     script.async = true;
     script.src = `${state.webappUrl}?callback=${encodeURIComponent(callbackName)}&${new URLSearchParams(payload).toString()}`;
-    script.addEventListener('error', () => onResolved(false));
+    script.addEventListener('error', () => onResolved(false, null, 'script_error'));
     document.body.appendChild(script);
 
     window.setTimeout(() => {
-      if (!settled) onResolved(false);
+      if (!settled) onResolved(false, null, 'submit_timeout');
     }, SUBMIT_TIMEOUT_MS);
   }
 
