@@ -1650,8 +1650,8 @@
     const submissionIdLine = model.thread.submissionId
       ? `<p class="dx-sub-item-body">Submission ID: ${escapeHtml(model.thread.submissionId)}</p>`
       : '';
-    const displayTitle = (!isPlaceholderSubmissionLookup(displayLookup) && displayLookup)
-      || resolvedThreadTitle
+    const displayTitle = resolvedThreadTitle
+      || ((!isPlaceholderSubmissionLookup(displayLookup) && displayLookup) ? displayLookup : '')
       || 'Submission';
 
     root.innerHTML = `

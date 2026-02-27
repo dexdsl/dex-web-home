@@ -494,7 +494,7 @@ test('submission detail hydrates sparse payload fields from metadata and list fa
   await expect(page.locator('#dex-submission')).toContainText('Submission link');
 });
 
-test('submission detail prefers effective/final lookup fields over legacy lookup', async ({ page }) => {
+test('submission detail keeps title in H1 and surfaces effective/final lookup in metadata', async ({ page }) => {
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page, 'signed-in');
   await stubMessagesApis(page, {
@@ -546,7 +546,9 @@ test('submission detail prefers effective/final lookup fields over legacy lookup
   await page.goto('/entry/messages/submission/?sid=sub-001', { waitUntil: 'domcontentloaded' });
   await waitReady(page, '#dex-submission');
 
-  await expect(page.locator('.dx-sub-title')).toHaveText('B.Pre Do A2026 C.23');
+  await expect(page.locator('.dx-sub-title')).toHaveText('Brass Session');
+  await expect(page.locator('.dx-sub-status')).toContainText('Lookup B.Pre Do A2026 C.23');
+  await expect(page.locator('.dx-sub-grid .dx-sub-card').first()).toContainText('Lookup: B.Pre Do A2026 C.23');
   await expect(page.locator('#dx-sub-timeline')).toContainText(
     'Lookup number finalized from SUB12-B.Pre Do A2026 to B.Pre Do A2026 C.23.',
   );
