@@ -20,6 +20,7 @@
   let entryRailLayoutBound = false;
   const ENTRY_RAIL_BREAKPOINT = 980;
   const COLLECTION_HEADING_CANONICAL = 'COLL\u200CECTION';
+  const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -75,7 +76,7 @@
 
   const formatBucketTooltip = (stats) => {
     if (!stats) return '';
-    const status = stats.selected ? 'available' : 'unavailable';
+    const status = (stats.selected || stats.totalMapped > 0) ? 'available' : 'unavailable';
     const recordingPdf = stats.hasPdf ? 'yes' : 'no';
     const recordingBundle = stats.hasBundle ? 'yes' : 'no';
     return [
@@ -89,16 +90,46 @@
     ].join(' • ');
   };
 
-  const buildBucketsHtml = (pageBuckets, cfg) => {
+  const readBucketTooltipCache = (lookupNumber = '') => {
+    const safeLookup = String(lookupNumber || '').trim();
+    if (!safeLookup) return {};
+    try {
+      const raw = window.localStorage?.getItem(`${BUCKET_TOOLTIP_CACHE_PREFIX}${safeLookup}`);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writeBucketTooltipCache = (lookupNumber = '', nextMap = {}) => {
+    const safeLookup = String(lookupNumber || '').trim();
+    if (!safeLookup) return;
+    try {
+      window.localStorage?.setItem(`${BUCKET_TOOLTIP_CACHE_PREFIX}${safeLookup}`, JSON.stringify(nextMap || {}));
+    } catch {}
+  };
+
+  const buildBucketsHtml = (pageBuckets, cfg, lookupNumber = '') => {
     const selected = normalizeBuckets(pageBuckets);
-    return ALL_BUCKETS
+    const tooltipCache = readBucketTooltipCache(lookupNumber);
+    const nextTooltipCache = { ...tooltipCache };
+    const html = ALL_BUCKETS
       .map((bucket) => {
-        const cls = selected.includes(bucket) ? 'available' : 'unavailable';
+        const available = selected.includes(bucket) || bucketHasAnyAsset(cfg, bucket);
+        const cls = available ? 'available' : 'unavailable';
         const stats = computeBucketStats(cfg, bucket, selected);
-        const tooltip = escapeHtml(formatBucketTooltip(stats));
-        return `<span class="badge dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
+        const liveTooltip = formatBucketTooltip(stats);
+        const persistedTooltip = String(tooltipCache[bucket] || '').trim();
+        const tooltipText = String(liveTooltip || persistedTooltip || `Bucket ${bucket}`).trim();
+        nextTooltipCache[bucket] = tooltipText;
+        const tooltip = escapeHtml(tooltipText);
+        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
+    writeBucketTooltipCache(lookupNumber, nextTooltipCache);
+    return html;
   };
 
   const getSidebarAssetOrigin = () => {
@@ -378,9 +409,20 @@
 
     const desktop = window.innerWidth >= ENTRY_RAIL_BREAKPOINT;
     const root = document.documentElement;
+    const globalHeader = document.querySelector('.header-announcement-bar-wrapper, #header, #siteHeader');
+    let headerOffset = 0;
+    if (globalHeader instanceof HTMLElement) {
+      const style = window.getComputedStyle(globalHeader);
+      if (style.position === 'fixed' || style.position === 'sticky') {
+        const rect = globalHeader.getBoundingClientRect();
+        headerOffset = Math.max(0, Math.ceil(rect.bottom));
+      }
+    }
+    root.style.setProperty('--dx-entry-header-offset', `${headerOffset}px`);
     if (!desktop) {
       root.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
       document.body.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
+      document.body.classList.remove('dx-entry-desktop-fixed');
       root.style.removeProperty('--dx-entry-rails-height');
       document.body.style.removeProperty('overflow');
       main.style.maxHeight = '';
@@ -405,6 +447,7 @@
     root.style.setProperty('--dx-entry-rails-height', `${available}px`);
     root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
+    document.body.classList.add('dx-entry-desktop-fixed');
     document.body.style.overflow = 'hidden';
 
     main.style.maxHeight = `${available}px`;
@@ -436,6 +479,27 @@
     schedule();
     window.setTimeout(schedule, 60);
     window.setTimeout(schedule, 240);
+  };
+
+  const bindBreadcrumbSpinFallback = () => {
+    const delimiter = document.querySelector('[data-dex-breadcrumb-delimiter]');
+    if (!(delimiter instanceof HTMLElement) || delimiter.dataset.dxSpinBound === '1') return;
+    delimiter.dataset.dxSpinBound = '1';
+    const triggerSpin = () => {
+      const shouldSpin = Math.random() < 0.82;
+      if (!shouldSpin) return;
+      delimiter.classList.remove('dx-spin-once');
+      void delimiter.offsetWidth;
+      delimiter.classList.add('dx-spin-once');
+      window.setTimeout(() => delimiter.classList.remove('dx-spin-once'), 780);
+    };
+    document.addEventListener('click', (event) => {
+      const target = event && event.target && event.target.closest
+        ? event.target.closest('[data-dex-breadcrumb-back], [data-dex-breadcrumb-delimiter], .dex-breadcrumb-current')
+        : null;
+      if (!target) return;
+      triggerSpin();
+    }, true);
   };
 
   const setDownloadState = (row, state, message) => {
@@ -1608,7 +1672,7 @@
 
     const lookup = String(page.lookupNumber || '').trim() || 'Unknown lookup';
     const selected = normalizeBuckets(page.buckets);
-    const badgesHtml = buildBucketsHtml(page.buckets, cfg);
+    const badgesHtml = buildBucketsHtml(page.buckets, cfg, lookup);
     const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
 
     const origin = getSidebarAssetOrigin();
@@ -1634,11 +1698,11 @@
       overviewEl.innerHTML = `
         <div class="overview-item overview-item--lookup">
           <span class="overview-lookup">#${lookup}</span>
-          <p class="p3 overview-label">Lookup #</p>
+          <p class="p3 overview-label overview-label--lookup">Lookup #</p>
         </div>
         <div class="overview-item overview-item--series">
           <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
-          <p class="p3 overview-label">Series</p>
+          <p class="p3 overview-label overview-label--series">Series</p>
         </div>
       `;
     }
@@ -1796,6 +1860,7 @@
     installSidebarRevealMotion();
     installSidebarInteractiveMotion();
     bindEntryRailLayout();
+    bindBreadcrumbSpinFallback();
     refreshFavoriteButtons(favoritesApi, document);
 
     document.documentElement.dataset.dexSidebarRendered = '1';
