@@ -5,8 +5,16 @@ import { Box, Text, useInput, useStdout } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
 import { buildEmptyManifestSkeleton, prepareTemplate } from '../lib/init-core.mjs';
 import { writeEntryFromData } from '../lib/entry-run.mjs';
-import { isBackspaceKey, sanitizePastedInputChunk, shouldAppendWizardChar } from '../lib/input-guard.mjs';
-import { isAssetReferenceToken } from '../lib/asset-ref.mjs';
+import {
+  extractGoogleSheetsUrlFromChunk,
+  isBackspaceKey,
+  isPlainEscapeKey,
+  sanitizePastedInputChunk,
+  shouldAppendWizardChar,
+} from '../lib/input-guard.mjs';
+import { assertAssetReferenceTokenKinds, isAssetReferenceToken } from '../lib/asset-ref.mjs';
+import { importRecordingIndexFromSheet, parseRecordingIndexSheetUrl } from '../lib/recording-index-import.mjs';
+import { buildDownloadTreeHealth } from '../lib/download-tree-health.mjs';
 import { computeWindow } from './rolodex.mjs';
 
 const CHANNELS = ['mono', 'stereo', 'multichannel'];
@@ -20,7 +28,71 @@ function mapSeriesToImage(series) {
 const LAST_CACHE = '.dex-last.json';
 
 function emptyCredits() { return { artist: [], artistAlt: '', instruments: [], video: { director: [], cinematography: [], editing: [] }, audio: { recording: [], mix: [], master: [] }, year: `${new Date().getUTCFullYear()}`, season: 'S1', location: '' }; }
-function emptyDownloadData() { return { mode: 'guided', series: 'dex', audio: {}, video: {}, fileSpecs: { bitDepth: '24', sampleRate: '48000', channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } }, metadata: { tagsSelected: [], tagsQuery: '', tagsCursor: 0 }, pasteBuffer: '', pasteError: '', pasteWarnings: [] }; }
+function emptyDownloadData() {
+  return {
+    mode: 'guided',
+    series: 'dex',
+    audio: {},
+    video: {},
+    fileSpecs: {
+      bitDepth: '24',
+      sampleRate: '48000',
+      channels: 'stereo',
+      staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' },
+    },
+    metadata: { tagsSelected: [], tagsQuery: '', tagsCursor: 0 },
+    recordingIndexPdfRef: '',
+    recordingIndexBundleRef: '',
+    recordingIndexSourceUrl: '',
+    recordingIndexImportFallbackPath: '',
+    recordingIndexPdfError: '',
+    recordingIndexBundleError: '',
+    recordingIndexSourceUrlError: '',
+    importedSegments: [],
+    importedFiles: [],
+    importSummary: null,
+    health: null,
+    healthSummary: null,
+    pasteBuffer: '',
+    pasteError: '',
+    pasteWarnings: [],
+  };
+}
+
+function validateRecordingIndexPdfRef(token) {
+  const raw = String(token || '').trim();
+  if (!raw) return '';
+  try {
+    assertAssetReferenceTokenKinds(raw, ['lookup', 'asset'], 'Recording index PDF token');
+    return '';
+  } catch (error) {
+    return String(error?.message || error || 'Invalid recording index PDF token.');
+  }
+}
+
+function validateRecordingIndexBundleRef(token) {
+  const raw = String(token || '').trim();
+  if (!raw) return '';
+  try {
+    assertAssetReferenceTokenKinds(raw, ['bundle'], 'Recording index bundle token');
+    return '';
+  } catch (error) {
+    return String(error?.message || error || 'Invalid recording index bundle token.');
+  }
+}
+
+function validateRecordingIndexSourceUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    parseRecordingIndexSheetUrl(raw);
+    return '';
+  } catch (error) {
+    const msg = String(error?.message || '');
+    if (/recording index sheet url is required/i.test(msg)) return '';
+    return 'Recording index source URL must be a valid Google Sheets URL.';
+  }
+}
 
 function downloadWarnings(form, formatKeys) {
   const warnings = [];
@@ -35,7 +107,77 @@ function downloadWarnings(form, formatKeys) {
       if (!String(downloadData.video?.[b]?.[k] || '').trim()) warnings.push(`video ${b}/${k} missing`);
     }
   }
+  const importedSegments = Array.isArray(downloadData.importedSegments) ? downloadData.importedSegments : [];
+  if (importedSegments.length === 0) {
+    warnings.push('recording index import missing (Ctrl+I)');
+  }
   return warnings;
+}
+
+function setManifestBundleTokensFromImport({ audio = {}, video = {} }, importedSegments, lookupNumber, formatKeys, buckets) {
+  const nextAudio = { ...audio };
+  const nextVideo = { ...video };
+  const selectedBuckets = Array.isArray(buckets) ? buckets : [];
+  const summaryByBucketType = new Set();
+  for (const segment of importedSegments || []) {
+    if (!segment || !segment.enabled) continue;
+    const bucket = String(segment.bucket || '').trim().toUpperCase();
+    const type = String(segment.type || '').trim().toLowerCase();
+    if (!bucket || !selectedBuckets.includes(bucket)) continue;
+    if (type !== 'audio' && type !== 'video') continue;
+    summaryByBucketType.add(`${bucket}:${type}`);
+  }
+
+  for (const bucket of selectedBuckets) {
+    nextAudio[bucket] = { ...(nextAudio[bucket] || {}) };
+    nextVideo[bucket] = { ...(nextVideo[bucket] || {}) };
+    for (const key of formatKeys.audio || []) {
+      nextAudio[bucket][key] = summaryByBucketType.has(`${bucket}:audio`)
+        ? `bundle:lookup:${lookupNumber}:${bucket}:audio`
+        : '';
+    }
+    for (const key of formatKeys.video || []) {
+      nextVideo[bucket][key] = summaryByBucketType.has(`${bucket}:video`)
+        ? `bundle:lookup:${lookupNumber}:${bucket}:video`
+        : '';
+    }
+  }
+  return {
+    audio: nextAudio,
+    video: nextVideo,
+  };
+}
+
+function rebuildImportedFiles(importedSegments = [], importedFiles = [], importSummary = null) {
+  const pdfAssetId = String(importSummary?.pdfAssetId || '').trim().toLowerCase();
+  const pdfFallback = (importedFiles || []).find((file) => {
+    if (!file || typeof file !== 'object') return false;
+    const fileId = String(file.fileId || '').trim().toLowerCase();
+    if (pdfAssetId && fileId === pdfAssetId) return true;
+    const mime = String(file.mime || '').trim().toLowerCase();
+    const r2Key = String(file.r2Key || '').trim().toLowerCase();
+    return mime.includes('pdf') || r2Key.endsWith('.pdf');
+  }) || null;
+
+  const segmentFiles = (importedSegments || []).map((segment, index) => ({
+    bucketNumber: segment.bucketNumber,
+    fileId: segment.fileId,
+    bucket: segment.bucket,
+    r2Key: segment.r2Key,
+    driveFileId: segment.driveFileId || '',
+    sizeBytes: Number(segment.sizeBytes || 0) || 0,
+    mime: segment.mime || '',
+    position: index + 1,
+    label: segment.label || '',
+  }));
+  if (!pdfFallback) return segmentFiles;
+  return [
+    ...segmentFiles,
+    {
+      ...pdfFallback,
+      position: segmentFiles.length + 1,
+    },
+  ];
 }
 
 export function createDefaultWizardForm() {
@@ -149,6 +291,25 @@ export function validateStep(stepId, form, selectedRole, formatKeys) {
     if (Number.isNaN(bitDepth) || bitDepth <= 0) return 'Bit depth must be numeric.';
     if (Number.isNaN(sampleRate) || sampleRate <= 0) return 'Sample rate must be numeric.';
     if (!CHANNELS.includes(downloadData.fileSpecs?.channels)) return 'Channels must be mono, stereo, or multichannel.';
+    const recordingIndexPdfError = validateRecordingIndexPdfRef(downloadData.recordingIndexPdfRef);
+    if (recordingIndexPdfError) return recordingIndexPdfError;
+    const recordingIndexBundleError = validateRecordingIndexBundleRef(downloadData.recordingIndexBundleRef);
+    if (recordingIndexBundleError) return recordingIndexBundleError;
+    const recordingIndexSourceUrlError = validateRecordingIndexSourceUrl(downloadData.recordingIndexSourceUrl);
+    if (recordingIndexSourceUrlError) return recordingIndexSourceUrlError;
+    const health = buildDownloadTreeHealth({
+      lookupNumber: safeForm.lookupNumber,
+      buckets,
+      formatKeys: formatKeys || { audio: [], video: [] },
+      downloadData,
+    });
+    if (!health.summary.ok) {
+      return `Download health has ${health.summary.criticalCount} critical issue(s); import/resolve before continuing.`;
+    }
+    if (!formatKeys) void selectedRole;
+  }
+  if (stepId === 'tags') {
+    const downloadData = safeForm.downloadData || emptyDownloadData();
     if (safeList(downloadData.metadata?.tagsSelected).length < 1) return 'Select at least one tag.';
     if (!formatKeys) void selectedRole;
   }
@@ -187,6 +348,7 @@ const STEPS = [
   { id: 'attributionSentence', label: 'Attribution sentence', kind: 'text' },
   { id: 'credits', label: 'Credits', kind: 'credits' },
   { id: 'download', label: 'Download', kind: 'download' },
+  { id: 'tags', label: 'Tags', kind: 'tags' },
   { id: 'summary', label: 'Summary', kind: 'summary' },
 ];
 
@@ -196,8 +358,23 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [busy, setBusy] = useState(false); const [doneReport, setDoneReport] = useState(null); const [multiCursor, setMultiCursor] = useState(0);
   const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInputState, setCreditsInputState] = useState({ value: '', cursor: 0 }); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
   const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false); const [downloadFocus, setDownloadFocus] = useState('rows');
+  const [recordingIndexPdfCursor, setRecordingIndexPdfCursor] = useState(0);
+  const [recordingIndexBundleCursor, setRecordingIndexBundleCursor] = useState(0);
+  const [recordingIndexSourceCursor, setRecordingIndexSourceCursor] = useState(0);
+  const [segmentCursor, setSegmentCursor] = useState(0);
+  const [segmentEditMode, setSegmentEditMode] = useState(false);
+  const [segmentEditField, setSegmentEditField] = useState('fileId');
+  const [segmentEditCursor, setSegmentEditCursor] = useState(0);
+  const [importMode, setImportMode] = useState(false);
+  const [importInputFocus, setImportInputFocus] = useState('sheet');
+  const [importSheetUrl, setImportSheetUrl] = useState('');
+  const [importFallbackPath, setImportFallbackPath] = useState('');
+  const [importSheetCursor, setImportSheetCursor] = useState(0);
+  const [importFallbackCursor, setImportFallbackCursor] = useState(0);
+  const [importBusy, setImportBusy] = useState(false);
   const [tagsCatalog, setTagsCatalog] = useState([]); const [tagsWarning, setTagsWarning] = useState('');
   const templateRef = useRef(null);
+  const downloadImportPrimedRef = useRef(false);
   const [form, setForm] = useState(createDefaultWizardForm());
   const [cursorByStep, setCursorByStep] = useState({ title: 0, slug: 0, lookupNumber: 0, videoUrl: 0, descriptionText: 0, attributionSentence: 0 });
 
@@ -229,6 +406,86 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     void loadTags();
   }, []);
 
+  useEffect(() => {
+    if (step.kind !== 'download') return;
+    const pdfValue = String(form.downloadData?.recordingIndexPdfRef || '');
+    const bundleValue = String(form.downloadData?.recordingIndexBundleRef || '');
+    const sourceValue = String(form.downloadData?.recordingIndexSourceUrl || '');
+    setRecordingIndexPdfCursor((current) => Math.max(0, Math.min(current, pdfValue.length)));
+    setRecordingIndexBundleCursor((current) => Math.max(0, Math.min(current, bundleValue.length)));
+    setRecordingIndexSourceCursor((current) => Math.max(0, Math.min(current, sourceValue.length)));
+    if (!importMode) {
+      setImportSheetUrl((current) => (current ? current : sourceValue));
+      setImportFallbackPath((current) => (current ? current : String(form.downloadData?.recordingIndexImportFallbackPath || '')));
+    }
+  }, [
+    step.kind,
+    importMode,
+    form.downloadData?.recordingIndexPdfRef,
+    form.downloadData?.recordingIndexBundleRef,
+    form.downloadData?.recordingIndexSourceUrl,
+    form.downloadData?.recordingIndexImportFallbackPath,
+  ]);
+
+  useEffect(() => {
+    if (step.kind !== 'download') {
+      downloadImportPrimedRef.current = false;
+      return;
+    }
+    if (downloadImportPrimedRef.current) return;
+    downloadImportPrimedRef.current = true;
+    const hasImportedSegments = Array.isArray(form.downloadData?.importedSegments)
+      && form.downloadData.importedSegments.length > 0;
+    if (hasImportedSegments) return;
+    setImportMode(true);
+    setImportInputFocus('sheet');
+    const source = String(form.downloadData.recordingIndexSourceUrl || importSheetUrl || '').trim();
+    const fallback = String(form.downloadData.recordingIndexImportFallbackPath || importFallbackPath || '').trim();
+    setImportSheetUrl(source);
+    setImportFallbackPath(fallback);
+    setImportSheetCursor(source.length);
+    setImportFallbackCursor(fallback.length);
+  }, [step.kind, form.downloadData?.importedSegments, form.downloadData?.recordingIndexSourceUrl, form.downloadData?.recordingIndexImportFallbackPath]);
+
+  useEffect(() => {
+    const segments = Array.isArray(form.downloadData?.importedSegments) ? form.downloadData.importedSegments : [];
+    setSegmentCursor((current) => Math.max(0, Math.min(current, Math.max(0, segments.length - 1))));
+  }, [form.downloadData?.importedSegments]);
+
+  useEffect(() => {
+    const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
+    const nextHealth = buildDownloadTreeHealth({
+      lookupNumber: form.lookupNumber,
+      buckets: form.buckets,
+      formatKeys: fk,
+      downloadData: form.downloadData,
+    });
+    const prevHealth = form.downloadData?.health || null;
+    const prevSummary = form.downloadData?.healthSummary || null;
+    const nextSummary = nextHealth.summary;
+    const prevCritical = Array.isArray(prevHealth?.criticalIssues) ? prevHealth.criticalIssues.join('|') : '';
+    const nextCritical = nextHealth.criticalIssues.join('|');
+    const prevWarn = Array.isArray(prevHealth?.warnIssues) ? prevHealth.warnIssues.join('|') : '';
+    const nextWarn = nextHealth.warnIssues.join('|');
+    const summaryUnchanged = prevSummary
+      && prevSummary.criticalCount === nextSummary.criticalCount
+      && prevSummary.warnCount === nextSummary.warnCount
+      && prevSummary.totalFiles === nextSummary.totalFiles
+      && prevSummary.enabledFiles === nextSummary.enabledFiles
+      && prevSummary.bucketCount === nextSummary.bucketCount
+      && prevSummary.bundleRows === nextSummary.bundleRows
+      && Boolean(prevSummary.ok) === Boolean(nextSummary.ok);
+    if (summaryUnchanged && prevCritical === nextCritical && prevWarn === nextWarn) return;
+    setForm((p) => ({
+      ...p,
+      downloadData: {
+        ...p.downloadData,
+        health: nextHealth,
+        healthSummary: nextSummary,
+      },
+    }));
+  }, [form.lookupNumber, form.buckets, form.downloadData]);
+
   const shiftStep = (d) => { setError(''); setStepIdx((p) => Math.max(0, Math.min(totalSteps - 1, p + d))); };
   const applyTextEdit = (input, key = {}, stepId = step.id) => {
     const value = (stepId in form) ? form[stepId] ?? '' : '';
@@ -251,9 +508,204 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     try {
       const entryPath = path.join(outDir, slug, 'entry.json');
       const entry = JSON.parse(await fs.readFile(entryPath, 'utf8'));
-      setForm((p) => ({ ...p, title: entry.title || p.title, lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber, videoUrl: entry.video?.dataUrl || p.videoUrl, descriptionText: entry.descriptionText || p.descriptionText, series: entry.series || p.series, buckets: safeList(entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.buckets), attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence, creditsData: { ...emptyCredits(), ...(entry.creditsData || {}), ...(entry.sidebarPageConfig?.credits ? { artist: safeList([entry.sidebarPageConfig.credits.artist?.name]), instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)) } : {}) }, downloadData: { ...p.downloadData, series: entry.series || p.series, fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) }, metadata: { ...p.downloadData.metadata, tagsSelected: Array.isArray(entry.metadata?.tags) ? safeList(entry.metadata.tags) : p.downloadData.metadata.tagsSelected, tagsQuery: '', tagsCursor: 0 }, audio: entry.manifest?.audio || p.downloadData.audio, video: entry.manifest?.video || p.downloadData.video } }));
+      const recordingIndexPdfRef = String(
+        entry?.sidebarPageConfig?.downloads?.recordingIndexPdfRef
+        || entry?.sidebarPageConfig?.recordingIndexPdfRef
+        || '',
+      ).trim();
+      const recordingIndexBundleRef = String(
+        entry?.sidebarPageConfig?.downloads?.recordingIndexBundleRef
+        || entry?.sidebarPageConfig?.recordingIndexBundleRef
+        || '',
+      ).trim();
+      const recordingIndexSourceUrl = String(
+        entry?.sidebarPageConfig?.downloads?.recordingIndexSourceUrl
+        || entry?.sidebarPageConfig?.recordingIndexSourceUrl
+        || '',
+      ).trim();
+      setForm((p) => ({
+        ...p,
+        title: entry.title || p.title,
+        lookupNumber: entry.sidebarPageConfig?.lookupNumber || p.lookupNumber,
+        videoUrl: entry.video?.dataUrl || p.videoUrl,
+        descriptionText: entry.descriptionText || p.descriptionText,
+        series: entry.series || p.series,
+        buckets: safeList(entry.selectedBuckets || entry.sidebarPageConfig?.buckets || p.buckets),
+        attributionSentence: entry.sidebarPageConfig?.attributionSentence || p.attributionSentence,
+        creditsData: {
+          ...emptyCredits(),
+          ...(entry.creditsData || {}),
+          ...(entry.sidebarPageConfig?.credits
+            ? {
+              artist: safeList([entry.sidebarPageConfig.credits.artist?.name]),
+              instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)),
+            }
+            : {}),
+        },
+        downloadData: {
+          ...p.downloadData,
+          series: entry.series || p.series,
+          fileSpecs: { ...p.downloadData.fileSpecs, ...(entry.fileSpecs || {}) },
+          metadata: {
+            ...p.downloadData.metadata,
+            tagsSelected: Array.isArray(entry.metadata?.tags) ? safeList(entry.metadata.tags) : p.downloadData.metadata.tagsSelected,
+            tagsQuery: '',
+            tagsCursor: 0,
+          },
+          recordingIndexPdfRef,
+          recordingIndexBundleRef,
+          recordingIndexSourceUrl,
+          recordingIndexImportFallbackPath: '',
+          recordingIndexPdfError: validateRecordingIndexPdfRef(recordingIndexPdfRef),
+          recordingIndexBundleError: validateRecordingIndexBundleRef(recordingIndexBundleRef),
+          recordingIndexSourceUrlError: validateRecordingIndexSourceUrl(recordingIndexSourceUrl),
+          audio: entry.manifest?.audio || p.downloadData.audio,
+          video: entry.manifest?.video || p.downloadData.video,
+        },
+      }));
+      setRecordingIndexPdfCursor(recordingIndexPdfRef.length);
+      setRecordingIndexBundleCursor(recordingIndexBundleRef.length);
+      setRecordingIndexSourceCursor(recordingIndexSourceUrl.length);
+      setImportSheetUrl(recordingIndexSourceUrl);
+      setImportFallbackPath('');
       return true;
     } catch { return false; }
+  };
+
+  const runRecordingIndexImport = async () => {
+    if (importBusy || busy) return;
+    const lookupNumber = String(form.lookupNumber || '').trim();
+    if (!lookupNumber) {
+      setError('Lookup number is required before importing recording index.');
+      return;
+    }
+    const sheetUrlInput = String(importSheetUrl || '').trim();
+    if (!sheetUrlInput) {
+      setError('Recording index sheet URL is required.');
+      return;
+    }
+    let normalizedSheetUrl = sheetUrlInput;
+    try {
+      normalizedSheetUrl = parseRecordingIndexSheetUrl(sheetUrlInput).sheetUrl;
+    } catch (error) {
+      setError(String(error?.message || 'Recording index sheet URL is invalid.'));
+      return;
+    }
+    if (!templateRef.current) templateRef.current = await prepareTemplate({ templateArg });
+    const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
+
+    setImportBusy(true);
+    setError('');
+    try {
+      const imported = await importRecordingIndexFromSheet({
+        sheetUrl: normalizedSheetUrl,
+        fallbackXlsxPath: String(importFallbackPath || '').trim(),
+        lookupNumber,
+        entrySlug: form.slug || form.title || lookupNumber,
+      });
+        const importedSegments = (imported.segments || []).map((segment) => ({
+        bucketNumber: segment.bucketNumber,
+        bucket: segment.bucket,
+        segmentNumber: segment.segmentNumber,
+        label: segment.label,
+        rawUrl: segment.rawUrl,
+        driveFileId: segment.driveFileId || '',
+          type: segment.type,
+          typeReason: segment.typeReason || '',
+          fileId: segment.fileId,
+        r2Key: segment.r2Key,
+        sizeBytes: Number(segment.sizeBytes || 0) || 0,
+        mime: segment.mime || '',
+        position: Number(segment.position || 0) || 0,
+        enabled: segment.enabled !== false,
+      }));
+      const importedFiles = (imported.files || []).map((file) => ({
+        bucketNumber: file.bucketNumber,
+        fileId: file.fileId,
+        bucket: file.bucket,
+        r2Key: file.r2Key,
+        driveFileId: file.driveFileId || '',
+        sizeBytes: Number(file.sizeBytes || 0) || 0,
+        mime: file.mime || '',
+        position: Number(file.position || 0) || 0,
+        label: file.label || '',
+      }));
+
+      setForm((p) => {
+        const nextTokens = setManifestBundleTokensFromImport(
+          {
+            audio: p.downloadData.audio || {},
+            video: p.downloadData.video || {},
+          },
+          importedSegments,
+          lookupNumber,
+          fk,
+          p.buckets,
+        );
+        const recordingIndexPdfRef = String(imported.recordingIndex?.recordingIndexPdfRef || '').trim();
+        const recordingIndexBundleRef = String(imported.recordingIndex?.recordingIndexBundleRef || '').trim();
+        const recordingIndexSourceUrl = String(imported.recordingIndex?.recordingIndexSourceUrl || normalizedSheetUrl).trim();
+        const nextImportSummary = {
+          sourceMode: imported.source?.mode || 'live',
+          sourceValue: imported.source?.value || '',
+          sheetId: imported.sheet?.sheetId || '',
+          gid: imported.sheet?.gid || '',
+          rootFolderUrl: imported.sheet?.rootFolderUrl || '',
+          bucketFolderUrls: imported.sheet?.bucketFolderUrls || {},
+          totalFiles: imported.counts?.totalFiles || importedSegments.length,
+          audioFiles: imported.counts?.audioFiles || 0,
+          videoFiles: imported.counts?.videoFiles || 0,
+          unknownFiles: imported.counts?.unknownFiles || 0,
+          buckets: Array.isArray(imported.counts?.buckets) ? imported.counts.buckets : [],
+          pdfAssetId: imported.recordingIndex?.pdfAssetId || '',
+          bundleAllToken: imported.recordingIndex?.bundleAllToken || '',
+        };
+        const nextDownloadData = {
+          ...p.downloadData,
+          ...nextTokens,
+          recordingIndexPdfRef,
+          recordingIndexBundleRef,
+          recordingIndexSourceUrl,
+          recordingIndexImportFallbackPath: String(importFallbackPath || '').trim(),
+          recordingIndexPdfError: validateRecordingIndexPdfRef(recordingIndexPdfRef),
+          recordingIndexBundleError: validateRecordingIndexBundleRef(recordingIndexBundleRef),
+          recordingIndexSourceUrlError: validateRecordingIndexSourceUrl(recordingIndexSourceUrl),
+          importedSegments,
+          importedFiles,
+          importSummary: nextImportSummary,
+        };
+        const health = buildDownloadTreeHealth({
+          lookupNumber,
+          buckets: p.buckets,
+          formatKeys: fk,
+          downloadData: nextDownloadData,
+        });
+        return {
+          ...p,
+          downloadData: {
+            ...nextDownloadData,
+            health,
+            healthSummary: health.summary,
+          },
+        };
+      });
+
+      const nextPdf = String(imported.recordingIndex?.recordingIndexPdfRef || '').trim();
+      const nextBundle = String(imported.recordingIndex?.recordingIndexBundleRef || '').trim();
+      const nextSource = String(imported.recordingIndex?.recordingIndexSourceUrl || normalizedSheetUrl).trim();
+      setRecordingIndexPdfCursor(nextPdf.length);
+      setRecordingIndexBundleCursor(nextBundle.length);
+      setRecordingIndexSourceCursor(nextSource.length);
+      setImportSheetUrl(nextSource);
+      setImportSheetCursor(nextSource.length);
+      setImportMode(false);
+      setDownloadFocus('rows');
+      setError('');
+    } catch (errorImport) {
+      setError(errorImport?.message || String(errorImport));
+    } finally {
+      setImportBusy(false);
+    }
   };
 
   const maybeAdvance = async () => {
@@ -292,12 +744,44 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           audio: { recording: safeList(form.creditsData.audio.recording), mix: safeList(form.creditsData.audio.mix), master: safeList(form.creditsData.audio.master) },
           year: Number(form.creditsData.year), season: form.creditsData.season, location: form.creditsData.location,
         };
+        const recordingIndexPdfRef = String(form.downloadData.recordingIndexPdfRef || '').trim();
+        const recordingIndexBundleRef = String(form.downloadData.recordingIndexBundleRef || '').trim();
+        const recordingIndexSourceUrl = String(form.downloadData.recordingIndexSourceUrl || '').trim();
+        const downloads = {};
+        if (recordingIndexPdfRef) downloads.recordingIndexPdfRef = recordingIndexPdfRef;
+        if (recordingIndexBundleRef) downloads.recordingIndexBundleRef = recordingIndexBundleRef;
+        if (recordingIndexSourceUrl) downloads.recordingIndexSourceUrl = recordingIndexSourceUrl;
         const sidebar = {
           lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: mapSeriesToImage(form.series), attributionSentence: form.attributionSentence,
           credits: { artist: creditsData.artist, artistAlt: creditsData.artistAlt, instruments: creditsData.instruments, video: { director: creditsData.video.director, cinematography: creditsData.video.cinematography, editing: creditsData.video.editing }, audio: { recording: creditsData.audio.recording, mix: creditsData.audio.mix, master: creditsData.audio.master }, year: creditsData.year, season: creditsData.season, location: creditsData.location },
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
+          ...(Object.keys(downloads).length ? { downloads } : {}),
         };
+        const importedFiles = Array.isArray(form.downloadData.importedFiles)
+          ? form.downloadData.importedFiles
+          : [];
+        const protectedAssetsImport = importedFiles.length
+          ? {
+            lookupNumber: form.lookupNumber,
+            title: form.title,
+            status: 'draft',
+            season: creditsData.season,
+            files: importedFiles,
+            entitlements: [{ type: 'membership_tier', value: 'member' }],
+            recordingIndex: form.downloadData.recordingIndexSourceUrl
+              ? {
+                sheetUrl: String(form.downloadData.recordingIndexSourceUrl || '').trim(),
+                sheetId: String(form.downloadData.importSummary?.sheetId || '').trim(),
+                gid: String(form.downloadData.importSummary?.gid || '').trim() || '0',
+                pdfAssetId: String(form.downloadData.importSummary?.pdfAssetId || '').trim(),
+                bundleAllToken: String(form.downloadData.recordingIndexBundleRef || '').trim(),
+                rootFolderUrl: String(form.downloadData.importSummary?.rootFolderUrl || '').trim(),
+                bucketFolderUrls: form.downloadData.importSummary?.bucketFolderUrls || {},
+              }
+              : null,
+          }
+          : null;
         const { report } = await writeEntryFromData({
           templatePath,
           templateHtml,
@@ -315,6 +799,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
             manifest,
             authEnabled: true,
             outDir: path.resolve(outDirDefault || './entries'),
+            protectedAssetsImport,
           },
           opts: {
             catalogLink: {
@@ -336,7 +821,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     if (busy) return;
     if (doneReport) { if (key.return) onDone(doneReport); return; }
     if ((key.ctrl && (input === 'q' || input === 'Q')) || input === '\x11') { onCancel(); return; }
-    if (key.escape && !pasteMode) { if (stepIdx === 0) onCancel(); else shiftStep(-1); return; }
+    if (isPlainEscapeKey(input, key) && !pasteMode && !importMode) { if (stepIdx === 0) onCancel(); else shiftStep(-1); return; }
 
     if (step.kind === 'text') { const next = applyTextEdit(input, key); if (next?.quit) { onCancel(); return; } if (key.return) void maybeAdvance(); return; }
     if (step.kind === 'select') { if (key.leftArrow || key.upArrow) setForm((p) => ({ ...p, series: SERIES_OPTIONS[(SERIES_OPTIONS.indexOf(p.series) - 1 + SERIES_OPTIONS.length) % SERIES_OPTIONS.length] })); if (key.rightArrow || key.downArrow) setForm((p) => ({ ...p, series: SERIES_OPTIONS[(SERIES_OPTIONS.indexOf(p.series) + 1) % SERIES_OPTIONS.length] })); if (key.return) void maybeAdvance(); return; }
@@ -373,9 +858,58 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       form.buckets.forEach((b) => fk.audio.forEach((k) => rows.push({ type: 'audio', b, k }))); form.buckets.forEach((b) => fk.video.forEach((k) => rows.push({ type: 'video', b, k })));
       const isCtrlP = (key.ctrl && (input === 'p' || input === 'P')) || input === '\x10';
       const isCtrlG = (key.ctrl && (input === 'g' || input === 'G')) || input === '\x07';
+      const isCtrlI = (key.ctrl && (input === 'i' || input === 'I')) || (!key.ctrl && !key.meta && input === 'I');
+      const focusOrder = ['rows', 'pdf', 'bundle', 'source', 'segments'];
+
+      if (importMode) {
+        if (isPlainEscapeKey(input, key)) {
+          setImportMode(false);
+          return;
+        }
+        if (importBusy) return;
+        if (key.tab) {
+          setImportInputFocus((prev) => (prev === 'sheet' ? 'fallback' : 'sheet'));
+          return;
+        }
+        if (key.return) {
+          void runRecordingIndexImport();
+          return;
+        }
+        if (importInputFocus === 'sheet') {
+          const pastedUrl = extractGoogleSheetsUrlFromChunk(input);
+          if (pastedUrl) {
+            try {
+              const normalized = parseRecordingIndexSheetUrl(pastedUrl).sheetUrl;
+              setImportSheetUrl(normalized);
+              setImportSheetCursor(normalized.length);
+              return;
+            } catch {
+              // keep falling through to normal input editing so user can correct manually
+            }
+          }
+          const next = applyKeyToInputState(
+            { value: importSheetUrl, cursor: importSheetCursor },
+            input,
+            key,
+            { allowMultiline: false },
+          );
+          setImportSheetUrl(next.value);
+          setImportSheetCursor(next.cursor);
+          return;
+        }
+        const next = applyKeyToInputState(
+          { value: importFallbackPath, cursor: importFallbackCursor },
+          input,
+          key,
+          { allowMultiline: false },
+        );
+        setImportFallbackPath(next.value);
+        setImportFallbackCursor(next.cursor);
+        return;
+      }
 
       if (pasteMode) {
-        if (key.escape) { setPasteMode(false); return; }
+        if (isPlainEscapeKey(input, key)) { setPasteMode(false); return; }
         if (isCtrlP) {
           const parsed = parsePasteBlock(form.downloadData.pasteBuffer, form.buckets, fk);
           if (parsed.errors.length) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteError: parsed.errors.join(' | ') } })); return; }
@@ -394,32 +928,207 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         return;
       }
 
+      if (isCtrlI) {
+        setImportMode(true);
+        setImportInputFocus('sheet');
+        const source = String(form.downloadData.recordingIndexSourceUrl || importSheetUrl || '').trim();
+        const fallback = String(form.downloadData.recordingIndexImportFallbackPath || importFallbackPath || '').trim();
+        setImportSheetUrl(source);
+        setImportFallbackPath(fallback);
+        setImportSheetCursor(source.length);
+        setImportFallbackCursor(fallback.length);
+        return;
+      }
+
       if (isCtrlP) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteError: '' } })); setPasteMode(true); return; }
       if (isCtrlG) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, fileSpecs: { ...p.downloadData.fileSpecs, channels: CHANNELS[(CHANNELS.indexOf(p.downloadData.fileSpecs.channels) + 1) % CHANNELS.length] } } })); return; }
-      if (key.tab) { setDownloadFocus((p) => (p === 'rows' ? 'tags' : 'rows')); return; }
+      if (key.tab) {
+        setDownloadFocus((prev) => {
+          const idx = focusOrder.indexOf(prev);
+          if (idx < 0) return 'rows';
+          return focusOrder[(idx + 1) % focusOrder.length];
+        });
+        return;
+      }
 
-      const filteredTags = tagsCatalog.filter((tag) => tag.toLowerCase().includes((form.downloadData.metadata.tagsQuery || '').toLowerCase()));
+      if (downloadFocus === 'pdf') {
+        if (key.return) { void maybeAdvance(); return; }
+        const current = String(form.downloadData.recordingIndexPdfRef || '');
+        const next = applyKeyToInputState(
+          { value: current, cursor: recordingIndexPdfCursor },
+          input,
+          key,
+          { allowMultiline: false },
+        );
+        if (next.value !== current || next.cursor !== recordingIndexPdfCursor) {
+          const nextError = validateRecordingIndexPdfRef(next.value);
+          setForm((p) => ({
+            ...p,
+            downloadData: {
+              ...p.downloadData,
+              recordingIndexPdfRef: next.value,
+              recordingIndexPdfError: nextError,
+            },
+          }));
+          setRecordingIndexPdfCursor(next.cursor);
+        }
+        return;
+      }
 
-      if (downloadFocus === 'tags') {
-        if (key.upArrow) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsCursor: Math.max(0, (p.downloadData.metadata.tagsCursor || 0) - 1) } } })); return; }
-        if (key.downArrow) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsCursor: Math.min(Math.max(0, filteredTags.length - 1), (p.downloadData.metadata.tagsCursor || 0) + 1) } } })); return; }
-        if (input === ' ') {
-          const currentTag = filteredTags[form.downloadData.metadata.tagsCursor || 0];
-          if (currentTag) {
+      if (downloadFocus === 'bundle') {
+        if (key.return) { void maybeAdvance(); return; }
+        const current = String(form.downloadData.recordingIndexBundleRef || '');
+        const next = applyKeyToInputState(
+          { value: current, cursor: recordingIndexBundleCursor },
+          input,
+          key,
+          { allowMultiline: false },
+        );
+        if (next.value !== current || next.cursor !== recordingIndexBundleCursor) {
+          const nextError = validateRecordingIndexBundleRef(next.value);
+          setForm((p) => ({
+            ...p,
+            downloadData: {
+              ...p.downloadData,
+              recordingIndexBundleRef: next.value,
+              recordingIndexBundleError: nextError,
+            },
+          }));
+          setRecordingIndexBundleCursor(next.cursor);
+        }
+        return;
+      }
+
+      if (downloadFocus === 'source') {
+        if (key.return) { void maybeAdvance(); return; }
+        const pastedUrl = extractGoogleSheetsUrlFromChunk(input);
+        if (pastedUrl) {
+          try {
+            const normalized = parseRecordingIndexSheetUrl(pastedUrl).sheetUrl;
+            const nextError = validateRecordingIndexSourceUrl(normalized);
+            setForm((p) => ({
+              ...p,
+              downloadData: {
+                ...p.downloadData,
+                recordingIndexSourceUrl: normalized,
+                recordingIndexSourceUrlError: nextError,
+              },
+            }));
+            setRecordingIndexSourceCursor(normalized.length);
+            return;
+          } catch {
+            // fallback to manual editing
+          }
+        }
+        const current = String(form.downloadData.recordingIndexSourceUrl || '');
+        const next = applyKeyToInputState(
+          { value: current, cursor: recordingIndexSourceCursor },
+          input,
+          key,
+          { allowMultiline: false },
+        );
+        if (next.value !== current || next.cursor !== recordingIndexSourceCursor) {
+          const nextError = validateRecordingIndexSourceUrl(next.value);
+          setForm((p) => ({
+            ...p,
+            downloadData: {
+              ...p.downloadData,
+              recordingIndexSourceUrl: next.value,
+              recordingIndexSourceUrlError: nextError,
+            },
+          }));
+          setRecordingIndexSourceCursor(next.cursor);
+        }
+        return;
+      }
+
+      if (downloadFocus === 'segments') {
+        const segments = Array.isArray(form.downloadData.importedSegments) ? form.downloadData.importedSegments : [];
+        if (!segments.length) {
+          if (key.return) { void maybeAdvance(); }
+          return;
+        }
+        if (segmentEditMode) {
+          if (isPlainEscapeKey(input, key)) {
+            setSegmentEditMode(false);
+            return;
+          }
+          if (key.tab) {
+            const nextField = segmentEditField === 'fileId' ? 'r2Key' : 'fileId';
+            setSegmentEditField(nextField);
+            const currentValue = String(segments[segmentCursor]?.[nextField] || '');
+            setSegmentEditCursor(currentValue.length);
+            return;
+          }
+          if (key.return) {
+            setSegmentEditMode(false);
+            return;
+          }
+          const current = String(segments[segmentCursor]?.[segmentEditField] || '');
+          const next = applyKeyToInputState(
+            { value: current, cursor: segmentEditCursor },
+            input,
+            key,
+            { allowMultiline: false },
+          );
+          if (next.value !== current || next.cursor !== segmentEditCursor) {
             setForm((p) => {
-              const selected = new Set(safeList(p.downloadData.metadata.tagsSelected));
-              if (selected.has(currentTag)) selected.delete(currentTag); else selected.add(currentTag);
-              return { ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsSelected: Array.from(selected) } } };
+              const updatedSegments = (Array.isArray(p.downloadData.importedSegments) ? p.downloadData.importedSegments : [])
+                .map((segment, index) => (index === segmentCursor ? { ...segment, [segmentEditField]: next.value } : segment));
+              return {
+                ...p,
+                downloadData: {
+                  ...p.downloadData,
+                  importedSegments: updatedSegments,
+                  importedFiles: rebuildImportedFiles(
+                    updatedSegments,
+                    p.downloadData.importedFiles,
+                    p.downloadData.importSummary,
+                  ),
+                },
+              };
             });
+            setSegmentEditCursor(next.cursor);
           }
           return;
         }
-        if (isBackspaceKey(input, key)) {
-          setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsQuery: String(p.downloadData.metadata.tagsQuery || '').slice(0, -1), tagsCursor: 0 } } }));
+        const isCtrlE = (key.ctrl && (input === 'e' || input === 'E')) || input === '\x05';
+        if (key.upArrow) { setSegmentCursor((prev) => Math.max(0, prev - 1)); return; }
+        if (key.downArrow) { setSegmentCursor((prev) => Math.min(segments.length - 1, prev + 1)); return; }
+        if (input === ' ') {
+          setForm((p) => {
+            const updatedSegments = (Array.isArray(p.downloadData.importedSegments) ? p.downloadData.importedSegments : [])
+              .map((segment, index) => (index === segmentCursor ? { ...segment, enabled: segment.enabled === false } : segment));
+            const nextTokens = setManifestBundleTokensFromImport(
+              {
+                audio: p.downloadData.audio || {},
+                video: p.downloadData.video || {},
+              },
+              updatedSegments,
+              p.lookupNumber,
+              fk,
+              p.buckets,
+            );
+            return {
+              ...p,
+              downloadData: {
+                ...p.downloadData,
+                ...nextTokens,
+                importedSegments: updatedSegments,
+                importedFiles: rebuildImportedFiles(
+                  updatedSegments,
+                  p.downloadData.importedFiles,
+                  p.downloadData.importSummary,
+                ),
+              },
+            };
+          });
           return;
         }
-        if (shouldAppendWizardChar(input, key)) {
-          setForm((p) => ({ ...p, downloadData: { ...p.downloadData, metadata: { ...p.downloadData.metadata, tagsQuery: `${p.downloadData.metadata.tagsQuery || ''}${input}`, tagsCursor: 0 } } }));
+        if (isCtrlE) {
+          setSegmentEditMode(true);
+          setSegmentEditField('fileId');
+          setSegmentEditCursor(String(segments[segmentCursor]?.fileId || '').length);
           return;
         }
         if (key.return) { void maybeAdvance(); }
@@ -442,11 +1151,101 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       }
       return;
     }
+    if (step.kind === 'tags') {
+      const filteredTags = tagsCatalog.filter((tag) => tag.toLowerCase().includes((form.downloadData.metadata.tagsQuery || '').toLowerCase()));
+      const currentCursor = Math.min(
+        Math.max(0, Number(form.downloadData.metadata.tagsCursor || 0)),
+        Math.max(0, filteredTags.length - 1),
+      );
+      if (key.upArrow) {
+        setForm((p) => ({
+          ...p,
+          downloadData: {
+            ...p.downloadData,
+            metadata: {
+              ...p.downloadData.metadata,
+              tagsCursor: Math.max(0, Number(p.downloadData.metadata.tagsCursor || 0) - 1),
+            },
+          },
+        }));
+        return;
+      }
+      if (key.downArrow) {
+        setForm((p) => ({
+          ...p,
+          downloadData: {
+            ...p.downloadData,
+            metadata: {
+              ...p.downloadData.metadata,
+              tagsCursor: Math.min(
+                Math.max(0, filteredTags.length - 1),
+                Number(p.downloadData.metadata.tagsCursor || 0) + 1,
+              ),
+            },
+          },
+        }));
+        return;
+      }
+      if (input === ' ') {
+        const currentTag = filteredTags[currentCursor];
+        if (currentTag) {
+          setForm((p) => {
+            const selected = new Set(safeList(p.downloadData.metadata.tagsSelected));
+            if (selected.has(currentTag)) selected.delete(currentTag);
+            else selected.add(currentTag);
+            return {
+              ...p,
+              downloadData: {
+                ...p.downloadData,
+                metadata: {
+                  ...p.downloadData.metadata,
+                  tagsSelected: Array.from(selected),
+                },
+              },
+            };
+          });
+        }
+        return;
+      }
+      if (isBackspaceKey(input, key)) {
+        setForm((p) => ({
+          ...p,
+          downloadData: {
+            ...p.downloadData,
+            metadata: {
+              ...p.downloadData.metadata,
+              tagsQuery: String(p.downloadData.metadata.tagsQuery || '').slice(0, -1),
+              tagsCursor: 0,
+            },
+          },
+        }));
+        return;
+      }
+      if (shouldAppendWizardChar(input, key)) {
+        setForm((p) => ({
+          ...p,
+          downloadData: {
+            ...p.downloadData,
+            metadata: {
+              ...p.downloadData.metadata,
+              tagsQuery: `${p.downloadData.metadata.tagsQuery || ''}${input}`,
+              tagsCursor: 0,
+            },
+          },
+        }));
+        return;
+      }
+      if (key.return) {
+        void maybeAdvance();
+      }
+      return;
+    }
     if (step.kind === 'summary' && key.return) void maybeAdvance();
   });
 
   const fk = templateRef.current?.formatKeys || { audio: [], video: [] };
   const downloadRows = [...form.buckets.flatMap((b) => fk.audio.map((k) => ({ type: 'audio', b, k }))), ...form.buckets.flatMap((b) => fk.video.map((k) => ({ type: 'video', b, k })))];
+  const importedSegments = Array.isArray(form.downloadData.importedSegments) ? form.downloadData.importedSegments : [];
   const filteredTags = tagsCatalog.filter((tag) => tag.toLowerCase().includes((form.downloadData.metadata.tagsQuery || '').toLowerCase()));
   const safeTagCursor = Math.min(Math.max(0, form.downloadData.metadata.tagsCursor || 0), Math.max(0, filteredTags.length - 1));
   const rowsAvailable = Math.max(4, Math.min(12, (stdout?.rows || 24) - 16));
@@ -454,16 +1253,28 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const bucketsWindow = computeWindow({ total: BUCKETS.length, cursor: multiCursor, height: rowsAvailable });
   const downloadWindow = computeWindow({ total: downloadRows.length, cursor: downloadCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
   const tagsWindow = computeWindow({ total: filteredTags.length, cursor: safeTagCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
+  const segmentWindow = computeWindow({ total: importedSegments.length, cursor: segmentCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
   const warnings = downloadWarnings(form, fk);
+  const downloadHealth = buildDownloadTreeHealth({
+    lookupNumber: form.lookupNumber,
+    buckets: form.buckets,
+    formatKeys: fk,
+    downloadData: form.downloadData,
+  });
+  const downloadHealthSummary = downloadHealth.summary;
 
   const footer = doneReport
     ? 'Enter return to menu'
     : step.kind === 'credits'
       ? 'Type to edit • Ctrl+A add (lists) • Ctrl+D remove last • Enter next • Esc back • Ctrl+Q quit'
       : step.kind === 'download'
-        ? (pasteMode
-          ? 'Ctrl+P finish & parse • Esc cancel • Enter newline'
-          : 'Ctrl+P paste mode • Ctrl+G cycle channels • Tab switch list/tags • Enter next • Esc back • Ctrl+Q quit')
+        ? (importMode
+          ? 'Ctrl+I import mode • Tab switch sheet/fallback • Enter import • Esc close'
+          : (pasteMode
+            ? 'Ctrl+P finish & parse • Esc cancel • Enter newline'
+            : 'Ctrl+I import sheet • Ctrl+P paste mode • Ctrl+G cycle channels • Tab switch rows/pdf/bundle/source/segments • Enter next • Esc back • Ctrl+Q quit'))
+        : step.kind === 'tags'
+          ? 'Type to filter • Space toggle tag • ↑/↓ move • Enter next • Esc back • Ctrl+Q quit'
         : 'Enter next • Esc back • Ctrl+Q quit';
 
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
@@ -501,30 +1312,87 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         creditsWindow.end < creditRoles.length ? React.createElement(Text, { color: '#8f98a8', key: 'credits-down' }, '…') : null,
       ) : null,
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
+        importMode ? React.createElement(Box, { flexDirection: 'column' },
+          React.createElement(Text, { color: '#d0d5df' }, 'Import Recording Index (Ctrl+I)'),
+          React.createElement(Text, { color: '#8f98a8' }, `Sheet URL: [ ${importInputFocus === 'sheet' ? withCaret(importSheetUrl, importSheetCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importSheetUrl} ]`),
+          React.createElement(Text, { color: '#8f98a8' }, `Fallback XLSX path: [ ${importInputFocus === 'fallback' ? withCaret(importFallbackPath, importFallbackCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importFallbackPath} ]`),
+          React.createElement(Text, { color: '#8f98a8' }, `Lookup: ${form.lookupNumber || '(required)'}`),
+          React.createElement(Text, { color: importBusy ? '#ffcc66' : '#8f98a8' }, importBusy ? 'Importing from sheet…' : 'Enter import • Tab switch field • Esc close'),
+        ) : null,
         pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,assetRef\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
-        !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus}`) : null,
-        !pasteMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus} • health critical=${downloadHealthSummary.criticalCount} warn=${downloadHealthSummary.warnCount} files=${downloadHealthSummary.enabledFiles}/${downloadHealthSummary.totalFiles}`) : null,
+        !pasteMode && !importMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode && !importMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {
           const idx = downloadWindow.start + localIdx;
           return React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor && downloadFocus === 'rows' }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`);
         }) : null,
-        !pasteMode && downloadWindow.end < downloadRows.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `sampleLength: AUTO`) : null,
-        !pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Tags (required) [${safeList(form.downloadData.metadata.tagsSelected).length} selected]`) : null,
-        !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `Filter: [ ${(downloadFocus === 'tags') ? withCaret(form.downloadData.metadata.tagsQuery || '', (form.downloadData.metadata.tagsQuery || '').length, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.metadata.tagsQuery || '')} ]`) : null,
-        !pasteMode && tagsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode ? filteredTags.slice(tagsWindow.start, tagsWindow.end).map((tag, localIdx) => {
-          const idx = tagsWindow.start + localIdx;
-          const selected = safeList(form.downloadData.metadata.tagsSelected).includes(tag);
-          return React.createElement(Text, { key: `tag-${tag}`, inverse: idx === safeTagCursor && downloadFocus === 'tags' }, `${idx === safeTagCursor ? '›' : ' '} [${selected ? 'x' : ' '}] ${tag}`);
+        !pasteMode && !importMode && downloadWindow.end < downloadRows.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'sampleLength: AUTO') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index PDF token [lookup:/asset:]') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `PDF: [ ${(downloadFocus === 'pdf') ? withCaret(form.downloadData.recordingIndexPdfRef || '', recordingIndexPdfCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexPdfRef || '')} ]`) : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index bundle token [bundle:]') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Bundle: [ ${(downloadFocus === 'bundle') ? withCaret(form.downloadData.recordingIndexBundleRef || '', recordingIndexBundleCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexBundleRef || '')} ]`) : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index source URL') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Source: [ ${(downloadFocus === 'source') ? withCaret(form.downloadData.recordingIndexSourceUrl || '', recordingIndexSourceCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexSourceUrl || '')} ]`) : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, `Imported per-file segments: ${importedSegments.length}`) : null,
+        !pasteMode && !importMode && segmentWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode && !importMode ? importedSegments.slice(segmentWindow.start, segmentWindow.end).map((segment, localIdx) => {
+          const idx = segmentWindow.start + localIdx;
+          const enabled = segment.enabled !== false;
+          const marker = idx === segmentCursor && downloadFocus === 'segments' ? '›' : ' ';
+          const editing = segmentEditMode && idx === segmentCursor ? ` (${segmentEditField} edit)` : '';
+          const desc = `${segment.bucketNumber} ${segment.type || 'unknown'} ${segment.fileId || '-'} -> ${segment.r2Key || '-'}`;
+          return React.createElement(Text, {
+            key: `seg-${segment.bucketNumber}-${idx}`,
+            inverse: idx === segmentCursor && downloadFocus === 'segments',
+          }, `${marker} [${enabled ? 'x' : ' '}] ${desc}${editing}`);
         }) : null,
-        !pasteMode && tagsWindow.end < filteredTags.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode && !importMode && segmentWindow.end < importedSegments.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, `Download tree root: ${downloadHealth.root.ok ? 'ok' : 'missing A1 link'}`) : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Buckets: ${(downloadHealth.buckets || []).map((bucketRow) => `${bucketRow.bucket}[${bucketRow.fileCount}]${bucketRow.folderLinkOk ? '' : '!folder'}`).join('  ') || '-'}`) : null,
+        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Bundles: ${(downloadHealth.bundles || []).filter((row) => row.hasSegments).length} required • ${(downloadHealth.bundles || []).filter((row) => row.hasSegments && row.ok).length} healthy`) : null,
+        !pasteMode && !importMode && form.downloadData.importSummary
+          ? React.createElement(
+            Text,
+            { color: '#8f98a8' },
+            `Import: ${form.downloadData.importSummary.sourceMode} • files=${form.downloadData.importSummary.totalFiles} (audio=${form.downloadData.importSummary.audioFiles} video=${form.downloadData.importSummary.videoFiles} unknown=${form.downloadData.importSummary.unknownFiles}) • sheet=${form.downloadData.importSummary.sheetId || '-'}/${form.downloadData.importSummary.gid || '-'}`,
+          )
+          : null,
         tagsWarning ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, tagsWarning) : null,
-        !pasteMode && warnings.length ? warnings.slice(0, 4).map((msg) => React.createElement(Text, { key: `warn-${msg}`, color: '#8f98a8', dimColor: true }, `warning: ${msg}`)) : null,
-        !pasteMode && warnings.length > 4 ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, `warning: +${warnings.length - 4} more`) : null,
+        !pasteMode && !importMode && warnings.length ? warnings.slice(0, 4).map((msg) => React.createElement(Text, { key: `warn-${msg}`, color: '#8f98a8', dimColor: true }, `warning: ${msg}`)) : null,
+        !pasteMode && !importMode && warnings.length > 4 ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, `warning: +${warnings.length - 4} more`) : null,
+        !pasteMode && !importMode && downloadHealth.criticalIssues.length ? downloadHealth.criticalIssues.slice(0, 5).map((msg) => React.createElement(Text, { key: `critical-${msg}`, color: '#ff6b6b' }, `critical: ${msg}`)) : null,
+        !pasteMode && !importMode && downloadHealth.criticalIssues.length > 5 ? React.createElement(Text, { color: '#ff6b6b' }, `critical: +${downloadHealth.criticalIssues.length - 5} more`) : null,
+        !pasteMode && !importMode && downloadHealth.warnIssues.length ? downloadHealth.warnIssues.slice(0, 3).map((msg) => React.createElement(Text, { key: `health-warn-${msg}`, color: '#ffcc66' }, `warn: ${msg}`)) : null,
+        !pasteMode && !importMode && downloadHealth.warnIssues.length > 3 ? React.createElement(Text, { color: '#ffcc66' }, `warn: +${downloadHealth.warnIssues.length - 3} more`) : null,
+        !pasteMode && !importMode && form.downloadData.recordingIndexPdfError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexPdfError) : null,
+        !pasteMode && !importMode && form.downloadData.recordingIndexBundleError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexBundleError) : null,
+        !pasteMode && !importMode && form.downloadData.recordingIndexSourceUrlError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexSourceUrlError) : null,
         form.downloadData.pasteError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.pasteError) : null,
       ) : null,
-      step.kind === 'summary' ? React.createElement(Box, { flexDirection: 'column' }, React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`), React.createElement(Text, { color: '#d0d5df' }, `› Slug: ${form.slug}`), React.createElement(Text, { color: '#d0d5df' }, `› Buckets: ${form.buckets.join(', ')}`), React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate')) : null,
+      step.kind === 'tags' ? React.createElement(Box, { flexDirection: 'column' },
+        React.createElement(Text, { color: '#d0d5df' }, `Tags (required) [${safeList(form.downloadData.metadata.tagsSelected).length} selected]`),
+        React.createElement(Text, { color: '#8f98a8' }, `Filter: [ ${withCaret(form.downloadData.metadata.tagsQuery || '', (form.downloadData.metadata.tagsQuery || '').length, caretOn || process.env.DEX_NO_ANIM === '1')} ]`),
+        tagsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        filteredTags.slice(tagsWindow.start, tagsWindow.end).map((tag, localIdx) => {
+          const idx = tagsWindow.start + localIdx;
+          const selected = safeList(form.downloadData.metadata.tagsSelected).includes(tag);
+          return React.createElement(Text, { key: `tag-${tag}`, inverse: idx === safeTagCursor }, `${idx === safeTagCursor ? '›' : ' '} [${selected ? 'x' : ' '}] ${tag}`);
+        }),
+        tagsWindow.end < filteredTags.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+        tagsWarning ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, tagsWarning) : null,
+      ) : null,
+      step.kind === 'summary' ? React.createElement(Box, { flexDirection: 'column' },
+        React.createElement(Text, { color: '#d0d5df' }, `› Title: ${form.title}`),
+        React.createElement(Text, { color: '#d0d5df' }, `› Slug: ${form.slug}`),
+        React.createElement(Text, { color: '#d0d5df' }, `› Buckets: ${form.buckets.join(', ')}`),
+        React.createElement(Text, { color: String(form.downloadData.recordingIndexPdfRef || '').trim() ? '#d0d5df' : '#ffcc66' }, String(form.downloadData.recordingIndexPdfRef || '').trim() ? `› Recording index PDF: ${form.downloadData.recordingIndexPdfRef}` : '› Advisory: recording index PDF token is empty (draft allowed, active publish will fail).'),
+        React.createElement(Text, { color: String(form.downloadData.recordingIndexBundleRef || '').trim() ? '#d0d5df' : '#ffcc66' }, String(form.downloadData.recordingIndexBundleRef || '').trim() ? `› Recording index bundle: ${form.downloadData.recordingIndexBundleRef}` : '› Advisory: recording index bundle token is empty (draft allowed, active publish will fail).'),
+        React.createElement(Text, { color: '#d0d5df' }, `› Imported segments: ${importedSegments.length}`),
+        React.createElement(Text, { color: downloadHealthSummary.ok ? '#a6e3a1' : '#ff6b6b' }, `› Download tree health: ${downloadHealthSummary.ok ? 'PASS' : 'FAIL'} (critical=${downloadHealthSummary.criticalCount} warn=${downloadHealthSummary.warnCount})`),
+        React.createElement(Text, { color: safeList(form.downloadData.metadata.tagsSelected).length > 0 ? '#a6e3a1' : '#ff6b6b' }, `› Tags: ${safeList(form.downloadData.metadata.tagsSelected).length > 0 ? 'PASS' : 'FAIL'} (${safeList(form.downloadData.metadata.tagsSelected).length} selected)`),
+        React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate'),
+      ) : null,
     ),
     busy ? React.createElement(Text, { color: '#ffcc66' }, 'Generating...') : null,
     error ? React.createElement(Text, { color: '#ff6b6b' }, error) : null,

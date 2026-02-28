@@ -1,6 +1,6 @@
 {
   "version": "catalog-editorial-v1",
-  "updatedAt": "2026-02-27T23:54:30.409Z",
+  "updatedAt": "2026-02-28T01:35:48.210Z",
   "manifest": [
     {
       "entry_id": "andrew-chanover",
@@ -10,7 +10,7 @@
       "performer": "Andrew Chanover",
       "instrument": "Electric Guitar",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "amplified-printer",
@@ -20,7 +20,7 @@
       "performer": "church, cameron",
       "instrument": "PERCUS‏‏‎‎SION",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "bassoon-and-electronics",
@@ -30,7 +30,7 @@
       "performer": "coleman, max & tomecek, arlo",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "tim-feeney",
@@ -40,7 +40,7 @@
       "performer": "fe‏‏‎‏‏‎eney, tim",
       "instrument": "PERCUS‏‏‎‎SION",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "multiperc",
@@ -50,7 +50,7 @@
       "performer": "giroux, ben",
       "instrument": "PERCUS‏‏‎‎SION",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "jakob-heinemann",
@@ -60,7 +60,7 @@
       "performer": "jakob heinemann",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "as-though-im-slipping",
@@ -70,7 +70,7 @@
       "performer": "jáquez, sofí & yorke, paul",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "this-is-a-tangible-space",
@@ -80,7 +80,7 @@
       "performer": "johnson, grant",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "prepared-oboe-sky-macklay",
@@ -90,7 +90,7 @@
       "performer": "macklay, sky",
       "instrument": "WINDS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "electric-guitar-chris-mann",
@@ -100,7 +100,7 @@
       "performer": "man‎‏n, chris",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "anant-shah",
@@ -110,7 +110,7 @@
       "performer": "shah, anant",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "aidan-yeats",
@@ -120,7 +120,7 @@
       "performer": "yeats, aidan",
       "instrument": "STRINGS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "bojun-zhang",
@@ -130,7 +130,7 @@
       "performer": "zhang, bojun",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "2-organs-midori-ataka",
@@ -140,7 +140,7 @@
       "performer": "ataka, midori",
       "instrument": "KEYBOARD",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "electric-guitar-pedals-ethan-bailey-gould",
@@ -150,7 +150,7 @@
       "performer": "bailey-gould, ethan",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "hammered-dulcimer-cameron-church",
@@ -160,7 +160,7 @@
       "performer": "church, cameron",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "cybernetic-scat-paul-hermansen",
@@ -170,7 +170,7 @@
       "performer": "hermansen, paul*",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "amplified-knives-tyler-jordan",
@@ -180,7 +180,7 @@
       "performer": "jordan, tyler",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "cello-emmanuel-losa",
@@ -190,7 +190,7 @@
       "performer": "losa, em‎‏‏‎manuel",
       "instrument": "STRINGS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "voice-everyday-object-manipulation-levi-lu",
@@ -200,7 +200,7 @@
       "performer": "lu, qiujiang levi",
       "instrument": "VOICE",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "no-input-mixer-jared-murphy",
@@ -210,7 +210,7 @@
       "performer": "murphy, jared",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "amplified-tv-sam-pluta",
@@ -220,7 +220,7 @@
       "performer": "pluta, sam",
       "instrument": "ELECTRONICS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "prepared-bass-viol-suarez-solis",
@@ -230,7 +230,7 @@
       "performer": "sebastian suarez-solis",
       "instrument": "KEYBOARD",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "prepared-harpsichord-suarez-solis",
@@ -240,7 +240,7 @@
       "performer": "sebastian suarez-solis",
       "instrument": "KEYBOARD",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "splinterings-jakob-heinemann",
@@ -250,7 +250,7 @@
       "performer": "heineman‏‏‎‏‏‎n, jakob",
       "instrument": "STRINGS",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     },
     {
       "entry_id": "sebastian-suarez-solis",
@@ -260,7 +260,7 @@
       "performer": "suarez-solis, sebastian",
       "instrument": "",
       "status": "active",
-      "updated_at": "2026-02-27T23:54:30.409Z"
+      "updated_at": "2026-02-28T01:35:48.210Z"
     }
   ],
   "spotlight": {

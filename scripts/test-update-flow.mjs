@@ -62,6 +62,7 @@ const selectedSections = [
   'Downloads',
   'File Specs',
   'Credits / People',
+  'Recording Index PDF',
 ];
 
 const editorValues = {
@@ -77,6 +78,7 @@ const editorValues = {
     'video,B,1080p,new-vb',
   ].join('\n'),
   'File Specs': JSON.stringify({ bitDepth: 32, sampleRate: 96000, channels: 'mono' }),
+  'Recording Index PDF': 'asset:rec-pdf-1',
   'Credits / People': JSON.stringify({
     artist: ['Updated Artist'],
     artistAlt: null,
@@ -115,6 +117,7 @@ assert.deepEqual(entry.creditsData.artist, ['Updated Artist']);
 assert.deepEqual(entry.sidebarPageConfig.credits.artist, ['Updated Artist']);
 assert.deepEqual(entry.sidebarPageConfig.credits.audio.mix, ['New Mix']);
 assert.equal(entry.sidebarPageConfig.credits.season, 'S3');
+assert.equal(entry.sidebarPageConfig.downloads.recordingIndexPdfRef, 'asset:rec-pdf-1');
 assert.equal(descriptionText, '');
 
 const untouched = applySelectedSectionsToDraft({

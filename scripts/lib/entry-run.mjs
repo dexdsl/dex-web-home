@@ -13,7 +13,9 @@ import {
   resolveEntryLinkageFromInitData,
   assertCatalogManifestRowLinkage,
 } from './entry-catalog-linkage.mjs';
-import { assertAssetReferenceToken } from './asset-ref.mjs';
+import { assertAssetReferenceToken, assertAssetReferenceTokenKinds } from './asset-ref.mjs';
+import { upsertProtectedAssetsLookupMapping } from './protected-assets-publisher.mjs';
+import { parseRecordingIndexSheetUrl } from './recording-index-import.mjs';
 
 function toText(value) {
   return String(value || '').trim();
@@ -64,6 +66,51 @@ function assertLookupOnlyManifest(manifest) {
     const raw = toText(value);
     if (!raw) continue;
     assertAssetReferenceToken(raw, 'Lookup-only mode');
+  }
+}
+
+function assertRecordingIndexPdfRef(sidebar = {}) {
+  const downloads = sidebar?.downloads && typeof sidebar.downloads === 'object'
+    ? sidebar.downloads
+    : {};
+  const recordingIndexPdfRef = String(
+    downloads.recordingIndexPdfRef || sidebar?.recordingIndexPdfRef || '',
+  ).trim();
+  if (!recordingIndexPdfRef) return;
+  assertAssetReferenceTokenKinds(
+    recordingIndexPdfRef,
+    ['lookup', 'asset'],
+    'Recording Index PDF token',
+  );
+}
+
+function assertRecordingIndexBundleRef(sidebar = {}) {
+  const downloads = sidebar?.downloads && typeof sidebar.downloads === 'object'
+    ? sidebar.downloads
+    : {};
+  const recordingIndexBundleRef = String(
+    downloads.recordingIndexBundleRef || sidebar?.recordingIndexBundleRef || '',
+  ).trim();
+  if (!recordingIndexBundleRef) return;
+  assertAssetReferenceTokenKinds(
+    recordingIndexBundleRef,
+    ['bundle'],
+    'Recording Index bundle token',
+  );
+}
+
+function assertRecordingIndexSourceUrl(sidebar = {}) {
+  const downloads = sidebar?.downloads && typeof sidebar.downloads === 'object'
+    ? sidebar.downloads
+    : {};
+  const recordingIndexSourceUrl = String(
+    downloads.recordingIndexSourceUrl || sidebar?.recordingIndexSourceUrl || '',
+  ).trim();
+  if (!recordingIndexSourceUrl) return;
+  try {
+    parseRecordingIndexSheetUrl(recordingIndexSourceUrl);
+  } catch {
+    throw new Error('Recording index source URL must be a valid Google Sheets URL.');
   }
 }
 
@@ -153,6 +200,41 @@ async function syncCatalogLinkageAfterWrite(data, opts) {
   };
 }
 
+async function syncProtectedAssetsAfterWrite(data, opts = {}) {
+  if (opts?.dryRun) return { synced: false, lines: [] };
+  const importData = data?.protectedAssetsImport && typeof data.protectedAssetsImport === 'object'
+    ? data.protectedAssetsImport
+    : null;
+  if (!importData) return { synced: false, lines: [] };
+
+  const lookupNumber = toText(importData.lookupNumber || data?.sidebar?.lookupNumber);
+  if (!lookupNumber) throw new Error('Protected assets import requires lookupNumber.');
+  const files = Array.isArray(importData.files) ? importData.files : [];
+  if (!files.length) {
+    throw new Error(`Protected assets import for ${lookupNumber} requires at least one file.`);
+  }
+
+  const result = await upsertProtectedAssetsLookupMapping({
+    lookupNumber,
+    title: toText(importData.title || data?.title),
+    status: toText(importData.status || 'draft'),
+    season: toText(importData.season || data?.creditsData?.season || data?.sidebar?.credits?.season || ''),
+    files,
+    entitlements: Array.isArray(importData.entitlements) ? importData.entitlements : [],
+    recordingIndex: importData.recordingIndex && typeof importData.recordingIndex === 'object'
+      ? importData.recordingIndex
+      : null,
+    filePath: importData.filePath || opts?.protectedAssetsFilePath,
+  });
+  return {
+    synced: true,
+    lines: [
+      `✓ Updated protected assets lookup ${result.lookupNumber} (${result.files} files)`,
+      `Protected assets file: ${path.resolve(result.filePath)}`,
+    ],
+  };
+}
+
 export async function writeEntryFromData({ templatePath, templateHtml, data, opts = {}, log = () => {} }) {
   const folder = opts.flat
     ? path.join(path.resolve('.'), data.slug)
@@ -168,6 +250,9 @@ export async function writeEntryFromData({ templatePath, templateHtml, data, opt
   let result;
   try {
     assertLookupOnlyManifest(data.manifest);
+    assertRecordingIndexPdfRef(data.sidebar);
+    assertRecordingIndexBundleRef(data.sidebar);
+    assertRecordingIndexSourceUrl(data.sidebar);
     result = await writeEntryFromDataCore({
       templatePath,
       templateHtml,
@@ -177,6 +262,10 @@ export async function writeEntryFromData({ templatePath, templateHtml, data, opt
     const linkage = await syncCatalogLinkageAfterWrite(data, opts);
     if (Array.isArray(linkage.lines) && linkage.lines.length) {
       result.lines.push(...linkage.lines);
+    }
+    const assetsSync = await syncProtectedAssetsAfterWrite(data, opts);
+    if (Array.isArray(assetsSync.lines) && assetsSync.lines.length) {
+      result.lines.push(...assetsSync.lines);
     }
   } catch (error) {
     if (!opts.dryRun && !folderExistsBefore) {

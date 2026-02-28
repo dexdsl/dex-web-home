@@ -87,6 +87,11 @@ async function collectInitData(opts, slugArg) {
     const videoUrl = String(base.video?.dataUrlOriginal || base.video?.dataUrl || '').trim();
     if (!videoUrl) throw new Error('Video URL is required for non-interactive init. Pass --from with video.dataUrl.');
     const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
+    const seedRecordingIndexPdfRef = String(
+      base?.sidebarPageConfig?.downloads?.recordingIndexPdfRef
+      || base?.sidebarPageConfig?.recordingIndexPdfRef
+      || '',
+    ).trim();
     const sidebar = {
       lookupNumber: lookup,
       buckets: base.sidebarPageConfig?.buckets || ['A'],
@@ -96,6 +101,9 @@ async function collectInitData(opts, slugArg) {
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
+    if (seedRecordingIndexPdfRef) {
+      sidebar.downloads = { recordingIndexPdfRef: seedRecordingIndexPdfRef };
+    }
     const canonical = deriveCanonicalEntry({
       canonical: base.canonical,
       sidebarConfig: sidebar,
@@ -172,6 +180,12 @@ async function collectInitData(opts, slugArg) {
   credits.artist = nameAns.name.split(',').map((v) => v.trim()).filter(Boolean);
   credits.instruments = instruments;
 
+  const seedRecordingIndexPdfRef = String(
+    base?.sidebarPageConfig?.downloads?.recordingIndexPdfRef
+    || base?.sidebarPageConfig?.recordingIndexPdfRef
+    || '',
+  ).trim();
+
   const sidebar = {
     lookupNumber: lookupAns.lookup,
     buckets: bucketAns.buckets,
@@ -181,6 +195,9 @@ async function collectInitData(opts, slugArg) {
     fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
     metadata: { sampleLength: '', tags: [] },
   };
+  if (seedRecordingIndexPdfRef) {
+    sidebar.downloads = { recordingIndexPdfRef: seedRecordingIndexPdfRef };
+  }
   const canonical = deriveCanonicalEntry({
     canonical: base.canonical,
     sidebarConfig: sidebar,
@@ -887,7 +904,7 @@ async function runEntryCommand(rest = []) {
     console.log(`  catalog.entries: ${result.inventory.files.catalogEntriesFile}`);
     console.log(`  catalog.editorial: ${result.inventory.files.catalogEditorialFile}`);
     console.log(`  protected.assets: ${result.inventory.files.protectedAssetsFile}`);
-    console.log('ENTRY\tSTATE\tCATALOG\tLOOKUP\tBUCKETS\tFILE_IDS');
+    console.log('ENTRY\tSTATE\tCATALOG\tLOOKUP\tBUCKETS\tFILE_IDS\tDL_HEALTH\tROOT\tBUNDLE\tPDF');
     for (const row of rows) {
       const catalogTag = row.catalog?.source
         ? `${row.catalog.entryId || row.entryId} (${row.catalog.source})`
@@ -895,10 +912,22 @@ async function runEntryCommand(rest = []) {
       const lookupValue = row.lookups?.[0] || '-';
       const buckets = Array.isArray(row.assets?.buckets) && row.assets.buckets.length ? row.assets.buckets.join(',') : '-';
       const fileIds = Array.isArray(row.assets?.fileIds) && row.assets.fileIds.length ? row.assets.fileIds.join(',') : '-';
-      console.log(`${row.entryId}\t${row.state}\t${catalogTag}\t${lookupValue}\t${buckets}\t${fileIds}`);
+      const tree = row.downloadTree || {};
+      const health = Number.isFinite(Number(tree.criticalCount))
+        ? `${tree.criticalCount}c/${Number(tree.warnCount || 0)}w`
+        : '-';
+      const root = tree.rootFolderUrl ? 'ok' : 'missing';
+      const bundle = tree.bundleCoverage || '-';
+      const pdf = tree.pdfCoverage || '-';
+      console.log(`${row.entryId}\t${row.state}\t${catalogTag}\t${lookupValue}\t${buckets}\t${fileIds}\t${health}\t${root}\t${bundle}\t${pdf}`);
       if (Array.isArray(row.warnings) && row.warnings.length) {
         for (const warning of row.warnings) {
           console.log(`  ! ${row.entryId}: ${warning}`);
+        }
+      }
+      if (Array.isArray(tree.criticalIssues) && tree.criticalIssues.length) {
+        for (const issue of tree.criticalIssues) {
+          console.log(`  ! ${row.entryId}: download-tree critical ${issue}`);
         }
       }
     }

@@ -1,7 +1,8 @@
 const LOOKUP_BUCKET_NUMBER_PATTERN = /^[A-Z]\.[A-Za-z0-9._-]{1,64}$/i;
 const LOOKUP_SUBMISSION_PATTERN = /^SUB\d{2,4}-[A-Z]\.[A-Za-z]{3}\s[A-Za-z]{2}\s(?:AV|A|V|O)\d{4}$/i;
 const LOOKUP_CATALOG_PATTERN = /^[A-Z]\.[A-Za-z]{3}\.\s[A-Za-z]{2}\s(?:AV|A|V|O)\d{4}(?:\sS\d+)?$/i;
-const ASSET_OR_BUNDLE_VALUE_PATTERN = /^[A-Za-z0-9._:-]{3,160}$/;
+const ASSET_VALUE_PATTERN = /^[A-Za-z0-9._:-]{3,160}$/;
+const BUNDLE_VALUE_PATTERN = /^[A-Za-z0-9._:\- ]{3,240}$/;
 
 function toText(value) {
   return String(value ?? '').trim();
@@ -33,7 +34,8 @@ function parseAssetOrBundleValue(value, kind, context = '') {
   if (!raw) {
     throw baseError(`${kind} token value is required`, context);
   }
-  if (!ASSET_OR_BUNDLE_VALUE_PATTERN.test(raw)) {
+  const pattern = kind === 'bundle' ? BUNDLE_VALUE_PATTERN : ASSET_VALUE_PATTERN;
+  if (!pattern.test(raw)) {
     throw baseError(`invalid ${kind} token value "${raw}"`, context);
   }
   return raw;
@@ -78,6 +80,26 @@ export function parseAssetReferenceToken(value, { context = '' } = {}) {
   throw baseError(`unsupported token prefix "${prefix}" (expected lookup:/asset:/bundle:)`, context);
 }
 
+export function parseAssetReferenceTokenWithKinds(value, {
+  context = '',
+  allowedKinds = [],
+} = {}) {
+  const parsed = parseAssetReferenceToken(value, { context });
+  const normalizedAllowedKinds = Array.isArray(allowedKinds)
+    ? allowedKinds
+      .map((kind) => toText(kind).toLowerCase())
+      .filter(Boolean)
+    : [];
+  if (!normalizedAllowedKinds.length) return parsed;
+  if (!normalizedAllowedKinds.includes(parsed.kind)) {
+    throw baseError(
+      `unsupported token kind "${parsed.kind}" (allowed: ${normalizedAllowedKinds.join('/')})`,
+      context,
+    );
+  }
+  return parsed;
+}
+
 export function isAssetReferenceToken(value) {
   try {
     parseAssetReferenceToken(value);
@@ -91,3 +113,6 @@ export function assertAssetReferenceToken(value, context = '') {
   return parseAssetReferenceToken(value, { context });
 }
 
+export function assertAssetReferenceTokenKinds(value, allowedKinds = [], context = '') {
+  return parseAssetReferenceTokenWithKinds(value, { allowedKinds, context });
+}

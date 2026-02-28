@@ -25,7 +25,7 @@ await fs.writeFile(path.join(temp, 'seed.json'), JSON.stringify({
   video: { dataUrl: 'https://youtu.be/CSFGiU1gg4g?si=x' },
   creditsData: { artist:['Artist'], artistAlt:null, instruments:['Synth'], video:{director:['Dir'],cinematography:['Cin'],editing:['Edit']}, audio:{recording:['Rec'],mix:['Mix'],master:['Master']}, year:2026, season:'S2', location:'Somewhere' },
   manifest: { audio: { A: { wav: 'a1' } }, video: { A: { '1080p': 'v1' } } },
-  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', credits: { artist: ['Artist'], instruments: ['Synth'], year: 2026, season: 'S2', location: 'Somewhere', video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] }, audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] } } },
+  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', downloads: { recordingIndexPdfRef: 'lookup:X.99' }, credits: { artist: ['Artist'], instruments: ['Synth'], year: 2026, season: 'S2', location: 'Somewhere', video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] }, audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] } } },
 }), 'utf8');
 
 
@@ -56,6 +56,42 @@ const missingLinkage = run(['init', '--quick', '--template', './index.html', '--
 if (missingLinkage.status === 0) throw new Error('init should fail when required catalog linkage fields are missing');
 if (!/Catalog linkage requires/i.test(`${missingLinkage.stderr}\n${missingLinkage.stdout}`)) {
   throw new Error('init missing-linkage failure should mention catalog linkage requirements');
+}
+
+await fs.writeFile(path.join(temp, 'seed-invalid-recording-index.json'), JSON.stringify({
+  title: 'Bad Recording Index',
+  slug: 'bad-recording-index',
+  video: { dataUrl: 'https://youtu.be/CSFGiU1gg4g?si=x' },
+  creditsData: {
+    artist: ['Artist'],
+    artistAlt: null,
+    instruments: ['Synth'],
+    video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] },
+    audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] },
+    year: 2026,
+    season: 'S2',
+    location: 'Somewhere',
+  },
+  sidebarPageConfig: {
+    lookupNumber: 'LOOKUP-BAD',
+    attributionSentence: 'attrib',
+    buckets: ['A'],
+    credits: {
+      artist: ['Artist'],
+      instruments: ['Synth'],
+      year: 2026,
+      season: 'S2',
+      location: 'Somewhere',
+      video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] },
+      audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] },
+    },
+    downloads: { recordingIndexPdfRef: 'https://drive.google.com/file/d/abc' },
+  },
+}), 'utf8');
+const invalidRecordingIndex = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed-invalid-recording-index.json']);
+if (invalidRecordingIndex.status === 0) throw new Error('init should fail when recording index token is a URL');
+if (!/recording\s*index|recordingIndexPdfRef|asset reference token/i.test(`${invalidRecordingIndex.stderr}\n${invalidRecordingIndex.stdout}`)) {
+  throw new Error('init invalid recording-index failure should mention recording-index token validation');
 }
 
 const generatedDirs = (await fs.readdir(path.join(temp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());
@@ -121,6 +157,12 @@ const outEntry = JSON.parse(await fs.readFile(path.join(temp, 'entries', generat
 if (!outEntry.lifecycle?.publishedAt || !outEntry.lifecycle?.updatedAt) throw new Error('entry.json missing lifecycle timestamps');
 if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.publishedAt)) throw new Error('entry.json lifecycle.publishedAt should be ISO datetime');
 if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.updatedAt)) throw new Error('entry.json lifecycle.updatedAt should be ISO datetime');
+if (outEntry.sidebarPageConfig?.downloads?.recordingIndexPdfRef !== 'lookup:X.99') {
+  throw new Error('entry.json missing recordingIndexPdfRef in canonical downloads path');
+}
+if ('recordingIndexPdfRef' in (outEntry.sidebarPageConfig || {})) {
+  throw new Error('entry.json should not use legacy sidebarPageConfig.recordingIndexPdfRef field');
+}
 
 const catalogPath = path.join(temp, 'data', 'catalog.editorial.json');
 const catalog = JSON.parse(await fs.readFile(catalogPath, 'utf8'));
@@ -138,6 +180,15 @@ const videoKeys = (cfg.downloads?.formats?.video || []).map((item) => item.key);
 const manifestNodeMatch = outHtml.match(/<script id="dex-manifest" type="application\/json">([\s\S]*?)<\/script>/);
 if (!manifestNodeMatch || !manifestNodeMatch[1].trim()) throw new Error('missing #dex-manifest script node in output html');
 const htmlManifest = JSON.parse(manifestNodeMatch[1]);
+const pageCfgMatch = outHtml.match(/<script id="dex-sidebar-page-config" type="application\/json">([\s\S]*?)<\/script>/);
+if (!pageCfgMatch || !pageCfgMatch[1].trim()) throw new Error('missing #dex-sidebar-page-config script node in output html');
+const pageCfg = JSON.parse(pageCfgMatch[1]);
+if (String(pageCfg?.downloads?.recordingIndexPdfRef || '') !== 'lookup:X.99') {
+  throw new Error('output html missing canonical recordingIndexPdfRef');
+}
+if ('recordingIndexPdfRef' in (pageCfg || {})) {
+  throw new Error('output html should not include legacy top-level recordingIndexPdfRef');
+}
 for (const bucket of ['A', 'B', 'C', 'D', 'E', 'X']) {
   if (!(bucket in htmlManifest.audio)) throw new Error(`missing html audio bucket: ${bucket}`);
   if (!(bucket in htmlManifest.video)) throw new Error(`missing html video bucket: ${bucket}`);

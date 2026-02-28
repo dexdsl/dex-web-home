@@ -11,6 +11,8 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
   const [statusLine, setStatusLine] = useState('Running entry runtime audit…');
   const [reports, setReports] = useState([]);
   const [inventoryRows, setInventoryRows] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showTreeDetails, setShowTreeDetails] = useState(false);
   const [inventoryCounts, setInventoryCounts] = useState({
     total: 0,
     linked: 0,
@@ -30,6 +32,7 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
       setReports(result.reports);
       const rows = Array.isArray(result?.inventory?.rows) ? result.inventory.rows : [];
       setInventoryRows(rows);
+      setSelectedIndex((current) => Math.max(0, Math.min(current, Math.max(0, rows.length - 1))));
       setInventoryCounts(result?.inventory?.counts || {
         total: rows.length,
         linked: 0,
@@ -62,8 +65,31 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
     const lower = String(input || '').toLowerCase();
     if (lower === 'r') {
       void runAudit();
+      return;
     }
-  });
+    if (key.upArrow) {
+      setSelectedIndex((current) => Math.max(0, current - 1));
+      return;
+    }
+    if (key.downArrow) {
+      setSelectedIndex((current) => Math.min(Math.max(0, inventoryRows.length - 1), current + 1));
+      return;
+    }
+    if (lower === 't') {
+      setShowTreeDetails((prev) => !prev);
+    }
+  }, { isActive: true });
+
+  const selectedRow = inventoryRows[Math.max(0, Math.min(selectedIndex, Math.max(0, inventoryRows.length - 1)))] || null;
+  const inventoryLimit = Math.max(5, Math.min(10, height - 14));
+  const listStart = Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(inventoryLimit / 2),
+      Math.max(0, inventoryRows.length - inventoryLimit),
+    ),
+  );
+  const listEnd = Math.min(inventoryRows.length, listStart + inventoryLimit);
 
   return React.createElement(Box, { flexDirection: 'column', width, height, minHeight: height },
     React.createElement(Text, { bold: true, color: '#d0d5df' }, 'Entry Runtime Audit'),
@@ -82,15 +108,27 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
     ),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
       React.createElement(Text, { color: '#8f98a8' }, `Inventory linked=${inventoryCounts.linked} entryOnly=${inventoryCounts.entryOnly} catalogOnly=${inventoryCounts.catalogOnly} withAssets=${inventoryCounts.withAssets}`),
-      ...inventoryRows.slice(0, 5).map((row) => React.createElement(
+      listStart > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'inv-up' }, '…') : null,
+      ...inventoryRows.slice(listStart, listEnd).map((row, localIndex) => React.createElement(
         Text,
-        { key: `inv-${row.entryId}`, color: row.state === 'linked' ? '#a6e3a1' : '#d0d5df' },
-        `${row.entryId} · ${row.state} · catalog=${row.catalog?.source || '-'} · lookup=${row.lookups?.[0] || '-'} · buckets=${(row.assets?.buckets || []).join(',') || '-'} · files=${(row.assets?.fileIds || []).join(',') || '-'}`,
+        {
+          key: `inv-${row.entryId}`,
+          color: row.state === 'linked' ? '#a6e3a1' : '#d0d5df',
+          inverse: (listStart + localIndex) === selectedIndex,
+        },
+        `${row.entryId} · ${row.state} · lookup=${row.lookups?.[0] || '-'} · files=${(row.assets?.fileIds || []).length || 0} · health=${row.downloadTree?.criticalCount ?? '-'}c/${row.downloadTree?.warnCount ?? '-'}w`,
       )),
+      listEnd < inventoryRows.length ? React.createElement(Text, { color: '#8f98a8', key: 'inv-down' }, '…') : null,
+      showTreeDetails && selectedRow ? React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+        React.createElement(Text, { color: '#8f98a8' }, `Tree ${selectedRow.entryId} · root=${selectedRow.downloadTree?.rootFolderUrl ? 'ok' : 'missing'} · bundle=${selectedRow.downloadTree?.bundleCoverage || '-'} · pdf=${selectedRow.downloadTree?.pdfCoverage || '-'}`),
+        React.createElement(Text, { color: '#8f98a8' }, `Buckets: ${(selectedRow.downloadTree?.activeBuckets || []).join(',') || '-'} · Files: ${selectedRow.downloadTree?.fileCount || 0}`),
+        ...(Array.isArray(selectedRow.downloadTree?.criticalIssues) ? selectedRow.downloadTree.criticalIssues.slice(0, 3).map((issue) => React.createElement(Text, { key: `tree-critical-${selectedRow.entryId}-${issue}`, color: '#ff6b6b' }, `critical: ${issue}`)) : []),
+        ...(Array.isArray(selectedRow.downloadTree?.warnIssues) ? selectedRow.downloadTree.warnIssues.slice(0, 2).map((issue) => React.createElement(Text, { key: `tree-warn-${selectedRow.entryId}-${issue}`, color: '#ffcc66' }, `warn: ${issue}`)) : []),
+      ) : null,
     ),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
       React.createElement(Text, { color: busy ? '#ffcc66' : '#d0d5df' }, busy ? 'Working…' : statusLine),
-      React.createElement(Text, { color: '#8f98a8' }, 'r rerun  Esc back'),
+      React.createElement(Text, { color: '#8f98a8' }, '↑/↓ select  t tree details  r rerun  Esc back'),
     ),
   );
 }

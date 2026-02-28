@@ -12,7 +12,10 @@ import {
   normalizeManifestWithFormats,
   generateIndexHtml,
 } from '../lib/entry-store.mjs';
-import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { isBackspaceKey, isPlainEscapeKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { assertAssetReferenceTokenKinds } from '../lib/asset-ref.mjs';
+import { importRecordingIndexFromSheet, parseRecordingIndexSheetUrl } from '../lib/recording-index-import.mjs';
+import { upsertProtectedAssetsLookupMapping } from '../lib/protected-assets-publisher.mjs';
 import { applyKeyToInputState } from './init-wizard.mjs';
 import { computeWindow } from './rolodex.mjs';
 
@@ -29,6 +32,10 @@ const CHECKS = [
   'Downloads',
   'File Specs',
   'Metadata',
+  'Recording Index PDF',
+  'Recording Index Bundle',
+  'Recording Index Source URL',
+  'Recording Index XLSX Fallback',
 ];
 const SERIES_OPTIONS = ['dex', 'inDex', 'dexFest'];
 const CHANNEL_OPTIONS = ['mono', 'stereo', 'multichannel'];
@@ -234,6 +241,35 @@ function parseDownloads(value, formatKeys, existingManifest) {
   return manifest;
 }
 
+function setManifestBundleTokensFromSegments(existingManifest, formatKeys, buckets, segments, lookupNumber) {
+  const manifest = normalizeManifestWithFormats(existingManifest, formatKeys);
+  const selectedBuckets = Array.isArray(buckets) ? buckets : BUCKETS;
+  const summary = new Set();
+  for (const segment of segments || []) {
+    if (!segment || segment.enabled === false) continue;
+    const bucket = String(segment.bucket || '').trim().toUpperCase();
+    const type = String(segment.type || '').trim().toLowerCase();
+    if (!bucket || !selectedBuckets.includes(bucket)) continue;
+    if (type !== 'audio' && type !== 'video') continue;
+    summary.add(`${bucket}:${type}`);
+  }
+  for (const bucket of selectedBuckets) {
+    manifest.audio[bucket] = { ...(manifest.audio[bucket] || {}) };
+    manifest.video[bucket] = { ...(manifest.video[bucket] || {}) };
+    for (const key of formatKeys.audio || []) {
+      manifest.audio[bucket][key] = summary.has(`${bucket}:audio`)
+        ? `bundle:lookup:${lookupNumber}:${bucket}:audio`
+        : '';
+    }
+    for (const key of formatKeys.video || []) {
+      manifest.video[bucket][key] = summary.has(`${bucket}:video`)
+        ? `bundle:lookup:${lookupNumber}:${bucket}:video`
+        : '';
+    }
+  }
+  return manifest;
+}
+
 function sectionAllowsMultiline(section) {
   return section === 'Description'
     || section === 'Credits / People'
@@ -256,6 +292,10 @@ function sectionDisplayValue(section, form) {
     case 'Downloads': return serializeDownloads(form.manifest, form.buckets, form.formatKeys);
     case 'File Specs': return JSON.stringify(form.fileSpecs, null, 2);
     case 'Metadata': return form.metadataTags.join(', ');
+    case 'Recording Index PDF': return form.recordingIndexPdfRef;
+    case 'Recording Index Bundle': return form.recordingIndexBundleRef;
+    case 'Recording Index Source URL': return form.recordingIndexSourceUrl;
+    case 'Recording Index XLSX Fallback': return form.recordingIndexFallbackPath;
     default: return '';
   }
 }
@@ -276,6 +316,22 @@ function ensureSidebarStructures(entry) {
   if (!entry.sidebarPageConfig.credits || typeof entry.sidebarPageConfig.credits !== 'object') entry.sidebarPageConfig.credits = {};
   if (!entry.sidebarPageConfig.metadata || typeof entry.sidebarPageConfig.metadata !== 'object') entry.sidebarPageConfig.metadata = {};
   if (!entry.sidebarPageConfig.fileSpecs || typeof entry.sidebarPageConfig.fileSpecs !== 'object') entry.sidebarPageConfig.fileSpecs = {};
+  if (!entry.sidebarPageConfig.downloads || typeof entry.sidebarPageConfig.downloads !== 'object') entry.sidebarPageConfig.downloads = {};
+  const legacyRecordingIndexPdfRef = String(entry.sidebarPageConfig.recordingIndexPdfRef || '').trim();
+  if (legacyRecordingIndexPdfRef && !String(entry.sidebarPageConfig.downloads.recordingIndexPdfRef || '').trim()) {
+    entry.sidebarPageConfig.downloads.recordingIndexPdfRef = legacyRecordingIndexPdfRef;
+  }
+  const legacyRecordingIndexBundleRef = String(entry.sidebarPageConfig.recordingIndexBundleRef || '').trim();
+  if (legacyRecordingIndexBundleRef && !String(entry.sidebarPageConfig.downloads.recordingIndexBundleRef || '').trim()) {
+    entry.sidebarPageConfig.downloads.recordingIndexBundleRef = legacyRecordingIndexBundleRef;
+  }
+  const legacyRecordingIndexSourceUrl = String(entry.sidebarPageConfig.recordingIndexSourceUrl || '').trim();
+  if (legacyRecordingIndexSourceUrl && !String(entry.sidebarPageConfig.downloads.recordingIndexSourceUrl || '').trim()) {
+    entry.sidebarPageConfig.downloads.recordingIndexSourceUrl = legacyRecordingIndexSourceUrl;
+  }
+  if ('recordingIndexPdfRef' in entry.sidebarPageConfig) delete entry.sidebarPageConfig.recordingIndexPdfRef;
+  if ('recordingIndexBundleRef' in entry.sidebarPageConfig) delete entry.sidebarPageConfig.recordingIndexBundleRef;
+  if ('recordingIndexSourceUrl' in entry.sidebarPageConfig) delete entry.sidebarPageConfig.recordingIndexSourceUrl;
 }
 
 export function applySelectedSectionsToDraft({
@@ -358,6 +414,40 @@ export function applySelectedSectionsToDraft({
       const tags = parseTags(raw);
       nextEntry.metadata = { ...(nextEntry.metadata || {}), tags };
       nextEntry.sidebarPageConfig.metadata = { ...(nextEntry.sidebarPageConfig.metadata || {}), tags };
+    } else if (section === 'Recording Index PDF') {
+      const value = raw.trim();
+      if (value) {
+        assertAssetReferenceTokenKinds(value, ['lookup', 'asset'], 'Recording Index PDF');
+      }
+      nextEntry.sidebarPageConfig.downloads = {
+        ...(nextEntry.sidebarPageConfig.downloads || {}),
+      };
+      if (value) nextEntry.sidebarPageConfig.downloads.recordingIndexPdfRef = value;
+      else delete nextEntry.sidebarPageConfig.downloads.recordingIndexPdfRef;
+    } else if (section === 'Recording Index Bundle') {
+      const value = raw.trim();
+      if (value) {
+        assertAssetReferenceTokenKinds(value, ['bundle'], 'Recording Index Bundle');
+      }
+      nextEntry.sidebarPageConfig.downloads = {
+        ...(nextEntry.sidebarPageConfig.downloads || {}),
+      };
+      if (value) nextEntry.sidebarPageConfig.downloads.recordingIndexBundleRef = value;
+      else delete nextEntry.sidebarPageConfig.downloads.recordingIndexBundleRef;
+    } else if (section === 'Recording Index Source URL') {
+      let value = raw.trim();
+      if (value) {
+        try {
+          value = parseRecordingIndexSheetUrl(value).sheetUrl;
+        } catch {
+          throw new Error('Recording Index Source URL must be a valid Google Sheets URL.');
+        }
+      }
+      nextEntry.sidebarPageConfig.downloads = {
+        ...(nextEntry.sidebarPageConfig.downloads || {}),
+      };
+      if (value) nextEntry.sidebarPageConfig.downloads.recordingIndexSourceUrl = value;
+      else delete nextEntry.sidebarPageConfig.downloads.recordingIndexSourceUrl;
     }
   }
 
@@ -402,6 +492,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
   const [editorValues, setEditorValues] = useState({});
   const [editorCursors, setEditorCursors] = useState({});
   const [msg, setMsg] = useState('');
+  const [importBusy, setImportBusy] = useState(false);
   const [tagsCatalog, setTagsCatalog] = useState([]);
 
   useEffect(() => {
@@ -447,6 +538,25 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
       instruments: safeList(creditsData.instruments),
       creditsData,
       metadataTags,
+      recordingIndexPdfRef: String(
+        payload.entry.sidebarPageConfig?.downloads?.recordingIndexPdfRef
+        || payload.entry.sidebarPageConfig?.recordingIndexPdfRef
+        || '',
+      ).trim(),
+      recordingIndexBundleRef: String(
+        payload.entry.sidebarPageConfig?.downloads?.recordingIndexBundleRef
+        || payload.entry.sidebarPageConfig?.recordingIndexBundleRef
+        || '',
+      ).trim(),
+      recordingIndexSourceUrl: String(
+        payload.entry.sidebarPageConfig?.downloads?.recordingIndexSourceUrl
+        || payload.entry.sidebarPageConfig?.recordingIndexSourceUrl
+        || '',
+      ).trim(),
+      recordingIndexFallbackPath: '',
+      importedSegments: [],
+      importedFiles: [],
+      importSummary: null,
       fileSpecs,
       manifest: normalizeManifestWithFormats(payload.manifest, formatKeys),
       formatKeys,
@@ -464,6 +574,140 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
     setEditorValues(nextEditorValues);
     setEditorCursors(nextEditorCursors);
     setMsg(`Loaded ${targetSlug}. Select sections to edit.`);
+  }
+
+  async function runRecordingIndexImport() {
+    if (!form || importBusy) return;
+    const sourceUrlInput = String(
+      editorValues['Recording Index Source URL']
+      || form.recordingIndexSourceUrl
+      || '',
+    ).trim();
+    const fallbackPath = String(
+      editorValues['Recording Index XLSX Fallback']
+      || form.recordingIndexFallbackPath
+      || process.env.DEX_RECORDING_INDEX_XLSX_FALLBACK
+      || '',
+    ).trim();
+    if (!sourceUrlInput) {
+      setMsg('Set "Recording Index Source URL" first, then press Ctrl+I.');
+      return;
+    }
+    let sourceUrl = sourceUrlInput;
+    try {
+      sourceUrl = parseRecordingIndexSheetUrl(sourceUrlInput).sheetUrl;
+    } catch (error) {
+      setMsg(`Recording-index import failed: ${safeMessage(error)}`);
+      return;
+    }
+    const lookupNumber = String(form.lookupNumber || '').trim();
+    if (!lookupNumber) {
+      setMsg('Lookup # is required before recording-index import.');
+      return;
+    }
+
+    setImportBusy(true);
+    try {
+      const imported = await importRecordingIndexFromSheet({
+        sheetUrl: sourceUrl,
+        lookupNumber,
+        entrySlug: slug,
+        fallbackXlsxPath: fallbackPath,
+      });
+      const importedSegments = (imported.segments || []).map((segment) => ({
+        bucketNumber: segment.bucketNumber,
+        fileId: segment.fileId,
+        bucket: segment.bucket,
+        r2Key: segment.r2Key,
+        driveFileId: segment.driveFileId || '',
+        sizeBytes: Number(segment.sizeBytes || 0) || 0,
+        mime: segment.mime || '',
+        position: Number(segment.position || 0) || 0,
+        label: segment.label || '',
+        type: segment.type || 'unknown',
+        typeReason: segment.typeReason || '',
+        enabled: segment.enabled !== false,
+      }));
+      const importedFiles = (imported.files || []).map((file) => ({
+        bucketNumber: file.bucketNumber,
+        fileId: file.fileId,
+        bucket: file.bucket,
+        r2Key: file.r2Key,
+        driveFileId: file.driveFileId || '',
+        sizeBytes: Number(file.sizeBytes || 0) || 0,
+        mime: file.mime || '',
+        position: Number(file.position || 0) || 0,
+        label: file.label || '',
+      }));
+      const nextManifest = setManifestBundleTokensFromSegments(
+        form.manifest,
+        form.formatKeys,
+        form.buckets,
+        importedSegments,
+        lookupNumber,
+      );
+      const recordingIndexPdfRef = String(imported.recordingIndex?.recordingIndexPdfRef || '').trim();
+      const recordingIndexBundleRef = String(imported.recordingIndex?.recordingIndexBundleRef || '').trim();
+      const recordingIndexSourceUrl = String(imported.recordingIndex?.recordingIndexSourceUrl || sourceUrl).trim();
+
+      setForm((prev) => ({
+        ...prev,
+        manifest: nextManifest,
+        recordingIndexPdfRef,
+        recordingIndexBundleRef,
+        recordingIndexSourceUrl,
+        recordingIndexFallbackPath: fallbackPath,
+        importedSegments,
+        importedFiles,
+        importSummary: {
+          sourceMode: imported.source?.mode || 'live',
+          sourceValue: imported.source?.value || '',
+          sheetId: imported.sheet?.sheetId || '',
+          gid: imported.sheet?.gid || '',
+          rootFolderUrl: imported.sheet?.rootFolderUrl || '',
+          bucketFolderUrls: imported.sheet?.bucketFolderUrls || {},
+          totalFiles: imported.counts?.totalFiles || importedSegments.length,
+          audioFiles: imported.counts?.audioFiles || 0,
+          videoFiles: imported.counts?.videoFiles || 0,
+          unknownFiles: imported.counts?.unknownFiles || 0,
+          buckets: Array.isArray(imported.counts?.buckets) ? imported.counts.buckets : [],
+          pdfAssetId: imported.recordingIndex?.pdfAssetId || '',
+          bundleAllToken: imported.recordingIndex?.bundleAllToken || '',
+        },
+      }));
+
+      const mergedEditor = {
+        ...editorValues,
+        Downloads: serializeDownloads(nextManifest, form.buckets, form.formatKeys),
+        'Recording Index PDF': recordingIndexPdfRef,
+        'Recording Index Bundle': recordingIndexBundleRef,
+        'Recording Index Source URL': recordingIndexSourceUrl,
+        'Recording Index XLSX Fallback': fallbackPath,
+      };
+      setEditorValues(mergedEditor);
+      setEditorCursors((prev) => ({
+        ...prev,
+        Downloads: mergedEditor.Downloads.length,
+        'Recording Index PDF': recordingIndexPdfRef.length,
+        'Recording Index Bundle': recordingIndexBundleRef.length,
+        'Recording Index Source URL': recordingIndexSourceUrl.length,
+        'Recording Index XLSX Fallback': fallbackPath.length,
+      }));
+      setChecks((items) => items.map((item) => (
+        item.label === 'Downloads'
+          || item.label === 'Recording Index PDF'
+          || item.label === 'Recording Index Bundle'
+          || item.label === 'Recording Index Source URL'
+          || item.label === 'Recording Index XLSX Fallback'
+          ? { ...item, selected: true }
+          : item
+      )));
+      setMsg(`Imported recording index (${imported.counts?.totalFiles || importedSegments.length} files, ${imported.source?.mode || 'live'} source).`);
+    } catch (error) {
+      setMsg(`Recording-index import failed: ${safeMessage(error)}`);
+    } finally {
+      setImportBusy(false);
+    }
   }
 
   async function saveAll() {
@@ -492,6 +736,31 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
       lifecycle,
     });
 
+    if (Array.isArray(form.importedFiles) && form.importedFiles.length > 0) {
+      const lookupNumber = String(patched.entry?.sidebarPageConfig?.lookupNumber || form.lookupNumber || '').trim();
+      if (lookupNumber) {
+        await upsertProtectedAssetsLookupMapping({
+          lookupNumber,
+          title: String(patched.entry?.title || form.title || '').trim(),
+          status: 'draft',
+          season: String(patched.entry?.creditsData?.season || form.creditsData?.season || '').trim(),
+          files: form.importedFiles,
+          entitlements: [{ type: 'membership_tier', value: 'member' }],
+          recordingIndex: form.importSummary
+            ? {
+              sheetUrl: String(form.recordingIndexSourceUrl || '').trim(),
+              sheetId: String(form.importSummary.sheetId || '').trim(),
+              gid: String(form.importSummary.gid || '').trim() || '0',
+              pdfAssetId: String(form.importSummary.pdfAssetId || '').trim(),
+              bundleAllToken: String(form.recordingIndexBundleRef || '').trim(),
+              rootFolderUrl: String(form.importSummary.rootFolderUrl || '').trim(),
+              bucketFolderUrls: form.importSummary.bucketFolderUrls || {},
+            }
+            : null,
+        });
+      }
+    }
+
     const result = await writeEntryFolder(
       slug,
       {
@@ -508,7 +777,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
   }
 
   useInput((input, key) => {
-    if (key.escape) {
+    if (isPlainEscapeKey(input, key)) {
       if (stage === 'review') {
         setStage('edit');
         return;
@@ -567,6 +836,11 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
 
       const section = fields[Math.min(fieldCursor, fields.length - 1)];
       if (!section) return;
+      const isCtrlI = (key.ctrl && (input === 'i' || input === 'I')) || (!key.ctrl && !key.meta && input === 'I');
+      if (isCtrlI) {
+        void runRecordingIndexImport();
+        return;
+      }
 
       if (key.upArrow) {
         setFieldCursor((value) => Math.max(0, value - 1));
@@ -672,7 +946,15 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
         ? React.createElement(Text, { color: '#8f98a8' }, `… ${value.split(/\r?\n/).length - previewLines.length} more lines`)
         : null,
       summary != null ? React.createElement(Text, { color: '#8f98a8' }, `Known tags in metadata: ${summary}`) : null,
-      React.createElement(Text, { color: '#6e7688' }, 'Type/paste to edit • ↑/↓ switch fields • Enter next • Esc back'),
+      form.importSummary
+        ? React.createElement(
+          Text,
+          { color: '#8f98a8' },
+          `Import: ${form.importSummary.sourceMode} files=${form.importSummary.totalFiles} sheet=${form.importSummary.sheetId || '-'}:${form.importSummary.gid || '-'}`,
+        )
+        : null,
+      React.createElement(Text, { color: '#6e7688' }, 'Type/paste to edit • ↑/↓ switch fields • Ctrl+I import recording index • Enter next • Esc back'),
+      importBusy ? React.createElement(Text, { color: '#ffcc66' }, 'Importing recording index…') : null,
       msg ? React.createElement(Text, { color: '#ffcc66' }, msg) : null,
     );
   }

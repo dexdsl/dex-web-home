@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { sanitizePastedInputChunk } from './lib/input-guard.mjs';
+import { extractGoogleSheetsUrlFromChunk, isPlainEscapeKey, sanitizePastedInputChunk } from './lib/input-guard.mjs';
 import { applyKeyToInputState } from './ui/init-wizard.mjs';
 
 assert.equal(sanitizePastedInputChunk('hello', { allowMultiline: false }), 'hello');
@@ -9,6 +9,16 @@ assert.equal(sanitizePastedInputChunk('\x1b[200~hello\nworld\x1b[201~', { allowM
 assert.equal(sanitizePastedInputChunk('\x1b[31mhello\x1b[0m', { allowMultiline: false }), 'hello');
 assert.equal(sanitizePastedInputChunk('A\tB', { allowMultiline: false }), 'A B');
 assert.equal(sanitizePastedInputChunk('A\tB', { allowMultiline: true }), 'A\tB');
+assert.equal(isPlainEscapeKey('\x1b', { escape: true }), true);
+assert.equal(isPlainEscapeKey('\x1b[200~https://docs.google.com\x1b[201~', { escape: true }), false);
+assert.equal(
+  extractGoogleSheetsUrlFromChunk('\x1b[200~https://docs.google.com/spreadsheets/d/abc123/edit?gid=0#gid=0\x1b[201~'),
+  'https://docs.google.com/spreadsheets/d/abc123/edit?gid=0#gid=0',
+);
+assert.equal(
+  extractGoogleSheetsUrlFromChunk('docs.google.com/spreadsheets/d/abc123'),
+  'https://docs.google.com/spreadsheets/d/abc123',
+);
 
 {
   const next = applyKeyToInputState({ value: 'hello', cursor: 5 }, '\x7f', {});

@@ -17,6 +17,32 @@ export async function readEntryFolder(slug, { entriesDir = './entries' } = {}) {
   const indexPath = path.join(folder, 'index.html');
 
   const entry = JSON.parse(await fs.readFile(entryPath, 'utf8'));
+  if (entry?.sidebarPageConfig && typeof entry.sidebarPageConfig === 'object') {
+    if (!entry.sidebarPageConfig.downloads || typeof entry.sidebarPageConfig.downloads !== 'object') {
+      entry.sidebarPageConfig.downloads = {};
+    }
+    const legacyRecordingIndexPdfRef = String(entry.sidebarPageConfig.recordingIndexPdfRef || '').trim();
+    if (legacyRecordingIndexPdfRef && !String(entry.sidebarPageConfig.downloads.recordingIndexPdfRef || '').trim()) {
+      entry.sidebarPageConfig.downloads.recordingIndexPdfRef = legacyRecordingIndexPdfRef;
+    }
+    const legacyRecordingIndexBundleRef = String(entry.sidebarPageConfig.recordingIndexBundleRef || '').trim();
+    if (legacyRecordingIndexBundleRef && !String(entry.sidebarPageConfig.downloads.recordingIndexBundleRef || '').trim()) {
+      entry.sidebarPageConfig.downloads.recordingIndexBundleRef = legacyRecordingIndexBundleRef;
+    }
+    const legacyRecordingIndexSourceUrl = String(entry.sidebarPageConfig.recordingIndexSourceUrl || '').trim();
+    if (legacyRecordingIndexSourceUrl && !String(entry.sidebarPageConfig.downloads.recordingIndexSourceUrl || '').trim()) {
+      entry.sidebarPageConfig.downloads.recordingIndexSourceUrl = legacyRecordingIndexSourceUrl;
+    }
+    if ('recordingIndexPdfRef' in entry.sidebarPageConfig) {
+      delete entry.sidebarPageConfig.recordingIndexPdfRef;
+    }
+    if ('recordingIndexBundleRef' in entry.sidebarPageConfig) {
+      delete entry.sidebarPageConfig.recordingIndexBundleRef;
+    }
+    if ('recordingIndexSourceUrl' in entry.sidebarPageConfig) {
+      delete entry.sidebarPageConfig.recordingIndexSourceUrl;
+    }
+  }
   let descriptionText = '';
   try {
     descriptionText = await fs.readFile(descPath, 'utf8');
@@ -64,6 +90,30 @@ export async function writeEntryFolder(slug, data, { entriesDir = './entries' } 
     : null;
 
   if (entryToWrite) {
+    if (!entryToWrite.sidebarPageConfig.downloads || typeof entryToWrite.sidebarPageConfig.downloads !== 'object') {
+      entryToWrite.sidebarPageConfig.downloads = {};
+    }
+    const legacyRecordingIndexPdfRef = String(entryToWrite.sidebarPageConfig.recordingIndexPdfRef || '').trim();
+    if (legacyRecordingIndexPdfRef && !String(entryToWrite.sidebarPageConfig.downloads.recordingIndexPdfRef || '').trim()) {
+      entryToWrite.sidebarPageConfig.downloads.recordingIndexPdfRef = legacyRecordingIndexPdfRef;
+    }
+    const legacyRecordingIndexBundleRef = String(entryToWrite.sidebarPageConfig.recordingIndexBundleRef || '').trim();
+    if (legacyRecordingIndexBundleRef && !String(entryToWrite.sidebarPageConfig.downloads.recordingIndexBundleRef || '').trim()) {
+      entryToWrite.sidebarPageConfig.downloads.recordingIndexBundleRef = legacyRecordingIndexBundleRef;
+    }
+    const legacyRecordingIndexSourceUrl = String(entryToWrite.sidebarPageConfig.recordingIndexSourceUrl || '').trim();
+    if (legacyRecordingIndexSourceUrl && !String(entryToWrite.sidebarPageConfig.downloads.recordingIndexSourceUrl || '').trim()) {
+      entryToWrite.sidebarPageConfig.downloads.recordingIndexSourceUrl = legacyRecordingIndexSourceUrl;
+    }
+    if ('recordingIndexPdfRef' in entryToWrite.sidebarPageConfig) {
+      delete entryToWrite.sidebarPageConfig.recordingIndexPdfRef;
+    }
+    if ('recordingIndexBundleRef' in entryToWrite.sidebarPageConfig) {
+      delete entryToWrite.sidebarPageConfig.recordingIndexBundleRef;
+    }
+    if ('recordingIndexSourceUrl' in entryToWrite.sidebarPageConfig) {
+      delete entryToWrite.sidebarPageConfig.recordingIndexSourceUrl;
+    }
     const file = path.join(folder, 'entry.json');
     await fs.writeFile(file, `${JSON.stringify(entryToWrite, null, 2)}
 `, 'utf8');

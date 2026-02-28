@@ -12,8 +12,29 @@ async function main() {
   await fs.mkdir(dataDir, { recursive: true });
   await fs.mkdir(path.join(entriesDir, 'valid'), { recursive: true });
   await fs.mkdir(path.join(entriesDir, 'invalid'), { recursive: true });
+  await fs.mkdir(path.join(entriesDir, 'missing-rec'), { recursive: true });
 
   const validHtml = `<!doctype html><html><head>
+  <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
+  <script defer src="/assets/dex-auth0-config.js"></script>
+  <script defer src="/assets/dex-auth.js"></script>
+  </head><body>
+  <div id="scroll-gradient-bg"></div>
+  <div id="gooey-mesh-wrapper"></div>
+  <div class="dex-breadcrumb"></div>
+  <script id="dex-sidebar-config" type="application/json">{ "downloads": {} }</script>
+  <script id="dex-sidebar-page-config" type="application/json">{ "downloads": { "recordingIndexPdfRef": "asset:rec-pdf-1", "recordingIndexBundleRef": "bundle:recording-index:SUB01-P.Dru Un AV2026:all", "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/example/edit?gid=0#gid=0" } }</script>
+  <script id="dex-manifest" type="application/json">{ "audio": { "A": { "wav": "lookup:A.01" } }, "video": {} }</script>
+  </body></html>`;
+
+  const invalidHtml = `<!doctype html><html><head>
+  <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
+  </head><body>
+  <script id="dex-manifest" type="application/json">{ "audio": { "A": { "wav": "1AbcDEfGhIJkLmNopqR" } } }</script>
+  <script id="dex-sidebar-config" type="application/json">{ "downloads": { "driveBase": "https://drive.google.com/drive/u/0/folders" } }</script>
+  </body></html>`;
+
+  const missingRecordingHtml = `<!doctype html><html><head>
   <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
   <script defer src="/assets/dex-auth0-config.js"></script>
   <script defer src="/assets/dex-auth.js"></script>
@@ -26,15 +47,9 @@ async function main() {
   <script id="dex-manifest" type="application/json">{ "audio": { "A": { "wav": "lookup:A.01" } }, "video": {} }</script>
   </body></html>`;
 
-  const invalidHtml = `<!doctype html><html><head>
-  <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
-  </head><body>
-  <script id="dex-manifest" type="application/json">{ "audio": { "A": { "wav": "1AbcDEfGhIJkLmNopqR" } } }</script>
-  <script id="dex-sidebar-config" type="application/json">{ "downloads": { "driveBase": "https://drive.google.com/drive/u/0/folders" } }</script>
-  </body></html>`;
-
   await fs.writeFile(path.join(entriesDir, 'valid', 'index.html'), validHtml, 'utf8');
   await fs.writeFile(path.join(entriesDir, 'invalid', 'index.html'), invalidHtml, 'utf8');
+  await fs.writeFile(path.join(entriesDir, 'missing-rec', 'index.html'), missingRecordingHtml, 'utf8');
 
   await fs.writeFile(path.join(dataDir, 'catalog.entries.json'), JSON.stringify({
     entries: [
@@ -52,6 +67,14 @@ async function main() {
         lookup_raw: 'SUB02-P.Dru Un AV2026',
         season: 'S2',
         performer_raw: 'Catalog Only',
+        instrument_labels: ['Drumkit'],
+      },
+      {
+        id: 'missing-rec',
+        entry_href: '/entry/missing-rec/',
+        lookup_raw: 'SUB03-P.Dru Un AV2026',
+        season: 'S2',
+        performer_raw: 'Missing Recording PDF',
         instrument_labels: ['Drumkit'],
       },
     ],
@@ -73,7 +96,7 @@ async function main() {
     lookups: [
       {
         lookupNumber: 'SUB01-P.Dru Un AV2026',
-        status: 'pending',
+        status: 'active',
         season: 'S2',
         files: [
           {
@@ -82,6 +105,38 @@ async function main() {
             bucket: 'A',
             r2Key: 'sub01/a1.wav',
             driveFileId: '1AbCdEfGhIjKlMnOpQrStUvWxYz',
+            position: 1,
+          },
+          {
+            bucketNumber: 'X.1',
+            fileId: 'rec-pdf-1',
+            bucket: 'X',
+            r2Key: 'sub01/recording-index.pdf',
+            mime: 'application/pdf',
+            driveFileId: '1ZZZdEfGhIjKlMnOpQrStUvWxYz',
+            position: 2,
+          },
+        ],
+        entitlements: [{ type: 'public', value: 'true' }],
+        recordingIndex: {
+          sheetUrl: 'https://docs.google.com/spreadsheets/d/example/edit?gid=0#gid=0',
+          sheetId: 'example',
+          gid: '0',
+          pdfAssetId: 'rec-pdf-1',
+          bundleAllToken: 'bundle:recording-index:SUB01-P.Dru Un AV2026:all',
+        },
+      },
+      {
+        lookupNumber: 'SUB03-P.Dru Un AV2026',
+        status: 'active',
+        season: 'S2',
+        files: [
+          {
+            bucketNumber: 'A.2',
+            fileId: 'A.2',
+            bucket: 'A',
+            r2Key: 'sub03/a2.wav',
+            driveFileId: '1MNZdEfGhIjKlMnOpQrStUvWxYz',
             position: 1,
           },
         ],
@@ -102,10 +157,16 @@ async function main() {
 
   const valid = result.reports.find((row) => row.slug === 'valid');
   const invalid = result.reports.find((row) => row.slug === 'invalid');
+  const missingRecording = result.reports.find((row) => row.slug === 'missing-rec');
   assert(valid && valid.ok, 'valid entry should pass audit');
   assert(invalid && !invalid.ok, 'invalid entry should fail audit');
+  assert(missingRecording && !missingRecording.ok, 'missing-rec entry should fail audit');
   assert(invalid.issues.some((issue) => issue.includes('unsupported token')), 'invalid entry should report unsupported token');
   assert(invalid.issues.some((issue) => issue.includes('driveBase')), 'invalid entry should report driveBase');
+  assert(
+    missingRecording.issues.some((issue) => issue.includes('recording index pdf token is required')),
+    'missing-rec entry should report missing recording index requirement',
+  );
   const inventoryRows = result.inventory.rows;
   const validInventory = inventoryRows.find((row) => row.entryId === 'valid');
   const catalogOnlyInventory = inventoryRows.find((row) => row.entryId === 'catalog-only');
@@ -113,8 +174,13 @@ async function main() {
   assert(catalogOnlyInventory, 'catalog-only inventory row should exist');
   assert.equal(validInventory.state, 'linked', 'valid should be linked because entry page and catalog row exist');
   assert.equal(catalogOnlyInventory.state, 'catalog-only', 'catalog-only row should be catalog-only');
-  assert.deepEqual(validInventory.assets.buckets, ['A.1'], 'valid row should include mapped bucket');
-  assert.equal(validInventory.assets.fileIds[0], 'A.1', 'valid row should include mapped file id');
+  assert.deepEqual(validInventory.assets.buckets, ['A.1', 'X.1'], 'valid row should include mapped buckets');
+  assert.deepEqual(validInventory.assets.fileIds, ['A.1', 'rec-pdf-1'], 'valid row should include mapped file ids');
+  assert.equal(validInventory.recordingIndex.pdfValid, true, 'valid row should keep recording pdf token');
+  assert.equal(validInventory.recordingIndex.bundleValid, true, 'valid row should keep recording bundle token');
+  assert.equal(validInventory.recordingIndex.resolved, true, 'valid row should resolve recording token');
+  assert.equal(validInventory.recordingIndex.pdfLike, true, 'valid row recording asset should be pdf-like');
+  assert.equal(validInventory.recordingIndex.bundleResolved, true, 'valid row should resolve recording bundle token');
   console.log('test-entry-runtime-audit passed');
 }
 

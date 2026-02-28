@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assertAssetReferenceTokenKinds } from './asset-ref.mjs';
 
 export const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 export const ALL_BUCKETS = BUCKETS;
@@ -60,6 +61,38 @@ export const sidebarConfigSchema = z.object({
     staticSizes: z.object({ A: z.string().default(''), B: z.string().default(''), C: z.string().default(''), D: z.string().default(''), E: z.string().default(''), X: z.string().default('') }),
   }),
   metadata: z.object({ sampleLength: z.string().default(''), tags: z.array(z.string()).default([]) }),
+  downloads: z.object({
+    recordingIndexPdfRef: z.string().trim().min(1).refine((value) => {
+      try {
+        assertAssetReferenceTokenKinds(value, ['lookup', 'asset'], 'sidebarPageConfig.downloads.recordingIndexPdfRef');
+        return true;
+      } catch {
+        return false;
+      }
+    }, {
+      message: 'recordingIndexPdfRef must be lookup: or asset: token',
+    }).optional(),
+    recordingIndexBundleRef: z.string().trim().min(1).refine((value) => {
+      try {
+        assertAssetReferenceTokenKinds(value, ['bundle'], 'sidebarPageConfig.downloads.recordingIndexBundleRef');
+        return true;
+      } catch {
+        return false;
+      }
+    }, {
+      message: 'recordingIndexBundleRef must be bundle: token',
+    }).optional(),
+    recordingIndexSourceUrl: z.string().trim().min(1).refine((value) => {
+      try {
+        const parsed = new URL(value);
+        return /^https?:$/i.test(parsed.protocol);
+      } catch {
+        return false;
+      }
+    }, {
+      message: 'recordingIndexSourceUrl must be an http(s) URL',
+    }).optional(),
+  }).optional(),
 });
 
 export const entrySchema = z.object({

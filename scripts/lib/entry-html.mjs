@@ -1,3 +1,5 @@
+import { assertAssetReferenceTokenKinds } from './asset-ref.mjs';
+
 const MARKERS = {
   title: ['DEX:TITLE_START', 'DEX:TITLE_END'],
   video: ['DEX:VIDEO_START', 'DEX:VIDEO_END'],
@@ -690,6 +692,67 @@ function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
     ...sidebarConfig,
     credits: compileSidebarCredits(sidebarConfig?.credits || {}),
   };
+  if (!compiled.downloads || typeof compiled.downloads !== 'object') {
+    compiled.downloads = {};
+  }
+  const legacyRecordingIndexPdfRef = String(compiled.recordingIndexPdfRef || '').trim();
+  if (legacyRecordingIndexPdfRef && !String(compiled.downloads.recordingIndexPdfRef || '').trim()) {
+    compiled.downloads.recordingIndexPdfRef = legacyRecordingIndexPdfRef;
+  }
+  const legacyRecordingIndexBundleRef = String(compiled.recordingIndexBundleRef || '').trim();
+  if (legacyRecordingIndexBundleRef && !String(compiled.downloads.recordingIndexBundleRef || '').trim()) {
+    compiled.downloads.recordingIndexBundleRef = legacyRecordingIndexBundleRef;
+  }
+  const legacyRecordingIndexSourceUrl = String(compiled.recordingIndexSourceUrl || '').trim();
+  if (legacyRecordingIndexSourceUrl && !String(compiled.downloads.recordingIndexSourceUrl || '').trim()) {
+    compiled.downloads.recordingIndexSourceUrl = legacyRecordingIndexSourceUrl;
+  }
+  if ('recordingIndexPdfRef' in compiled) {
+    delete compiled.recordingIndexPdfRef;
+  }
+  if ('recordingIndexBundleRef' in compiled) {
+    delete compiled.recordingIndexBundleRef;
+  }
+  if ('recordingIndexSourceUrl' in compiled) {
+    delete compiled.recordingIndexSourceUrl;
+  }
+  const recordingIndexPdfRef = String(compiled.downloads.recordingIndexPdfRef || '').trim();
+  if (recordingIndexPdfRef) {
+    assertAssetReferenceTokenKinds(
+      recordingIndexPdfRef,
+      ['lookup', 'asset'],
+      'sidebarPageConfig.downloads.recordingIndexPdfRef',
+    );
+    compiled.downloads.recordingIndexPdfRef = recordingIndexPdfRef;
+  } else if ('recordingIndexPdfRef' in compiled.downloads) {
+    delete compiled.downloads.recordingIndexPdfRef;
+  }
+  const recordingIndexBundleRef = String(compiled.downloads.recordingIndexBundleRef || '').trim();
+  if (recordingIndexBundleRef) {
+    assertAssetReferenceTokenKinds(
+      recordingIndexBundleRef,
+      ['bundle'],
+      'sidebarPageConfig.downloads.recordingIndexBundleRef',
+    );
+    compiled.downloads.recordingIndexBundleRef = recordingIndexBundleRef;
+  } else if ('recordingIndexBundleRef' in compiled.downloads) {
+    delete compiled.downloads.recordingIndexBundleRef;
+  }
+  const recordingIndexSourceUrl = String(compiled.downloads.recordingIndexSourceUrl || '').trim();
+  if (recordingIndexSourceUrl) {
+    let parsedSource;
+    try {
+      parsedSource = new URL(recordingIndexSourceUrl);
+    } catch {
+      throw new Error('sidebarPageConfig.downloads.recordingIndexSourceUrl must be a valid http(s) URL');
+    }
+    if (!/^https?:$/i.test(parsedSource.protocol)) {
+      throw new Error('sidebarPageConfig.downloads.recordingIndexSourceUrl must use http(s)');
+    }
+    compiled.downloads.recordingIndexSourceUrl = parsedSource.toString();
+  } else if ('recordingIndexSourceUrl' in compiled.downloads) {
+    delete compiled.downloads.recordingIndexSourceUrl;
+  }
   const globalJson = JSON.stringify(globalConfig, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);
   const manifestJson = JSON.stringify(manifest || {}, null, 2);

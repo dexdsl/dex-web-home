@@ -128,9 +128,26 @@
       return { kind, value: tokenValue, normalized: `lookup:${tokenValue}` };
     }
     if (kind === 'asset' || kind === 'bundle') {
-      if (!/^[A-Za-z0-9._:-]{3,160}$/.test(tokenValue)) return null;
+      const pattern = kind === 'bundle'
+        ? /^[A-Za-z0-9._:\- ]{3,240}$/
+        : /^[A-Za-z0-9._:-]{3,160}$/;
+      if (!pattern.test(tokenValue)) return null;
       return { kind, value: tokenValue, normalized: `${kind}:${tokenValue}` };
     }
+    return null;
+  };
+
+  const parseRecordingIndexPdfToken = (value) => {
+    const parsed = parseAssetRefToken(value);
+    if (!parsed) return null;
+    if (parsed.kind === 'lookup' || parsed.kind === 'asset') return parsed;
+    return null;
+  };
+
+  const parseRecordingIndexBundleToken = (value) => {
+    const parsed = parseAssetRefToken(value);
+    if (!parsed) return null;
+    if (parsed.kind === 'bundle') return parsed;
     return null;
   };
 
@@ -840,6 +857,65 @@
     });
   };
 
+  const attachRecordingIndex = (cfg, btnSel, context) => {
+    const btn = document.querySelector(btnSel);
+    if (!btn || btn.dataset.dexBound === '1') return;
+    btn.dataset.dexBound = '1';
+
+    const row = btn.closest('[data-dx-recording-index-row]');
+    const pdfTokenRaw = String(cfg?.downloads?.recordingIndexPdfRef || '').trim();
+    const bundleTokenRaw = String(cfg?.downloads?.recordingIndexBundleRef || '').trim();
+    const parsedPdfToken = parseRecordingIndexPdfToken(pdfTokenRaw);
+    const parsedBundleToken = parseRecordingIndexBundleToken(bundleTokenRaw);
+
+    if (!row) return;
+    row.setAttribute('data-dx-download-kind', 'recording-index-pdf');
+    row.setAttribute('data-dx-download-state', 'idle');
+
+    if (!parsedPdfToken || !parsedBundleToken) {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+      setDownloadState(row, 'not-found', 'Recording index bundle unavailable.');
+      return;
+    }
+
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+    setDownloadState(row, 'idle', '');
+    btn.addEventListener('click', async () => {
+      setDownloadState(row, 'resolving', 'Resolving secure download…');
+      btn.disabled = true;
+      try {
+        const tokens = [];
+        if (parsedPdfToken?.normalized) tokens.push(parsedPdfToken.normalized);
+        if (parsedBundleToken?.normalized && !tokens.includes(parsedBundleToken.normalized)) {
+          tokens.push(parsedBundleToken.normalized);
+        }
+        const result = await requestBundleDownload({
+          lookup: context?.lookup,
+          tokens,
+          onQueuedTick: () => {
+            setDownloadState(row, 'queued', 'Preparing bundle…');
+          },
+        });
+        setDownloadState(row, 'ready', 'Ready. Opening download…');
+        openSignedUrl(result?.signedUrl);
+        window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
+      } catch (error) {
+        const code = String(error?.code || '').toLowerCase();
+        if (code === 'forbidden') {
+          setDownloadState(row, 'forbidden', 'Access denied (403).');
+        } else if (code === 'not-found') {
+          setDownloadState(row, 'not-found', 'Download not found (404).');
+        } else {
+          setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  };
+
   const initPersonPins = () => {
     document.querySelectorAll('[data-person]').forEach((holder) => {
       if (holder.dataset.dexPinBound === '1') return;
@@ -920,7 +996,7 @@
   const installSidebarInteractiveMotion = () => {
     if (prefersReducedMotion()) return;
     const nodes = Array.from(
-      document.querySelectorAll('.dex-sidebar section, .dex-sidebar .license-btn, .dex-sidebar #downloads .btn-audio, .dex-sidebar #downloads .btn-video'),
+      document.querySelectorAll('.dex-sidebar section, .dex-sidebar .license-btn, .dex-sidebar #downloads .btn-audio, .dex-sidebar #downloads .btn-video, .dex-sidebar #downloads .btn-recording-index'),
     );
     nodes.forEach((node) => {
       if (node.dataset.dexMotionBound === '1') return;
@@ -995,6 +1071,21 @@
           audio: Array.isArray(globalCfg?.downloads?.formats?.audio) ? globalCfg.downloads.formats.audio : [],
           video: Array.isArray(globalCfg?.downloads?.formats?.video) ? globalCfg.downloads.formats.video : [],
         },
+        recordingIndexPdfRef: String(
+          page?.downloads?.recordingIndexPdfRef
+          || page?.recordingIndexPdfRef
+          || '',
+        ).trim(),
+        recordingIndexBundleRef: String(
+          page?.downloads?.recordingIndexBundleRef
+          || page?.recordingIndexBundleRef
+          || '',
+        ).trim(),
+        recordingIndexSourceUrl: String(
+          page?.downloads?.recordingIndexSourceUrl
+          || page?.recordingIndexSourceUrl
+          || '',
+        ).trim(),
         audioFileIds: manifest.audio || {},
         videoFileIds: manifest.video || {},
       },
@@ -1124,7 +1215,7 @@
       </div>
     `);
 
-    render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button>`, true);
+    render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${randomizeTitle('Recording Index PDF')}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
     render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
     render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
 
@@ -1178,6 +1269,7 @@
 
     attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
     attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });
+    attachRecordingIndex(cfg, '#downloads .btn-recording-index', { lookup, entryHref, favoritesApi });
     initPersonPins();
     installSidebarRevealMotion();
     installSidebarInteractiveMotion();

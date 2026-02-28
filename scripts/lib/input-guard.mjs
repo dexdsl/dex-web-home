@@ -9,6 +9,12 @@ export function isBackspaceKey(input, key = {}) {
   return !!(key.backspace || input === '\x7f' || input === '\b' || input === '\x08');
 }
 
+export function isPlainEscapeKey(input, key = {}) {
+  if (!key.escape) return false;
+  if (typeof input !== 'string') return true;
+  return input === '' || input === '\x1b';
+}
+
 function stripAnsiSequences(value) {
   const source = String(value || '');
   return source
@@ -48,4 +54,17 @@ export function sanitizePastedInputChunk(input, { allowMultiline = false } = {})
   return allowMultiline
     ? out
     : out.replace(/[ \t]+/g, ' ');
+}
+
+export function extractGoogleSheetsUrlFromChunk(input) {
+  const normalized = sanitizePastedInputChunk(input, { allowMultiline: true });
+  if (!normalized) return '';
+  const match = normalized.match(
+    /(?:https?:\/\/)?docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+(?:\/[^\s]*)?(?:\?[^\s]*)?(?:#[^\s]*)?/i,
+  );
+  if (!match) return '';
+  const candidate = String(match[0] || '').replace(/[),.;]+$/g, '').trim();
+  if (!candidate) return '';
+  if (/^https?:\/\//i.test(candidate)) return candidate;
+  return `https://${candidate}`;
 }

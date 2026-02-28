@@ -117,6 +117,7 @@
     "test:dex-notes-cli": "node scripts/test-dex-notes-cli.mjs",
     "test:protected-assets": "node scripts/test-protected-assets-schema.mjs",
     "test:asset-ref": "node scripts/test-asset-ref.mjs",
+    "test:recording-index-token": "node scripts/test-recording-index-token.mjs",
     "test:messages-notifications": "playwright test tests/messages-notifications-inbox.spec.ts",
     "test:submission-tracker": "playwright test tests/submission-tracker-timeline.spec.ts",
     "test:submission-lookup": "playwright test tests/submission-lookup-lifecycle.spec.ts",
@@ -131,7 +132,7 @@
     "test:auth0": "playwright test tests/auth0-spa-loaded.spec.ts",
     "test:auth-protected-refresh": "playwright test tests/auth-protected-refresh.spec.ts",
     "test:visual": "playwright test tests/visual.spec.ts",
-    "sanitize:all": "npm run vendor:auth0 && npm run phase1:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual",
+    "sanitize:all": "npm run vendor:auth0 && npm run phase1:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:recording-index-token && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual",
     "phase2:inventory": "node scripts/style_inventory.mjs",
     "phase2:states": "node scripts/style_states.mjs",
     "phase2:tokens": "node scripts/tokenize_inventory.mjs",
@@ -140,7 +141,7 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:settings-membership-ui && npm run verify:catalog-editorial && npm run verify:catalog-seasons && npm run verify:home-featured && npm run verify:entry-catalog-linkage && npm run verify:entry-runtime-readiness && npm run verify:protected-assets && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
+    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:settings-membership-ui && npm run verify:catalog-editorial && npm run verify:catalog-seasons && npm run verify:home-featured && npm run verify:entry-catalog-linkage && npm run verify:entry-runtime-readiness && npm run verify:protected-assets && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:recording-index-token && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
   },
   "bin": {
     "dex": "scripts/dex.mjs"
@@ -165,6 +166,7 @@
     "prompts": "^2.4.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   }
 }

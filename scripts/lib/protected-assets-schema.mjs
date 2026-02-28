@@ -12,6 +12,7 @@ const BUCKET_NUMBER_PATTERN = /^([A-Z])\.([0-9]{1,6})$/;
 const DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]{10,}$/;
 const SEASON_PATTERN = /^S\d+$/i;
 const STATUS_VALUES = new Set([
+  'draft',
   'submitted',
   'pending',
   'reviewing',
@@ -42,6 +43,16 @@ const entitlementSchema = z.object({
   value: z.string().trim().min(1).max(240),
 });
 
+const recordingIndexSchema = z.object({
+  sheetUrl: z.string().trim().min(1).max(1024),
+  sheetId: z.string().trim().min(1).max(160),
+  gid: z.string().trim().min(1).max(32),
+  pdfAssetId: z.string().trim().min(1).max(160),
+  bundleAllToken: z.string().trim().min(1).max(240),
+  rootFolderUrl: z.string().trim().max(1024).optional(),
+  bucketFolderUrls: z.record(z.string().trim().max(1024)).optional(),
+});
+
 const exemptionSchema = z.object({
   lookupNumber: z.string().trim().min(1).max(120),
   downloadsMode: z.literal('none'),
@@ -67,6 +78,7 @@ const lookupSchema = z.object({
   season: z.string().trim().max(32).optional(),
   files: z.array(fileSchema).min(1),
   entitlements: z.array(entitlementSchema).min(1),
+  recordingIndex: recordingIndexSchema.optional(),
 });
 
 const protectedAssetsSchema = z.object({
@@ -202,6 +214,92 @@ function normalizeEntitlements(entitlements, lookupNumber) {
   return out;
 }
 
+function normalizeRecordingIndex(recordingIndex, files, lookupNumber) {
+  if (!recordingIndex) return null;
+  const parsed = recordingIndexSchema.parse(recordingIndex);
+  const sheetUrl = normalizeText(parsed.sheetUrl);
+  const sheetId = normalizeText(parsed.sheetId);
+  const gid = normalizeText(parsed.gid);
+  const pdfAssetId = normalizeText(parsed.pdfAssetId);
+  const bundleAllToken = normalizeText(parsed.bundleAllToken);
+  const rootFolderUrl = normalizeText(parsed.rootFolderUrl);
+  const bucketFolderUrls = parsed.bucketFolderUrls && typeof parsed.bucketFolderUrls === 'object'
+    ? parsed.bucketFolderUrls
+    : {};
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(sheetUrl);
+  } catch {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.sheetUrl is invalid`);
+  }
+  if (!/google\.com$/i.test(parsedUrl.hostname)) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.sheetUrl must be a Google URL`);
+  }
+  if (!sheetId) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.sheetId is required`);
+  }
+  if (!gid) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.gid is required`);
+  }
+  if (!pdfAssetId) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.pdfAssetId is required`);
+  }
+  if (!bundleAllToken || !/^bundle:/i.test(bundleAllToken)) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.bundleAllToken must start with bundle:`);
+  }
+  if (rootFolderUrl) {
+    let parsedRoot;
+    try {
+      parsedRoot = new URL(rootFolderUrl);
+    } catch {
+      throw new Error(`Lookup ${lookupNumber}: recordingIndex.rootFolderUrl is invalid`);
+    }
+    if (!/^https?:$/i.test(parsedRoot.protocol)) {
+      throw new Error(`Lookup ${lookupNumber}: recordingIndex.rootFolderUrl must use http(s)`);
+    }
+  }
+  const normalizedBucketFolderUrls = {};
+  for (const [bucketRaw, urlRaw] of Object.entries(bucketFolderUrls || {})) {
+    const bucket = normalizeText(bucketRaw).toUpperCase();
+    if (!bucket) continue;
+    if (!BUCKETS.includes(bucket)) {
+      throw new Error(`Lookup ${lookupNumber}: recordingIndex.bucketFolderUrls has unsupported bucket ${bucket}`);
+    }
+    const url = normalizeText(urlRaw);
+    if (!url) continue;
+    let parsedBucketUrl;
+    try {
+      parsedBucketUrl = new URL(url);
+    } catch {
+      throw new Error(`Lookup ${lookupNumber}: recordingIndex.bucketFolderUrls.${bucket} is invalid`);
+    }
+    if (!/^https?:$/i.test(parsedBucketUrl.protocol)) {
+      throw new Error(`Lookup ${lookupNumber}: recordingIndex.bucketFolderUrls.${bucket} must use http(s)`);
+    }
+    normalizedBucketFolderUrls[bucket] = parsedBucketUrl.toString();
+  }
+  const pdfFile = (files || []).find((file) => normalizeText(file.fileId).toLowerCase() === pdfAssetId.toLowerCase());
+  if (!pdfFile) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.pdfAssetId does not match any fileId (${pdfAssetId})`);
+  }
+  const mime = normalizeText(pdfFile.mime).toLowerCase();
+  const r2Key = normalizeText(pdfFile.r2Key).toLowerCase();
+  if (!mime.includes('pdf') && !r2Key.endsWith('.pdf')) {
+    throw new Error(`Lookup ${lookupNumber}: recordingIndex.pdfAssetId must resolve to a PDF-like file`);
+  }
+
+  return {
+    sheetUrl: parsedUrl.toString(),
+    sheetId,
+    gid,
+    pdfAssetId,
+    bundleAllToken,
+    rootFolderUrl,
+    bucketFolderUrls: normalizedBucketFolderUrls,
+  };
+}
+
 function normalizeLookup(entry, allowedBuckets) {
   const parsed = lookupSchema.parse(entry);
   const lookupNumber = normalizeLookupNumber(parsed.lookupNumber);
@@ -240,6 +338,8 @@ function normalizeLookup(entry, allowedBuckets) {
     return a.bucketNumber.localeCompare(b.bucketNumber);
   });
 
+  const recordingIndex = normalizeRecordingIndex(parsed.recordingIndex, files, lookupNumber);
+
   return {
     lookupNumber,
     title: normalizeText(parsed.title) || 'Untitled asset lookup',
@@ -247,6 +347,7 @@ function normalizeLookup(entry, allowedBuckets) {
     season: normalizeSeason(parsed.season),
     files,
     entitlements: normalizeEntitlements(parsed.entitlements, lookupNumber),
+    ...(recordingIndex ? { recordingIndex } : {}),
   };
 }
 

@@ -11,6 +11,7 @@ const valid = [
   'lookup:X.Gtr. Ch AV2024 S1',
   'asset:file_A.01',
   'bundle:starter_pack_v1',
+  'bundle:recording-index:SUB01-P.Dru Un AV2026:all',
 ];
 
 for (const token of valid) {
@@ -41,4 +42,3 @@ for (const token of invalid) {
 }
 
 console.log('test-asset-ref passed');
-

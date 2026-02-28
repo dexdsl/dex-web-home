@@ -82,3 +82,20 @@ CREATE TABLE IF NOT EXISTS bundle_job (
 - Frontend must request by lookup/bucket number only.
 - Do not expose raw Drive IDs or private R2 keys in public HTML/runtime payloads.
 - Entitlement checks must happen server-side before file metadata or bundle URLs are returned.
+
+## Recording Index PDF convention
+
+- Each active linked entry should map one recording-index PDF in `asset_file` under the same `lookup_number`.
+- Lookup rows may include optional `recordingIndex` metadata in `data/protected.assets.json`:
+  - `sheetUrl`
+  - `sheetId`
+  - `gid`
+  - `pdfAssetId`
+  - `bundleAllToken`
+- Entry config stores only token references:
+  - `recordingIndexPdfRef`: `lookup:<Bucket.Number>` or `asset:<file_id>`
+  - `recordingIndexBundleRef`: `bundle:recording-index:<lookup>:all`
+- Runtime recording-index download should request both refs so bundle output includes:
+  - the recording-index PDF
+  - imported per-file recording segments for the lookup
+- Set `mime` to `application/pdf` (or ensure `r2_key` ends with `.pdf`) so readiness audits can verify PDF resolution deterministically.

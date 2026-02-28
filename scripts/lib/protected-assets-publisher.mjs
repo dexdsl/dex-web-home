@@ -144,6 +144,9 @@ export function buildProtectedAssetsPayload(input) {
       title: lookup.title,
       status: lookup.status,
       season: lookup.season,
+      recording_index_json: lookup.recordingIndex
+        ? JSON.stringify(lookup.recordingIndex)
+        : '',
       updated_at: updatedAt,
     })),
     keyLookup,
@@ -202,6 +205,107 @@ export function buildProtectedAssetsPayload(input) {
       files: files.length,
       entitlements: entitlements.length,
     },
+  };
+}
+
+function dedupeEntitlements(entitlements = []) {
+  const out = [];
+  const seen = new Set();
+  for (const entry of entitlements || []) {
+    const type = toText(entry?.type).toLowerCase();
+    const value = toText(entry?.value);
+    if (!type || !value) continue;
+    const key = `${type}:${value.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ type, value });
+  }
+  return out;
+}
+
+function normalizeImportFileRow(file, fallbackPosition = 1) {
+  return {
+    bucketNumber: toText(file?.bucketNumber || file?.bucket_number),
+    fileId: toText(file?.fileId || file?.file_id),
+    bucket: toText(file?.bucket).toUpperCase(),
+    r2Key: toText(file?.r2Key || file?.r2_key),
+    driveFileId: toText(file?.driveFileId || file?.drive_file_id),
+    sizeBytes: Number(file?.sizeBytes ?? file?.size_bytes ?? 0) || 0,
+    mime: toText(file?.mime),
+    position: Number(file?.position || fallbackPosition) || fallbackPosition,
+    label: toText(file?.label),
+  };
+}
+
+export async function upsertProtectedAssetsLookupMapping({
+  lookupNumber,
+  title = '',
+  status = 'draft',
+  season = '',
+  files = [],
+  entitlements = [],
+  recordingIndex = null,
+  filePath,
+} = {}) {
+  const normalizedLookup = toText(lookupNumber);
+  if (!normalizedLookup) {
+    throw new Error('upsertProtectedAssetsLookupMapping requires lookupNumber');
+  }
+
+  let source;
+  try {
+    source = await readProtectedAssetsFile(filePath);
+  } catch (error) {
+    if (String(error?.code || '') === 'ENOENT' || String(error?.message || '').includes('ENOENT')) {
+      source = {
+        filePath: getProtectedAssetsFilePath(filePath),
+        data: defaultProtectedAssetsData(),
+      };
+    } else {
+      throw error;
+    }
+  }
+
+  const next = {
+    ...source.data,
+    lookups: Array.isArray(source.data.lookups) ? [...source.data.lookups] : [],
+  };
+  const existingIndex = next.lookups.findIndex(
+    (entry) => toText(entry?.lookupNumber).toLowerCase() === normalizedLookup.toLowerCase(),
+  );
+  const existing = existingIndex >= 0 ? next.lookups[existingIndex] : null;
+  const mergedEntitlements = dedupeEntitlements(
+    entitlements.length ? entitlements : (existing?.entitlements || []),
+  );
+  const normalizedFiles = (files || []).map((file, index) => normalizeImportFileRow(file, index + 1));
+  if (!normalizedFiles.length && Array.isArray(existing?.files) && existing.files.length) {
+    normalizedFiles.push(...existing.files.map((file, index) => normalizeImportFileRow(file, index + 1)));
+  }
+
+  const mergedLookup = {
+    lookupNumber: normalizedLookup,
+    title: toText(title) || toText(existing?.title) || 'Untitled asset lookup',
+    status: toText(status) || toText(existing?.status) || 'draft',
+    season: toText(season) || toText(existing?.season) || '',
+    files: normalizedFiles,
+    entitlements: mergedEntitlements.length
+      ? mergedEntitlements
+      : [{ type: 'membership_tier', value: 'member' }],
+    ...(recordingIndex || existing?.recordingIndex ? { recordingIndex: recordingIndex || existing.recordingIndex } : {}),
+  };
+
+  if (existingIndex >= 0) {
+    next.lookups[existingIndex] = mergedLookup;
+  } else {
+    next.lookups.push(mergedLookup);
+  }
+
+  const written = await writeProtectedAssetsFile(next, source.filePath);
+  return {
+    filePath: written.filePath,
+    lookupNumber: normalizedLookup,
+    files: mergedLookup.files.length,
+    entitlements: mergedLookup.entitlements.length,
   };
 }
 

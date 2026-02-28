@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { verifySanitizedHtml } from './lib/sanitize-generated-html.mjs';
-import { isAssetReferenceToken } from './lib/asset-ref.mjs';
+import { isAssetReferenceToken, parseAssetReferenceTokenWithKinds } from './lib/asset-ref.mjs';
 
 const ENTRIES_DIR = path.resolve('entries');
 
@@ -20,6 +20,17 @@ async function walkEntryHtml(dir, out = []) {
 
 function toText(value) {
   return String(value || '').trim();
+}
+
+function extractJsonScriptById(html, id) {
+  const rx = new RegExp(`<script[^>]*id=["']${id}["'][^>]*>([\\s\\S]*?)<\\/script>`, 'i');
+  const match = String(html || '').match(rx);
+  if (!match) return { found: false, json: null, error: '' };
+  try {
+    return { found: true, json: JSON.parse(match[1]), error: '' };
+  } catch (error) {
+    return { found: true, json: null, error: String(error?.message || error || 'invalid json') };
+  }
 }
 
 async function readRuntimeExemptions() {
@@ -98,6 +109,68 @@ async function main() {
         runtimeIssues.push('invalid dex-manifest JSON');
       }
     }
+    const sidebarConfigNode = extractJsonScriptById(html, 'dex-sidebar-config');
+    if (sidebarConfigNode.found && sidebarConfigNode.error) {
+      runtimeIssues.push(`invalid dex-sidebar-config JSON (${sidebarConfigNode.error})`);
+    } else if (sidebarConfigNode.json) {
+      const driveBase = toText(sidebarConfigNode.json?.downloads?.driveBase);
+      if (driveBase) {
+        runtimeIssues.push('dex-sidebar-config must not include downloads.driveBase');
+      }
+    }
+
+    const sidebarPageNode = extractJsonScriptById(html, 'dex-sidebar-page-config');
+    if (sidebarPageNode.found && sidebarPageNode.error) {
+      runtimeIssues.push(`invalid dex-sidebar-page-config JSON (${sidebarPageNode.error})`);
+    } else if (sidebarPageNode.json) {
+      const recordingPdfToken = toText(
+        sidebarPageNode.json?.downloads?.recordingIndexPdfRef
+        || sidebarPageNode.json?.recordingIndexPdfRef
+        || '',
+      );
+      if (recordingPdfToken) {
+        try {
+          parseAssetReferenceTokenWithKinds(recordingPdfToken, {
+            allowedKinds: ['lookup', 'asset'],
+            context: 'sidebarPageConfig.downloads.recordingIndexPdfRef',
+          });
+        } catch (error) {
+          runtimeIssues.push(String(error?.message || error || 'invalid recording index pdf token'));
+        }
+      }
+      const recordingBundleToken = toText(
+        sidebarPageNode.json?.downloads?.recordingIndexBundleRef
+        || sidebarPageNode.json?.recordingIndexBundleRef
+        || '',
+      );
+      if (recordingBundleToken) {
+        try {
+          parseAssetReferenceTokenWithKinds(recordingBundleToken, {
+            allowedKinds: ['bundle'],
+            context: 'sidebarPageConfig.downloads.recordingIndexBundleRef',
+          });
+        } catch (error) {
+          runtimeIssues.push(String(error?.message || error || 'invalid recording index bundle token'));
+        }
+      }
+      const recordingSourceUrl = toText(
+        sidebarPageNode.json?.downloads?.recordingIndexSourceUrl
+        || sidebarPageNode.json?.recordingIndexSourceUrl
+        || '',
+      );
+      if (recordingSourceUrl) {
+        let parsedSource;
+        try {
+          parsedSource = new URL(recordingSourceUrl);
+        } catch {
+          parsedSource = null;
+        }
+        if (!parsedSource || !/^https?:$/i.test(parsedSource.protocol)) {
+          runtimeIssues.push('sidebarPageConfig.downloads.recordingIndexSourceUrl must be an http(s) URL');
+        }
+      }
+    }
+
     if (result.ok) {
       if (runtimeIssues.length === 0) {
         console.log(`PASS ${short}`);
