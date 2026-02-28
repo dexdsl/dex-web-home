@@ -277,7 +277,11 @@
 
   function isProfileProtectedPath(pathname) {
     const normalized = normalizeProfileRoutePath(pathname);
-    return PROFILE_PROTECTED_ROUTES.has(normalized);
+    if (PROFILE_PROTECTED_ROUTES.has(normalized)) return true;
+    if (document.body && document.body.classList && document.body.classList.contains('dex-entry-page')) return true;
+    if (/^\/entry\/[^/]+$/.test(normalized)) return true;
+    if (/^\/entries\/[^/]+$/.test(normalized)) return true;
+    return false;
   }
 
   function isProfileStandardChromePath(pathname) {
@@ -287,7 +291,11 @@
 
   function isProfileShowMeshPath(pathname) {
     const normalized = normalizeProfileRoutePath(pathname);
-    return PROFILE_SHOW_MESH_ROUTES.has(normalized);
+    if (PROFILE_SHOW_MESH_ROUTES.has(normalized)) return true;
+    if (document.body && document.body.classList && document.body.classList.contains('dex-entry-page')) return true;
+    if (/^\/entry\/[^/]+$/.test(normalized)) return true;
+    if (/^\/entries\/[^/]+$/.test(normalized)) return true;
+    return false;
   }
 
   function getProfileFooterSourceElement(root = document) {

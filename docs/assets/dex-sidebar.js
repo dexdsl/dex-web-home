@@ -21,6 +21,7 @@
   const ENTRY_RAIL_BREAKPOINT = 980;
   const COLLECTION_HEADING_CANONICAL = 'COLL\u200CECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
+  const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -140,6 +141,157 @@
       } catch {}
     }
     return window.location.origin;
+  };
+
+  const ensureProfileChromeRuntime = (origin) => {
+    if (!(document.body instanceof HTMLElement)) return;
+    document.body.classList.add('dx-route-profile-protected', 'dx-route-show-mesh');
+    document.body.classList.remove('dx-route-standard-chrome');
+    document.body.classList.remove('announcement-bar-reserved-space');
+    const scriptPath = '/assets/js/header-slot.js';
+    const existing = Array.from(document.querySelectorAll('script[src]')).find((script) => {
+      try {
+        const parsed = new URL(script.src, window.location.href);
+        return parsed.pathname === scriptPath;
+      } catch {
+        return false;
+      }
+    });
+    if (existing || window.__dxHeaderSlotLoaded) return;
+    const script = document.createElement('script');
+    script.defer = true;
+    script.src = new URL(scriptPath, origin || window.location.origin).toString();
+    document.head.appendChild(script);
+  };
+
+  const ensureEntryRuntimeLayoutOverrides = () => {
+    if (!(document.head instanceof HTMLElement)) return;
+    if (document.getElementById(ENTRY_RUNTIME_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = ENTRY_RUNTIME_STYLE_ID;
+    style.textContent = `
+      body.dx-entry-page .dex-entry-header {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      body.dx-entry-page .dex-entry-section .content-wrapper {
+        align-items: flex-start !important;
+      }
+
+      body.dx-entry-page .dex-entry-host .dx-code-container {
+        padding-top: clamp(12px, 1.5vw, 20px) !important;
+        padding-bottom: clamp(12px, 1.5vw, 20px) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header {
+        position: sticky !important;
+        top: var(--dx-entry-header-offset, 0px) !important;
+        z-index: 12 !important;
+        margin: 0 0 12px !important;
+        padding-bottom: 0 !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #siteWrapper,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #page,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #sections,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-host,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-host .dx-code-container {
+        max-height: none !important;
+        min-height: 0 !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
+        height: var(--dx-entry-rails-height, 62vh) !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+        height: var(--dx-entry-rails-height, 62vh) !important;
+        max-height: var(--dx-entry-rails-height, 62vh) !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        overscroll-behavior: contain !important;
+        scrollbar-gutter: stable !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+        padding-right: 10px !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
+        padding-right: clamp(14px, 1.4vw, 18px) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
+        position: static !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page #footer-sections {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+      }
+
+      body.dx-entry-page [data-dex-breadcrumb-path] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        fill: none !important;
+        stroke: currentColor !important;
+      }
+
+      body.dx-entry-page .dex-overview {
+        grid-template-columns: minmax(0, 2fr) minmax(84px, 0.8fr) !important;
+        align-items: start !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-item {
+        min-height: 0 !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-buckets-grid {
+        gap: 8px !important;
+        padding: 4px 0 !important;
+      }
+
+      body.dx-entry-page .dex-collections .dx-bucket-tile {
+        min-height: clamp(32px, 2.8vw, 40px) !important;
+        max-height: clamp(32px, 2.8vw, 40px) !important;
+        padding: clamp(4px, 0.6vw, 8px) !important;
+        border-radius: var(--dx-header-glass-radius, 10px) !important;
+      }
+
+      @media (max-width: 979px) {
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout,
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+          height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const parseCssPx = (value) => {
+    const num = Number.parseFloat(String(value || '').trim().replace(/px$/i, ''));
+    return Number.isFinite(num) ? num : 0;
   };
 
   const normalizeLocationPath = (pathname) => {
@@ -404,18 +556,21 @@
     const main = layout?.querySelector('.dex-entry-main');
     const sidebar = layout?.querySelector('.dex-sidebar');
     const header = document.querySelector('.dex-entry-header');
-    const footer = document.querySelector('.dex-footer');
+    const footer = document.querySelector('.dex-footer.dx-profile-footer-portaled, #footer-sections .dex-footer, .dex-footer');
     if (!(layout instanceof HTMLElement) || !(main instanceof HTMLElement) || !(sidebar instanceof HTMLElement) || !(header instanceof HTMLElement)) return;
 
     const desktop = window.innerWidth >= ENTRY_RAIL_BREAKPOINT;
     const root = document.documentElement;
     const globalHeader = document.querySelector('.header-announcement-bar-wrapper, #header, #siteHeader');
-    let headerOffset = 0;
-    if (globalHeader instanceof HTMLElement) {
+    const docStyle = window.getComputedStyle(document.documentElement);
+    const bodyStyle = window.getComputedStyle(document.body);
+    let headerOffset = parseCssPx(docStyle.getPropertyValue('--dx-fixed-header-top'))
+      + parseCssPx(docStyle.getPropertyValue('--dx-slot-content-offset'));
+    if (!headerOffset && globalHeader instanceof HTMLElement) {
       const style = window.getComputedStyle(globalHeader);
       if (style.position === 'fixed' || style.position === 'sticky') {
         const rect = globalHeader.getBoundingClientRect();
-        headerOffset = Math.max(0, Math.ceil(rect.bottom));
+        headerOffset = Math.min(120, Math.max(0, Math.ceil(rect.bottom + 8)));
       }
     }
     root.style.setProperty('--dx-entry-header-offset', `${headerOffset}px`);
@@ -425,7 +580,9 @@
       document.body.classList.remove('dx-entry-desktop-fixed');
       root.style.removeProperty('--dx-entry-rails-height');
       document.body.style.removeProperty('overflow');
+      main.style.height = '';
       main.style.maxHeight = '';
+      sidebar.style.height = '';
       sidebar.style.maxHeight = '';
       main.style.overflowY = '';
       sidebar.style.overflowY = '';
@@ -433,27 +590,32 @@
     }
 
     let bottomInset = 20;
+    const footerBottomVar = parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-bottom'));
+    const footerHeightVar = parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-height-effective'))
+      || parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-height'));
+    if (footerHeightVar > 0) {
+      bottomInset = Math.max(bottomInset, Math.ceil(footerBottomVar + footerHeightVar + 6));
+    }
     if (footer instanceof HTMLElement) {
       const footerRect = footer.getBoundingClientRect();
-      if (footerRect.top < window.innerHeight) {
-        bottomInset = Math.max(18, Math.ceil(window.innerHeight - footerRect.top) + 8);
-      } else {
-        bottomInset = Math.max(18, Math.ceil(footerRect.height) + 8);
-      }
+      if (footerRect.height > 0) bottomInset = Math.max(bottomInset, Math.ceil(footerRect.height + 10));
     }
 
-    const headerRect = header.getBoundingClientRect();
-    const available = Math.max(300, Math.floor(window.innerHeight - headerRect.bottom - bottomInset));
+    const layoutRect = layout.getBoundingClientRect();
+    const topInset = Math.max(0, Math.ceil(layoutRect.top));
+    const available = Math.max(280, Math.floor(window.innerHeight - topInset - bottomInset));
     root.style.setProperty('--dx-entry-rails-height', `${available}px`);
     root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.classList.add('dx-entry-desktop-fixed');
     document.body.style.overflow = 'hidden';
 
+    main.style.height = `${available}px`;
     main.style.maxHeight = `${available}px`;
+    sidebar.style.height = `${available}px`;
     sidebar.style.maxHeight = `${available}px`;
-    main.style.overflowY = main.scrollHeight > (available + 4) ? 'auto' : 'hidden';
-    sidebar.style.overflowY = sidebar.scrollHeight > (available + 4) ? 'auto' : 'hidden';
+    main.style.overflowY = 'auto';
+    sidebar.style.overflowY = 'auto';
 
     layout.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
 
@@ -488,6 +650,11 @@
     const triggerSpin = () => {
       const shouldSpin = Math.random() < 0.82;
       if (!shouldSpin) return;
+      const path = delimiter.querySelector('[data-dex-breadcrumb-path]');
+      if (path instanceof SVGElement) {
+        path.style.opacity = '1';
+        path.style.visibility = 'visible';
+      }
       delimiter.classList.remove('dx-spin-once');
       void delimiter.offsetWidth;
       delimiter.classList.add('dx-spin-once');
@@ -1676,6 +1843,8 @@
     const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
 
     const origin = getSidebarAssetOrigin();
+    ensureProfileChromeRuntime(origin);
+    ensureEntryRuntimeLayoutOverrides();
     const favoritesApi = await ensureFavoritesApi(origin);
     if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
       try {

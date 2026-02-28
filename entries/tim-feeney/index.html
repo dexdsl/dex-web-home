@@ -2957,8 +2957,8 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
 </script>
 <h1 class="dex-entry-page-title" data-dex-entry-page-title="">prepared floor tom, tim feeney</h1>
 <div class="dex-entry-subtitle" data-dex-entry-subtitle="">
-  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">published</span><time class="dex-entry-subtitle-value" datetime="2026-02-28T07:48:03.099Z">feb 28, 2026</time></span>
-  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">updated</span><time class="dex-entry-subtitle-value" datetime="2026-02-28T07:48:03.099Z">feb 28, 2026</time></span>
+  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">published</span><time class="dex-entry-subtitle-value" datetime="2026-02-28T07:59:33.290Z">feb 28, 2026</time></span>
+  <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">updated</span><time class="dex-entry-subtitle-value" datetime="2026-02-28T07:59:33.290Z">feb 28, 2026</time></span>
   <span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">location</span><span class="dex-entry-subtitle-value">LA Artcore</span></span>
 </div>
 </div>
@@ -3799,13 +3799,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   font-size: clamp(.72rem, 1vw, .9rem) !important; letter-spacing: .02em !important; line-height: 1.12 !important;
 }
 .dex-collections > h3[data-dx-entry-heading] { font-variant-ligatures: none !important; font-feature-settings: "liga" 0, "calt" 0 !important; }
-.dex-collections .overview-buckets-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; width: 100%; padding: 2px 0; }
+.dex-collections .overview-buckets-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; width: 100%; padding: 2px 0; align-items: stretch !important; }
 .dex-collections .dx-bucket-tile {
-  display: grid; place-items: center; width: 100%; min-height: clamp(42px, 4.6vw, 56px); aspect-ratio: 1/1;
+  display: grid; place-items: center; width: 100%; min-height: clamp(34px, 3.2vw, 44px) !important; max-height: clamp(34px, 3.2vw, 44px) !important; aspect-ratio: 1/1 !important;
   border-radius: var(--dx-header-glass-radius, 10px) !important; border: 1px solid rgba(0,0,0,.2) !important;
-  padding: clamp(8px, 1.2vw, 12px) !important;
+  padding: clamp(6px, .8vw, 10px) !important;
   background: rgba(255,255,255,.68) !important; color: rgba(26,26,26,.8) !important; font: 800 clamp(.9rem,1.3vw,1.15rem)/1 "Typefesse", sans-serif;
-  text-transform: uppercase !important; letter-spacing: .03em;
+  text-transform: uppercase !important; letter-spacing: .03em; align-self: stretch !important;
 }
 .dex-collections .dx-bucket-tile.available {
   border-color: rgba(255,25,16,.5) !important; color: #fff !important;
@@ -3827,21 +3827,24 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-hos
 }
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-header {
   position: sticky; top: var(--dx-entry-header-offset, 0px); z-index: 6; margin-bottom: 10px; padding-bottom: 4px;
-  background: rgba(255,255,255,.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  background: transparent !important; box-shadow: none !important; border: 0 !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
 }
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-layout {
   height: var(--dx-entry-rails-height, 62vh); min-height: 0; align-items: stretch !important; overflow: hidden;
 }
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar {
-  min-height: 0; max-height: var(--dx-entry-rails-height, 62vh); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px;
+  min-height: 0; max-height: var(--dx-entry-rails-height, 62vh); overflow-y: auto !important; overscroll-behavior: contain; padding-right: 10px;
 }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main { overflow-x: hidden !important; }
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-desc-scroll {
   height: auto !important; max-height: none !important; overflow: visible !important; overscroll-behavior: auto !important;
 }
-html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer {
-  position: fixed; left: max(10px, var(--dx-site-gutter, 4vw)); right: max(10px, var(--dx-site-gutter, 4vw)); bottom: 8px; z-index: 7;
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer-section {
+  position: fixed; left: max(10px, var(--dx-site-gutter, 4vw)); right: max(10px, var(--dx-site-gutter, 4vw)); bottom: 8px; z-index: 14;
 }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer { position: relative; margin: 0 !important; z-index: 15; }
 .dex-entry-page-title { text-transform: uppercase !important; }
 @media (max-width: 979px) {
   html[data-dx-entry-rail-mode="desktop-fixed"], body[data-dx-entry-rail-mode="desktop-fixed"] { overflow: auto !important; }
@@ -3849,7 +3852,21 @@ html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer {
   html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
   html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar { height: auto; max-height: none; overflow: visible; }
   html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer { position: static; left: auto; right: auto; bottom: auto; }
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer-section { position: static; left: auto; right: auto; bottom: auto; }
 }
+.dex-breadcrumb-delimiter.dx-spin-once .dex-breadcrumb-icon { animation: dx-breadcrumb-spin-once 760ms cubic-bezier(.2,.85,.25,1) both; }
+@keyframes dx-breadcrumb-spin-once { from { transform: rotate(0deg) scale(1); } 40% { transform: rotate(140deg) scale(1.08); } to { transform: rotate(360deg) scale(1); } }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page { overflow: hidden !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page #siteWrapper,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page #page,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page #sections,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-section,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-host,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-host .dx-code-container {
+  max-height: 100dvh !important; overflow: hidden !important;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar { padding-right: 12px !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar section { margin-right: 0 !important; padding-right: 14px !important; }
 </style>
 
 
