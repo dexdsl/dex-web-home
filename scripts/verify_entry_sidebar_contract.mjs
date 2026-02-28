@@ -11,6 +11,15 @@ async function read(relativePath) {
   return fs.readFile(absolute, 'utf8');
 }
 
+async function ensureFileExists(relativePath) {
+  const absolute = path.resolve(relativePath);
+  try {
+    await fs.access(absolute);
+  } catch {
+    fail(`missing required series asset: ${relativePath}`);
+  }
+}
+
 function ensureOrderedSections(html) {
   const overviewIdx = html.indexOf('<section class="dex-overview"></section>');
   const collectionsIdx = html.indexOf('<section class="dex-collections"></section>');
@@ -40,9 +49,12 @@ function ensureRuntimeMarkers(runtimeJs) {
     'buildDownloadRows',
     'getDownloadModalConfig',
     'Download selected',
-    'No links available.',
+    'data-person-linkable="true"',
+    'bindEntryTooltips',
+    'COLL\\u200CECTION',
     '.dex-collections',
     'data-dx-download-kind="recording-index-pdf"',
+    'data-dx-entry-rail-mode',
   ];
   for (const marker of required) {
     if (!runtimeJs.includes(marker)) {
@@ -69,6 +81,12 @@ async function main() {
     read('entry-template/index.html'),
     read('assets/dex-sidebar.js'),
     read('scripts/lib/entry-html.mjs'),
+  ]);
+
+  await Promise.all([
+    ensureFileExists('public/assets/series/dex.png'),
+    ensureFileExists('public/assets/series/index.png'),
+    ensureFileExists('public/assets/series/dexfest.png'),
   ]);
 
   ensureOrderedSections(templateHtml);

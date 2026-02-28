@@ -6,8 +6,8 @@
     "artistName": "Tim Feeney"
   },
   "lifecycle": {
-    "publishedAt": "2026-02-28T05:30:48.940Z",
-    "updatedAt": "2026-02-28T05:50:12.773Z"
+    "publishedAt": "2026-02-28T07:32:59.746Z",
+    "updatedAt": "2026-02-28T07:32:59.746Z"
   },
   "video": {
     "mode": "url",
@@ -15,7 +15,7 @@
     "dataUrlOriginal": "https://www.youtube.com/watch?v=DVqLc0_Ezhc",
     "dataHtml": ""
   },
-  "descriptionText": "\ne and examine the possibilities inherent in unstable sound and duration. Tim began working in this thread in 2002, within Boston’s community of improvisers interested in austere combinations of sounds and silences, and has since performed and recorded with musicians throughout the United States and abroad. He frequently collaborates with artists including the trio Meridian, with percussionists Sarah Hennies and Greg Stuart, pianist Annie Lewandowski, cellist and electronic musician Vic Rawlings, vocalist Ken Ueno, saxophonist Andrew Raffo Dewar, banjo and electronic musician Holland Hopson, trumpeter Nate Wooley, sound artists Jed Speare and Ernst Karel, video artist Jane Cassidy, and many others.\n\nVisit Tim Feeney’s website at timfeeney.com\n",
+  "descriptionText": "\n\nImproviser, composer, and interpreter Tim Feeney seeks to explore \nand examine the possibilities inherent in unstable sound and duration. Tim began working in this thread in 2002, within Boston’s community of improvisers interested in austere combinations of sounds and silences, and has since performed and recorded with musicians throughout the United States and abroad. He frequently collaborates with artists including the trio Meridian, with percussionists Sarah Hennies and Greg Stuart, pianist Annie Lewandowski, cellist and electronic musician Vic Rawlings, vocalist Ken Ueno, saxophonist Andrew Raffo Dewar, banjo and electronic musician Holland Hopson, trumpeter Nate Wooley, sound artists Jed Speare and Ernst Karel, video artist Jane Cassidy, and many others.\n\nVisit Tim Feeney’s website at timfeeney.com\n",
   "series": "dexFest",
   "selectedBuckets": [
     "A",
@@ -96,6 +96,27 @@
       "instruments": [
         "Prepared Floor Tom"
       ],
+      "instrumentLinksEnabled": false,
+      "linksByPerson": {
+        "Tim Feeney": [
+          {
+            "label": "website",
+            "href": "https://timfeeney.com/"
+          }
+        ],
+        "Sebastian Suarez-Solis": [
+          {
+            "label": "website",
+            "href": "https://cbassuarez.com/"
+          }
+        ],
+        "Cameron Church": [
+          {
+            "label": "website",
+            "href": "https://cameronchurch.com/"
+          }
+        ]
+      },
       "video": {
         "director": [
           "Gabrielle Milman"

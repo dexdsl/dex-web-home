@@ -3548,3 +3548,235 @@ a[data-dx-donate-rendered] {
   font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
   text-rendering: optimizeLegibility;
 }
+
+/* Entry sidebar parity vnext overrides */
+.person-text[data-person-linkable="false"] {
+  display: inline;
+  color: inherit;
+  cursor: text;
+}
+
+.person-link[data-person-linkable="true"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+#dx-entry-tooltip-layer {
+  position: fixed;
+  inset: auto;
+  z-index: 1200;
+  width: max-content;
+  max-width: min(280px, 92vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  color: #111;
+  font: 600 11px/1.35 var(--font-body, "Courier Prime", monospace);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  white-space: normal;
+}
+
+#dx-entry-tooltip-layer[hidden] {
+  display: none;
+}
+
+.dex-overview {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.9fr) minmax(90px, 0.7fr);
+  gap: 12px;
+  align-items: center !important;
+}
+
+.dex-overview .overview-item {
+  width: 100%;
+}
+
+.dex-overview .overview-item--lookup {
+  align-items: flex-start !important;
+}
+
+.dex-overview .overview-item--lookup .overview-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.dex-overview .overview-lookup {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(0.72rem, 1vw, 0.9rem) !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.12 !important;
+}
+
+.dex-overview .overview-item--series {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.dex-overview .overview-series-img {
+  width: clamp(64px, 6vw, 86px) !important;
+  height: clamp(34px, 4vw, 52px) !important;
+}
+
+.dex-collections {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.dex-collections .overview-item {
+  align-items: stretch !important;
+}
+
+.dex-collections .overview-item--buckets .overview-label,
+.dex-collections .overview-item--favorite-buckets .overview-label,
+.dex-collections .overview-item--favorite-collection .overview-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.dex-collections .overview-buckets-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.dex-collections .dx-bucket-tile {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: clamp(42px, 4.6vw, 56px);
+  aspect-ratio: 1 / 1;
+  border-radius: var(--dx-header-glass-radius, 10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.68);
+  color: rgba(26, 26, 26, 0.8);
+  font: 800 clamp(0.9rem, 1.3vw, 1.15rem) / 1 var(--font-heading, "Stretch Pro", sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dex-collections .dx-bucket-tile.available {
+  border-color: rgba(255, 25, 16, 0.35);
+  color: #fff;
+  background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92));
+  box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22);
+}
+
+.dex-collections .dx-bucket-tile.unavailable {
+  opacity: 0.86;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.dx-fav-entry-toggle,
+.dx-fav-bucket-toggle,
+.dx-fav-heart-btn {
+  border-radius: var(--dx-header-glass-radius, 10px) !important;
+}
+
+.dex-collections .overview-item--favorite-buckets .overview-badges {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+.dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
+  width: 100%;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"],
+body[data-dx-entry-rail-mode="desktop-fixed"] {
+  height: 100%;
+  overflow: hidden !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-layout {
+  height: var(--dx-entry-rails-height, 62vh);
+  min-height: 0;
+  align-items: stretch !important;
+  overflow: hidden;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar {
+  min-height: 0;
+  max-height: var(--dx-entry-rails-height, 62vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main {
+  scrollbar-gutter: stable;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-desc-scroll {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overscroll-behavior: auto !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer {
+  position: fixed;
+  left: max(10px, var(--dx-site-gutter, 4vw));
+  right: max(10px, var(--dx-site-gutter, 4vw));
+  bottom: 8px;
+  z-index: 7;
+}
+
+@media (max-width: 979px) {
+  html[data-dx-entry-rail-mode="desktop-fixed"],
+  body[data-dx-entry-rail-mode="desktop-fixed"] {
+    overflow: auto !important;
+  }
+
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-layout,
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+  }
+}
+
+.dex-download-modal-inner [data-dx-download-state="error"] {
+  color: #9a1f1f;
+}
+
+.dex-download-modal-inner [data-dx-download-state="forbidden"] {
+  color: #8e3f00;
+}
+
+.dex-download-modal-inner [data-dx-download-state="ready"] {
+  color: #0a5f2f;
+}

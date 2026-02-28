@@ -22,6 +22,15 @@ function toText(value) {
   return String(value || '').trim();
 }
 
+function decodeAttrEntities(value) {
+  return String(value || '')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
 function extractJsonScriptById(html, id) {
   const rx = new RegExp(`<script[^>]*id=["']${id}["'][^>]*>([\\s\\S]*?)<\\/script>`, 'i');
   const match = String(html || '').match(rx);
@@ -168,6 +177,27 @@ async function main() {
         if (!parsedSource || !/^https?:$/i.test(parsedSource.protocol)) {
           runtimeIssues.push('sidebarPageConfig.downloads.recordingIndexSourceUrl must be an http(s) URL');
         }
+      }
+    }
+
+    const interactivePersonPins = Array.from(
+      String(html).matchAll(/<span[^>]*data-person-linkable=["']true["'][^>]*data-links=(['"])([\s\S]*?)\1/gi),
+    );
+    for (const match of interactivePersonPins) {
+      const encoded = String(match?.[2] || '');
+      if (!encoded) continue;
+      let parsedLinks = [];
+      try {
+        const decoded = decodeAttrEntities(encoded);
+        const value = JSON.parse(decoded);
+        parsedLinks = Array.isArray(value) ? value : [];
+      } catch {
+        runtimeIssues.push('interactive person pin has invalid data-links JSON');
+        continue;
+      }
+      if (!parsedLinks.length) {
+        runtimeIssues.push('interactive person pin must not contain empty links');
+        break;
       }
     }
 

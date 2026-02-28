@@ -359,6 +359,23 @@ test('support and error headings preserve canonical ZWNJ rules with seeded proba
   expect(countJoiner(spellingsSample!.rendered)).toBe(spellingsInserted.length);
   expect(new RegExp(`L\\u200cL`, 'i').test(spellingsSample!.rendered)).toBeTruthy();
 
+  const collectionSample = await page.evaluate(() => {
+    const runtime = (window as unknown as { __dxHeadingFx?: { renderHeadingText?: (value: string, options?: Record<string, unknown>) => string } }).__dxHeadingFx;
+    const renderHeadingText = runtime && typeof runtime.renderHeadingText === 'function'
+      ? runtime.renderHeadingText
+      : null;
+    if (!renderHeadingText) return null;
+    const canonical = 'COLLECTION';
+    const rendered = String(renderHeadingText(canonical, { uppercase: false, seedKey: 'entry:collection' }) || '');
+    return { canonical, rendered };
+  });
+  expect(collectionSample).not.toBeNull();
+  expect(collectionSample!.canonical).toBe('COLLECTION');
+  assertAllAdjacentDuplicateLettersJoined(collectionSample!.rendered);
+  assertJoinersArePlacedBetweenMatchingLetters(collectionSample!.rendered);
+  expect(countCanonicalNonJoiner(collectionSample!.rendered)).toBe(1);
+  expect(new RegExp(`L\\u200cL`, 'i').test(collectionSample!.rendered)).toBeTruthy();
+
   const featuredTitle = await readHeadingBySelector(page, '#featuredTitle');
   assertHeadingTypographyInvariants(featuredTitle);
   expect(featuredTitle.canonical.toUpperCase()).toBe('FEATURED ENTRIES');

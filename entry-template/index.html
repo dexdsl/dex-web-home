@@ -2704,20 +2704,20 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
   "specialEventImage": "/assets/series/dex.png",
   "attributionSentence": "attribution",
   "credits": {
-    "artist": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
+    "artist": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>",
     "artistAlt": "t",
     "instruments": [
-      "<span data-person=\"test\" data-links='[]' style=\"position:relative; cursor:pointer;\">test<span class=\"person-pin\"></span></span>"
+      "<span class=\"person-text\" data-person-linkable=\"false\">test</span>"
     ],
     "video": {
-      "director": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
-      "cinematography": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
-      "editing": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>"
+      "director": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>",
+      "cinematography": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>",
+      "editing": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>"
     },
     "audio": {
-      "recording": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
-      "mix": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>",
-      "master": "<span data-person=\"t\" data-links='[]' style=\"position:relative; cursor:pointer;\">t<span class=\"person-pin\"></span></span>"
+      "recording": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>",
+      "mix": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>",
+      "master": "<span class=\"person-text\" data-person-linkable=\"false\">t</span>"
     },
     "year": 2026,
     "season": "S1",
@@ -3776,4 +3776,55 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 })();
 </script>
+<style id="dex-entry-sidebar-vnext-overrides">
+.person-text[data-person-linkable="false"] { display: inline; cursor: text; }
+.person-link[data-person-linkable="true"] { display: inline-flex; align-items: center; gap: .2rem; cursor: pointer; }
+#dx-entry-tooltip-layer {
+  position: fixed; z-index: 1200; width: max-content; max-width: min(280px, 92vw);
+  padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.98); color: #111; font: 600 11px/1.35 "Courier Prime", monospace;
+  box-shadow: 0 8px 18px rgba(0,0,0,.16); pointer-events: none; white-space: normal;
+}
+#dx-entry-tooltip-layer[hidden] { display: none; }
+.dex-overview { display: grid !important; grid-template-columns: minmax(0,1.9fr) minmax(90px,.7fr); gap: 12px; align-items: center !important; }
+.dex-overview .overview-item--lookup { align-items: flex-start !important; }
+.dex-overview .overview-item--lookup .overview-label { justify-content: flex-start !important; text-align: left !important; }
+.dex-overview .overview-lookup {
+  display: block; width: 100%; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: clamp(.72rem, 1vw, .9rem) !important; letter-spacing: .02em !important; line-height: 1.12 !important;
+}
+.dex-collections .overview-buckets-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; width: 100%; }
+.dex-collections .dx-bucket-tile {
+  display: grid; place-items: center; width: 100%; min-height: clamp(42px, 4.6vw, 56px); aspect-ratio: 1/1;
+  border-radius: var(--dx-header-glass-radius, 10px) !important; border: 1px solid rgba(0,0,0,.2);
+  background: rgba(255,255,255,.68); color: rgba(26,26,26,.8); font: 800 clamp(.9rem,1.3vw,1.15rem)/1 "Typefesse", sans-serif;
+  text-transform: uppercase; letter-spacing: .03em;
+}
+.dex-collections .dx-bucket-tile.available {
+  border-color: rgba(255,25,16,.35); color: #fff;
+  background: linear-gradient(130deg, rgba(255,25,16,.92), rgba(255,140,16,.92));
+}
+.dx-fav-entry-toggle, .dx-fav-bucket-toggle, .dx-fav-heart-btn { border-radius: var(--dx-header-glass-radius, 10px) !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"], body[data-dx-entry-rail-mode="desktop-fixed"] { height: 100%; overflow: hidden !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-layout {
+  height: var(--dx-entry-rails-height, 62vh); min-height: 0; align-items: stretch !important; overflow: hidden;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar {
+  min-height: 0; max-height: var(--dx-entry-rails-height, 62vh); overflow-y: auto; overscroll-behavior: contain;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-desc-scroll {
+  height: auto !important; max-height: none !important; overflow: visible !important; overscroll-behavior: auto !important;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer {
+  position: fixed; left: max(10px, var(--dx-site-gutter, 4vw)); right: max(10px, var(--dx-site-gutter, 4vw)); bottom: 8px; z-index: 7;
+}
+@media (max-width: 979px) {
+  html[data-dx-entry-rail-mode="desktop-fixed"], body[data-dx-entry-rail-mode="desktop-fixed"] { overflow: auto !important; }
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-layout,
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-main,
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar { height: auto; max-height: none; overflow: visible; }
+  html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer { position: static; left: auto; right: auto; bottom: auto; }
+}
+</style>
 </body></html>

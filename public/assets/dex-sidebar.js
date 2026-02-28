@@ -16,6 +16,10 @@
   let favoritesRuntimePromise = null;
   let favoritesSignalsBound = false;
   let favoritesToastTimer = 0;
+  let activeEntryTooltipTarget = null;
+  let entryRailLayoutBound = false;
+  const ENTRY_RAIL_BREAKPOINT = 980;
+  const COLLECTION_HEADING_CANONICAL = 'COLL\u200CECTION';
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -37,12 +41,62 @@
     }
   };
 
-  const buildBucketsHtml = (pageBuckets) => {
+  const readManifestToken = (cfg, type, bucket, formatKey) => {
+    const source = type === 'audio'
+      ? cfg?.downloads?.audioFileIds?.[bucket]
+      : cfg?.downloads?.videoFileIds?.[bucket];
+    return String(source?.[formatKey] || '').trim();
+  };
+
+  const computeBucketStats = (cfg, bucket, selectedBuckets = []) => {
+    const audioFormats = Array.isArray(cfg?.downloads?.formats?.audio) ? cfg.downloads.formats.audio : [];
+    const videoFormats = Array.isArray(cfg?.downloads?.formats?.video) ? cfg.downloads.formats.video : [];
+    const audioCount = audioFormats.reduce((count, format) => {
+      const token = parseAssetRefToken(readManifestToken(cfg, 'audio', bucket, format?.key));
+      return count + (token ? 1 : 0);
+    }, 0);
+    const videoCount = videoFormats.reduce((count, format) => {
+      const token = parseAssetRefToken(readManifestToken(cfg, 'video', bucket, format?.key));
+      return count + (token ? 1 : 0);
+    }, 0);
+    const selected = selectedBuckets.includes(bucket);
+    const hasPdf = Boolean(parseRecordingIndexPdfToken(cfg?.downloads?.recordingIndexPdfRef));
+    const hasBundle = Boolean(parseRecordingIndexBundleToken(cfg?.downloads?.recordingIndexBundleRef));
+    return {
+      bucket,
+      selected,
+      audioCount,
+      videoCount,
+      hasPdf,
+      hasBundle,
+      totalMapped: audioCount + videoCount,
+    };
+  };
+
+  const formatBucketTooltip = (stats) => {
+    if (!stats) return '';
+    const status = stats.selected ? 'available' : 'unavailable';
+    const recordingPdf = stats.hasPdf ? 'yes' : 'no';
+    const recordingBundle = stats.hasBundle ? 'yes' : 'no';
+    return [
+      `Bucket ${stats.bucket.toUpperCase()}`,
+      `Status: ${status}`,
+      `Audio formats: ${stats.audioCount}`,
+      `Video formats: ${stats.videoCount}`,
+      `Mapped rows: ${stats.totalMapped}`,
+      `Recording PDF: ${recordingPdf}`,
+      `Recording bundle: ${recordingBundle}`,
+    ].join(' • ');
+  };
+
+  const buildBucketsHtml = (pageBuckets, cfg) => {
     const selected = normalizeBuckets(pageBuckets);
     return ALL_BUCKETS
       .map((bucket) => {
         const cls = selected.includes(bucket) ? 'available' : 'unavailable';
-        return `<span class="badge ${cls}">${bucket}</span>`;
+        const stats = computeBucketStats(cfg, bucket, selected);
+        const tooltip = escapeHtml(formatBucketTooltip(stats));
+        return `<span class="badge dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
   };
@@ -91,10 +145,22 @@
     if (!person || typeof person === 'string') return person || '';
     const name = person.name || '';
     const links = Array.isArray(person.links) ? person.links : [];
-    return `<span data-person="${name}" data-links='${JSON.stringify(links)}' style="position:relative; cursor:pointer;">${name}<span class="person-pin"></span></span>`;
+    if (!links.length) return `<span class="person-text" data-person-linkable="false">${escapeHtml(name)}</span>`;
+    return `<span class="person-link" data-person="${escapeHtml(name)}" data-links='${escapeHtml(JSON.stringify(links))}' data-person-linkable="true" style="position:relative; cursor:pointer;">${escapeHtml(name)}<span class="person-pin"></span></span>`;
   };
 
-  const randomizeTitle = (txt) => String(txt || '').toUpperCase();
+  const renderStretchHeading = (value, { seedKey = '', uppercase = true } = {}) => {
+    const input = uppercase ? String(value || '').toUpperCase() : String(value || '');
+    const runtime = window.__dxHeadingFx;
+    if (runtime && typeof runtime.renderHeadingText === 'function') {
+      try {
+        return String(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
+      } catch {}
+    }
+    return input;
+  };
+
+  const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
   const escapeHtml = (value) => String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -105,7 +171,8 @@
   const render = (sel, title, html, noHeader = false) => {
     const el = document.querySelector(sel);
     if (!el) return;
-    const header = noHeader ? '' : `<h3>${randomizeTitle(title)}</h3>`;
+    const headingSeed = `${window.location.pathname || '/'}|${sel}|${title}`;
+    const header = noHeader ? '' : `<h3 data-dx-entry-heading="1">${randomizeTitle(title, { seedKey: headingSeed })}</h3>`;
     el.innerHTML = `${header}${html}`;
   };
 
@@ -155,6 +222,220 @@
     if (!parsed) return null;
     if (parsed.kind === 'bundle') return parsed;
     return null;
+  };
+
+  const canUsePointerHoverTooltip = () => {
+    try {
+      return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    } catch {
+      return true;
+    }
+  };
+
+  const ensureEntryTooltipLayer = () => {
+    let layer = document.getElementById('dx-entry-tooltip-layer');
+    if (layer instanceof HTMLElement) return layer;
+    layer = document.createElement('div');
+    layer.id = 'dx-entry-tooltip-layer';
+    layer.setAttribute('role', 'tooltip');
+    layer.setAttribute('aria-hidden', 'true');
+    layer.hidden = true;
+    document.body.appendChild(layer);
+    return layer;
+  };
+
+  const hideEntryTooltip = () => {
+    activeEntryTooltipTarget = null;
+    const layer = document.getElementById('dx-entry-tooltip-layer');
+    if (!(layer instanceof HTMLElement)) return;
+    layer.hidden = true;
+    layer.textContent = '';
+    layer.setAttribute('aria-hidden', 'true');
+  };
+
+  const positionEntryTooltip = (layer, target) => {
+    if (!(layer instanceof HTMLElement) || !(target instanceof HTMLElement)) return;
+    const viewportPadding = 8;
+    layer.style.left = '0px';
+    layer.style.top = '0px';
+    layer.style.maxWidth = `${Math.max(160, Math.min(280, window.innerWidth - viewportPadding * 2))}px`;
+
+    const targetRect = target.getBoundingClientRect();
+    const tooltipRect = layer.getBoundingClientRect();
+
+    let left = targetRect.right - tooltipRect.width;
+    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+    let top = targetRect.bottom + 8;
+    if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+      top = targetRect.top - tooltipRect.height - 8;
+    }
+    top = Math.max(viewportPadding, top);
+
+    layer.style.left = `${Math.round(left)}px`;
+    layer.style.top = `${Math.round(top)}px`;
+  };
+
+  const showEntryTooltip = (target) => {
+    if (!(target instanceof HTMLElement)) return;
+    const tooltip = String(target.getAttribute('data-dx-tooltip') || '').trim();
+    if (!tooltip) {
+      hideEntryTooltip();
+      return;
+    }
+    const layer = ensureEntryTooltipLayer();
+    layer.textContent = tooltip;
+    layer.hidden = false;
+    layer.setAttribute('aria-hidden', 'false');
+    positionEntryTooltip(layer, target);
+    activeEntryTooltipTarget = target;
+  };
+
+  const resolveEntryTooltipTarget = (input, scope) => {
+    if (!(input instanceof Element)) return null;
+    const target = input.closest('[data-dx-tooltip]');
+    if (!(target instanceof HTMLElement)) return null;
+    if (!(scope instanceof HTMLElement) || !scope.contains(target)) return null;
+    return target;
+  };
+
+  const bindEntryTooltips = (scope) => {
+    if (!(scope instanceof HTMLElement)) return;
+    if (scope.__dxEntryTooltipAbortController instanceof AbortController) {
+      try {
+        scope.__dxEntryTooltipAbortController.abort();
+      } catch {}
+    }
+
+    const controller = new AbortController();
+    scope.__dxEntryTooltipAbortController = controller;
+    const options = { signal: controller.signal };
+    const hoverEnabled = canUsePointerHoverTooltip();
+
+    scope.querySelectorAll('[data-dx-tooltip]').forEach((node) => {
+      if (node instanceof HTMLElement) node.removeAttribute('title');
+    });
+
+    if (hoverEnabled) {
+      scope.addEventListener('pointerover', (event) => {
+        const target = resolveEntryTooltipTarget(event.target, scope);
+        if (!target) return;
+        if (activeEntryTooltipTarget === target) return;
+        showEntryTooltip(target);
+      }, options);
+
+      scope.addEventListener('pointerout', (event) => {
+        if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
+        const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+        if (next === activeEntryTooltipTarget) return;
+        if (next) {
+          showEntryTooltip(next);
+          return;
+        }
+        hideEntryTooltip();
+      }, options);
+    }
+
+    scope.addEventListener('focusin', (event) => {
+      const target = resolveEntryTooltipTarget(event.target, scope);
+      if (!target) return;
+      showEntryTooltip(target);
+    }, options);
+
+    scope.addEventListener('focusout', (event) => {
+      const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+      if (next) {
+        showEntryTooltip(next);
+        return;
+      }
+      hideEntryTooltip();
+    }, options);
+
+    window.addEventListener('scroll', () => {
+      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
+      const layer = document.getElementById('dx-entry-tooltip-layer');
+      if (layer instanceof HTMLElement && !layer.hidden) {
+        positionEntryTooltip(layer, activeEntryTooltipTarget);
+      }
+    }, { signal: controller.signal, passive: true });
+
+    window.addEventListener('resize', () => {
+      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
+      const layer = document.getElementById('dx-entry-tooltip-layer');
+      if (layer instanceof HTMLElement && !layer.hidden) {
+        positionEntryTooltip(layer, activeEntryTooltipTarget);
+      }
+    }, options);
+  };
+
+  const applyEntryRailLayout = () => {
+    const layout = document.querySelector('.dex-entry-layout');
+    const main = layout?.querySelector('.dex-entry-main');
+    const sidebar = layout?.querySelector('.dex-sidebar');
+    const header = document.querySelector('.dex-entry-header');
+    const footer = document.querySelector('.dex-footer');
+    if (!(layout instanceof HTMLElement) || !(main instanceof HTMLElement) || !(sidebar instanceof HTMLElement) || !(header instanceof HTMLElement)) return;
+
+    const desktop = window.innerWidth >= ENTRY_RAIL_BREAKPOINT;
+    const root = document.documentElement;
+    if (!desktop) {
+      root.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
+      document.body.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
+      root.style.removeProperty('--dx-entry-rails-height');
+      document.body.style.removeProperty('overflow');
+      main.style.maxHeight = '';
+      sidebar.style.maxHeight = '';
+      main.style.overflowY = '';
+      sidebar.style.overflowY = '';
+      return;
+    }
+
+    let bottomInset = 20;
+    if (footer instanceof HTMLElement) {
+      const footerRect = footer.getBoundingClientRect();
+      if (footerRect.top < window.innerHeight) {
+        bottomInset = Math.max(18, Math.ceil(window.innerHeight - footerRect.top) + 8);
+      } else {
+        bottomInset = Math.max(18, Math.ceil(footerRect.height) + 8);
+      }
+    }
+
+    const headerRect = header.getBoundingClientRect();
+    const available = Math.max(300, Math.floor(window.innerHeight - headerRect.bottom - bottomInset));
+    root.style.setProperty('--dx-entry-rails-height', `${available}px`);
+    root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
+    document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
+    document.body.style.overflow = 'hidden';
+
+    main.style.maxHeight = `${available}px`;
+    sidebar.style.maxHeight = `${available}px`;
+    main.style.overflowY = main.scrollHeight > (available + 4) ? 'auto' : 'hidden';
+    sidebar.style.overflowY = sidebar.scrollHeight > (available + 4) ? 'auto' : 'hidden';
+
+    layout.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
+
+    const desc = main.querySelector('.dex-entry-desc-scroll');
+    if (desc instanceof HTMLElement) {
+      desc.style.height = 'auto';
+      desc.style.maxHeight = 'none';
+      desc.style.overflowY = 'visible';
+      desc.style.overscrollBehavior = 'auto';
+      desc.removeAttribute('data-dex-desc-scrollable');
+    }
+  };
+
+  const bindEntryRailLayout = () => {
+    if (entryRailLayoutBound) {
+      applyEntryRailLayout();
+      return;
+    }
+    entryRailLayoutBound = true;
+    const schedule = () => window.requestAnimationFrame(() => applyEntryRailLayout());
+    window.addEventListener('resize', schedule, { passive: true });
+    window.addEventListener('load', schedule, { once: true });
+    schedule();
+    window.setTimeout(schedule, 60);
+    window.setTimeout(schedule, 240);
   };
 
   const setDownloadState = (row, state, message) => {
@@ -812,6 +1093,26 @@
       heading.style.letterSpacing = '0.02em';
       heading.style.textTransform = 'uppercase';
 
+      const statusBanner = document.createElement('p');
+      statusBanner.style.margin = '0';
+      statusBanner.style.fontSize = '0.75rem';
+      statusBanner.style.lineHeight = '1.35';
+      statusBanner.style.opacity = '0.82';
+      statusBanner.hidden = true;
+
+      const setModalStatus = (state, message) => {
+        const text = String(message || '').trim();
+        if (!text) {
+          statusBanner.hidden = true;
+          statusBanner.textContent = '';
+          statusBanner.removeAttribute('data-dx-download-state');
+          return;
+        }
+        statusBanner.hidden = false;
+        statusBanner.setAttribute('data-dx-download-state', String(state || 'idle'));
+        statusBanner.textContent = text;
+      };
+
       const controls = document.createElement('div');
       controls.style.display = 'flex';
       controls.style.alignItems = 'center';
@@ -942,9 +1243,9 @@
             actionButton.disabled = true;
             actionButton.setAttribute('aria-disabled', 'true');
             if (rowData.invalid) {
-              setDownloadState(row, 'error', 'Invalid token');
+              setDownloadState(row, 'error', 'Invalid token (DX-DL-422).');
             } else {
-              setDownloadState(row, 'not-found', 'Unavailable');
+              setDownloadState(row, 'not-found', 'Unavailable (DX-DL-404).');
             }
           } else {
             actionButton.addEventListener('click', async () => {
@@ -956,16 +1257,25 @@
                   tokens: [rowData.parsedToken.normalized],
                   onQueuedTick: () => {
                     setDownloadState(row, 'queued', 'Preparing bundle…');
+                    setModalStatus('queued', 'Preparing secure bundle…');
                   },
                 });
                 setDownloadState(row, 'ready', 'Ready. Opening download…');
+                setModalStatus('ready', 'Bundle ready. Opening signed URL…');
                 openSignedUrl(result?.signedUrl);
                 window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
               } catch (error) {
                 const code = String(error?.code || '').toLowerCase();
-                if (code === 'forbidden') setDownloadState(row, 'forbidden', 'Access denied (403).');
-                else if (code === 'not-found') setDownloadState(row, 'not-found', 'Download not found (404).');
-                else setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+                if (code === 'forbidden') {
+                  setDownloadState(row, 'forbidden', 'Access denied (DX-DL-403).');
+                  setModalStatus('forbidden', 'Access denied for this token (DX-DL-403).');
+                } else if (code === 'not-found') {
+                  setDownloadState(row, 'not-found', 'Download not found (DX-DL-404).');
+                  setModalStatus('not-found', 'Bundle source not found (DX-DL-404).');
+                } else {
+                  setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+                  setModalStatus('error', 'Bundle request failed. Retry or refresh (DX-DL-500).');
+                }
               } finally {
                 actionButton.disabled = false;
               }
@@ -1016,15 +1326,19 @@
       batchButton.addEventListener('click', async () => {
         if (!selectedTokens.size) return;
         batchButton.disabled = true;
+        setModalStatus('resolving', `Resolving ${selectedTokens.size} selected item(s)…`);
         try {
           const result = await requestBundleDownload({
             lookup: context?.lookup,
             tokens: Array.from(selectedTokens),
           });
+          setModalStatus('ready', 'Batch bundle ready. Opening signed URL…');
           openSignedUrl(result?.signedUrl);
         } catch (error) {
           const msg = String(error?.code || 'failed').toLowerCase();
-          window.alert(msg === 'forbidden' ? 'Access denied (403).' : 'Batch download failed (DX-DL-500).');
+          if (msg === 'forbidden') setModalStatus('forbidden', 'Batch request denied (DX-DL-403).');
+          else if (msg === 'not-found') setModalStatus('not-found', 'Batch source not found (DX-DL-404).');
+          else setModalStatus('error', 'Batch download failed (DX-DL-500).');
         } finally {
           updateBatchState();
         }
@@ -1032,6 +1346,7 @@
 
       inner.appendChild(close);
       inner.appendChild(heading);
+      inner.appendChild(statusBanner);
       inner.appendChild(controls);
       inner.appendChild(list);
       modal.appendChild(inner);
@@ -1107,9 +1422,10 @@
   };
 
   const initPersonPins = () => {
-    document.querySelectorAll('[data-person]').forEach((holder) => {
+    document.querySelectorAll('[data-person-linkable="true"][data-person]').forEach((holder) => {
       if (holder.dataset.dexPinBound === '1') return;
       holder.dataset.dexPinBound = '1';
+      holder.classList.add('person-link');
       holder.style.cursor = 'pointer';
       holder.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1121,13 +1437,10 @@
         } catch {
           links = [];
         }
+        if (!links.length) return;
         const pop = document.createElement('div');
         pop.className = 'person-popup';
-        if (!links.length) {
-          pop.innerHTML = '<span>No links available.</span>';
-        } else {
-          pop.innerHTML = links.map((l) => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener">${escapeHtml(l.label)}</a>`).join('');
-        }
+        pop.innerHTML = links.map((l) => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener">${escapeHtml(l.label)}</a>`).join('');
         document.body.append(pop);
         pop.style.position = 'absolute';
         pop.style.left = `${e.pageX + 4}px`;
@@ -1295,7 +1608,7 @@
 
     const lookup = String(page.lookupNumber || '').trim() || 'Unknown lookup';
     const selected = normalizeBuckets(page.buckets);
-    const badgesHtml = buildBucketsHtml(page.buckets);
+    const badgesHtml = buildBucketsHtml(page.buckets, cfg);
     const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
 
     const origin = getSidebarAssetOrigin();
@@ -1319,11 +1632,11 @@
     const overviewEl = document.querySelector('.dex-overview');
     if (overviewEl) {
       overviewEl.innerHTML = `
-        <div class="overview-item">
+        <div class="overview-item overview-item--lookup">
           <span class="overview-lookup">#${lookup}</span>
           <p class="p3 overview-label">Lookup #</p>
         </div>
-        <div class="overview-item">
+        <div class="overview-item overview-item--series">
           <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
           <p class="p3 overview-label">Series</p>
         </div>
@@ -1345,12 +1658,12 @@
         `)
         .join('');
       collectionsEl.innerHTML = `
-        <h3>${randomizeTitle('Collection')}</h3>
-        <div class="overview-item">
-          <div class="overview-badges">${badgesHtml}</div>
+        <h3 data-dx-entry-heading="1">${randomizeTitle(COLLECTION_HEADING_CANONICAL, { uppercase: false, seedKey: `${window.location.pathname || '/'}|collection` })}</h3>
+        <div class="overview-item overview-item--buckets">
+          <div class="overview-buckets-grid">${badgesHtml}</div>
           <p class="p3 overview-label">Buckets</p>
         </div>
-        <div class="overview-item">
+        <div class="overview-item overview-item--favorite-collection">
           <button
             type="button"
             class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle"
@@ -1359,11 +1672,13 @@
           ></button>
           <p class="p3 overview-label">Favorite Collection</p>
         </div>
-        <div class="overview-item">
+        <div class="overview-item overview-item--favorite-buckets">
           <div class="overview-badges">${bucketFavoriteButtonsHtml || '<span class="badge unavailable">No buckets</span>'}</div>
           <p class="p3 overview-label">Favorite Buckets</p>
         </div>
       `;
+
+      bindEntryTooltips(collectionsEl);
 
       if (favoritesApi) {
         const entryFavButton = collectionsEl.querySelector('.dx-fav-entry-toggle');
@@ -1480,6 +1795,7 @@
     initPersonPins();
     installSidebarRevealMotion();
     installSidebarInteractiveMotion();
+    bindEntryRailLayout();
     refreshFavoriteButtons(favoritesApi, document);
 
     document.documentElement.dataset.dexSidebarRendered = '1';

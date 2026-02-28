@@ -179,8 +179,11 @@ function pinFor(name, linksByPerson = new Map()) {
   const rawName = String(name || '').trim();
   const safeName = escapeHtml(rawName);
   const links = linksByPerson.get(normalizePersonKey(rawName)) || [];
+  if (!links.length) {
+    return `<span class="person-text" data-person-linkable="false">${safeName}</span>`;
+  }
   const linksJson = encodeAttrEntities(JSON.stringify(links));
-  return `<span data-person="${safeName}" data-links='${linksJson}' style="position:relative; cursor:pointer;">${safeName}<span class="person-pin"></span></span>`;
+  return `<span class="person-link" data-person="${safeName}" data-links='${linksJson}' data-person-linkable="true" style="position:relative; cursor:pointer;">${safeName}<span class="person-pin"></span></span>`;
 }
 
 function pinsString(names, linksByPerson = new Map()) {
