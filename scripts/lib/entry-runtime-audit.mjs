@@ -26,15 +26,54 @@ const REQUIRED_RUNTIME_MARKERS = [
   'class="dex-breadcrumb"',
 ];
 
-const FORBIDDEN_HOST_PATTERNS = [
-  /squarespace/i,
-  /sqspcdn/i,
-  /static1\.legacysite\.com/i,
-  /assets\.legacysite\.com/i,
+const FORBIDDEN_RUNTIME_SCRIPT_HOST_PATTERNS = [
+  /https?:\/\/(?:[^"'\s]+\.)?squarespace\.com/i,
+  /https?:\/\/(?:[^"'\s]+\.)?squarespace-cdn\.com/i,
+  /https?:\/\/(?:[^"'\s]+\.)?sqspcdn\.com/i,
+  /https?:\/\/(?:[^"'\s]+\.)?legacysite\.com/i,
 ];
 
 function toText(value) {
   return String(value || '').trim();
+}
+
+function isExecutableInlineScriptType(typeValue) {
+  const type = toText(typeValue).toLowerCase();
+  if (!type) return true;
+  return type === 'text/javascript'
+    || type === 'application/javascript'
+    || type === 'module'
+    || type === 'text/ecmascript'
+    || type === 'application/ecmascript';
+}
+
+function collectForbiddenRuntimeHostMarkers(text) {
+  const source = String(text || '');
+  const markers = [];
+
+  const scriptSrcRx = /<script[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  let scriptMatch = null;
+  while ((scriptMatch = scriptSrcRx.exec(source)) !== null) {
+    const src = toText(scriptMatch[1]);
+    if (!src) continue;
+    const hit = FORBIDDEN_RUNTIME_SCRIPT_HOST_PATTERNS.find((pattern) => pattern.test(src));
+    if (hit) markers.push(String(hit));
+  }
+
+  const inlineScriptRx = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+  let inlineMatch = null;
+  while ((inlineMatch = inlineScriptRx.exec(source)) !== null) {
+    const attrs = String(inlineMatch[1] || '');
+    if (/\bsrc\s*=/i.test(attrs)) continue;
+    const typeMatch = attrs.match(/\btype\s*=\s*["']([^"']+)["']/i);
+    if (!isExecutableInlineScriptType(typeMatch?.[1] || '')) continue;
+    const body = String(inlineMatch[2] || '');
+    if (!body.trim()) continue;
+    const hit = FORBIDDEN_RUNTIME_SCRIPT_HOST_PATTERNS.find((pattern) => pattern.test(body));
+    if (hit) markers.push(String(hit));
+  }
+
+  return Array.from(new Set(markers));
 }
 
 function parseRecordingIndexPdfToken(value) {
@@ -130,6 +169,13 @@ function textKey(value) {
   return toText(value).toLowerCase();
 }
 
+function lookupKey(value) {
+  return toText(value)
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\.\s*/g, '.')
+    .toLowerCase();
+}
+
 function collectStringLeaves(value, out = []) {
   if (Array.isArray(value)) {
     value.forEach((item) => collectStringLeaves(item, out));
@@ -212,7 +258,7 @@ function toLookupList(values = []) {
   for (const value of values) {
     const normalized = toText(value);
     if (!normalized) continue;
-    const key = textKey(normalized);
+    const key = lookupKey(normalized);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(normalized);
@@ -345,7 +391,7 @@ function parseProtectedAssetLookupRows(rawData = {}) {
       mime: toText(file.mime),
       sizeBytes: Number(file.sizeBytes ?? file.size_bytes ?? 0) || 0,
     }));
-    map.set(textKey(lookupNumber), {
+    map.set(lookupKey(lookupNumber), {
       lookupNumber,
       files: normalizedFiles,
       recordingIndex: entry.recordingIndex && typeof entry.recordingIndex === 'object'
@@ -402,12 +448,48 @@ function bucketCodeFromFile(file = {}) {
   return match ? match[1].toUpperCase() : '';
 }
 
+function isPdfLikeInventoryFile(file = {}) {
+  const mime = toText(file.mime).toLowerCase();
+  const r2Key = toText(file.r2Key).toLowerCase();
+  const label = toText(file.label).toLowerCase();
+  return mime.includes('pdf') || r2Key.endsWith('.pdf') || label.includes('recording index pdf');
+}
+
+function inferInventoryMediaFamily(file = {}) {
+  const mime = toText(file.mime).toLowerCase();
+  const r2Key = toText(file.r2Key).toLowerCase();
+  const label = `${toText(file.label).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
+  if (mime.startsWith('audio/') || /\.(wav|aif|aiff|mp3|flac|m4a)(\?|$)/.test(r2Key) || /\b(wav|aif|aiff|mp3|flac|m4a|audio|ste|stereo)\b/.test(label)) return 'audio';
+  if (mime.startsWith('video/') || /\.(mov|mp4|mxf|mkv)(\?|$)/.test(r2Key) || /(4k|1080|720|prores|h264|h265|video)/.test(label)) return 'video';
+  if (mime.includes('pdf') || /\.pdf(\?|$)/.test(r2Key) || /\b(pdf|recording index)\b/.test(label)) return 'pdf';
+  return 'unknown';
+}
+
+function inferInventorySubtype(file = {}) {
+  const r2Key = toText(file.r2Key).toLowerCase();
+  const label = `${toText(file.label).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
+  if (/(^|\W)4k(\W|$)|2160/.test(label) || /2160|4k/.test(r2Key)) return '4k';
+  if (/1080/.test(label) || /1080/.test(r2Key)) return '1080p';
+  if (/720/.test(label) || /720/.test(r2Key)) return '720p';
+  const ext = r2Key.match(/\.([a-z0-9]{2,6})(?:\?|$)/);
+  if (ext && ext[1]) return ext[1];
+  const mime = toText(file.mime).toLowerCase();
+  if (mime.includes('/')) return mime.split('/')[1] || 'unknown';
+  return 'unknown';
+}
+
 function buildInventoryDownloadTree(row = {}) {
   const lookupNumber = toText(row.catalog?.lookupNumber || row.lookups?.[0] || '');
   const lookupFiles = lookupNumber
     ? (row.assets?.lookupFiles?.[lookupNumber] || [])
     : (row.assets?.files || []);
   const files = Array.isArray(lookupFiles) ? lookupFiles : [];
+  const normalizedFiles = files.map((file) => ({
+    ...file,
+    bucketCode: bucketCodeFromFile(file),
+    mediaFamily: inferInventoryMediaFamily(file),
+    mediaSubtype: inferInventorySubtype(file),
+  }));
   const recordingByLookup = row.assets?.recordingIndexByLookup && typeof row.assets.recordingIndexByLookup === 'object'
     ? row.assets.recordingIndexByLookup
     : {};
@@ -419,8 +501,8 @@ function buildInventoryDownloadTree(row = {}) {
 
   const buckets = [];
   const bucketSeen = new Set();
-  for (const file of files) {
-    const bucket = bucketCodeFromFile(file);
+  for (const file of normalizedFiles) {
+    const bucket = file.bucketCode;
     if (!bucket || bucketSeen.has(bucket)) continue;
     bucketSeen.add(bucket);
     buckets.push(bucket);
@@ -429,22 +511,25 @@ function buildInventoryDownloadTree(row = {}) {
 
   const criticalIssues = [];
   const warnIssues = [];
-  if (!files.length) {
+  if (!normalizedFiles.length) {
     criticalIssues.push('no mapped files');
   }
   if (!rootFolderUrl) {
     criticalIssues.push('missing root folder link (A1)');
   }
   for (const bucket of buckets) {
+    const bucketFiles = normalizedFiles.filter((file) => file.bucketCode === bucket);
+    const requiresFolderLink = bucketFiles.some((file) => !isPdfLikeInventoryFile(file));
+    if (!requiresFolderLink) continue;
     if (!toText(bucketFolderUrls[bucket])) {
       criticalIssues.push(`missing bucket folder link (${bucket === 'X' ? 'F2' : `${bucket}2`})`);
     }
   }
-  const unknownMimeCount = files.filter((file) => !toText(file.mime)).length;
+  const unknownMimeCount = normalizedFiles.filter((file) => !toText(file.mime)).length;
   if (unknownMimeCount > 0) {
     warnIssues.push(`${unknownMimeCount} file(s) missing mime`);
   }
-  const missingDriveIdCount = files.filter((file) => !toText(file.driveFileId) && !/\.pdf$/i.test(toText(file.r2Key))).length;
+  const missingDriveIdCount = normalizedFiles.filter((file) => !toText(file.driveFileId) && !/\.pdf$/i.test(toText(file.r2Key))).length;
   if (missingDriveIdCount > 0) {
     warnIssues.push(`${missingDriveIdCount} file(s) missing driveFileId`);
   }
@@ -457,17 +542,59 @@ function buildInventoryDownloadTree(row = {}) {
 
   const bundleCoverage = recordingIndex.bundleResolved ? 'ok' : (toText(recordingIndex.bundleTokenRaw) ? 'partial' : 'missing');
   const pdfCoverage = recordingIndex.resolved && recordingIndex.pdfLike ? 'ok' : (toText(recordingIndex.pdfTokenRaw) ? 'partial' : 'missing');
+  const associatedTypeCounts = {
+    audio: 0,
+    video: 0,
+    pdf: 0,
+    unknown: 0,
+  };
+  const subtypeCounts = new Map();
+  const bundleRows = [];
+  for (const bucket of buckets) {
+    const bucketFiles = normalizedFiles.filter((file) => file.bucketCode === bucket);
+    const audioPresent = bucketFiles.some((file) => file.mediaFamily === 'audio');
+    const videoPresent = bucketFiles.some((file) => file.mediaFamily === 'video');
+    const pdfPresent = bucketFiles.some((file) => file.mediaFamily === 'pdf');
+    bundleRows.push({
+      bucket,
+      audio: { present: audioPresent, ok: audioPresent },
+      video: { present: videoPresent, ok: videoPresent },
+      pdf: { present: pdfPresent, ok: pdfPresent },
+    });
+  }
+  for (const file of normalizedFiles) {
+    const family = Object.prototype.hasOwnProperty.call(associatedTypeCounts, file.mediaFamily)
+      ? file.mediaFamily
+      : 'unknown';
+    associatedTypeCounts[family] += 1;
+    const subtype = file.mediaSubtype || 'unknown';
+    subtypeCounts.set(subtype, Number(subtypeCounts.get(subtype) || 0) + 1);
+  }
   return {
     lookupNumber,
     rootFolderUrl,
     activeBuckets: buckets,
-    fileCount: files.length,
+    fileCount: normalizedFiles.length,
     criticalCount: criticalIssues.length,
     warnCount: warnIssues.length,
     criticalIssues,
     warnIssues,
     bundleCoverage,
     pdfCoverage,
+    files: normalizedFiles.map((file) => ({
+      bucket: file.bucketCode || '',
+      bucketNumber: toText(file.bucketNumber),
+      fileId: toText(file.fileId),
+      r2Key: toText(file.r2Key),
+      mime: toText(file.mime),
+      type: file.mediaFamily,
+      subtype: file.mediaSubtype,
+    })),
+    associatedTypeCounts,
+    subtypeCounts: Array.from(subtypeCounts.entries())
+      .map(([subtype, count]) => ({ subtype, count }))
+      .sort((a, b) => b.count - a.count || a.subtype.localeCompare(b.subtype)),
+    bundleRows,
     bucketFolderLinks: buckets.map((bucket) => ({
       bucket,
       url: toText(bucketFolderUrls[bucket]),
@@ -532,7 +659,7 @@ export async function collectEntryCatalogAssetInventory({
         const lookups = toLookupList([...(row.lookups || []), row.catalog.lookupNumber]);
         row.lookups = lookups;
         const matchedLookups = lookups
-          .map((lookup) => assetsByLookup.get(textKey(lookup)))
+          .map((lookup) => assetsByLookup.get(lookupKey(lookup)))
           .filter(Boolean);
 
         const files = [];
@@ -629,8 +756,9 @@ function auditEntryHtml(slug, html, { includeLegacy = false } = {}) {
     if (!text.includes(marker)) issues.push(`missing runtime marker ${marker}`);
   }
 
-  for (const pattern of FORBIDDEN_HOST_PATTERNS) {
-    if (pattern.test(text)) issues.push(`forbidden legacy host marker ${pattern}`);
+  const runtimeHostMarkers = collectForbiddenRuntimeHostMarkers(text);
+  for (const marker of runtimeHostMarkers) {
+    issues.push(`forbidden legacy host marker ${marker}`);
   }
 
   const manifest = extractJsonScriptById(text, 'dex-manifest');
@@ -807,80 +935,86 @@ export async function auditEntryRuntime({
     row.downloadTree = buildInventoryDownloadTree(row);
     const isActiveLinked = row.state === 'linked'
       && toText(row.catalog?.status || '').toLowerCase() === 'active';
-    if (!isActiveLinked) continue;
 
     const recordingIndex = reportRecordingIndex;
     const pdfTokenRaw = toText(recordingIndex.pdfTokenRaw);
-    if (!pdfTokenRaw) {
-      report.issues.push('recording index pdf token is required for active linked entries');
-      continue;
-    }
-    if (!recordingIndex.pdfValid) {
-      const detail = toText(recordingIndex.error) || 'invalid recording index pdf token';
-      report.issues.push(`recording index pdf token is invalid (${detail})`);
-      continue;
-    }
     const bundleTokenRaw = toText(recordingIndex.bundleTokenRaw);
-    if (!bundleTokenRaw) {
-      report.issues.push('recording index bundle token is required for active linked entries');
-      continue;
-    }
-    if (!recordingIndex.bundleValid) {
-      const detail = toText(recordingIndex.error) || 'invalid recording index bundle token';
-      report.issues.push(`recording index bundle token is invalid (${detail})`);
-      continue;
+    if (isActiveLinked) {
+      if (!pdfTokenRaw) {
+        report.issues.push('recording index pdf token is required for active linked entries');
+      } else if (!recordingIndex.pdfValid) {
+        const detail = toText(recordingIndex.error) || 'invalid recording index pdf token';
+        report.issues.push(`recording index pdf token is invalid (${detail})`);
+      }
+      if (!bundleTokenRaw) {
+        report.issues.push('recording index bundle token is required for active linked entries');
+      } else if (!recordingIndex.bundleValid) {
+        const detail = toText(recordingIndex.error) || 'invalid recording index bundle token';
+        report.issues.push(`recording index bundle token is invalid (${detail})`);
+      }
     }
 
     const lookupNumber = toText(row.catalog?.lookupNumber);
     const lookupFiles = lookupNumber
       ? (row.assets?.lookupFiles?.[lookupNumber] || [])
       : (row.assets?.files || []);
-    let resolvedFile = null;
-    if (recordingIndex.pdfKind === 'asset') {
-      resolvedFile = (lookupFiles || []).find((file) => textKey(file.fileId) === textKey(recordingIndex.pdfValue)) || null;
-    } else if (recordingIndex.pdfKind === 'lookup') {
-      resolvedFile = (lookupFiles || []).find((file) => textKey(file.bucketNumber) === textKey(recordingIndex.pdfValue)) || null;
-    }
-    if (!resolvedFile) {
-      report.issues.push(`recording index pdf token does not resolve to protected assets for lookup ${lookupNumber || '(unknown)'}`);
-      continue;
-    }
-    const mime = toText(resolvedFile.mime).toLowerCase();
-    const r2Key = toText(resolvedFile.r2Key).toLowerCase();
-    const pdfLike = mime.includes('pdf') || r2Key.endsWith('.pdf');
-    row.recordingIndex.resolved = true;
-    row.recordingIndex.resolvedLookup = lookupNumber;
-    row.recordingIndex.resolvedFileId = toText(resolvedFile.fileId || resolvedFile.bucketNumber);
-    row.recordingIndex.pdfLike = pdfLike;
-    if (!pdfLike) {
-      report.issues.push(`recording index token resolves to non-pdf asset (${resolvedFile.fileId || resolvedFile.bucketNumber || 'unknown'})`);
-      continue;
+    if (pdfTokenRaw && recordingIndex.pdfValid) {
+      let resolvedFile = null;
+      if (recordingIndex.pdfKind === 'asset') {
+        resolvedFile = (lookupFiles || []).find((file) => textKey(file.fileId) === textKey(recordingIndex.pdfValue)) || null;
+      } else if (recordingIndex.pdfKind === 'lookup') {
+        resolvedFile = (lookupFiles || []).find((file) => textKey(file.bucketNumber) === textKey(recordingIndex.pdfValue)) || null;
+      }
+      if (!resolvedFile) {
+        if (isActiveLinked) {
+          report.issues.push(`recording index pdf token does not resolve to protected assets for lookup ${lookupNumber || '(unknown)'}`);
+        }
+      } else {
+        const mime = toText(resolvedFile.mime).toLowerCase();
+        const r2Key = toText(resolvedFile.r2Key).toLowerCase();
+        const pdfLike = mime.includes('pdf') || r2Key.endsWith('.pdf');
+        row.recordingIndex.resolved = true;
+        row.recordingIndex.resolvedLookup = lookupNumber;
+        row.recordingIndex.resolvedFileId = toText(resolvedFile.fileId || resolvedFile.bucketNumber);
+        row.recordingIndex.pdfLike = pdfLike;
+        if (!pdfLike && isActiveLinked) {
+          report.issues.push(`recording index token resolves to non-pdf asset (${resolvedFile.fileId || resolvedFile.bucketNumber || 'unknown'})`);
+        }
+      }
     }
 
     const bundleMetadata = lookupNumber
       ? (row.assets?.recordingIndexByLookup?.[lookupNumber] || null)
       : null;
-    const expectedBundle = toText(bundleMetadata?.bundleAllToken);
-    const actualBundleToken = `bundle:${toText(recordingIndex.bundleValue)}`;
-    if (expectedBundle) {
-      if (textKey(actualBundleToken) !== textKey(expectedBundle)) {
-        report.issues.push(
-          `recording index bundle token mismatch for lookup ${lookupNumber || '(unknown)'} (${actualBundleToken} != ${expectedBundle})`,
-        );
-        continue;
-      }
-    } else {
-      const normalizedLookup = lookupNumber.replace(/\s+/g, ' ').trim();
-      const expectedPrefix = `recording-index:${normalizedLookup}:all`.toLowerCase();
-      if (!toText(recordingIndex.bundleValue).toLowerCase().startsWith(expectedPrefix)) {
-        report.issues.push(
-          `recording index bundle token does not match lookup ${lookupNumber || '(unknown)'}`,
-        );
-        continue;
+    if (bundleTokenRaw && recordingIndex.bundleValid) {
+      const expectedBundle = toText(bundleMetadata?.bundleAllToken);
+      const actualBundleToken = `bundle:${toText(recordingIndex.bundleValue)}`;
+      if (expectedBundle) {
+        if (textKey(actualBundleToken) !== textKey(expectedBundle)) {
+          if (isActiveLinked) {
+            report.issues.push(
+              `recording index bundle token mismatch for lookup ${lookupNumber || '(unknown)'} (${actualBundleToken} != ${expectedBundle})`,
+            );
+          }
+        } else {
+          row.recordingIndex.bundleResolved = true;
+          row.recordingIndex.resolvedBundleToken = actualBundleToken;
+        }
+      } else {
+        const normalizedLookup = lookupNumber.replace(/\s+/g, ' ').trim();
+        const expectedPrefix = `recording-index:${normalizedLookup}:all`.toLowerCase();
+        if (!toText(recordingIndex.bundleValue).toLowerCase().startsWith(expectedPrefix)) {
+          if (isActiveLinked) {
+            report.issues.push(
+              `recording index bundle token does not match lookup ${lookupNumber || '(unknown)'}`,
+            );
+          }
+        } else {
+          row.recordingIndex.bundleResolved = true;
+          row.recordingIndex.resolvedBundleToken = actualBundleToken;
+        }
       }
     }
-    row.recordingIndex.bundleResolved = true;
-    row.recordingIndex.resolvedBundleToken = actualBundleToken;
   }
 
   for (const row of inventory.rows || []) {

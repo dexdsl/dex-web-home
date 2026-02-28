@@ -103,14 +103,25 @@ function inferMimeFromExtension(extension, fallbackType = 'unknown') {
   return '';
 }
 
+function inferAvailableTypes({ extension, rowText, label }) {
+  const ext = toText(extension).toLowerCase();
+  const text = `${toText(label)} ${toText(rowText)}`.toLowerCase();
+  const available = new Set();
+  if (AUDIO_EXTENSIONS.has(ext)) available.add('audio');
+  if (VIDEO_EXTENSIONS.has(ext)) available.add('video');
+  if (/\b(4k|2160p?|1080p?|720p?|video|mov|mp4|prores|h264|h265)\b/.test(text)) available.add('video');
+  if (/\b(audio|wav|aiff?|flac|mix|master|mono|stereo|ste)\b/.test(text)) available.add('audio');
+  return Array.from(available);
+}
+
 function inferType({ extension, rowText, label }) {
   const ext = toText(extension).toLowerCase();
   if (AUDIO_EXTENSIONS.has(ext)) return { type: 'audio', reason: 'extension' };
   if (VIDEO_EXTENSIONS.has(ext)) return { type: 'video', reason: 'extension' };
   const text = `${toText(label)} ${toText(rowText)}`.toLowerCase();
   if (/\b(4k|2160p?|1080p?|720p?|video|mov|mp4|prores|h264|h265)\b/.test(text)) return { type: 'video', reason: 'label-token' };
-  if (/\b(audio|wav|aiff?|flac|mix|master|mono|stereo)\b/.test(text)) return { type: 'audio', reason: 'label-token' };
-  if (/(audio|wav|aiff|flac|mix|master|stereo)/.test(text)) return { type: 'audio', reason: 'label-token' };
+  if (/\b(audio|wav|aiff?|flac|mix|master|mono|stereo|ste|mp3)\b/.test(text)) return { type: 'audio', reason: 'label-token' };
+  if (/(audio|wav|aiff|flac|mix|master|stereo|ste|mp3)/.test(text)) return { type: 'audio', reason: 'label-token' };
   if (/(video|mov|mp4|footage|camera|frame)/.test(text)) return { type: 'video', reason: 'label-token' };
   return { type: 'unknown', reason: 'fallback' };
 }
@@ -311,6 +322,11 @@ function parseWorksheetSegmentsGrid(XLSX, worksheet) {
         label,
         rowText: `${mapping.bucket} ${segmentNumber} ${label}`,
       });
+      const availableTypes = inferAvailableTypes({
+        extension,
+        label,
+        rowText: `${mapping.bucket} ${segmentNumber} ${label}`,
+      });
       segments.push({
         bucketNumber,
         bucket: mapping.bucket,
@@ -322,6 +338,7 @@ function parseWorksheetSegmentsGrid(XLSX, worksheet) {
         extension,
         type: inferred.type,
         typeReason: inferred.reason,
+        availableTypes,
         mime: inferMimeFromExtension(extension, inferred.type),
       });
     }
@@ -390,6 +407,7 @@ function parseWorksheetSegmentsLegacy(XLSX, worksheet) {
 
     const extension = inferFileExtension(urlValue);
     const inferred = inferType({ extension, rowText, label: rowText });
+    const availableTypes = inferAvailableTypes({ extension, rowText, label: rowText });
     const label = toText(
       displays.find((value) => {
         const parsed = extractBucketNumber(value);
@@ -407,6 +425,7 @@ function parseWorksheetSegmentsLegacy(XLSX, worksheet) {
       extension,
       type: inferred.type,
       typeReason: inferred.reason,
+      availableTypes,
       mime: inferMimeFromExtension(extension, inferred.type),
     });
   }
@@ -445,6 +464,7 @@ function normalizeSegmentsForLookup(segments, {
       driveFileId: segment.driveFileId || '',
       type: segment.type,
       typeReason: segment.typeReason || '',
+      availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
       fileId: `${slug}-${segment.bucket.toLowerCase()}-${padNumber(segment.segmentNumber)}`,
       r2Key: `${slug}/${segment.bucket.toLowerCase()}/${padNumber(segment.segmentNumber)}.${ext}`,
       sizeBytes: 0,
@@ -456,13 +476,25 @@ function normalizeSegmentsForLookup(segments, {
 }
 
 function buildBundleTokensByBucketType(segments, lookupNumber) {
+  const segmentSupportsType = (segment, type) => {
+    const normalizedType = toText(type).toLowerCase();
+    const direct = toText(segment?.type).toLowerCase();
+    if (direct === normalizedType) return true;
+    const available = Array.isArray(segment?.availableTypes)
+      ? segment.availableTypes
+      : [];
+    return available.some((item) => toText(item).toLowerCase() === normalizedType);
+  };
   const out = {};
   for (const segment of segments) {
     if (!segment.enabled) continue;
-    if (segment.type !== 'audio' && segment.type !== 'video') continue;
-    const key = `${segment.bucket}:${segment.type}`;
-    if (!out[key]) {
-      out[key] = `bundle:lookup:${lookupNumber}:${segment.bucket}:${segment.type}`;
+    if (segmentSupportsType(segment, 'audio')) {
+      const audioKey = `${segment.bucket}:audio`;
+      if (!out[audioKey]) out[audioKey] = `bundle:lookup:${lookupNumber}:${segment.bucket}:audio`;
+    }
+    if (segmentSupportsType(segment, 'video')) {
+      const videoKey = `${segment.bucket}:video`;
+      if (!out[videoKey]) out[videoKey] = `bundle:lookup:${lookupNumber}:${segment.bucket}:video`;
     }
   }
   return out;
@@ -565,11 +597,18 @@ export async function importRecordingIndexFromSheet({
 
   const filesWithPdf = [...files, pdfFile];
   const bundleTokensByBucketType = buildBundleTokensByBucketType(files, normalizedLookup);
+  const supportsType = (file, type) => {
+    const normalizedType = toText(type).toLowerCase();
+    const direct = toText(file?.type).toLowerCase();
+    if (direct === normalizedType) return true;
+    const available = Array.isArray(file?.availableTypes) ? file.availableTypes : [];
+    return available.some((item) => toText(item).toLowerCase() === normalizedType);
+  };
   const counts = {
     totalFiles: files.length,
-    audioFiles: files.filter((file) => file.type === 'audio').length,
-    videoFiles: files.filter((file) => file.type === 'video').length,
-    unknownFiles: files.filter((file) => file.type === 'unknown').length,
+    audioFiles: files.filter((file) => supportsType(file, 'audio')).length,
+    videoFiles: files.filter((file) => supportsType(file, 'video')).length,
+    unknownFiles: files.filter((file) => !supportsType(file, 'audio') && !supportsType(file, 'video')).length,
     buckets: Array.from(new Set(files.map((file) => file.bucket))).sort(),
   };
 

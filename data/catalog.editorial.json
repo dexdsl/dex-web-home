@@ -1,6 +1,6 @@
 {
   "version": "catalog-editorial-v1",
-  "updatedAt": "2026-02-27T00:00:00.000Z",
+  "updatedAt": "2026-02-28T03:58:55.101Z",
   "manifest": [
     {
       "entry_id": "andrew-chanover",
@@ -11,11 +11,24 @@
       "performer": "Andrew Chanover",
       "instrument": "Electric Guitar",
       "status": "active"
+    },
+    {
+      "entry_id": "tim-feeney",
+      "entry_href": "/entry/tim-feeney/",
+      "title_raw": "PREPARED FLOOR TOM",
+      "lookup_number": "P.Pto. Fe AV2024 S2",
+      "season": "S2",
+      "performer": "Tim Feeney",
+      "instrument": "Prepared Floor Tom",
+      "status": "draft"
     }
   ],
   "spotlight": {
     "entry_id": "tim-feeney",
     "headline_raw": "ARTIST SPOTLIGHT",
-    "cta_label_raw": "VIEW COLLECTION"
+    "subhead_raw": "",
+    "body_raw": "",
+    "cta_label_raw": "VIEW COLLECTION",
+    "image_src": ""
   }
 }

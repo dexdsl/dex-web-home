@@ -18,11 +18,34 @@ import { deriveCanonicalEntry, descriptionTextFromSeed } from './lib/entry-html.
 import { parseViewerArgs, startViewer } from './lib/viewer-server.mjs';
 import { runDeployShortcut } from './lib/deploy.mjs';
 import { writeEntryFromData } from './lib/entry-run.mjs';
+import { ensureWorkspaceConfig, runDexSetup } from './lib/dex-setup.mjs';
+import { isSupportedRepoKey, resolveRepoRoot } from './lib/dex-workspace-config.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 
+let DEX_WORKSPACE_CONTEXT = {
+  activeRepo: 'site',
+  activeRoot: process.cwd(),
+  configPath: '',
+  config: null,
+};
+
 const ensure = async (p) => { try { await fs.access(p); return true; } catch { return false; } };
 const parseJsonMaybe = async (p) => JSON.parse(await fs.readFile(p, 'utf8'));
+
+function dashboardContext({ initialMode, paletteOpen, version } = {}) {
+  return {
+    initialMode,
+    paletteOpen,
+    version,
+    workspace: {
+      activeRepo: DEX_WORKSPACE_CONTEXT.activeRepo,
+      activeRoot: DEX_WORKSPACE_CONTEXT.activeRoot,
+      configPath: DEX_WORKSPACE_CONTEXT.configPath,
+      config: DEX_WORKSPACE_CONTEXT.config,
+    },
+  };
+}
 
 function dedupeSlug(base, existing) {
   if (!existing.has(base)) return base;
@@ -92,6 +115,16 @@ async function collectInitData(opts, slugArg) {
       || base?.sidebarPageConfig?.recordingIndexPdfRef
       || '',
     ).trim();
+    const seedRecordingIndexBundleRef = String(
+      base?.sidebarPageConfig?.downloads?.recordingIndexBundleRef
+      || base?.sidebarPageConfig?.recordingIndexBundleRef
+      || '',
+    ).trim();
+    const seedRecordingIndexSourceUrl = String(
+      base?.sidebarPageConfig?.downloads?.recordingIndexSourceUrl
+      || base?.sidebarPageConfig?.recordingIndexSourceUrl
+      || '',
+    ).trim();
     const sidebar = {
       lookupNumber: lookup,
       buckets: base.sidebarPageConfig?.buckets || ['A'],
@@ -101,8 +134,11 @@ async function collectInitData(opts, slugArg) {
       fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
       metadata: { sampleLength: '', tags: [] },
     };
-    if (seedRecordingIndexPdfRef) {
-      sidebar.downloads = { recordingIndexPdfRef: seedRecordingIndexPdfRef };
+    if (seedRecordingIndexPdfRef || seedRecordingIndexBundleRef || seedRecordingIndexSourceUrl) {
+      sidebar.downloads = {};
+      if (seedRecordingIndexPdfRef) sidebar.downloads.recordingIndexPdfRef = seedRecordingIndexPdfRef;
+      if (seedRecordingIndexBundleRef) sidebar.downloads.recordingIndexBundleRef = seedRecordingIndexBundleRef;
+      if (seedRecordingIndexSourceUrl) sidebar.downloads.recordingIndexSourceUrl = seedRecordingIndexSourceUrl;
     }
     const canonical = deriveCanonicalEntry({
       canonical: base.canonical,
@@ -294,7 +330,36 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'release', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'setup') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'setup', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
+}
+
+function stripRepoFlag(argv = []) {
+  const out = [argv[0], argv[1]];
+  let repo = 'site';
+  for (let index = 2; index < argv.length; index += 1) {
+    const arg = String(argv[index] || '');
+    if (arg === '--repo') {
+      const next = String(argv[index + 1] || '').trim();
+      if (next && !next.startsWith('--')) {
+        repo = next;
+        index += 1;
+      }
+      continue;
+    }
+    if (arg.startsWith('--repo=')) {
+      repo = arg.slice('--repo='.length);
+      continue;
+    }
+    out.push(arg);
+  }
+  return {
+    argv: out,
+    repo: String(repo || '').trim().toLowerCase() || 'site',
+  };
 }
 
 function parseInitArgs(rest = []) {
@@ -488,10 +553,10 @@ async function runCatalogCommand(rest = []) {
   const [subcommand = ''] = rest;
   if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
     const { runDashboard } = await import('./ui/dashboard.mjs');
-    await runDashboard({
+    await runDashboard(dashboardContext({
       initialMode: 'catalog',
       version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
-    });
+    }));
     return;
   }
   const { runCatalogCommand: runCommand, printCatalogUsage } = await import('./lib/catalog-cli.mjs');
@@ -506,10 +571,10 @@ async function runHomeCommand(rest = []) {
   const [subcommand = ''] = rest;
   if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
     const { runDashboard } = await import('./ui/dashboard.mjs');
-    await runDashboard({
+    await runDashboard(dashboardContext({
       initialMode: 'home',
       version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
-    });
+    }));
     return;
   }
   const { runHomeCommand: runCommand, printHomeUsage } = await import('./lib/home-featured-cli.mjs');
@@ -524,10 +589,10 @@ async function runNotesCommand(rest = []) {
   const [subcommand = ''] = rest;
   if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
     const { runDashboard } = await import('./ui/dashboard.mjs');
-    await runDashboard({
+    await runDashboard(dashboardContext({
       initialMode: 'notes',
       version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
-    });
+    }));
     return;
   }
   const { runDexNotesCommand, printDexNotesUsage } = await import('./lib/dex-notes-cli.mjs');
@@ -573,10 +638,15 @@ function printReleaseUsage() {
   console.log('  dex release publish [--env test|prod] [--dry-run] [--no-preflight]');
 }
 
+function printSetupUsage() {
+  console.log('Usage: dex setup [--reset] [--repo site|api]');
+  console.log('Initializes workspace roots for dexdsl.github.io and dex-api.');
+}
+
 function runNodeScript(scriptPath, args = []) {
   const command = [path.resolve(scriptPath), ...args.map((arg) => String(arg || ''))];
   const result = spawnSync(process.execPath, command, {
-    cwd: process.cwd(),
+    cwd: DEX_WORKSPACE_CONTEXT.activeRoot || process.cwd(),
     encoding: 'utf8',
   });
   return {
@@ -757,6 +827,22 @@ async function runReleaseCommand(rest = []) {
   throw new Error(`Unknown release command: ${action}`);
 }
 
+async function runSetupCommand(rest = [], { requestedRepo = 'site' } = {}) {
+  if (rest.includes('--help') || rest.includes('-h') || rest.includes('help')) {
+    printSetupUsage();
+    return;
+  }
+  const reset = rest.includes('--reset');
+  const result = await runDexSetup({
+    requestedRepo,
+    reset,
+  });
+  console.log(`setup: wrote ${result.filePath}`);
+  console.log(`  site: ${result.config?.repos?.site?.root || '-'}`);
+  console.log(`  api: ${result.config?.repos?.api?.root || '-'}`);
+  console.log(`  defaultRepo: ${result.config?.defaultRepo || '-'}`);
+}
+
 async function runAssetsCommand(rest = []) {
   const {
     buildProtectedAssetsPayload,
@@ -772,10 +858,10 @@ async function runAssetsCommand(rest = []) {
   if (!subcommand) {
     if (process.stdout.isTTY && process.stdin.isTTY) {
       const { runDashboard } = await import('./ui/dashboard.mjs');
-      await runDashboard({
+      await runDashboard(dashboardContext({
         initialMode: 'assets',
         version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
-      });
+      }));
       return;
     }
     printAssetsUsage();
@@ -1178,7 +1264,10 @@ async function runNewsletterCommand(rest = []) {
   if (!rest.length) {
     if (process.stdout.isTTY && process.stdin.isTTY) {
       const { runDashboard } = await import('./ui/dashboard.mjs');
-      await runDashboard({ initialMode: 'newsletter', version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev' });
+      await runDashboard(dashboardContext({
+        initialMode: 'newsletter',
+        version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+      }));
       return;
     }
     printNewsletterUsage();
@@ -1352,16 +1441,61 @@ async function runNewsletterCommand(rest = []) {
   printNewsletterUsage();
 }
 
-const topLevel = parseTopLevelMode(process.argv);
+const repoSelection = stripRepoFlag(process.argv);
+if (!isSupportedRepoKey(repoSelection.repo)) {
+  console.error(`dex: unsupported --repo value "${repoSelection.repo}" (expected site|api)`);
+  process.exit(1);
+}
+const topLevel = parseTopLevelMode(repoSelection.argv);
 const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
 const { runDashboard } = await import('./ui/dashboard.mjs');
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'setup') {
+  await runSetupCommand(topLevel.rest, { requestedRepo: repoSelection.repo });
+  process.exit(0);
+}
+
+const workspace = await ensureWorkspaceConfig({
+  requestedRepo: repoSelection.repo,
+  interactive: process.stdout.isTTY && process.stdin.isTTY,
+  autoSetup: true,
+});
+
+if (!workspace.ok) {
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    DEX_WORKSPACE_CONTEXT = {
+      activeRepo: repoSelection.repo,
+      activeRoot: process.cwd(),
+      configPath: '',
+      config: null,
+    };
+    console.error(`dex: workspace config unavailable, falling back to cwd=${process.cwd()} (${workspace.reason})`);
+  } else {
+    console.error(`dex: ${workspace.reason}`);
+    process.exit(1);
+  }
+}
+if (workspace.ok) {
+  const selectedRoot = resolveRepoRoot(workspace.config, repoSelection.repo);
+  if (!selectedRoot.root) {
+    console.error(`dex: no configured root for repo ${repoSelection.repo}. Run: dex setup --reset`);
+    process.exit(1);
+  }
+  process.chdir(selectedRoot.root);
+  DEX_WORKSPACE_CONTEXT = {
+    activeRepo: selectedRoot.repo,
+    activeRoot: selectedRoot.root,
+    configPath: workspace.filePath,
+    config: workspace.config,
+  };
+}
 
 if (topLevel.mode === 'dashboard') {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
     console.log('dex: interactive dashboard requires a TTY. Try: dex init');
     process.exit(0);
   }
-  await runDashboard({ paletteOpen: topLevel.paletteOpen, version: packageJson.version || 'dev' });
+  await runDashboard(dashboardContext({ paletteOpen: topLevel.paletteOpen, version: packageJson.version || 'dev' }));
   process.exit(0);
 }
 
@@ -1392,7 +1526,7 @@ if (topLevel.mode === 'ink-command') {
       : topLevel.command === 'status'
         ? 'status'
         : 'doctor';
-  await runDashboard({ initialMode: mode, version: packageJson.version || 'dev' });
+  await runDashboard(dashboardContext({ initialMode: mode, version: packageJson.version || 'dev' }));
   process.exit(0);
 }
 

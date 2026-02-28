@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { auditEntryRuntime } from '../lib/entry-runtime-audit.mjs';
+import { buildDownloadTreePlotModelFromInventory } from '../lib/download-tree-plot-model.mjs';
+import { DownloadTreePlotter } from './components/download-tree-plotter.mjs';
 
 function safeMessage(error) {
   return error?.message || String(error || 'Unknown error');
@@ -12,7 +14,6 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
   const [reports, setReports] = useState([]);
   const [inventoryRows, setInventoryRows] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showTreeDetails, setShowTreeDetails] = useState(false);
   const [inventoryCounts, setInventoryCounts] = useState({
     total: 0,
     linked: 0,
@@ -75,9 +76,6 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
       setSelectedIndex((current) => Math.min(Math.max(0, inventoryRows.length - 1), current + 1));
       return;
     }
-    if (lower === 't') {
-      setShowTreeDetails((prev) => !prev);
-    }
   }, { isActive: true });
 
   const selectedRow = inventoryRows[Math.max(0, Math.min(selectedIndex, Math.max(0, inventoryRows.length - 1)))] || null;
@@ -90,45 +88,55 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
     ),
   );
   const listEnd = Math.min(inventoryRows.length, listStart + inventoryLimit);
+  const rightPaneWidth = Math.max(34, Math.min(58, Math.floor(width * 0.42)));
+  const leftPaneWidth = Math.max(48, width - rightPaneWidth - 2);
+  const plotModel = selectedRow ? buildDownloadTreePlotModelFromInventory(selectedRow, {
+    title: `Tree ${selectedRow.entryId}`,
+  }) : null;
 
   return React.createElement(Box, { flexDirection: 'column', width, height, minHeight: height },
     React.createElement(Text, { bold: true, color: '#d0d5df' }, 'Entry Runtime Audit'),
     React.createElement(Text, { color: '#8f98a8' }, 'Checks entry runtime contracts, auth trio, and lookup-only download payloads.'),
-    React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
-      ...reports.slice(0, Math.max(6, height - 8)).map((report) => {
-        if (report.skippedLegacy) {
-          return React.createElement(Text, { key: `skip-${report.slug}`, color: '#8f98a8' }, `SKIP ${report.slug} (legacy exemption)`);
-        }
-        if (report.ok) {
-          return React.createElement(Text, { key: `ok-${report.slug}`, color: '#a6e3a1' }, `PASS ${report.slug}`);
-        }
-        return React.createElement(Text, { key: `fail-${report.slug}`, color: '#ff6b6b' }, `FAIL ${report.slug}: ${report.issues.join(' | ')}`);
-      }),
-      !reports.length && !busy ? React.createElement(Text, { color: '#8f98a8' }, 'No entries audited.') : null,
-    ),
-    React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
-      React.createElement(Text, { color: '#8f98a8' }, `Inventory linked=${inventoryCounts.linked} entryOnly=${inventoryCounts.entryOnly} catalogOnly=${inventoryCounts.catalogOnly} withAssets=${inventoryCounts.withAssets}`),
-      listStart > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'inv-up' }, '…') : null,
-      ...inventoryRows.slice(listStart, listEnd).map((row, localIndex) => React.createElement(
-        Text,
-        {
-          key: `inv-${row.entryId}`,
-          color: row.state === 'linked' ? '#a6e3a1' : '#d0d5df',
-          inverse: (listStart + localIndex) === selectedIndex,
-        },
-        `${row.entryId} · ${row.state} · lookup=${row.lookups?.[0] || '-'} · files=${(row.assets?.fileIds || []).length || 0} · health=${row.downloadTree?.criticalCount ?? '-'}c/${row.downloadTree?.warnCount ?? '-'}w`,
-      )),
-      listEnd < inventoryRows.length ? React.createElement(Text, { color: '#8f98a8', key: 'inv-down' }, '…') : null,
-      showTreeDetails && selectedRow ? React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
-        React.createElement(Text, { color: '#8f98a8' }, `Tree ${selectedRow.entryId} · root=${selectedRow.downloadTree?.rootFolderUrl ? 'ok' : 'missing'} · bundle=${selectedRow.downloadTree?.bundleCoverage || '-'} · pdf=${selectedRow.downloadTree?.pdfCoverage || '-'}`),
-        React.createElement(Text, { color: '#8f98a8' }, `Buckets: ${(selectedRow.downloadTree?.activeBuckets || []).join(',') || '-'} · Files: ${selectedRow.downloadTree?.fileCount || 0}`),
-        ...(Array.isArray(selectedRow.downloadTree?.criticalIssues) ? selectedRow.downloadTree.criticalIssues.slice(0, 3).map((issue) => React.createElement(Text, { key: `tree-critical-${selectedRow.entryId}-${issue}`, color: '#ff6b6b' }, `critical: ${issue}`)) : []),
-        ...(Array.isArray(selectedRow.downloadTree?.warnIssues) ? selectedRow.downloadTree.warnIssues.slice(0, 2).map((issue) => React.createElement(Text, { key: `tree-warn-${selectedRow.entryId}-${issue}`, color: '#ffcc66' }, `warn: ${issue}`)) : []),
-      ) : null,
+    React.createElement(Box, { marginTop: 1, flexDirection: 'row', flexGrow: 1 },
+      React.createElement(Box, { flexDirection: 'column', width: leftPaneWidth, borderStyle: 'round', borderColor: '#4e5a70', paddingX: 1 },
+        ...reports.slice(0, Math.max(6, height - 12)).map((report) => {
+          if (report.skippedLegacy) {
+            return React.createElement(Text, { key: `skip-${report.slug}`, color: '#8f98a8' }, `SKIP ${report.slug} (legacy exemption)`);
+          }
+          if (report.ok) {
+            return React.createElement(Text, { key: `ok-${report.slug}`, color: '#a6e3a1' }, `PASS ${report.slug}`);
+          }
+          return React.createElement(Text, { key: `fail-${report.slug}`, color: '#ff6b6b' }, `FAIL ${report.slug}: ${report.issues.join(' | ')}`);
+        }),
+        !reports.length && !busy ? React.createElement(Text, { color: '#8f98a8' }, 'No entries audited.') : null,
+        React.createElement(Text, { color: '#8f98a8' }, `Inventory linked=${inventoryCounts.linked} entryOnly=${inventoryCounts.entryOnly} catalogOnly=${inventoryCounts.catalogOnly} withAssets=${inventoryCounts.withAssets}`),
+        listStart > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'inv-up' }, '…') : null,
+        ...inventoryRows.slice(listStart, listEnd).map((row, localIndex) => React.createElement(
+          Text,
+          {
+            key: `inv-${row.entryId}`,
+            color: row.state === 'linked' ? '#a6e3a1' : '#d0d5df',
+            inverse: (listStart + localIndex) === selectedIndex,
+          },
+          `${row.entryId} · ${row.state} · lookup=${row.lookups?.[0] || '-'} · files=${(row.assets?.fileIds || []).length || 0} · health=${row.downloadTree?.criticalCount ?? '-'}c/${row.downloadTree?.warnCount ?? '-'}w`,
+        )),
+        listEnd < inventoryRows.length ? React.createElement(Text, { color: '#8f98a8', key: 'inv-down' }, '…') : null,
+      ),
+      React.createElement(Box, { marginLeft: 1, flexDirection: 'column', width: rightPaneWidth, borderStyle: 'round', borderColor: '#4e5a70', paddingX: 1 },
+        plotModel
+          ? React.createElement(DownloadTreePlotter, {
+            model: plotModel,
+            width: rightPaneWidth - 2,
+            maxBucketRows: 8,
+            maxSubtypeRows: 5,
+            maxIssueRows: 3,
+          })
+          : React.createElement(Text, { color: '#8f98a8' }, 'Select an inventory row to inspect download tree health.'),
+      ),
     ),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
       React.createElement(Text, { color: busy ? '#ffcc66' : '#d0d5df' }, busy ? 'Working…' : statusLine),
-      React.createElement(Text, { color: '#8f98a8' }, '↑/↓ select  t tree details  r rerun  Esc back'),
+      React.createElement(Text, { color: '#8f98a8' }, '↑/↓ select  r rerun  Esc back'),
     ),
   );
 }

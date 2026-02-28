@@ -181,6 +181,11 @@ async function main() {
   assert.equal(validInventory.recordingIndex.resolved, true, 'valid row should resolve recording token');
   assert.equal(validInventory.recordingIndex.pdfLike, true, 'valid row recording asset should be pdf-like');
   assert.equal(validInventory.recordingIndex.bundleResolved, true, 'valid row should resolve recording bundle token');
+  assert(Array.isArray(validInventory.downloadTree.files), 'valid row should include download tree file rows');
+  assert(validInventory.downloadTree.files.some((file) => file.type === 'audio'), 'download tree should include audio family');
+  assert(validInventory.downloadTree.files.some((file) => file.type === 'pdf'), 'download tree should include pdf family');
+  assert(Array.isArray(validInventory.downloadTree.bundleRows), 'download tree should include bundle rows');
+  assert(validInventory.downloadTree.bundleRows.some((row) => row.bucket === 'A'), 'download tree bundle rows should include bucket A');
   console.log('test-entry-runtime-audit passed');
 }
 

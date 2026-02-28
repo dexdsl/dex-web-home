@@ -12,6 +12,17 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function segmentSupportsType(segment, type) {
+  const normalizedType = toText(type).toLowerCase();
+  if (!normalizedType) return false;
+  const direct = toText(segment?.type).toLowerCase();
+  if (direct === normalizedType) return true;
+  const available = asArray(segment?.availableTypes)
+    .map((item) => toText(item).toLowerCase())
+    .filter(Boolean);
+  return available.includes(normalizedType);
+}
+
 function parseToken(raw, { allowedKinds, context }) {
   const tokenRaw = toText(raw);
   if (!tokenRaw) {
@@ -50,6 +61,18 @@ function isPdfLike(segment) {
   return mime.includes('pdf') || r2Key.endsWith('.pdf') || rawUrl.includes('.pdf');
 }
 
+function inferSubtype(segment = {}) {
+  const key = `${toText(segment?.r2Key).toLowerCase()} ${toText(segment?.rawUrl).toLowerCase()} ${toText(segment?.label).toLowerCase()}`;
+  if (/(^|\\W)4k(\\W|$)|2160/.test(key)) return '4k';
+  if (/1080/.test(key)) return '1080p';
+  if (/720/.test(key)) return '720p';
+  const ext = key.match(/\\.([a-z0-9]{2,6})(?:\\?|$)/);
+  if (ext && ext[1]) return ext[1];
+  const mime = toText(segment?.mime).toLowerCase();
+  if (mime.includes('/')) return mime.split('/')[1] || 'unknown';
+  return toText(segment?.type).toLowerCase() || 'unknown';
+}
+
 export function buildDownloadTreeHealth({
   lookupNumber,
   buckets = [],
@@ -62,6 +85,9 @@ export function buildDownloadTreeHealth({
     bucket: toText(segment?.bucket).toUpperCase(),
     bucketNumber: toText(segment?.bucketNumber),
     type: toText(segment?.type).toLowerCase(),
+    availableTypes: asArray(segment?.availableTypes)
+      .map((item) => toText(item).toLowerCase())
+      .filter(Boolean),
     fileId: toText(segment?.fileId),
     r2Key: toText(segment?.r2Key),
     mime: toText(segment?.mime),
@@ -109,8 +135,8 @@ export function buildDownloadTreeHealth({
       folderUrl,
       folderLinkOk: Boolean(folderUrl),
       fileCount: bucketSegments.length,
-      audioCount: bucketSegments.filter((segment) => segment.type === 'audio').length,
-      videoCount: bucketSegments.filter((segment) => segment.type === 'video').length,
+      audioCount: bucketSegments.filter((segment) => segmentSupportsType(segment, 'audio')).length,
+      videoCount: bucketSegments.filter((segment) => segmentSupportsType(segment, 'video')).length,
       unknownCount: unknownTypes,
     };
   });
@@ -121,8 +147,8 @@ export function buildDownloadTreeHealth({
 
   for (const bucket of allBuckets) {
     const bucketSegments = enabledSegments.filter((segment) => segment.bucket === bucket);
-    const hasAudio = bucketSegments.some((segment) => segment.type === 'audio');
-    const hasVideo = bucketSegments.some((segment) => segment.type === 'video');
+    const hasAudio = bucketSegments.some((segment) => segmentSupportsType(segment, 'audio'));
+    const hasVideo = bucketSegments.some((segment) => segmentSupportsType(segment, 'video'));
     for (const [type, keys] of [['audio', asArray(formatKeys?.audio)], ['video', asArray(formatKeys?.video)]]) {
       const hasType = type === 'audio' ? hasAudio : hasVideo;
       for (const formatKey of keys) {
@@ -196,12 +222,26 @@ export function buildDownloadTreeHealth({
       bucketNumber: segment.bucketNumber,
       fileId: segment.fileId,
       type: segment.type || 'unknown',
+      subtype: inferSubtype(segment),
       mime: segment.mime,
+      r2Key: segment.r2Key,
       driveFileIdPresent: Boolean(segment.driveFileId),
       enabled: segment.enabled,
       warning: warnings.join(', '),
     };
   });
+  const associatedTypeCounts = {
+    audio: 0,
+    video: 0,
+    pdf: 0,
+    unknown: 0,
+  };
+  const subtypeCounts = new Map();
+  for (const file of filesView) {
+    const family = file.type === 'audio' || file.type === 'video' || file.type === 'pdf' ? file.type : 'unknown';
+    associatedTypeCounts[family] += 1;
+    subtypeCounts.set(file.subtype || 'unknown', Number(subtypeCounts.get(file.subtype || 'unknown') || 0) + 1);
+  }
 
   const summary = {
     criticalCount: criticalIssues.length,
@@ -221,6 +261,10 @@ export function buildDownloadTreeHealth({
     buckets: bucketsView,
     files: filesView,
     bundles: bundleRows,
+    associatedTypeCounts,
+    subtypeCounts: Array.from(subtypeCounts.entries())
+      .map(([subtype, count]) => ({ subtype, count }))
+      .sort((a, b) => b.count - a.count || a.subtype.localeCompare(b.subtype)),
     recordingIndex: {
       pdf: pdfToken,
       bundle: bundleToken,

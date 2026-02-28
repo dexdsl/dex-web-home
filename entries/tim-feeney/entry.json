@@ -1,0 +1,108 @@
+{
+  "slug": "tim-feeney",
+  "title": "PREPARED FLOOR TOM",
+  "canonical": {
+    "instrument": "Prepared Floor Tom",
+    "artistName": "Tim Feeney"
+  },
+  "lifecycle": {
+    "publishedAt": "2026-02-28T03:58:55.027Z",
+    "updatedAt": "2026-02-28T03:58:55.027Z"
+  },
+  "video": {
+    "mode": "url",
+    "dataUrl": "https://youtu.be/CSFGiU1gg4g?si=x",
+    "dataUrlOriginal": "https://youtu.be/CSFGiU1gg4g?si=x",
+    "dataHtml": ""
+  },
+  "descriptionText": "Prepared floor tom textures and phrase-based segments from Tim Feeney.",
+  "series": "dex",
+  "selectedBuckets": [
+    "A",
+    "B",
+    "C"
+  ],
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "",
+    "tags": []
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "P.Pto. Fe AV2024 S2",
+    "buckets": [
+      "A",
+      "B",
+      "C"
+    ],
+    "specialEventImage": "/assets/series/dex.png",
+    "attributionSentence": "© Tim Feeney. Licensed for Dex members.",
+    "credits": {
+      "artist": [
+        "Tim Feeney"
+      ],
+      "artistAlt": null,
+      "instruments": [
+        "Prepared Floor Tom"
+      ],
+      "video": {
+        "director": [
+          "Dex Studio"
+        ],
+        "cinematography": [
+          "Dex Studio"
+        ],
+        "editing": [
+          "Dex Studio"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "Dex Studio"
+        ],
+        "mix": [
+          "Dex Studio"
+        ],
+        "master": [
+          "Dex Studio"
+        ]
+      },
+      "year": 2024,
+      "season": "S2",
+      "location": "Brooklyn, NY"
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "",
+      "tags": []
+    },
+    "downloads": {
+      "recordingIndexPdfRef": "asset:tim-feeney-prepared-floor-tom-recording-index-pdf",
+      "recordingIndexBundleRef": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
+      "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0"
+    }
+  }
+}

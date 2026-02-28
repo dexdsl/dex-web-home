@@ -245,13 +245,21 @@ function setManifestBundleTokensFromSegments(existingManifest, formatKeys, bucke
   const manifest = normalizeManifestWithFormats(existingManifest, formatKeys);
   const selectedBuckets = Array.isArray(buckets) ? buckets : BUCKETS;
   const summary = new Set();
+  const segmentSupportsType = (segment, type) => {
+    const normalizedType = String(type || '').trim().toLowerCase();
+    const directType = String(segment?.type || '').trim().toLowerCase();
+    if (directType === normalizedType) return true;
+    const available = Array.isArray(segment?.availableTypes)
+      ? segment.availableTypes
+      : [];
+    return available.some((item) => String(item || '').trim().toLowerCase() === normalizedType);
+  };
   for (const segment of segments || []) {
     if (!segment || segment.enabled === false) continue;
     const bucket = String(segment.bucket || '').trim().toUpperCase();
-    const type = String(segment.type || '').trim().toLowerCase();
     if (!bucket || !selectedBuckets.includes(bucket)) continue;
-    if (type !== 'audio' && type !== 'video') continue;
-    summary.add(`${bucket}:${type}`);
+    if (segmentSupportsType(segment, 'audio')) summary.add(`${bucket}:audio`);
+    if (segmentSupportsType(segment, 'video')) summary.add(`${bucket}:video`);
   }
   for (const bucket of selectedBuckets) {
     manifest.audio[bucket] = { ...(manifest.audio[bucket] || {}) };
@@ -626,6 +634,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
         label: segment.label || '',
         type: segment.type || 'unknown',
         typeReason: segment.typeReason || '',
+        availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
         enabled: segment.enabled !== false,
       }));
       const importedFiles = (imported.files || []).map((file) => ({

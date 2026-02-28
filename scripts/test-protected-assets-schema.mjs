@@ -77,4 +77,18 @@ const badDriveId = makeValidFixture();
 badDriveId.lookups[0].files[0].driveFileId = 'bad';
 assert.throws(() => normalizeProtectedAssetsFile(badDriveId), /Invalid driveFileId|at least 10 character/);
 
+const blankDriveId = makeValidFixture();
+blankDriveId.lookups[0].files.push({
+  bucketNumber: 'X.01',
+  bucket: 'X',
+  fileId: 'recording-index-pdf',
+  r2Key: 'lookups/SUB01-P.Dru Un AV2026/recording-index.pdf',
+  driveFileId: '',
+  sizeBytes: 0,
+  mime: 'application/pdf',
+  position: 2,
+});
+const normalizedBlankDriveId = normalizeProtectedAssetsFile(blankDriveId);
+assert.equal(normalizedBlankDriveId.lookups[0].files[1].driveFileId, '');
+
 console.log('ok protected assets schema');

@@ -97,7 +97,7 @@ function badge(text, fg = '#d0d5df', bg = '#313745') {
   return chalk.hex(bg).bold(` ${chalk.hex(fg)(text)} `);
 }
 
-function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAnim }) {
+function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAnim, workspace }) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({ cols: stdout?.columns || 80, rows: stdout?.rows || 24 });
@@ -259,6 +259,9 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   const paletteWindow = computeWindow({ total: filteredPalette.length, cursor: paletteSelected, height: paletteListHeight });
 
   const headerTop = `entry creation tool   ${badge(version || 'dev')}`;
+  const activeRepo = String(workspace?.activeRepo || 'site');
+  const activeRoot = String(workspace?.activeRoot || process.cwd());
+  const workspaceLine = `Workspace (${activeRepo}): ${activeRoot}`;
 
   return React.createElement(Box, { flexDirection: 'column', width: cols, height: rows },
     React.createElement(Box, { height: headerHeight, flexDirection: 'column', justifyContent: 'center', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
@@ -268,6 +271,8 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
           React.createElement(Text, {}, chalk.hex('#8f98a8')(headerTop)),
           React.createElement(Text, {}, chalk.hex('#ffcc66')('DEX CO-OP CORP, FOR INTERNAL USE ONLY')),
           React.createElement(Text, {}, chalk.hex('#8f98a8')('Last updated: 2026-02-20')),
+          React.createElement(Text, {}, chalk.hex('#8f98a8')(workspaceLine)),
+          React.createElement(Text, {}, chalk.hex('#6e7688')('Tip: dex setup --reset to reconfigure workspace roots')),
         )),
     ),
     React.createElement(Box, { height: workspaceHeight, flexDirection: 'column', borderStyle: 'single', borderColor: '#343b4a', paddingX: 2 },
@@ -391,7 +396,12 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   );
 }
 
-export async function runDashboard({ paletteOpen = false, initialMode = 'menu', version = 'dev' } = {}) {
+export async function runDashboard({
+  paletteOpen = false,
+  initialMode = 'menu',
+  version = 'dev',
+  workspace = {},
+} = {}) {
   if (!process.stdout.isTTY || !process.stdin.isTTY) return { action: null };
 
   cliCursor.hide();
@@ -400,6 +410,7 @@ export async function runDashboard({ paletteOpen = false, initialMode = 'menu', 
       initialPaletteOpen: paletteOpen,
       initialMode,
       version,
+      workspace,
       noAnim: process.env.DEX_NO_ANIM === '1',
     }), { exitOnCtrlC: true });
     await instance.waitUntilExit();

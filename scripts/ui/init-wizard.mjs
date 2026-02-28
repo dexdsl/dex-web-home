@@ -6,7 +6,6 @@ import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
 import { buildEmptyManifestSkeleton, prepareTemplate } from '../lib/init-core.mjs';
 import { writeEntryFromData } from '../lib/entry-run.mjs';
 import {
-  extractGoogleSheetsUrlFromChunk,
   isBackspaceKey,
   isPlainEscapeKey,
   sanitizePastedInputChunk,
@@ -15,6 +14,8 @@ import {
 import { assertAssetReferenceTokenKinds, isAssetReferenceToken } from '../lib/asset-ref.mjs';
 import { importRecordingIndexFromSheet, parseRecordingIndexSheetUrl } from '../lib/recording-index-import.mjs';
 import { buildDownloadTreeHealth } from '../lib/download-tree-health.mjs';
+import { buildDownloadTreePlotModelFromHealth } from '../lib/download-tree-plot-model.mjs';
+import { DownloadTreePlotter } from './components/download-tree-plotter.mjs';
 import { computeWindow } from './rolodex.mjs';
 
 const CHANNELS = ['mono', 'stereo', 'multichannel'];
@@ -119,13 +120,21 @@ function setManifestBundleTokensFromImport({ audio = {}, video = {} }, importedS
   const nextVideo = { ...video };
   const selectedBuckets = Array.isArray(buckets) ? buckets : [];
   const summaryByBucketType = new Set();
+  const segmentSupportsType = (segment, type) => {
+    const normalizedType = String(type || '').trim().toLowerCase();
+    const directType = String(segment?.type || '').trim().toLowerCase();
+    if (directType === normalizedType) return true;
+    const available = Array.isArray(segment?.availableTypes)
+      ? segment.availableTypes
+      : [];
+    return available.some((item) => String(item || '').trim().toLowerCase() === normalizedType);
+  };
   for (const segment of importedSegments || []) {
     if (!segment || !segment.enabled) continue;
     const bucket = String(segment.bucket || '').trim().toUpperCase();
-    const type = String(segment.type || '').trim().toLowerCase();
     if (!bucket || !selectedBuckets.includes(bucket)) continue;
-    if (type !== 'audio' && type !== 'video') continue;
-    summaryByBucketType.add(`${bucket}:${type}`);
+    if (segmentSupportsType(segment, 'audio')) summaryByBucketType.add(`${bucket}:audio`);
+    if (segmentSupportsType(segment, 'video')) summaryByBucketType.add(`${bucket}:video`);
   }
 
   for (const bucket of selectedBuckets) {
@@ -603,16 +612,17 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         lookupNumber,
         entrySlug: form.slug || form.title || lookupNumber,
       });
-        const importedSegments = (imported.segments || []).map((segment) => ({
+      const importedSegments = (imported.segments || []).map((segment) => ({
         bucketNumber: segment.bucketNumber,
         bucket: segment.bucket,
         segmentNumber: segment.segmentNumber,
         label: segment.label,
         rawUrl: segment.rawUrl,
         driveFileId: segment.driveFileId || '',
-          type: segment.type,
-          typeReason: segment.typeReason || '',
-          fileId: segment.fileId,
+        type: segment.type,
+        typeReason: segment.typeReason || '',
+        availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
+        fileId: segment.fileId,
         r2Key: segment.r2Key,
         sizeBytes: Number(segment.sizeBytes || 0) || 0,
         mime: segment.mime || '',
@@ -876,17 +886,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           return;
         }
         if (importInputFocus === 'sheet') {
-          const pastedUrl = extractGoogleSheetsUrlFromChunk(input);
-          if (pastedUrl) {
-            try {
-              const normalized = parseRecordingIndexSheetUrl(pastedUrl).sheetUrl;
-              setImportSheetUrl(normalized);
-              setImportSheetCursor(normalized.length);
-              return;
-            } catch {
-              // keep falling through to normal input editing so user can correct manually
-            }
-          }
           const next = applyKeyToInputState(
             { value: importSheetUrl, cursor: importSheetCursor },
             input,
@@ -1001,25 +1000,6 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
 
       if (downloadFocus === 'source') {
         if (key.return) { void maybeAdvance(); return; }
-        const pastedUrl = extractGoogleSheetsUrlFromChunk(input);
-        if (pastedUrl) {
-          try {
-            const normalized = parseRecordingIndexSheetUrl(pastedUrl).sheetUrl;
-            const nextError = validateRecordingIndexSourceUrl(normalized);
-            setForm((p) => ({
-              ...p,
-              downloadData: {
-                ...p.downloadData,
-                recordingIndexSourceUrl: normalized,
-                recordingIndexSourceUrlError: nextError,
-              },
-            }));
-            setRecordingIndexSourceCursor(normalized.length);
-            return;
-          } catch {
-            // fallback to manual editing
-          }
-        }
         const current = String(form.downloadData.recordingIndexSourceUrl || '');
         const next = applyKeyToInputState(
           { value: current, cursor: recordingIndexSourceCursor },
@@ -1262,6 +1242,10 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     downloadData: form.downloadData,
   });
   const downloadHealthSummary = downloadHealth.summary;
+  const terminalColumns = stdout?.columns || 120;
+  const downloadPaneRightWidth = Math.max(30, Math.min(52, Math.floor(terminalColumns * 0.34)));
+  const downloadPaneLeftWidth = Math.max(36, terminalColumns - downloadPaneRightWidth - 12);
+  const downloadPlotModel = buildDownloadTreePlotModelFromHealth(downloadHealth, { title: 'Download tree' });
 
   const footer = doneReport
     ? 'Enter return to menu'
@@ -1311,64 +1295,70 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         }),
         creditsWindow.end < creditRoles.length ? React.createElement(Text, { color: '#8f98a8', key: 'credits-down' }, '…') : null,
       ) : null,
-      step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
-        importMode ? React.createElement(Box, { flexDirection: 'column' },
-          React.createElement(Text, { color: '#d0d5df' }, 'Import Recording Index (Ctrl+I)'),
-          React.createElement(Text, { color: '#8f98a8' }, `Sheet URL: [ ${importInputFocus === 'sheet' ? withCaret(importSheetUrl, importSheetCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importSheetUrl} ]`),
-          React.createElement(Text, { color: '#8f98a8' }, `Fallback XLSX path: [ ${importInputFocus === 'fallback' ? withCaret(importFallbackPath, importFallbackCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importFallbackPath} ]`),
-          React.createElement(Text, { color: '#8f98a8' }, `Lookup: ${form.lookupNumber || '(required)'}`),
-          React.createElement(Text, { color: importBusy ? '#ffcc66' : '#8f98a8' }, importBusy ? 'Importing from sheet…' : 'Enter import • Tab switch field • Esc close'),
-        ) : null,
-        pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,assetRef\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus} • health critical=${downloadHealthSummary.criticalCount} warn=${downloadHealthSummary.warnCount} files=${downloadHealthSummary.enabledFiles}/${downloadHealthSummary.totalFiles}`) : null,
-        !pasteMode && !importMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode && !importMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {
-          const idx = downloadWindow.start + localIdx;
-          return React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor && downloadFocus === 'rows' }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`);
-        }) : null,
-        !pasteMode && !importMode && downloadWindow.end < downloadRows.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'sampleLength: AUTO') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index PDF token [lookup:/asset:]') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `PDF: [ ${(downloadFocus === 'pdf') ? withCaret(form.downloadData.recordingIndexPdfRef || '', recordingIndexPdfCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexPdfRef || '')} ]`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index bundle token [bundle:]') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Bundle: [ ${(downloadFocus === 'bundle') ? withCaret(form.downloadData.recordingIndexBundleRef || '', recordingIndexBundleCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexBundleRef || '')} ]`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index source URL') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Source: [ ${(downloadFocus === 'source') ? withCaret(form.downloadData.recordingIndexSourceUrl || '', recordingIndexSourceCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexSourceUrl || '')} ]`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, `Imported per-file segments: ${importedSegments.length}`) : null,
-        !pasteMode && !importMode && segmentWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode && !importMode ? importedSegments.slice(segmentWindow.start, segmentWindow.end).map((segment, localIdx) => {
-          const idx = segmentWindow.start + localIdx;
-          const enabled = segment.enabled !== false;
-          const marker = idx === segmentCursor && downloadFocus === 'segments' ? '›' : ' ';
-          const editing = segmentEditMode && idx === segmentCursor ? ` (${segmentEditField} edit)` : '';
-          const desc = `${segment.bucketNumber} ${segment.type || 'unknown'} ${segment.fileId || '-'} -> ${segment.r2Key || '-'}`;
-          return React.createElement(Text, {
-            key: `seg-${segment.bucketNumber}-${idx}`,
-            inverse: idx === segmentCursor && downloadFocus === 'segments',
-          }, `${marker} [${enabled ? 'x' : ' '}] ${desc}${editing}`);
-        }) : null,
-        !pasteMode && !importMode && segmentWindow.end < importedSegments.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, `Download tree root: ${downloadHealth.root.ok ? 'ok' : 'missing A1 link'}`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Buckets: ${(downloadHealth.buckets || []).map((bucketRow) => `${bucketRow.bucket}[${bucketRow.fileCount}]${bucketRow.folderLinkOk ? '' : '!folder'}`).join('  ') || '-'}`) : null,
-        !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Bundles: ${(downloadHealth.bundles || []).filter((row) => row.hasSegments).length} required • ${(downloadHealth.bundles || []).filter((row) => row.hasSegments && row.ok).length} healthy`) : null,
-        !pasteMode && !importMode && form.downloadData.importSummary
-          ? React.createElement(
-            Text,
-            { color: '#8f98a8' },
-            `Import: ${form.downloadData.importSummary.sourceMode} • files=${form.downloadData.importSummary.totalFiles} (audio=${form.downloadData.importSummary.audioFiles} video=${form.downloadData.importSummary.videoFiles} unknown=${form.downloadData.importSummary.unknownFiles}) • sheet=${form.downloadData.importSummary.sheetId || '-'}/${form.downloadData.importSummary.gid || '-'}`,
-          )
-          : null,
-        tagsWarning ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, tagsWarning) : null,
-        !pasteMode && !importMode && warnings.length ? warnings.slice(0, 4).map((msg) => React.createElement(Text, { key: `warn-${msg}`, color: '#8f98a8', dimColor: true }, `warning: ${msg}`)) : null,
-        !pasteMode && !importMode && warnings.length > 4 ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, `warning: +${warnings.length - 4} more`) : null,
-        !pasteMode && !importMode && downloadHealth.criticalIssues.length ? downloadHealth.criticalIssues.slice(0, 5).map((msg) => React.createElement(Text, { key: `critical-${msg}`, color: '#ff6b6b' }, `critical: ${msg}`)) : null,
-        !pasteMode && !importMode && downloadHealth.criticalIssues.length > 5 ? React.createElement(Text, { color: '#ff6b6b' }, `critical: +${downloadHealth.criticalIssues.length - 5} more`) : null,
-        !pasteMode && !importMode && downloadHealth.warnIssues.length ? downloadHealth.warnIssues.slice(0, 3).map((msg) => React.createElement(Text, { key: `health-warn-${msg}`, color: '#ffcc66' }, `warn: ${msg}`)) : null,
-        !pasteMode && !importMode && downloadHealth.warnIssues.length > 3 ? React.createElement(Text, { color: '#ffcc66' }, `warn: +${downloadHealth.warnIssues.length - 3} more`) : null,
-        !pasteMode && !importMode && form.downloadData.recordingIndexPdfError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexPdfError) : null,
-        !pasteMode && !importMode && form.downloadData.recordingIndexBundleError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexBundleError) : null,
-        !pasteMode && !importMode && form.downloadData.recordingIndexSourceUrlError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexSourceUrlError) : null,
-        form.downloadData.pasteError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.pasteError) : null,
+      step.kind === 'download' ? React.createElement(Box, { flexDirection: 'row' },
+        React.createElement(Box, { flexDirection: 'column', width: downloadPaneLeftWidth },
+          importMode ? React.createElement(Box, { flexDirection: 'column' },
+            React.createElement(Text, { color: '#d0d5df' }, 'Import Recording Index (Ctrl+I)'),
+            React.createElement(Text, { color: '#8f98a8' }, `Sheet URL: [ ${importInputFocus === 'sheet' ? withCaret(importSheetUrl, importSheetCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importSheetUrl} ]`),
+            React.createElement(Text, { color: '#8f98a8' }, `Fallback XLSX path: [ ${importInputFocus === 'fallback' ? withCaret(importFallbackPath, importFallbackCursor, caretOn || process.env.DEX_NO_ANIM === '1') : importFallbackPath} ]`),
+            React.createElement(Text, { color: '#8f98a8' }, `Lookup: ${form.lookupNumber || '(required)'}`),
+            React.createElement(Text, { color: importBusy ? '#ffcc66' : '#8f98a8' }, importBusy ? 'Importing from sheet…' : 'Enter import • Tab switch field • Esc close'),
+          ) : null,
+          pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,assetRef\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus} • files=${downloadHealthSummary.enabledFiles}/${downloadHealthSummary.totalFiles}`) : null,
+          !pasteMode && !importMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+          !pasteMode && !importMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {
+            const idx = downloadWindow.start + localIdx;
+            return React.createElement(Text, { key: `${row.type}-${row.b}-${row.k}`, inverse: idx === downloadCursor && downloadFocus === 'rows' }, `${idx === downloadCursor ? '›' : ' '} ${row.type} ${row.b}/${row.k}: ${form.downloadData[row.type]?.[row.b]?.[row.k] || ''}`);
+          }) : null,
+          !pasteMode && !importMode && downloadWindow.end < downloadRows.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'sampleLength: AUTO') : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index PDF token [lookup:/asset:]') : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `PDF: [ ${(downloadFocus === 'pdf') ? withCaret(form.downloadData.recordingIndexPdfRef || '', recordingIndexPdfCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexPdfRef || '')} ]`) : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index bundle token [bundle:]') : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Bundle: [ ${(downloadFocus === 'bundle') ? withCaret(form.downloadData.recordingIndexBundleRef || '', recordingIndexBundleCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexBundleRef || '')} ]`) : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, 'Recording index source URL') : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#8f98a8' }, `Source: [ ${(downloadFocus === 'source') ? withCaret(form.downloadData.recordingIndexSourceUrl || '', recordingIndexSourceCursor, caretOn || process.env.DEX_NO_ANIM === '1') : (form.downloadData.recordingIndexSourceUrl || '')} ]`) : null,
+          !pasteMode && !importMode ? React.createElement(Text, { color: '#d0d5df' }, `Imported per-file segments: ${importedSegments.length}`) : null,
+          !pasteMode && !importMode && segmentWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+          !pasteMode && !importMode ? importedSegments.slice(segmentWindow.start, segmentWindow.end).map((segment, localIdx) => {
+            const idx = segmentWindow.start + localIdx;
+            const enabled = segment.enabled !== false;
+            const marker = idx === segmentCursor && downloadFocus === 'segments' ? '›' : ' ';
+            const editing = segmentEditMode && idx === segmentCursor ? ` (${segmentEditField} edit)` : '';
+            const desc = `${segment.bucketNumber} ${segment.type || 'unknown'} ${segment.fileId || '-'} -> ${segment.r2Key || '-'}`;
+            return React.createElement(Text, {
+              key: `seg-${segment.bucketNumber}-${idx}`,
+              inverse: idx === segmentCursor && downloadFocus === 'segments',
+            }, `${marker} [${enabled ? 'x' : ' '}] ${desc}${editing}`);
+          }) : null,
+          !pasteMode && !importMode && segmentWindow.end < importedSegments.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
+          !pasteMode && !importMode && form.downloadData.importSummary
+            ? React.createElement(
+              Text,
+              { color: '#8f98a8' },
+              `Import: ${form.downloadData.importSummary.sourceMode} • files=${form.downloadData.importSummary.totalFiles} (audio=${form.downloadData.importSummary.audioFiles} video=${form.downloadData.importSummary.videoFiles} unknown=${form.downloadData.importSummary.unknownFiles}) • sheet=${form.downloadData.importSummary.sheetId || '-'}/${form.downloadData.importSummary.gid || '-'}`,
+            )
+            : null,
+          tagsWarning ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, tagsWarning) : null,
+          !pasteMode && !importMode && warnings.length ? warnings.slice(0, 4).map((msg) => React.createElement(Text, { key: `warn-${msg}`, color: '#8f98a8', dimColor: true }, `warning: ${msg}`)) : null,
+          !pasteMode && !importMode && warnings.length > 4 ? React.createElement(Text, { color: '#8f98a8', dimColor: true }, `warning: +${warnings.length - 4} more`) : null,
+          !pasteMode && !importMode && form.downloadData.recordingIndexPdfError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexPdfError) : null,
+          !pasteMode && !importMode && form.downloadData.recordingIndexBundleError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexBundleError) : null,
+          !pasteMode && !importMode && form.downloadData.recordingIndexSourceUrlError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.recordingIndexSourceUrlError) : null,
+          form.downloadData.pasteError ? React.createElement(Text, { color: '#ff6b6b' }, form.downloadData.pasteError) : null,
+        ),
+        React.createElement(Box, { marginLeft: 1, width: downloadPaneRightWidth, borderStyle: 'round', borderColor: '#4e5a70', paddingX: 1, flexDirection: 'column' },
+          importMode ? React.createElement(Text, { color: '#ffcc66' }, 'import mode active') : null,
+          pasteMode ? React.createElement(Text, { color: '#ffcc66' }, 'paste mode active') : null,
+          React.createElement(DownloadTreePlotter, {
+            model: downloadPlotModel,
+            width: downloadPaneRightWidth - 2,
+            maxBucketRows: 7,
+            maxSubtypeRows: 5,
+            maxIssueRows: 3,
+          }),
+        ),
       ) : null,
       step.kind === 'tags' ? React.createElement(Box, { flexDirection: 'column' },
         React.createElement(Text, { color: '#d0d5df' }, `Tags (required) [${safeList(form.downloadData.metadata.tagsSelected).length} selected]`),

@@ -64,7 +64,7 @@ const fileSchema = z.object({
   fileId: z.string().trim().min(1).max(64).optional(),
   bucket: z.string().trim().min(1).max(8),
   r2Key: z.string().trim().min(1).max(512),
-  driveFileId: z.string().trim().min(10).max(160).optional(),
+  driveFileId: z.string().trim().max(160).optional(),
   sizeBytes: z.number().int().min(0).optional(),
   mime: z.string().trim().min(1).max(160).optional(),
   position: z.number().int().min(1).max(9999).optional(),
