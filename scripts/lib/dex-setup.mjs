@@ -33,6 +33,12 @@ function toText(value) {
   return String(value == null ? '' : value).trim();
 }
 
+function createSetupError(message, code = 'DEX_SETUP_ERROR') {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
 function spawnResult(command, args = [], options = {}) {
   return spawnSync(command, args, {
     stdio: options.stdio || 'pipe',
@@ -209,17 +215,18 @@ export async function runDexSetup({
 } = {}) {
   const existing = await readWorkspaceConfig({ filePath });
   const currentConfig = reset ? {} : (existing.config || {});
+  const resetExisting = Boolean(reset && existing.exists);
 
   const intro = await prompts({
     type: 'confirm',
     name: 'continueSetup',
-    message: reset
+    message: resetExisting
       ? 'Reset and reconfigure dex workspace roots now?'
       : 'Configure dex workspace roots for dexdsl.github.io and dex-api?',
     initial: true,
   });
   if (!intro.continueSetup) {
-    throw new Error('Workspace setup cancelled.');
+    throw createSetupError('Workspace setup cancelled.', 'DEX_SETUP_CANCELLED');
   }
 
   const defaultSiteRepoUrl = deriveDefaultSiteRepoUrl();
@@ -288,11 +295,27 @@ export async function ensureWorkspaceConfig({
     };
   }
 
-  const setup = await runDexSetup({
-    requestedRepo,
-    filePath,
-    reset: !loaded.exists,
-  });
+  let setup;
+  try {
+    setup = await runDexSetup({
+      requestedRepo,
+      filePath,
+      reset: false,
+    });
+  } catch (error) {
+    const message = toText(error?.message) || 'Workspace setup failed.';
+    const cancelled = toText(error?.code) === 'DEX_SETUP_CANCELLED'
+      || /cancelled/i.test(message);
+    return {
+      ok: false,
+      filePath: loaded.filePath,
+      config: loaded.config,
+      ranSetup: false,
+      reason: cancelled
+        ? 'Workspace setup cancelled. Run `dex setup` when ready.'
+        : `Workspace setup failed. Run: dex setup (${message})`,
+    };
+  }
 
   loaded = await readWorkspaceConfig({ filePath: setup.filePath });
   if (!loaded.ok) {
