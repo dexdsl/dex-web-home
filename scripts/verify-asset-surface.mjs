@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractFormatKeys, injectEntryHtml } from './lib/entry-html.mjs';
+import { sanitizeGeneratedHtml } from './lib/sanitize-generated-html.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -12,7 +13,7 @@ const PUBLIC_ORIGIN = 'https://dexdsl.github.io';
 const BREADCRUMB_BUNDLE_RELATIVE_PATH = path.join('assets', 'js', 'dex-breadcrumb-motion.js');
 
 const ATTR_RX = /\b(?:src|href)\s*=\s*(["'])([^"']+)\1/gi;
-const CORE_RUNTIME = ['/assets/vendor/auth0-spa-js.umd.min.js', '/assets/dex-auth0-config.js', '/assets/dex-auth.js', '/assets/dex-sidebar.js', '/assets/js/dex-breadcrumb-motion.js'];
+const CORE_RUNTIME = ['/assets/vendor/auth0-spa-js.umd.min.js', '/assets/dex-auth0-config.js', '/assets/dex-auth.js', '/assets/js/header-slot.js', '/assets/dex-sidebar.js', '/assets/js/dex-breadcrumb-motion.js'];
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const FORBIDDEN_BUNDLE_PATTERNS = [
   { token: 'esm.sh import', regex: /esm\.sh/i },
@@ -124,7 +125,8 @@ async function main() {
     title: 'Verify Asset Surface',
     authEnabled: true,
   }).html;
-  for (const runtimePath of extractRuntimePaths(synthesized)) runtimePaths.add(runtimePath);
+  const sanitizedSynthesized = sanitizeGeneratedHtml(synthesized);
+  for (const runtimePath of extractRuntimePaths(sanitizedSynthesized)) runtimePaths.add(runtimePath);
   console.log('Scanned synthesized entry from template anchors.');
 
   const generatedPath = await pickGeneratedEntryHtml();

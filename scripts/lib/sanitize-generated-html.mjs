@@ -3,6 +3,7 @@ import { load as loadHtml } from 'cheerio';
 export const DEX_ORIGIN = 'https://dexdsl.github.io';
 export const DEX_CSS_HREF = `${DEX_ORIGIN}/assets/css/dex.css`;
 export const DEX_SIDEBAR_SRC = `${DEX_ORIGIN}/assets/dex-sidebar.js`;
+export const DEX_HEADER_SLOT_SRC = '/assets/js/header-slot.js';
 export const AUTH_VENDOR_SRC = `${DEX_ORIGIN}/assets/vendor/auth0-spa-js.umd.min.js`;
 
 const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
@@ -231,6 +232,7 @@ const FORBIDDEN_REMAINING_MARKERS = [
 export const REQUIRED_SANITIZED_SNIPPETS = [
   DEX_CSS_HREF,
   DEX_SIDEBAR_SRC,
+  DEX_HEADER_SLOT_SRC,
   'id="dex-sidebar-config"',
   'id="dex-sidebar-page-config"',
   `id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}"`,
@@ -1231,10 +1233,12 @@ function ensureRequiredRuntimeScripts($, head) {
   head.append(`\n<script defer src="${DEX_ORIGIN}/assets/dex-auth.js"></script>`);
 
   dedupeScriptsByPath($, '/assets/dex-sidebar.js', DEX_SIDEBAR_SRC, { defer: true, removeAsync: true });
+  $('script[src]').filter((_, el) => canonicalPathKey($(el).attr('src')) === '/assets/js/header-slot.js').remove();
 
   if ($('script[src]').filter((_, el) => String($(el).attr('src') || '').trim() === DEX_SIDEBAR_SRC).length === 0) {
     head.append(`\n<script defer src="${DEX_SIDEBAR_SRC}"></script>`);
   }
+  head.append(`\n<script defer src="${DEX_HEADER_SLOT_SRC}"></script>`);
 }
 
 function ensureContractScript($, id, fallbackJson, preferredContainer) {
@@ -1290,6 +1294,10 @@ function scriptTagCount($, id) {
 
 function hasDexSidebarRuntime($) {
   return $('script[src]').toArray().some((el) => canonicalPathKey($(el).attr('src')) === '/assets/dex-sidebar.js');
+}
+
+function dexRuntimeScriptCount($, pathKey) {
+  return $('script[src]').toArray().filter((el) => canonicalPathKey($(el).attr('src')) === pathKey).length;
 }
 
 function collectSanitizationIssues($) {
@@ -1350,6 +1358,14 @@ function collectSanitizationIssues($) {
 
   if (!hasDexSidebarRuntime($)) {
     issues.push({ type: 'missing', token: DEX_SIDEBAR_SRC });
+  }
+
+  const headerSlotCount = dexRuntimeScriptCount($, '/assets/js/header-slot.js');
+  if (headerSlotCount === 0) {
+    issues.push({ type: 'missing', token: DEX_HEADER_SLOT_SRC });
+  }
+  if (headerSlotCount > 1) {
+    issues.push({ type: 'duplicate', token: DEX_HEADER_SLOT_SRC });
   }
 
   if (hasDexSidebarRuntime($) && scriptTagCount($, 'dex-sidebar-page-config') === 0) {

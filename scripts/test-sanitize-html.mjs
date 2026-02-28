@@ -139,9 +139,11 @@ assert.ok(!/websiteComponents/i.test(sanitized), 'Sanitizer should remove websit
 
 const dexCssCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/css\/dex\.css/g) || []).length;
 const dexSidebarCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/dex-sidebar\.js/g) || []).length;
+const headerSlotCount = (sanitized.match(/(?:https:\/\/dexdsl\.github\.io)?\/assets\/js\/header-slot\.js/g) || []).length;
 const dexBreadcrumbMotionCount = (sanitized.match(/https:\/\/dexdsl\.github\.io\/assets\/js\/dex-breadcrumb-motion\.js/g) || []).length;
 assert.equal(dexCssCount, 1, 'Dex stylesheet should exist exactly once');
 assert.equal(dexSidebarCount, 1, 'Dex sidebar script should exist exactly once');
+assert.equal(headerSlotCount, 1, 'Header slot runtime should exist exactly once');
 assert.equal(dexBreadcrumbMotionCount, 1, 'Dex breadcrumb motion runtime should exist exactly once');
 assert.ok(sanitized.includes('id="dex-sidebar-config"'), 'Dex global config script should remain');
 assert.ok(sanitized.includes('id="dex-sidebar-page-config"'), 'Dex page config script should remain');

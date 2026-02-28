@@ -118,8 +118,16 @@ function send(res, statusCode, body, contentType = 'text/plain; charset=utf-8', 
 
 function rewriteViewerHtml(html) {
   let output = String(html || '');
+  output = output.replace(
+    /https?:\/\/(?:www\.)?dexdsl\.(?:github\.io|org|com)\/((?:assets|css|static|scripts)\/)/gi,
+    '/$1',
+  );
   for (const runtimeUrl of BREADCRUMB_RUNTIME_URLS) {
     output = output.split(runtimeUrl).join(BREADCRUMB_RUNTIME_PATH);
+  }
+  if (!output.includes('__dxChromeTemplateCandidates')) {
+    const viewerChromeHint = '<script>window.__dxChromeTemplateCandidates=["/__dx/chrome-template"];</script>';
+    output = output.replace(/<head([^>]*)>/i, `<head$1>\n${viewerChromeHint}`);
   }
   return output;
 }
@@ -131,6 +139,19 @@ async function fileExists(filePath) {
   } catch {
     return false;
   }
+}
+
+async function resolveViewerChromeTemplatePath(cwd) {
+  const candidates = [
+    path.join(cwd, 'docs', 'index.html'),
+    path.join(cwd, 'index.html'),
+    path.join(cwd, 'docs', 'entry', 'settings', 'index.html'),
+    path.join(cwd, 'entry-template', 'index.html'),
+  ];
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) return candidate;
+  }
+  return '';
 }
 
 async function resolveViewerStaticPath(cwd, pathname, { prefix, roots }) {
@@ -448,6 +469,23 @@ export async function startViewer({
           displayName: entry.displayName,
         }));
         send(res, 200, { items }, 'application/json; charset=utf-8');
+        return;
+      }
+
+      if (pathname === '/__dx/chrome-template' && method === 'GET') {
+        const chromeTemplatePath = await resolveViewerChromeTemplatePath(cwd);
+        if (!chromeTemplatePath) {
+          send(res, 404, 'Not found');
+          return;
+        }
+        let body;
+        try {
+          body = await fs.readFile(chromeTemplatePath, 'utf8');
+        } catch {
+          send(res, 404, 'Not found');
+          return;
+        }
+        send(res, 200, body, 'text/html; charset=utf-8');
         return;
       }
 

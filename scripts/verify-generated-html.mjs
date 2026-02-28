@@ -89,6 +89,11 @@ async function main() {
     const html = await fs.readFile(file, 'utf8');
     const result = verifySanitizedHtml(html);
     const runtimeIssues = [];
+    const headerSlotMatches = Array.from(
+      String(html).matchAll(/<script[^>]*\bsrc=["'](?:https?:\/\/[^"']+)?\/assets\/js\/header-slot\.js(?:[?#][^"']*)?["'][^>]*>/gi),
+    );
+    if (headerSlotMatches.length === 0) runtimeIssues.push('missing /assets/js/header-slot.js runtime include');
+    if (headerSlotMatches.length > 1) runtimeIssues.push('duplicate /assets/js/header-slot.js runtime include');
     if (/https?:\/\/drive\.google\.com\//i.test(html)) runtimeIssues.push('raw drive.google.com URL');
     const manifestMatch = html.match(/<script[^>]*id=["']dex-manifest["'][^>]*>([\s\S]*?)<\/script>/i);
     if (manifestMatch) {

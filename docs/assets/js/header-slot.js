@@ -115,6 +115,54 @@
     return wrapper.closest('header') || wrapper;
   }
 
+  function shouldForcePersistentChromeBootstrap(pathname = window.location.pathname) {
+    if (document.body && document.body.classList && document.body.classList.contains('dex-entry-page')) return true;
+    const normalized = normalizeProfileRoutePath(pathname);
+    if (/^\/entry\/[^/]+$/.test(normalized)) return true;
+    if (/^\/entries\/[^/]+$/.test(normalized)) return true;
+    return false;
+  }
+
+  function removeLegacyEntryChrome(headerElement = null) {
+    const removable = new Set();
+    if (headerElement instanceof HTMLElement) removable.add(headerElement);
+    const selectors = ['.sqs-announcement-bar-dropzone', '.dx-announcement-bar-dropzone', '.header-announcement-bar-wrapper'];
+    for (const selector of selectors) {
+      const nodes = Array.from(document.querySelectorAll(selector));
+      for (const node of nodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        if (node.id === SLOT_SCROLL_ID || node.id === SLOT_FOREGROUND_ID) continue;
+        removable.add(node);
+      }
+    }
+    for (const node of removable) {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    }
+  }
+
+  function getChromeTemplateCandidates() {
+    const runtimeCandidates = Array.isArray(window.__dxChromeTemplateCandidates)
+      ? window.__dxChromeTemplateCandidates
+      : [];
+    const pathname = normalizePathname(window.location.pathname || '/');
+    const prefersDocsRoot = pathname === '/docs' || pathname.startsWith('/docs/');
+    const fallbackCandidates = prefersDocsRoot
+      ? ['/docs/', '/docs/index.html', '/', '/index.html']
+      : ['/', '/index.html', '/docs/', '/docs/index.html'];
+    const candidates = [...runtimeCandidates, ...fallbackCandidates];
+    const seen = new Set();
+    const unique = [];
+    for (const candidate of candidates) {
+      const key = String(candidate || '').trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      unique.push(key);
+    }
+    return unique;
+  }
+
   async function ensureBackdropElementsFromTemplateIfMissing() {
     if (!(document.body instanceof HTMLElement)) return;
     const hasGradient = !!document.getElementById('scroll-gradient-bg');
@@ -122,7 +170,7 @@
     const hasSprite = !!document.querySelector('svg[data-usage="social-icons-svg"]');
     if (hasGradient && hasMesh && hasSprite) return;
 
-    const templateCandidates = ['/', '/index.html'];
+    const templateCandidates = getChromeTemplateCandidates();
     for (const templatePath of templateCandidates) {
       try {
         const response = await fetch(templatePath, {
@@ -166,13 +214,13 @@
     }
   }
 
-  async function bootstrapPersistentChromeIfMissing() {
+  async function bootstrapPersistentChromeIfMissing({ force = false } = {}) {
     if (!(document.body instanceof HTMLElement)) return getHeaderElement(document);
 
     const existingHeader = getHeaderElement(document);
-    if (existingHeader) return existingHeader;
+    if (existingHeader && !force) return existingHeader;
 
-    const templateCandidates = ['/', '/index.html'];
+    const templateCandidates = getChromeTemplateCandidates();
     for (const templatePath of templateCandidates) {
       try {
         const response = await fetch(templatePath, {
@@ -189,8 +237,12 @@
         const sourceHeader = getHeaderElement(parsed);
         if (!(sourceHeader instanceof HTMLElement)) continue;
 
-        syncHtmlAttributes(parsed);
-        syncBodyAttributes(parsed.body);
+        if (force) {
+          removeLegacyEntryChrome(existingHeader || getHeaderElement(document));
+        } else {
+          syncHtmlAttributes(parsed);
+          syncBodyAttributes(parsed.body);
+        }
 
         for (const backdropId of ['scroll-gradient-bg', 'gooey-mesh-wrapper']) {
           if (document.getElementById(backdropId)) continue;
@@ -2867,7 +2919,8 @@
     ensureViewportFitCover();
     installIosSafariViewportSync();
 
-    const headerElement = getHeaderElement(document) || await bootstrapPersistentChromeIfMissing();
+    const shouldForceBootstrap = shouldForcePersistentChromeBootstrap(window.location.pathname);
+    const headerElement = await bootstrapPersistentChromeIfMissing({ force: shouldForceBootstrap }) || getHeaderElement(document);
     if (!headerElement) return;
 
     const container = headerElement.parentElement || document.body;
