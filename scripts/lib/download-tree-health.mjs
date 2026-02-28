@@ -227,6 +227,7 @@ export function buildDownloadTreeHealth({
       r2Key: segment.r2Key,
       driveFileIdPresent: Boolean(segment.driveFileId),
       enabled: segment.enabled,
+      availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
       warning: warnings.join(', '),
     };
   });
@@ -236,10 +237,30 @@ export function buildDownloadTreeHealth({
     pdf: 0,
     unknown: 0,
   };
+  const physicalTypeCounts = {
+    audio: 0,
+    video: 0,
+    pdf: 0,
+    unknown: 0,
+  };
   const subtypeCounts = new Map();
   for (const file of filesView) {
-    const family = file.type === 'audio' || file.type === 'video' || file.type === 'pdf' ? file.type : 'unknown';
-    associatedTypeCounts[family] += 1;
+    const physicalFamily = file.type === 'audio' || file.type === 'video' || file.type === 'pdf'
+      ? file.type
+      : 'unknown';
+    physicalTypeCounts[physicalFamily] += 1;
+    const available = Array.isArray(file.availableTypes) ? file.availableTypes : [];
+    if (available.length > 0) {
+      let supported = 0;
+      for (const mediaType of available) {
+        if (!Object.prototype.hasOwnProperty.call(associatedTypeCounts, mediaType)) continue;
+        associatedTypeCounts[mediaType] += 1;
+        supported += 1;
+      }
+      if (supported === 0) associatedTypeCounts.unknown += 1;
+    } else {
+      associatedTypeCounts[physicalFamily] += 1;
+    }
     subtypeCounts.set(file.subtype || 'unknown', Number(subtypeCounts.get(file.subtype || 'unknown') || 0) + 1);
   }
 
@@ -262,6 +283,7 @@ export function buildDownloadTreeHealth({
     files: filesView,
     bundles: bundleRows,
     associatedTypeCounts,
+    physicalTypeCounts,
     subtypeCounts: Array.from(subtypeCounts.entries())
       .map(([subtype, count]) => ({ subtype, count }))
       .sort((a, b) => b.count - a.count || a.subtype.localeCompare(b.subtype)),

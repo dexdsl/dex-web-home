@@ -381,6 +381,26 @@ function parseProtectedAssetLookupRows(rawData = {}) {
     const lookupNumber = toText(entry.lookupNumber || entry.lookup_number);
     if (!lookupNumber) continue;
     const files = Array.isArray(entry.files) ? entry.files : [];
+    const parseAvailableTypes = (file) => {
+      const direct = Array.isArray(file?.availableTypes) ? file.availableTypes : null;
+      if (direct) {
+        return direct.map((item) => toText(item).toLowerCase()).filter(Boolean);
+      }
+      const jsonRaw = toText(file?.available_types_json || file?.availableTypesJson);
+      if (jsonRaw) {
+        try {
+          const parsed = JSON.parse(jsonRaw);
+          if (Array.isArray(parsed)) {
+            return parsed.map((item) => toText(item).toLowerCase()).filter(Boolean);
+          }
+        } catch {
+          return jsonRaw.split(',').map((item) => toText(item).toLowerCase()).filter(Boolean);
+        }
+      }
+      const raw = file?.available_types;
+      if (Array.isArray(raw)) return raw.map((item) => toText(item).toLowerCase()).filter(Boolean);
+      return [];
+    };
     const normalizedFiles = files.map((file) => ({
       lookupNumber,
       bucketNumber: toText(file.bucketNumber || file.bucket_number),
@@ -390,6 +410,11 @@ function parseProtectedAssetLookupRows(rawData = {}) {
       r2Key: toText(file.r2Key || file.r2_key),
       mime: toText(file.mime),
       sizeBytes: Number(file.sizeBytes ?? file.size_bytes ?? 0) || 0,
+      label: toText(file.label),
+      sourceLabel: toText(file.sourceLabel || file.source_label || file.label),
+      type: toText(file.type || file.media_type).toLowerCase() || '',
+      availableTypes: parseAvailableTypes(file),
+      role: toText(file.role || file.file_role).toLowerCase() || 'media',
     }));
     map.set(lookupKey(lookupNumber), {
       lookupNumber,
@@ -451,14 +476,42 @@ function bucketCodeFromFile(file = {}) {
 function isPdfLikeInventoryFile(file = {}) {
   const mime = toText(file.mime).toLowerCase();
   const r2Key = toText(file.r2Key).toLowerCase();
-  const label = toText(file.label).toLowerCase();
+  const label = `${toText(file.label).toLowerCase()} ${toText(file.sourceLabel).toLowerCase()}`;
   return mime.includes('pdf') || r2Key.endsWith('.pdf') || label.includes('recording index pdf');
 }
 
+function normalizeInventoryAvailableTypes(file = {}) {
+  const out = [];
+  const seen = new Set();
+  for (const value of Array.isArray(file.availableTypes) ? file.availableTypes : []) {
+    const normalized = toText(value).toLowerCase();
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+
+function isRecordingIndexDocument(file = {}, recordingMeta = null) {
+  const role = toText(file.role).toLowerCase();
+  if (role === 'recording_index_pdf') return true;
+  const pdfAssetId = toText(recordingMeta?.pdfAssetId).toLowerCase();
+  if (pdfAssetId && toText(file.fileId).toLowerCase() === pdfAssetId) return true;
+  return false;
+}
+
 function inferInventoryMediaFamily(file = {}) {
+  const explicit = toText(file.type).toLowerCase();
+  if (explicit === 'audio' || explicit === 'video' || explicit === 'pdf') return explicit;
+  const available = normalizeInventoryAvailableTypes(file);
+  if (available.includes('audio') && available.includes('video')) return 'unknown';
+  if (available.includes('audio')) return 'audio';
+  if (available.includes('video')) return 'video';
+  if (available.includes('pdf')) return 'pdf';
   const mime = toText(file.mime).toLowerCase();
   const r2Key = toText(file.r2Key).toLowerCase();
-  const label = `${toText(file.label).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
+  const label = `${toText(file.label).toLowerCase()} ${toText(file.sourceLabel).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
   if (mime.startsWith('audio/') || /\.(wav|aif|aiff|mp3|flac|m4a)(\?|$)/.test(r2Key) || /\b(wav|aif|aiff|mp3|flac|m4a|audio|ste|stereo)\b/.test(label)) return 'audio';
   if (mime.startsWith('video/') || /\.(mov|mp4|mxf|mkv)(\?|$)/.test(r2Key) || /(4k|1080|720|prores|h264|h265|video)/.test(label)) return 'video';
   if (mime.includes('pdf') || /\.pdf(\?|$)/.test(r2Key) || /\b(pdf|recording index)\b/.test(label)) return 'pdf';
@@ -467,7 +520,7 @@ function inferInventoryMediaFamily(file = {}) {
 
 function inferInventorySubtype(file = {}) {
   const r2Key = toText(file.r2Key).toLowerCase();
-  const label = `${toText(file.label).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
+  const label = `${toText(file.label).toLowerCase()} ${toText(file.sourceLabel).toLowerCase()} ${toText(file.fileId).toLowerCase()}`;
   if (/(^|\W)4k(\W|$)|2160/.test(label) || /2160|4k/.test(r2Key)) return '4k';
   if (/1080/.test(label) || /1080/.test(r2Key)) return '1080p';
   if (/720/.test(label) || /720/.test(r2Key)) return '720p';
@@ -476,6 +529,14 @@ function inferInventorySubtype(file = {}) {
   const mime = toText(file.mime).toLowerCase();
   if (mime.includes('/')) return mime.split('/')[1] || 'unknown';
   return 'unknown';
+}
+
+function inventoryFileSupportsType(file = {}, type) {
+  const wanted = toText(type).toLowerCase();
+  if (!wanted) return false;
+  const available = normalizeInventoryAvailableTypes(file);
+  if (available.length > 0) return available.includes(wanted);
+  return inferInventoryMediaFamily(file) === wanted;
 }
 
 function buildInventoryDownloadTree(row = {}) {
@@ -487,8 +548,10 @@ function buildInventoryDownloadTree(row = {}) {
   const normalizedFiles = files.map((file) => ({
     ...file,
     bucketCode: bucketCodeFromFile(file),
+    availableTypes: normalizeInventoryAvailableTypes(file),
     mediaFamily: inferInventoryMediaFamily(file),
     mediaSubtype: inferInventorySubtype(file),
+    role: toText(file.role).toLowerCase() || 'media',
   }));
   const recordingByLookup = row.assets?.recordingIndexByLookup && typeof row.assets.recordingIndexByLookup === 'object'
     ? row.assets.recordingIndexByLookup
@@ -498,10 +561,11 @@ function buildInventoryDownloadTree(row = {}) {
   const bucketFolderUrls = recordingMeta?.bucketFolderUrls && typeof recordingMeta.bucketFolderUrls === 'object'
     ? recordingMeta.bucketFolderUrls
     : {};
+  const mediaFiles = normalizedFiles.filter((file) => !isRecordingIndexDocument(file, recordingMeta));
 
   const buckets = [];
   const bucketSeen = new Set();
-  for (const file of normalizedFiles) {
+  for (const file of mediaFiles) {
     const bucket = file.bucketCode;
     if (!bucket || bucketSeen.has(bucket)) continue;
     bucketSeen.add(bucket);
@@ -511,25 +575,25 @@ function buildInventoryDownloadTree(row = {}) {
 
   const criticalIssues = [];
   const warnIssues = [];
-  if (!normalizedFiles.length) {
+  if (!mediaFiles.length) {
     criticalIssues.push('no mapped files');
   }
   if (!rootFolderUrl) {
     criticalIssues.push('missing root folder link (A1)');
   }
   for (const bucket of buckets) {
-    const bucketFiles = normalizedFiles.filter((file) => file.bucketCode === bucket);
-    const requiresFolderLink = bucketFiles.some((file) => !isPdfLikeInventoryFile(file));
+    const bucketFiles = mediaFiles.filter((file) => file.bucketCode === bucket);
+    const requiresFolderLink = bucketFiles.length > 0;
     if (!requiresFolderLink) continue;
     if (!toText(bucketFolderUrls[bucket])) {
       criticalIssues.push(`missing bucket folder link (${bucket === 'X' ? 'F2' : `${bucket}2`})`);
     }
   }
-  const unknownMimeCount = normalizedFiles.filter((file) => !toText(file.mime)).length;
+  const unknownMimeCount = mediaFiles.filter((file) => !toText(file.mime)).length;
   if (unknownMimeCount > 0) {
     warnIssues.push(`${unknownMimeCount} file(s) missing mime`);
   }
-  const missingDriveIdCount = normalizedFiles.filter((file) => !toText(file.driveFileId) && !/\.pdf$/i.test(toText(file.r2Key))).length;
+  const missingDriveIdCount = mediaFiles.filter((file) => !toText(file.driveFileId) && !/\.pdf$/i.test(toText(file.r2Key))).length;
   if (missingDriveIdCount > 0) {
     warnIssues.push(`${missingDriveIdCount} file(s) missing driveFileId`);
   }
@@ -548,13 +612,19 @@ function buildInventoryDownloadTree(row = {}) {
     pdf: 0,
     unknown: 0,
   };
+  const physicalTypeCounts = {
+    audio: 0,
+    video: 0,
+    pdf: 0,
+    unknown: 0,
+  };
   const subtypeCounts = new Map();
   const bundleRows = [];
   for (const bucket of buckets) {
-    const bucketFiles = normalizedFiles.filter((file) => file.bucketCode === bucket);
-    const audioPresent = bucketFiles.some((file) => file.mediaFamily === 'audio');
-    const videoPresent = bucketFiles.some((file) => file.mediaFamily === 'video');
-    const pdfPresent = bucketFiles.some((file) => file.mediaFamily === 'pdf');
+    const bucketFiles = mediaFiles.filter((file) => file.bucketCode === bucket);
+    const audioPresent = bucketFiles.some((file) => inventoryFileSupportsType(file, 'audio'));
+    const videoPresent = bucketFiles.some((file) => inventoryFileSupportsType(file, 'video'));
+    const pdfPresent = bucketFiles.some((file) => inventoryFileSupportsType(file, 'pdf'));
     bundleRows.push({
       bucket,
       audio: { present: audioPresent, ok: audioPresent },
@@ -563,10 +633,23 @@ function buildInventoryDownloadTree(row = {}) {
     });
   }
   for (const file of normalizedFiles) {
-    const family = Object.prototype.hasOwnProperty.call(associatedTypeCounts, file.mediaFamily)
+    const physicalFamily = Object.prototype.hasOwnProperty.call(physicalTypeCounts, file.mediaFamily)
       ? file.mediaFamily
       : 'unknown';
-    associatedTypeCounts[family] += 1;
+    physicalTypeCounts[physicalFamily] += 1;
+    if (file.availableTypes.length > 0) {
+      let supported = 0;
+      for (const mediaType of file.availableTypes) {
+        if (!Object.prototype.hasOwnProperty.call(associatedTypeCounts, mediaType)) continue;
+        associatedTypeCounts[mediaType] += 1;
+        supported += 1;
+      }
+      if (supported === 0) associatedTypeCounts.unknown += 1;
+    } else if (Object.prototype.hasOwnProperty.call(associatedTypeCounts, file.mediaFamily)) {
+      associatedTypeCounts[file.mediaFamily] += 1;
+    } else {
+      associatedTypeCounts.unknown += 1;
+    }
     const subtype = file.mediaSubtype || 'unknown';
     subtypeCounts.set(subtype, Number(subtypeCounts.get(subtype) || 0) + 1);
   }
@@ -589,8 +672,11 @@ function buildInventoryDownloadTree(row = {}) {
       mime: toText(file.mime),
       type: file.mediaFamily,
       subtype: file.mediaSubtype,
+      role: file.role,
+      availableTypes: file.availableTypes.slice(),
     })),
     associatedTypeCounts,
+    physicalTypeCounts,
     subtypeCounts: Array.from(subtypeCounts.entries())
       .map(([subtype, count]) => ({ subtype, count }))
       .sort((a, b) => b.count - a.count || a.subtype.localeCompare(b.subtype)),
@@ -678,12 +764,14 @@ export async function collectEntryCatalogAssetInventory({
           for (const file of lookup.files || []) {
             files.push({ ...file });
             if (lookupKey) lookupFiles[lookupKey].push({ ...file });
-            const bucketValue = toText(file.bucketNumber || file.bucket);
-            if (bucketValue) {
-              const key = textKey(bucketValue);
-              if (!bucketSeen.has(key)) {
-                bucketSeen.add(key);
-                buckets.push(bucketValue);
+            if (!isRecordingIndexDocument(file, lookup.recordingIndex)) {
+              const bucketValue = toText(file.bucketNumber || file.bucket);
+              if (bucketValue) {
+                const key = textKey(bucketValue);
+                if (!bucketSeen.has(key)) {
+                  bucketSeen.add(key);
+                  buckets.push(bucketValue);
+                }
               }
             }
             const fileValue = toText(file.fileId || file.driveFileId);

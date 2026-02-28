@@ -103,8 +103,12 @@ async function main() {
             bucketNumber: 'A.1',
             fileId: 'A.1',
             bucket: 'A',
-            r2Key: 'sub01/a1.wav',
+            r2Key: 'sub01/a1.mov',
             driveFileId: '1AbCdEfGhIjKlMnOpQrStUvWxYz',
+            mime: 'video/*',
+            type: 'video',
+            availableTypes: ['audio', 'video'],
+            sourceLabel: 'A.1 4K | 1080p | ste',
             position: 1,
           },
           {
@@ -114,6 +118,9 @@ async function main() {
             r2Key: 'sub01/recording-index.pdf',
             mime: 'application/pdf',
             driveFileId: '1ZZZdEfGhIjKlMnOpQrStUvWxYz',
+            role: 'recording_index_pdf',
+            availableTypes: ['pdf'],
+            type: 'pdf',
             position: 2,
           },
         ],
@@ -174,7 +181,7 @@ async function main() {
   assert(catalogOnlyInventory, 'catalog-only inventory row should exist');
   assert.equal(validInventory.state, 'linked', 'valid should be linked because entry page and catalog row exist');
   assert.equal(catalogOnlyInventory.state, 'catalog-only', 'catalog-only row should be catalog-only');
-  assert.deepEqual(validInventory.assets.buckets, ['A.1', 'X.1'], 'valid row should include mapped buckets');
+  assert.deepEqual(validInventory.assets.buckets, ['A.1'], 'valid row should include mapped media buckets only');
   assert.deepEqual(validInventory.assets.fileIds, ['A.1', 'rec-pdf-1'], 'valid row should include mapped file ids');
   assert.equal(validInventory.recordingIndex.pdfValid, true, 'valid row should keep recording pdf token');
   assert.equal(validInventory.recordingIndex.bundleValid, true, 'valid row should keep recording bundle token');
@@ -182,10 +189,11 @@ async function main() {
   assert.equal(validInventory.recordingIndex.pdfLike, true, 'valid row recording asset should be pdf-like');
   assert.equal(validInventory.recordingIndex.bundleResolved, true, 'valid row should resolve recording bundle token');
   assert(Array.isArray(validInventory.downloadTree.files), 'valid row should include download tree file rows');
-  assert(validInventory.downloadTree.files.some((file) => file.type === 'audio'), 'download tree should include audio family');
   assert(validInventory.downloadTree.files.some((file) => file.type === 'pdf'), 'download tree should include pdf family');
   assert(Array.isArray(validInventory.downloadTree.bundleRows), 'download tree should include bundle rows');
   assert(validInventory.downloadTree.bundleRows.some((row) => row.bucket === 'A'), 'download tree bundle rows should include bucket A');
+  assert(!validInventory.downloadTree.bundleRows.some((row) => row.bucket === 'X'), 'download tree bundle rows should exclude recording-index bucket');
+  assert((validInventory.downloadTree.associatedTypeCounts?.audio || 0) >= 1, 'associated type counts should include audio from availableTypes');
   console.log('test-entry-runtime-audit passed');
 }
 

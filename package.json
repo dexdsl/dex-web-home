@@ -97,6 +97,7 @@
     "assets:validate": "node scripts/dex.mjs assets validate",
     "assets:diff": "node scripts/dex.mjs assets diff --env test",
     "assets:publish:dry-run": "node scripts/dex.mjs assets publish --env test --dry-run",
+    "assets:migrate-capabilities": "node scripts/migrate-protected-assets-capabilities.mjs --write",
     "release:preflight": "node scripts/dex.mjs release preflight --env test",
     "release:publish:dry-run": "node scripts/dex.mjs release publish --env test --dry-run",
     "dexnotes:migrate": "node scripts/migrate_dexnotes_legacy_to_markdown.mjs",

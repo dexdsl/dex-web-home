@@ -96,6 +96,23 @@ function keyEntitlement(row) {
   return `${row.lookup_number || ''}|${row.entitlement_type || ''}|${row.entitlement_value || ''}`;
 }
 
+function normalizeAvailableTypeList(values = []) {
+  const out = [];
+  const seen = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const normalized = toText(value).toLowerCase();
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+
+function normalizeFileRole(value) {
+  return toText(value).toLowerCase() || 'media';
+}
+
 export function getProtectedAssetsFilePath(customPath) {
   return customPath ? path.resolve(customPath) : DEFAULT_PROTECTED_ASSETS_PATH;
 }
@@ -163,6 +180,10 @@ export function buildProtectedAssetsPayload(input) {
       size_bytes: Number(file.sizeBytes || 0),
       mime: file.mime,
       position: Number(file.position || 0),
+      type: toText(file.type || 'unknown'),
+      available_types_json: JSON.stringify(normalizeAvailableTypeList(file.availableTypes)),
+      file_role: normalizeFileRole(file.role),
+      source_label: toText(file.sourceLabel || file.label),
       storage_bucket: normalized.settings.storageBucket,
     }))),
     keyFile,
@@ -224,6 +245,18 @@ function dedupeEntitlements(entitlements = []) {
 }
 
 function normalizeImportFileRow(file, fallbackPosition = 1) {
+  const availableTypesRaw = file?.availableTypes || file?.available_types || file?.available_types_json;
+  const availableTypes = (() => {
+    if (Array.isArray(availableTypesRaw)) return normalizeAvailableTypeList(availableTypesRaw);
+    const raw = toText(availableTypesRaw);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return normalizeAvailableTypeList(parsed);
+    } catch {
+      return normalizeAvailableTypeList(raw.split(','));
+    }
+  })();
   return {
     bucketNumber: toText(file?.bucketNumber || file?.bucket_number),
     fileId: toText(file?.fileId || file?.file_id),
@@ -234,6 +267,10 @@ function normalizeImportFileRow(file, fallbackPosition = 1) {
     mime: toText(file?.mime),
     position: Number(file?.position || fallbackPosition) || fallbackPosition,
     label: toText(file?.label),
+    sourceLabel: toText(file?.sourceLabel || file?.source_label || file?.label),
+    type: toText(file?.type || 'unknown').toLowerCase() || 'unknown',
+    availableTypes,
+    role: normalizeFileRole(file?.role || file?.file_role),
   };
 }
 

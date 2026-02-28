@@ -2,12 +2,12 @@
   "slug": "tim-feeney",
   "title": "PREPARED FLOOR TOM",
   "canonical": {
-    "instrument": "Prepared Floor Tom",
+    "instrument": "test",
     "artistName": "Tim Feeney"
   },
   "lifecycle": {
-    "publishedAt": "2026-02-28T03:58:55.027Z",
-    "updatedAt": "2026-02-28T03:58:55.027Z"
+    "publishedAt": "2026-02-28T05:09:13.075Z",
+    "updatedAt": "2026-02-28T05:09:13.075Z"
   },
   "video": {
     "mode": "url",
@@ -15,13 +15,48 @@
     "dataUrlOriginal": "https://youtu.be/CSFGiU1gg4g?si=x",
     "dataHtml": ""
   },
-  "descriptionText": "Prepared floor tom textures and phrase-based segments from Tim Feeney.",
-  "series": "dex",
+  "descriptionText": "e and examine the possibilities inherent in unstable sound and duration. Tim began working in this thread in 2002, within Boston’s community of improvisers interested in austere combinations of sounds and silences, and has since performed and recorded with musicians throughout the United States and abroad. He frequently collaborates with artists including the trio Meridian, with percussionists Sarah Hennies and Greg Stuart, pianist Annie Lewandowski, cellist and electronic musician Vic Rawlings, vocalist Ken Ueno, saxophonist Andrew Raffo Dewar, banjo and electronic musician Holland Hopson, trumpeter Nate Wooley, sound artists Jed Speare and Ernst Karel, video artist Jane Cassidy, and many others.\n\nVisit Tim Feeney’s website at timfeeney.com\n",
+  "series": "dexFest",
   "selectedBuckets": [
     "A",
     "B",
     "C"
   ],
+  "creditsData": {
+    "artist": [
+      "Tim Feeney"
+    ],
+    "artistAlt": null,
+    "instruments": [
+      "test"
+    ],
+    "video": {
+      "director": [
+        "Gabrielle Milman"
+      ],
+      "cinematography": [
+        "Gabrielle Milman",
+        "Sebastian Suarez-Solis"
+      ],
+      "editing": [
+        "Sebastian Suarez-Solis"
+      ]
+    },
+    "audio": {
+      "recording": [
+        "Cameron Church"
+      ],
+      "mix": [
+        "Sebastian Suarez-Solis"
+      ],
+      "master": [
+        "Sebastian Suarez-Solis"
+      ]
+    },
+    "year": 2026,
+    "season": "S2",
+    "location": "LA Artcore"
+  },
   "fileSpecs": {
     "bitDepth": 24,
     "sampleRate": 48000,
@@ -36,8 +71,13 @@
     }
   },
   "metadata": {
-    "sampleLength": "",
-    "tags": []
+    "sampleLength": "AUTO",
+    "tags": [
+      "ambient",
+      "live",
+      "studio",
+      "experimental"
+    ]
   },
   "sidebarPageConfig": {
     "lookupNumber": "P.Pto. Fe AV2024 S2",
@@ -46,41 +86,42 @@
       "B",
       "C"
     ],
-    "specialEventImage": "/assets/series/dex.png",
-    "attributionSentence": "© Tim Feeney. Licensed for Dex members.",
+    "specialEventImage": "/assets/series/dexfest.png",
+    "attributionSentence": "Samples licensed under CC-BY 4.0 by Dex Digital Sample Library and Tim Feeney.",
     "credits": {
       "artist": [
         "Tim Feeney"
       ],
       "artistAlt": null,
       "instruments": [
-        "Prepared Floor Tom"
+        "test"
       ],
       "video": {
         "director": [
-          "Dex Studio"
+          "Gabrielle Milman"
         ],
         "cinematography": [
-          "Dex Studio"
+          "Gabrielle Milman",
+          "Sebastian Suarez-Solis"
         ],
         "editing": [
-          "Dex Studio"
+          "Sebastian Suarez-Solis"
         ]
       },
       "audio": {
         "recording": [
-          "Dex Studio"
+          "Cameron Church"
         ],
         "mix": [
-          "Dex Studio"
+          "Sebastian Suarez-Solis"
         ],
         "master": [
-          "Dex Studio"
+          "Sebastian Suarez-Solis"
         ]
       },
-      "year": 2024,
+      "year": 2026,
       "season": "S2",
-      "location": "Brooklyn, NY"
+      "location": "LA Artcore"
     },
     "fileSpecs": {
       "bitDepth": 24,
@@ -96,11 +137,16 @@
       }
     },
     "metadata": {
-      "sampleLength": "",
-      "tags": []
+      "sampleLength": "AUTO",
+      "tags": [
+        "ambient",
+        "live",
+        "studio",
+        "experimental"
+      ]
     },
     "downloads": {
-      "recordingIndexPdfRef": "asset:tim-feeney-prepared-floor-tom-recording-index-pdf",
+      "recordingIndexPdfRef": "asset:tim-feeney-recording-index-pdf",
       "recordingIndexBundleRef": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
       "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0"
     }

@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS asset_file (
   drive_file_id TEXT,
   size_bytes INTEGER NOT NULL DEFAULT 0,
   mime TEXT,
+  media_type TEXT,
+  available_types_json TEXT,
+  file_role TEXT NOT NULL DEFAULT 'media',
+  source_label TEXT,
   position INTEGER NOT NULL,
   storage_bucket TEXT NOT NULL,
   PRIMARY KEY (lookup_number, bucket_number),
@@ -99,3 +103,5 @@ CREATE TABLE IF NOT EXISTS bundle_job (
   - the recording-index PDF
   - imported per-file recording segments for the lookup
 - Set `mime` to `application/pdf` (or ensure `r2_key` ends with `.pdf`) so readiness audits can verify PDF resolution deterministically.
+- `available_types_json` should describe all bundle-capable families for each file (for example `["audio","video"]` when one link is dual-capability).
+- Use `file_role = 'recording_index_pdf'` for the recording-index document so audit/UI can isolate it from bucket media matrix views.

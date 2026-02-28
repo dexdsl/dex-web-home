@@ -632,10 +632,12 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
         mime: segment.mime || '',
         position: Number(segment.position || 0) || 0,
         label: segment.label || '',
+        sourceLabel: segment.sourceLabel || segment.label || '',
         type: segment.type || 'unknown',
         typeReason: segment.typeReason || '',
         availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
         enabled: segment.enabled !== false,
+        role: segment.role || 'media',
       }));
       const importedFiles = (imported.files || []).map((file) => ({
         bucketNumber: file.bucketNumber,
@@ -647,6 +649,10 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
         mime: file.mime || '',
         position: Number(file.position || 0) || 0,
         label: file.label || '',
+        sourceLabel: file.sourceLabel || file.label || '',
+        type: file.type || 'unknown',
+        availableTypes: Array.isArray(file.availableTypes) ? file.availableTypes.slice() : [],
+        role: file.role || 'media',
       }));
       const nextManifest = setManifestBundleTokensFromSegments(
         form.manifest,

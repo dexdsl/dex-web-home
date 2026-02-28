@@ -28,6 +28,10 @@ function makeValidFixture() {
             sizeBytes: 1024,
             mime: 'audio/wav',
             position: 1,
+            type: 'audio',
+            availableTypes: ['audio'],
+            role: 'media',
+            sourceLabel: 'A.01 ste',
           },
         ],
         entitlements: [
@@ -43,6 +47,8 @@ assert.equal(valid.version, PROTECTED_ASSETS_VERSION);
 assert.equal(valid.lookups.length, 1);
 assert.equal(valid.lookups[0].files[0].bucketNumber, 'A.01');
 assert.equal(valid.lookups[0].files[0].fileId, 'A.01');
+assert.deepEqual(valid.lookups[0].files[0].availableTypes, ['audio']);
+assert.equal(valid.lookups[0].files[0].role, 'media');
 
 const catalogLookupFixture = makeValidFixture();
 catalogLookupFixture.lookups[0].lookupNumber = 'X.Gtr. Ch AV2024 S1';
@@ -87,8 +93,17 @@ blankDriveId.lookups[0].files.push({
   sizeBytes: 0,
   mime: 'application/pdf',
   position: 2,
+  role: 'recording_index_pdf',
+  availableTypes: ['pdf'],
+  type: 'pdf',
 });
 const normalizedBlankDriveId = normalizeProtectedAssetsFile(blankDriveId);
 assert.equal(normalizedBlankDriveId.lookups[0].files[1].driveFileId, '');
+assert.equal(normalizedBlankDriveId.lookups[0].files[1].role, 'recording_index_pdf');
+assert.deepEqual(normalizedBlankDriveId.lookups[0].files[1].availableTypes, ['pdf']);
+
+const badAvailableType = makeValidFixture();
+badAvailableType.lookups[0].files[0].availableTypes = ['video', 'guitar'];
+assert.throws(() => normalizeProtectedAssetsFile(badAvailableType), /Unsupported availableTypes value/);
 
 console.log('ok protected assets schema');

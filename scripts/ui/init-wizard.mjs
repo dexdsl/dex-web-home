@@ -178,6 +178,10 @@ function rebuildImportedFiles(importedSegments = [], importedFiles = [], importS
     mime: segment.mime || '',
     position: index + 1,
     label: segment.label || '',
+    sourceLabel: segment.sourceLabel || segment.label || '',
+    type: segment.type || 'unknown',
+    availableTypes: Array.isArray(segment.availableTypes) ? segment.availableTypes.slice() : [],
+    role: segment.role || 'media',
   }));
   if (!pdfFallback) return segmentFiles;
   return [
@@ -617,6 +621,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         bucket: segment.bucket,
         segmentNumber: segment.segmentNumber,
         label: segment.label,
+        sourceLabel: segment.sourceLabel || segment.label || '',
         rawUrl: segment.rawUrl,
         driveFileId: segment.driveFileId || '',
         type: segment.type,
@@ -628,6 +633,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         mime: segment.mime || '',
         position: Number(segment.position || 0) || 0,
         enabled: segment.enabled !== false,
+        role: segment.role || 'media',
       }));
       const importedFiles = (imported.files || []).map((file) => ({
         bucketNumber: file.bucketNumber,
@@ -639,6 +645,10 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         mime: file.mime || '',
         position: Number(file.position || 0) || 0,
         label: file.label || '',
+        sourceLabel: file.sourceLabel || file.label || '',
+        type: file.type || 'unknown',
+        availableTypes: Array.isArray(file.availableTypes) ? file.availableTypes.slice() : [],
+        role: file.role || 'media',
       }));
 
       setForm((p) => {

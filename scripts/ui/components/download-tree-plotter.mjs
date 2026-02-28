@@ -38,15 +38,18 @@ export function DownloadTreePlotter({
 }) {
   const summary = model?.summary || {};
   const buckets = Array.isArray(model?.buckets) ? model.buckets : [];
-  const types = model?.associatedTypes || { families: [], subtypes: [] };
-  const families = Array.isArray(types.families) ? types.families : [];
-  const subtypes = Array.isArray(types.subtypes) ? types.subtypes : [];
+  const associatedTypes = model?.associatedTypes || { families: [], subtypes: [] };
+  const associatedFamilies = Array.isArray(associatedTypes.families) ? associatedTypes.families : [];
+  const subtypes = Array.isArray(associatedTypes.subtypes) ? associatedTypes.subtypes : [];
+  const physicalTypes = model?.physicalTypes || { families: [] };
+  const physicalFamilies = Array.isArray(physicalTypes.families) ? physicalTypes.families : [];
   const bundles = Array.isArray(model?.bundleRows) ? model.bundleRows : [];
   const critical = Array.isArray(model?.criticalIssues) ? model.criticalIssues : [];
   const warns = Array.isArray(model?.warnIssues) ? model.warnIssues : [];
 
   const availableWidth = Math.max(24, width - 4);
-  const maxFamily = Math.max(1, ...families.map((row) => Number(row.count) || 0));
+  const maxAssociatedFamily = Math.max(1, ...associatedFamilies.map((row) => Number(row.count) || 0));
+  const maxPhysicalFamily = Math.max(1, ...physicalFamilies.map((row) => Number(row.count) || 0));
   const maxBucketCount = Math.max(1, ...buckets.map((row) => Number(row.fileCount) || 0));
 
   return React.createElement(Box, { flexDirection: 'column' },
@@ -57,11 +60,11 @@ export function DownloadTreePlotter({
     React.createElement(Text, { color: '#8f98a8' }, trunc(`root ${model?.root?.ok ? 'ok' : 'missing'} · buckets ${summary.bucketCount || buckets.length}`, availableWidth)),
     React.createElement(Text, { color: '#8f98a8' }, trunc(`severity ${bar(summary.criticalCount || 0, Math.max(1, (summary.criticalCount || 0) + (summary.warnCount || 0), 1), 16, '■', '·')}`, availableWidth)),
 
-    React.createElement(Text, { color: '#d0d5df' }, 'types'),
-    ...families.map((row) => React.createElement(Text, {
+    React.createElement(Text, { color: '#d0d5df' }, 'associated types'),
+    ...associatedFamilies.map((row) => React.createElement(Text, {
       key: `fam-${row.key}`,
       color: row.key === 'unknown' && row.count > 0 ? '#ffcc66' : '#8f98a8',
-    }, trunc(`${row.label.padEnd(7, ' ')} ${String(row.count).padStart(3, ' ')} ${bar(row.count, maxFamily, 12)}`, availableWidth))),
+    }, trunc(`${row.label.padEnd(7, ' ')} ${String(row.count).padStart(3, ' ')} ${bar(row.count, maxAssociatedFamily, 12)}`, availableWidth))),
     subtypes.length
       ? React.createElement(Text, { color: '#8f98a8' }, 'subtypes')
       : null,
@@ -72,6 +75,12 @@ export function DownloadTreePlotter({
     subtypes.length > maxSubtypeRows
       ? React.createElement(Text, { color: '#8f98a8' }, `+${subtypes.length - maxSubtypeRows} more subtype rows`)
       : null,
+
+    React.createElement(Text, { color: '#d0d5df' }, 'physical files'),
+    ...physicalFamilies.map((row) => React.createElement(Text, {
+      key: `pfam-${row.key}`,
+      color: row.key === 'unknown' && row.count > 0 ? '#ffcc66' : '#8f98a8',
+    }, trunc(`${row.label.padEnd(7, ' ')} ${String(row.count).padStart(3, ' ')} ${bar(row.count, maxPhysicalFamily, 12)}`, availableWidth))),
 
     React.createElement(Text, { color: '#d0d5df' }, 'buckets'),
     ...buckets.slice(0, maxBucketRows).map((row) => React.createElement(Text, {

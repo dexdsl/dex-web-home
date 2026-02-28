@@ -11,6 +11,8 @@ const LOOKUP_CATALOG_PATTERN = /^[A-Z]\.[A-Za-z]{3}\.\s[A-Za-z]{2}\s(?:AV|A|V|O)
 const BUCKET_NUMBER_PATTERN = /^([A-Z])\.([0-9]{1,6})$/;
 const DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]{10,}$/;
 const SEASON_PATTERN = /^S\d+$/i;
+const FILE_TYPE_VALUES = new Set(['audio', 'video', 'pdf', 'unknown']);
+const FILE_ROLE_VALUES = new Set(['media', 'recording_index_pdf']);
 const STATUS_VALUES = new Set([
   'draft',
   'submitted',
@@ -69,6 +71,10 @@ const fileSchema = z.object({
   mime: z.string().trim().min(1).max(160).optional(),
   position: z.number().int().min(1).max(9999).optional(),
   label: z.string().trim().max(160).optional(),
+  type: z.string().trim().max(32).optional(),
+  availableTypes: z.array(z.string().trim().min(1).max(32)).optional(),
+  role: z.string().trim().max(64).optional(),
+  sourceLabel: z.string().trim().max(240).optional(),
 });
 
 const lookupSchema = z.object({
@@ -163,6 +169,54 @@ function normalizeDriveFileId(value) {
   return normalized;
 }
 
+function normalizeFileType(value) {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return 'unknown';
+  if (!FILE_TYPE_VALUES.has(normalized)) {
+    throw new Error(`Unsupported file type: ${value}`);
+  }
+  return normalized;
+}
+
+function normalizeAvailableTypes(values = [], fallbackType = 'unknown') {
+  const out = [];
+  const seen = new Set();
+  for (const value of values || []) {
+    const normalized = normalizeText(value).toLowerCase();
+    if (!normalized) continue;
+    if (!FILE_TYPE_VALUES.has(normalized)) {
+      throw new Error(`Unsupported availableTypes value: ${value}`);
+    }
+    if (normalized === 'unknown') continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  const fallback = normalizeFileType(fallbackType);
+  if (!out.length && fallback !== 'unknown') {
+    out.push(fallback);
+  }
+  return out;
+}
+
+function normalizeFileRole(value) {
+  const normalized = normalizeText(value).toLowerCase() || 'media';
+  if (!FILE_ROLE_VALUES.has(normalized)) {
+    throw new Error(`Unsupported file role: ${value}`);
+  }
+  return normalized;
+}
+
+function isPdfLikeFile(file = {}) {
+  const mime = normalizeText(file.mime).toLowerCase();
+  const r2Key = normalizeText(file.r2Key).toLowerCase();
+  const label = normalizeText(file.label || file.sourceLabel).toLowerCase();
+  if (mime.includes('pdf')) return true;
+  if (r2Key.endsWith('.pdf')) return true;
+  if (label.includes('recording index') || label.includes('pdf')) return true;
+  return false;
+}
+
 function normalizeFile(file, index, allowedBuckets, lookupNumber) {
   const parsed = fileSchema.parse(file);
   const bucketRef = parseBucketNumber(parsed.bucketNumber);
@@ -179,6 +233,12 @@ function normalizeFile(file, index, allowedBuckets, lookupNumber) {
     throw new Error(`Lookup ${lookupNumber}: r2Key missing for ${bucketRef.bucketNumber}`);
   }
 
+  const type = normalizeFileType(parsed.type);
+  const availableTypes = normalizeAvailableTypes(parsed.availableTypes, type);
+  const role = normalizeFileRole(parsed.role);
+  const label = normalizeText(parsed.label);
+  const sourceLabel = normalizeText(parsed.sourceLabel) || label;
+
   return {
     bucketNumber: bucketRef.bucketNumber,
     fileId: normalizeText(parsed.fileId) || bucketRef.bucketNumber,
@@ -188,7 +248,11 @@ function normalizeFile(file, index, allowedBuckets, lookupNumber) {
     sizeBytes: Number.isFinite(Number(parsed.sizeBytes)) ? Number(parsed.sizeBytes) : 0,
     mime: normalizeText(parsed.mime),
     position: Number.isFinite(Number(parsed.position)) ? Number(parsed.position) : index + 1,
-    label: normalizeText(parsed.label),
+    label,
+    sourceLabel,
+    type,
+    availableTypes,
+    role,
   };
 }
 
@@ -339,6 +403,20 @@ function normalizeLookup(entry, allowedBuckets) {
   });
 
   const recordingIndex = normalizeRecordingIndex(parsed.recordingIndex, files, lookupNumber);
+  if (recordingIndex) {
+    for (const file of files) {
+      if (normalizeText(file.fileId).toLowerCase() === recordingIndex.pdfAssetId.toLowerCase()) {
+        file.role = 'recording_index_pdf';
+        if (!file.availableTypes.includes('pdf')) file.availableTypes = [...file.availableTypes, 'pdf'];
+        if (file.type === 'unknown') file.type = 'pdf';
+      }
+    }
+  }
+  for (const file of files) {
+    if (file.role === 'recording_index_pdf' && !isPdfLikeFile(file)) {
+      throw new Error(`Lookup ${lookupNumber}: recording_index_pdf role must resolve to PDF-like file (${file.fileId || file.bucketNumber})`);
+    }
+  }
 
   return {
     lookupNumber,

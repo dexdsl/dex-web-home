@@ -455,11 +455,13 @@ function normalizeSegmentsForLookup(segments, {
   const slug = slugifyToken(entrySlug);
   return segments.map((segment, index) => {
     const ext = toText(segment.extension).toLowerCase() || (segment.type === 'audio' ? 'wav' : segment.type === 'video' ? 'mov' : 'bin');
+    const label = segment.label || `${segment.bucketNumber} segment`;
     return {
       bucketNumber: segment.bucketNumber,
       bucket: segment.bucket,
       segmentNumber: segment.segmentNumber,
-      label: segment.label || `${segment.bucketNumber} segment`,
+      label,
+      sourceLabel: label,
       rawUrl: segment.rawUrl,
       driveFileId: segment.driveFileId || '',
       type: segment.type,
@@ -471,6 +473,7 @@ function normalizeSegmentsForLookup(segments, {
       mime: segment.mime || inferMimeFromExtension(ext, segment.type),
       position: index + 1,
       enabled: true,
+      role: 'media',
     };
   });
 }
@@ -584,15 +587,18 @@ export async function importRecordingIndexFromSheet({
     bucket: 'X',
     segmentNumber: Number(String(pdfBucketNumber).split('.')[1] || 1),
     label: 'Recording Index PDF',
+    sourceLabel: 'Recording Index PDF',
     rawUrl: sheet.pdfExportUrl,
     driveFileId: '',
     type: 'pdf',
+    availableTypes: ['pdf'],
     fileId: pdfAssetId,
     r2Key: `${normalizedSlug}/recording-index/recording-index.pdf`,
     sizeBytes: 0,
     mime: 'application/pdf',
     position: files.length + 1,
     enabled: true,
+    role: 'recording_index_pdf',
   };
 
   const filesWithPdf = [...files, pdfFile];

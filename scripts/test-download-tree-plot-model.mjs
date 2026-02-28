@@ -20,9 +20,9 @@ function main() {
       { bucket: 'X', fileCount: 2, audioCount: 0, videoCount: 0, pdfCount: 1, unknownCount: 1, folderLinkOk: false },
     ],
     files: [
-      { bucket: 'A', type: 'audio', mime: 'audio/wav', r2Key: 'a/001.wav', fileId: 'A.1' },
+      { bucket: 'A', type: 'audio', availableTypes: ['audio', 'video'], mime: 'audio/wav', r2Key: 'a/001.wav', fileId: 'A.1' },
       { bucket: 'A', type: 'video', mime: 'video/quicktime', r2Key: 'a/001.mov', fileId: 'A.2' },
-      { bucket: 'X', type: 'pdf', mime: 'application/pdf', r2Key: 'x/index.pdf', fileId: 'X.1' },
+      { bucket: 'X', type: 'pdf', role: 'recording_index_pdf', mime: 'application/pdf', r2Key: 'x/index.pdf', fileId: 'X.1' },
       { bucket: 'X', type: 'unknown', mime: '', r2Key: 'x/data.bin', fileId: 'X.2' },
     ],
     bundles: [
@@ -40,8 +40,9 @@ function main() {
   assert.equal(healthModel.summary.totalFiles, 4);
   assert.equal(healthModel.root.ok, true);
   assert(healthModel.associatedTypes.families.some((row) => row.label === 'audio' && row.count === 1));
-  assert(healthModel.associatedTypes.families.some((row) => row.label === 'video' && row.count === 1));
+  assert(healthModel.associatedTypes.families.some((row) => row.label === 'video' && row.count === 2));
   assert(healthModel.associatedTypes.families.some((row) => row.label === 'pdf' && row.count === 1));
+  assert(healthModel.physicalTypes.families.some((row) => row.label === 'video' && row.count === 1));
   assert.equal(healthModel.bundleRows.length, 1);
   assert.equal(healthModel.bundleRows[0].bucket, 'A');
 
@@ -61,9 +62,9 @@ function main() {
         { bucket: 'A', ok: true },
       ],
       files: [
-        { bucket: 'A', type: 'audio', mime: 'audio/mpeg', r2Key: 'a/001.mp3' },
+        { bucket: 'A', type: 'audio', availableTypes: ['audio', 'video'], mime: 'audio/mpeg', r2Key: 'a/001.mp3' },
         { bucket: 'A', type: 'video', mime: 'video/quicktime', r2Key: 'a/001.mov' },
-        { bucket: 'A', type: 'pdf', mime: 'application/pdf', r2Key: 'a/index.pdf' },
+        { bucket: 'X', type: 'pdf', role: 'recording_index_pdf', mime: 'application/pdf', r2Key: 'a/index.pdf' },
       ],
       criticalIssues: [],
       warnIssues: ['1 file(s) missing driveFileId'],
@@ -74,6 +75,7 @@ function main() {
   assert.equal(inventoryModel.recording.pdf.ok, true);
   assert.equal(inventoryModel.recording.bundle.ok, false);
   assert(inventoryModel.associatedTypes.subtypes.some((row) => row.label === 'mp3'));
+  assert(inventoryModel.physicalTypes.families.some((row) => row.label === 'pdf' && row.count === 1));
   assert.equal(inventoryModel.bundleRows.length, 1);
   assert.equal(inventoryModel.bundleRows[0].audio.present, true);
   assert.equal(inventoryModel.bundleRows[0].video.present, true);
