@@ -30,6 +30,30 @@ const SYNC_MAP = [
     targets: ['public/data/catalog.seasons.json', 'docs/data/catalog.seasons.json'],
   },
   {
+    source: 'data/catalog.editorial.json',
+    targets: ['public/data/catalog.editorial.json', 'docs/data/catalog.editorial.json'],
+  },
+  {
+    source: 'data/catalog.curation.snapshot.json',
+    targets: ['public/data/catalog.curation.snapshot.json', 'docs/data/catalog.curation.snapshot.json'],
+  },
+  {
+    source: 'data/home.featured.json',
+    targets: ['public/data/home.featured.json', 'docs/data/home.featured.json'],
+  },
+  {
+    source: 'data/home.featured.snapshot.json',
+    targets: ['public/data/home.featured.snapshot.json', 'docs/data/home.featured.snapshot.json'],
+  },
+  {
+    source: 'data/protected.assets.json',
+    targets: ['public/data/protected.assets.json', 'docs/data/protected.assets.json'],
+  },
+  {
+    source: 'data/entry-runtime-audit.exemptions.json',
+    targets: ['public/data/entry-runtime-audit.exemptions.json', 'docs/data/entry-runtime-audit.exemptions.json'],
+  },
+  {
     source: 'public/data/catalog.guide.json',
     targets: ['data/catalog.guide.json', 'docs/data/catalog.guide.json'],
   },

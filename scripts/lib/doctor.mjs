@@ -9,6 +9,7 @@ import { formatSanitizationIssues, verifySanitizedHtml } from './sanitize-genera
 
 const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const esc = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const AUTH_CONFIG_CANDIDATES = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
 
 function looksBadDriveId(v) {
   const s = String(v || '').trim();
@@ -16,11 +17,14 @@ function looksBadDriveId(v) {
   return s.includes('/') || s.startsWith('http://') || s.startsWith('https://');
 }
 
+function hasScriptSrc(html, src) {
+  return new RegExp(`src=["'](?:https?:\\/\\/[^"']+)?${esc(src)}["']`).test(String(html || ''));
+}
+
 function hasAuthTrio(html) {
-  return AUTH_TRIO.every((src) => {
-    if (/^https?:\/\//i.test(src)) return html.includes(`src="${src}"`);
-    return new RegExp(`src=["'](?:https?:\\/\\/[^"']+)?${esc(src)}["']`).test(html);
-  });
+  const required = AUTH_TRIO.filter((src) => !AUTH_CONFIG_CANDIDATES.includes(src));
+  if (!required.every((src) => hasScriptSrc(html, src))) return false;
+  return AUTH_CONFIG_CANDIDATES.some((src) => hasScriptSrc(html, src));
 }
 
 function hasLegacyAuth(html) {

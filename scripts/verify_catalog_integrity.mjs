@@ -10,8 +10,12 @@ const GUIDE_PATH = path.join(ROOT, 'public', 'data', 'catalog.guide.json');
 const SYMBOLS_PATH = path.join(ROOT, 'public', 'data', 'catalog.symbols.json');
 const SEARCH_PATH = path.join(ROOT, 'public', 'data', 'catalog.search.json');
 const SEASONS_PATH = path.join(ROOT, 'public', 'data', 'catalog.seasons.json');
+const EDITORIAL_PATH = path.join(ROOT, 'public', 'data', 'catalog.editorial.json');
+const CURATION_SNAPSHOT_PATH = path.join(ROOT, 'public', 'data', 'catalog.curation.snapshot.json');
+const HOME_SNAPSHOT_PATH = path.join(ROOT, 'public', 'data', 'home.featured.snapshot.json');
 
 const INDEX_PAGE_PATH = path.join(ROOT, 'docs', 'catalog', 'index.html');
+const HOME_PAGE_PATH = path.join(ROOT, 'docs', 'index.html');
 const HOW_PAGE_PATH = path.join(ROOT, 'docs', 'catalog', 'how', 'index.html');
 const SYMBOLS_PAGE_PATH = path.join(ROOT, 'docs', 'catalog', 'symbols', 'index.html');
 const LOOKUP_REDIRECT_PATH = path.join(ROOT, 'docs', 'catalog', 'lookup', 'index.html');
@@ -60,6 +64,9 @@ function main() {
   const symbolsModel = readJson(SYMBOLS_PATH);
   const searchModel = readJson(SEARCH_PATH);
   const seasonsModel = readJson(SEASONS_PATH);
+  const editorialModel = readJson(EDITORIAL_PATH);
+  const curationSnapshot = readJson(CURATION_SNAPSHOT_PATH);
+  const homeSnapshot = readJson(HOME_SNAPSHOT_PATH);
 
   for (const key of REQUIRED_MODEL_KEYS) {
     if (!(key in model)) failures.push(`catalog model missing key: ${key}`);
@@ -79,6 +86,15 @@ function main() {
 
   if (!Array.isArray(seasonsModel.seasons)) {
     failures.push('catalog seasons config is missing seasons array');
+  }
+  if (!Array.isArray(editorialModel.manifest)) {
+    failures.push('catalog editorial config is missing manifest array');
+  }
+  if (!Array.isArray(curationSnapshot.manifest)) {
+    failures.push('catalog curation snapshot is missing manifest array');
+  }
+  if (!Array.isArray(homeSnapshot.featured)) {
+    failures.push('home featured snapshot is missing featured array');
   }
 
   const guideParts = Array.isArray(guideModel.parts) ? guideModel.parts : [];
@@ -207,6 +223,14 @@ function main() {
   const lookupRedirectHtml = readText(LOOKUP_REDIRECT_PATH);
   if (!lookupRedirectHtml.includes('/catalog/how/#dex-how')) {
     failures.push('lookup compatibility route must redirect to /catalog/how/#dex-how');
+  }
+
+  const homeHtml = readText(HOME_PAGE_PATH);
+  if (!homeHtml.includes('/data/home.featured.snapshot.json')) {
+    failures.push('home page featured carousel must load /data/home.featured.snapshot.json');
+  }
+  if (homeHtml.includes('id=\"featured-manifest\"')) {
+    failures.push('home page must not source featured cards from inline featured-manifest');
   }
 
   const indexRuntimeSource = readText(INDEX_RUNTIME_SOURCE_PATH);

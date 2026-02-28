@@ -22,6 +22,8 @@ const ENTRY_RUNTIME_PUBLIC_PATH = path.join(ROOT, 'public', 'assets', 'js', 'dex
 const INDEX_RUNTIME_PUBLIC_PATH = path.join(ROOT, 'public', 'assets', 'js', 'dexnotes.index.js');
 const INDEX_CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-dexnotes-index.css');
 const ENTRY_CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-dexnotes-entry.css');
+const DEX_CLI_PATH = path.join(ROOT, 'scripts', 'dex.mjs');
+const NOTES_CLI_PATH = path.join(ROOT, 'scripts', 'lib', 'dex-notes-cli.mjs');
 const RSS_PUBLIC_PATH = path.join(ROOT, 'public', 'dexnotes', 'rss.xml');
 const RSS_DOCS_PATH = path.join(ROOT, 'docs', 'dexnotes', 'rss.xml');
 const RSS_COMPAT_PATH = path.join(ROOT, 'docs', 'dexnotes?format=rss');
@@ -302,6 +304,36 @@ function verifyBuiltAssets(failures) {
   }
 }
 
+function verifyDexNotesCliContract(failures) {
+  const dexCli = readText(DEX_CLI_PATH);
+  const notesCli = readText(NOTES_CLI_PATH);
+  const requiredDexMarkers = [
+    "firstNonFlag === 'notes'",
+    "topLevel.command === 'notes'",
+  ];
+  for (const marker of requiredDexMarkers) {
+    if (!dexCli.includes(marker)) {
+      failures.push(`dex CLI missing notes marker: ${marker}`);
+    }
+  }
+
+  const requiredNotesCliMarkers = [
+    'dex notes list',
+    'dex notes add',
+    'dex notes edit',
+    'dex notes set',
+    'dex notes build',
+    'dex notes validate',
+    'dex notes publish',
+    '$EDITOR',
+  ];
+  for (const marker of requiredNotesCliMarkers) {
+    if (!notesCli.includes(marker)) {
+      failures.push(`dex-notes-cli missing marker: ${marker}`);
+    }
+  }
+}
+
 function main() {
   const failures = [];
   const sourcePosts = verifyMarkdownSources(failures);
@@ -314,6 +346,7 @@ function main() {
   verifyProtectedCharDigests(indexData, entriesData, sourcePosts, failures);
   verifyCommentsContract(failures);
   verifyRssAndCompat(failures);
+  verifyDexNotesCliContract(failures);
 
   if (failures.length > 0) {
     console.error(`verify:dexnotes failed with ${failures.length} issue(s):`);

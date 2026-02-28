@@ -1,0 +1,275 @@
+{
+  "version": "catalog-editorial-v1",
+  "updatedAt": "2026-02-27T23:54:30.409Z",
+  "manifest": [
+    {
+      "entry_id": "andrew-chanover",
+      "entry_href": "/entry/andrew-chanover/",
+      "lookup_number": "X.Gtr. Ch AV2024 S1",
+      "season": "S1",
+      "performer": "Andrew Chanover",
+      "instrument": "Electric Guitar",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "amplified-printer",
+      "entry_href": "/entry/amplified-printer/",
+      "lookup_number": "X.Prt. Ch AV2024 S2",
+      "season": "S2",
+      "performer": "church, cameron",
+      "instrument": "PERCUS‏‏‎‎SION",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "bassoon-and-electronics",
+      "entry_href": "/entry/bassoon-and-electronics/",
+      "lookup_number": "W.Bsn. CoTo AV2024 S2",
+      "season": "S2",
+      "performer": "coleman, max & tomecek, arlo",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "tim-feeney",
+      "entry_href": "/entry/tim-feeney/",
+      "lookup_number": "P.Pto. Fe AV2024 S2",
+      "season": "S2",
+      "performer": "fe‏‏‎‏‏‎eney, tim",
+      "instrument": "PERCUS‏‏‎‎SION",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "multiperc",
+      "entry_href": "/entry/multiperc/",
+      "lookup_number": "P.Mpc. Gi AV2024 S2",
+      "season": "S2",
+      "performer": "giroux, ben",
+      "instrument": "PERCUS‏‏‎‎SION",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "jakob-heinemann",
+      "entry_href": "/entry/jakob-heinemann/",
+      "lookup_number": "S.Pdb. He AV2024 S2",
+      "season": "S2",
+      "performer": "jakob heinemann",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "as-though-im-slipping",
+      "entry_href": "/entry/as-though-im-slipping/",
+      "lookup_number": "P.Ens. JaYo AV2024 S2",
+      "season": "S2",
+      "performer": "jáquez, sofí & yorke, paul",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "this-is-a-tangible-space",
+      "entry_href": "/entry/this-is-a-tangible-space/",
+      "lookup_number": "X.Mul. Jo AV2024 S2",
+      "season": "S2",
+      "performer": "johnson, grant",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "prepared-oboe-sky-macklay",
+      "entry_href": "/entry/prepared-oboe-sky-macklay/",
+      "lookup_number": "W.Ob. Ma AV2024 S2",
+      "season": "S2",
+      "performer": "macklay, sky",
+      "instrument": "WINDS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "electric-guitar-chris-mann",
+      "entry_href": "/entry/electric-guitar-chris-mann/",
+      "lookup_number": "E.Gtr. Ma A2024 S2",
+      "season": "S2",
+      "performer": "man‎‏n, chris",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "anant-shah",
+      "entry_href": "/entry/anant-shah/",
+      "lookup_number": "P.Dho. Sh AV2024 S2",
+      "season": "S2",
+      "performer": "shah, anant",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "aidan-yeats",
+      "entry_href": "/entry/aidan-yeats/",
+      "lookup_number": "V.Sng. Ye AV2024 S2",
+      "season": "S2",
+      "performer": "yeats, aidan",
+      "instrument": "STRINGS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "bojun-zhang",
+      "entry_href": "/entry/bojun-zhang/",
+      "lookup_number": "E.Mod. Zh AV2024 S2",
+      "season": "S2",
+      "performer": "zhang, bojun",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "2-organs-midori-ataka",
+      "entry_href": "/entry/2-organs-midori-ataka/",
+      "lookup_number": "K.Org. At AV2023 S1",
+      "season": "S1",
+      "performer": "ataka, midori",
+      "instrument": "KEYBOARD",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "electric-guitar-pedals-ethan-bailey-gould",
+      "entry_href": "/entry/electric-guitar-pedals-ethan-bailey-gould/",
+      "lookup_number": "E.Gtr. Ba AV2023 S1",
+      "season": "S1",
+      "performer": "bailey-gould, ethan",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "hammered-dulcimer-cameron-church",
+      "entry_href": "/entry/hammered-dulcimer-cameron-church/",
+      "lookup_number": "P.Hdl. Ch AV2023 S1",
+      "season": "S1",
+      "performer": "church, cameron",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "cybernetic-scat-paul-hermansen",
+      "entry_href": "/entry/cybernetic-scat-paul-hermansen/",
+      "lookup_number": "V.Sc. He A2023 S1",
+      "season": "S1",
+      "performer": "hermansen, paul*",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "amplified-knives-tyler-jordan",
+      "entry_href": "/entry/amplified-knives-tyler-jordan/",
+      "lookup_number": "E.Kni. Jo AV2023 S1",
+      "season": "S1",
+      "performer": "jordan, tyler",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "cello-emmanuel-losa",
+      "entry_href": "/entry/cello-emmanuel-losa/",
+      "lookup_number": "S.Vlc. Lo AV2023 S1",
+      "season": "S1",
+      "performer": "losa, em‎‏‏‎manuel",
+      "instrument": "STRINGS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "voice-everyday-object-manipulation-levi-lu",
+      "entry_href": "/entry/voice-everyday-object-manipulation-levi-lu/",
+      "lookup_number": "V.Obj. Lu A2023 S1",
+      "season": "S1",
+      "performer": "lu, qiujiang levi",
+      "instrument": "VOICE",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "no-input-mixer-jared-murphy",
+      "entry_href": "/entry/no-input-mixer-jared-murphy/",
+      "lookup_number": "E.Noi. Mu AV2023 S1",
+      "season": "S1",
+      "performer": "murphy, jared",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "amplified-tv-sam-pluta",
+      "entry_href": "/entry/amplified-tv-sam-pluta/",
+      "lookup_number": "X.Tlv. Pl AV2023 S1",
+      "season": "S1",
+      "performer": "pluta, sam",
+      "instrument": "ELECTRONICS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "prepared-bass-viol-suarez-solis",
+      "entry_href": "/entry/prepared-bass-viol-suarez-solis/",
+      "lookup_number": "S.VdG. Su AV2023 S1",
+      "season": "S1",
+      "performer": "sebastian suarez-solis",
+      "instrument": "KEYBOARD",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "prepared-harpsichord-suarez-solis",
+      "entry_href": "/entry/prepared-harpsichord-suarez-solis/",
+      "lookup_number": "K.Hps. Su AV2023 S1",
+      "season": "S1",
+      "performer": "sebastian suarez-solis",
+      "instrument": "KEYBOARD",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "splinterings-jakob-heinemann",
+      "entry_href": "/entry/splinterings-jakob-heinemann/",
+      "lookup_number": "",
+      "season": "",
+      "performer": "heineman‏‏‎‏‏‎n, jakob",
+      "instrument": "STRINGS",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    },
+    {
+      "entry_id": "sebastian-suarez-solis",
+      "entry_href": "/entry/sebastian-suarez-solis/",
+      "lookup_number": "",
+      "season": "",
+      "performer": "suarez-solis, sebastian",
+      "instrument": "",
+      "status": "active",
+      "updated_at": "2026-02-27T23:54:30.409Z"
+    }
+  ],
+  "spotlight": {
+    "entry_id": "tim-feeney",
+    "headline_raw": "ARTIST SPOTLIGHT",
+    "cta_label_raw": "VIEW COLLECTION",
+    "cta_href": "/entry/tim-feeney/",
+    "subhead_raw": "PREPARED FLOOR TOM",
+    "body_raw": "fe‏‏‎‏‏‎eney, tim",
+    "image_src": ""
+  }
+}

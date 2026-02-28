@@ -4,7 +4,7 @@ import { scanEntries, repairEntry } from '../lib/doctor.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
 
-export function DoctorScreen() {
+export function DoctorScreen({ onExit } = {}) {
   const [reports, setReports] = useState([]);
   const [cursor, setCursor] = useState(0);
   const [query, setQuery] = useState('');
@@ -28,6 +28,10 @@ export function DoctorScreen() {
   }, [filtered, cursor]);
 
   useInput((input, key) => {
+    if (key.escape) {
+      if (typeof onExit === 'function') onExit();
+      return;
+    }
     if (key.upArrow) setCursor((i) => Math.max(0, i - 1));
     else if (key.downArrow) setCursor((i) => Math.min(filtered.length - 1, i + 1));
     else if (key.ctrl && key.return) {
@@ -60,7 +64,7 @@ export function DoctorScreen() {
       React.createElement(Text, { color: '#8f98a8' }, selected ? `Report: ${selected.slug}` : 'Report'),
       ...(selected ? selected.checks.slice(0, 8).map((c) => React.createElement(Text, { key: c }, c)) : [React.createElement(Text, { key: 'none' }, 'No entries')]),
     ),
-    React.createElement(Text, { color: '#6e7688' }, '↑/↓ move   Type filter   Ctrl+S repair selected'),
+    React.createElement(Text, { color: '#6e7688' }, '↑/↓ move   Type filter   Ctrl+S repair selected   Esc back'),
     msg ? React.createElement(Text, { color: '#a6e3a1' }, msg) : null,
   );
 }

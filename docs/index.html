@@ -2153,19 +2153,39 @@ document.addEventListener('DOMContentLoaded', function(){
 
 </style>
 
-<script id="featured-manifest" type="application/json">
-[
-  {"lookup":"W.Pob. Ma AV2024 S2","artist":"Sky Macklay","instrument":"Prepared Oboe","season":"Season 2","tags":["dexFest"],"leadIn":"","video":"https://www.youtube.com/watch?v=LPHD-ynh-MA","url":"/entry/prepared-oboe-sky-macklay","thumbnail":"","date":"2024-04-16"},
-  {"lookup":"S.Pdb. He AV2024 S2","artist":"Jakob Heinemann: Splinterings","instrument":"Prepared Double Bass & Electronics","season":"Season 2","tags":["dexFest"],"leadIn":"","video":"https://www.youtube.com/watch?v=8sia2JYhwvI","url":"/entry/jakob-heinemann","thumbnail":"","date":"2024-10-10"},
-  {"lookup":"E.Mod. Zh AV2024 S2","artist":"Bojun Zhang","instrument":"Modular Synth","season":"Season 2","tags":["dexFest"],"leadIn":"","video":"https://www.youtube.com/watch?v=qNuxhAKCekg","url":"/entry/bojun-zhang","thumbnail":"","date":"2024-10-10"},
-  {"lookup":"X.Tlv. Pl AV2024 S1","artist":"Sam Pluta","instrument":"Feedback Televisions","season":"Season 2","tags":["dexFest"],"leadIn":"","video":"https://www.youtube.com/watch?v=tPOTWpo4bWY&t=15s","url":"/entry/amplified-tv-sam-pluta","thumbnail":"","date":"2024-10-10"}
-]
-</script>
-
 <script>
-document.addEventListener('DOMContentLoaded',function(){
-  const items=JSON.parse(document.getElementById('featured-manifest').textContent)
-                .filter(i=>i.tags.includes('dexFest')).slice(0,4);
+document.addEventListener('DOMContentLoaded',async function(){
+  async function loadFeaturedItems(){
+    const normalize = (payload)=>{
+      const rows = Array.isArray(payload?.featured) ? payload.featured : (Array.isArray(payload) ? payload : []);
+      return rows
+        .map((row)=>({
+          lookup: row.lookup || '',
+          artist: row.artist || '',
+          instrument: row.instrument || '',
+          season: row.season || '',
+          tags: Array.isArray(row.tags) ? row.tags : [],
+          leadIn: row.leadIn || '',
+          video: row.video || '',
+          url: row.url || row.entry_href || '',
+          thumbnail: row.thumbnail || '',
+          date: row.date || ''
+        }))
+        .filter((row)=>row.url && row.video);
+    };
+
+    try{
+      const response = await fetch('/data/home.featured.snapshot.json',{ credentials:'same-origin', cache:'no-store' });
+      if(response.ok){
+        const payload = await response.json();
+        const rows = normalize(payload).filter((row)=>row.tags.length ? row.tags.includes('dexFest') : true).slice(0,4);
+        if(rows.length) return rows;
+      }
+    }catch(_){}
+    return [];
+  }
+
+  const items = await loadFeaturedItems();
   let idx=0,
       frame=document.getElementById('carousel-frame'),
       dots=document.getElementById('carousel-indicators');

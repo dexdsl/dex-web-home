@@ -1,0 +1,21 @@
+{
+  "version": "catalog-editorial-v1",
+  "updatedAt": "2026-02-27T00:00:00.000Z",
+  "manifest": [
+    {
+      "entry_id": "andrew-chanover",
+      "entry_href": "/entry/andrew-chanover/",
+      "title_raw": "ELECTRIC GUITAR",
+      "lookup_number": "X.Gtr. Ch AV2024 S1",
+      "season": "S1",
+      "performer": "Andrew Chanover",
+      "instrument": "Electric Guitar",
+      "status": "active"
+    }
+  ],
+  "spotlight": {
+    "entry_id": "tim-feeney",
+    "headline_raw": "ARTIST SPOTLIGHT",
+    "cta_label_raw": "VIEW COLLECTION"
+  }
+}

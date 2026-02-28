@@ -3,6 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { buildCatalogModelFromHtml, buildSearchIndex } from './lib/catalog-model.mjs';
+import {
+  applyCatalogEditorialToModel,
+  buildCatalogManifestSnapshot,
+  defaultCatalogEditorialData,
+} from './lib/catalog-editorial-store.mjs';
+import { normalizeCatalogEditorialFile } from './lib/catalog-editorial-schema.mjs';
+import { buildHomeFeaturedSnapshot } from './lib/home-featured-store.mjs';
+import { normalizeHomeFeaturedFile } from './lib/home-featured-schema.mjs';
 
 const ROOT = process.cwd();
 const SOURCE_PATH = path.join(ROOT, 'docs', 'catalog', 'index.html');
@@ -11,8 +19,12 @@ const OUT_ENTRIES_PATH = path.join(ROOT, 'public', 'data', 'catalog.entries.json
 const OUT_GUIDE_PATH = path.join(ROOT, 'public', 'data', 'catalog.guide.json');
 const OUT_SYMBOLS_PATH = path.join(ROOT, 'public', 'data', 'catalog.symbols.json');
 const OUT_SEARCH_PATH = path.join(ROOT, 'public', 'data', 'catalog.search.json');
+const OUT_CATALOG_CURATION_SNAPSHOT_PATH = path.join(ROOT, 'public', 'data', 'catalog.curation.snapshot.json');
+const OUT_HOME_FEATURED_SNAPSHOT_PATH = path.join(ROOT, 'public', 'data', 'home.featured.snapshot.json');
 const FALLBACK_GUIDE_PATH = path.join(ROOT, 'data', 'catalog.guide.json');
 const FALLBACK_SYMBOLS_PATH = path.join(ROOT, 'data', 'catalog.symbols.json');
+const CATALOG_EDITORIAL_PATH = path.join(ROOT, 'data', 'catalog.editorial.json');
+const HOME_FEATURED_PATH = path.join(ROOT, 'data', 'home.featured.json');
 const LIVE_CATALOG_URLS = String(process.env.CATALOG_LIVE_URLS || 'https://dexdsl.com/catalog,https://dexdsl.org/catalog')
   .split(',')
   .map((value) => value.trim())
@@ -234,6 +246,24 @@ function countProtectedChars(value) {
   return 0;
 }
 
+function readCatalogEditorialIfExists() {
+  if (!fs.existsSync(CATALOG_EDITORIAL_PATH)) return defaultCatalogEditorialData();
+  try {
+    return normalizeCatalogEditorialFile(JSON.parse(fs.readFileSync(CATALOG_EDITORIAL_PATH, 'utf8')));
+  } catch {
+    return defaultCatalogEditorialData();
+  }
+}
+
+function readHomeFeaturedIfExists() {
+  if (!fs.existsSync(HOME_FEATURED_PATH)) return null;
+  try {
+    return normalizeHomeFeaturedFile(JSON.parse(fs.readFileSync(HOME_FEATURED_PATH, 'utf8')));
+  } catch {
+    return null;
+  }
+}
+
 function buildEntriesPayload(model) {
   const entries = Array.isArray(model?.entries) ? model.entries : [];
   return {
@@ -320,6 +350,8 @@ async function main() {
   }
 
   model = await enrichGuideAndSymbols(model);
+  const editorial = readCatalogEditorialIfExists();
+  model = applyCatalogEditorialToModel(model, editorial);
   model.stats = model.stats || {};
   model.stats.protected_char_count = countProtectedChars(model);
 
@@ -333,6 +365,18 @@ async function main() {
   writeJson(OUT_GUIDE_PATH, guide);
   writeJson(OUT_SYMBOLS_PATH, symbols);
   writeJson(OUT_SEARCH_PATH, search);
+  writeJson(OUT_CATALOG_CURATION_SNAPSHOT_PATH, buildCatalogManifestSnapshot(model, editorial));
+
+  const homeFeatured = readHomeFeaturedIfExists();
+  if (homeFeatured) {
+    writeJson(
+      OUT_HOME_FEATURED_SNAPSHOT_PATH,
+      buildHomeFeaturedSnapshot(homeFeatured, {
+        catalogEntries: Array.isArray(model.entries) ? model.entries : [],
+        requireCatalogMatch: false,
+      }),
+    );
+  }
 
   console.log(`catalog:extract wrote ${path.relative(ROOT, OUT_DATA_PATH)} (${model.entries.length} entries)`);
   console.log(`catalog:extract wrote ${path.relative(ROOT, OUT_ENTRIES_PATH)} (${entries.entries.length} entries)`);
@@ -341,6 +385,10 @@ async function main() {
     `catalog:extract wrote ${path.relative(ROOT, OUT_SYMBOLS_PATH)} (${symbols.instrument.length + symbols.collection.length + symbols.quality.length + symbols.qualifier.length} symbol rows)`,
   );
   console.log(`catalog:extract wrote ${path.relative(ROOT, OUT_SEARCH_PATH)} (${search.entries.length} search rows)`);
+  console.log(`catalog:extract wrote ${path.relative(ROOT, OUT_CATALOG_CURATION_SNAPSHOT_PATH)}`);
+  if (homeFeatured) {
+    console.log(`catalog:extract wrote ${path.relative(ROOT, OUT_HOME_FEATURED_SNAPSHOT_PATH)} (${homeFeatured.featured.length} featured rows)`);
+  }
 }
 
 try {

@@ -1,0 +1,24 @@
+{
+  "version": "protected-assets-v1",
+  "updatedAt": "2026-02-27T00:00:00.000Z",
+  "settings": {
+    "storageBucket": "dex-protected-assets",
+    "allowedBuckets": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "X"
+    ],
+    "syncStrategy": "manifest-publish"
+  },
+  "lookups": [],
+  "exemptions": [
+    {
+      "lookupNumber": "X.Gtr. Ch AV2024 S1",
+      "downloadsMode": "none",
+      "reason": "Legacy lookup awaiting protected asset mapping in D1."
+    }
+  ]
+}

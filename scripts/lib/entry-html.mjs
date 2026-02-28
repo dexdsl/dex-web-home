@@ -777,6 +777,7 @@ function normalizeAllowedOutsideAnchorChanges(html) {
     .replace(/<script[^>]*src=['"]\/assets\/dex-sidebar\.js['"][^>]*><\/script>\s*/g, '')
     .replace(/<script[^>]*src=['"](?:\/assets\/dex-auth0-config\.js|\/assets\/dex-auth-config\.js|\/assets\/vendor\/auth0-spa-js\.umd\.min\.js|\/assets\/dex-auth\.js|https?:\/\/[^"']*auth0-spa-js[^"']*)['"][^>]*><\/script>\s*/gi, '')
     .replace(/\s+/g, ' ')
+    .replace(/>\s+</g, '><')
     .trim();
 }
 

@@ -12,10 +12,48 @@ import { startViewer } from '../lib/viewer-server.mjs';
 import { PollsManager } from './polls-manager.mjs';
 import { StatusManager } from './status-manager.mjs';
 import { NewsletterManager } from './newsletter-manager.mjs';
-import { CatalogSeasonsManager } from './catalog-seasons-manager.mjs';
+import { CatalogManager } from './catalog-manager.mjs';
+import { HomeFeaturedManager } from './home-featured-manager.mjs';
+import { DexNotesManager } from './dex-notes-manager.mjs';
+import { ProtectedAssetsManager } from './protected-assets-manager.mjs';
+import { EntryAuditManager } from './entry-audit-manager.mjs';
 
-const MENU_ITEMS = [{ id: 'init', label: 'Init', description: 'Create a new entry via wizard' }, { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' }, { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' }, { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' }, { id: 'catalog', label: 'Catalog', description: 'Manage season teaser cards and labels (Esc to return)' }, { id: 'status', label: 'Status', description: 'Manage status incidents and generate incident pages' }, { id: 'newsletter', label: 'Newsletter', description: 'Manage newsletter drafts, segments, sends, and stats' }, { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' }];
-const PALETTE_ITEMS = ['init', 'update', 'doctor', 'polls', 'catalog', 'status', 'newsletter', 'view'];
+const MENU_SECTIONS = [
+  {
+    id: 'entry',
+    label: 'Entry Commands',
+    items: [
+      { id: 'init', label: 'Init', description: 'Create a new entry via wizard' },
+      { id: 'update', label: 'Update', description: 'Rehydrate and edit an existing entry' },
+      { id: 'doctor', label: 'Doctor', description: 'Health and drift checks with safe repair' },
+      { id: 'entry-audit', label: 'Entry Audit', description: 'Run entry runtime production-readiness checks' },
+    ],
+  },
+  {
+    id: 'content',
+    label: 'Content Commands',
+    items: [
+      { id: 'catalog', label: 'Catalog', description: 'Manage catalog manifest, spotlight, and live publish controls' },
+      { id: 'home', label: 'Home', description: 'Manage featured home entries and live publish controls' },
+      { id: 'notes', label: 'Notes', description: 'Manage Dex Notes markdown pages and editorial build flow' },
+      { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' },
+      { id: 'newsletter', label: 'Newsletter', description: 'Manage newsletter drafts, segments, sends, and stats' },
+    ],
+  },
+  {
+    id: 'infrastructure',
+    label: 'Infrastructure Commands',
+    items: [
+      { id: 'assets', label: 'Assets', description: 'Validate/publish protected asset lookups (Esc to return)' },
+      { id: 'status', label: 'Status', description: 'Manage status incidents and generate incident pages' },
+      { id: 'deploy', label: 'Deploy', description: 'Push current branch to origin (staff shortcut)' },
+      { id: 'view', label: 'View', description: 'Launch localhost viewer for generated entries' },
+    ],
+  },
+];
+const MENU_ITEMS = MENU_SECTIONS.flatMap((section) => section.items);
+const MODE_ITEMS = new Set(['init', 'update', 'doctor', 'entry-audit', 'polls', 'catalog', 'home', 'notes', 'assets', 'status', 'newsletter']);
+const PALETTE_ITEMS = MENU_ITEMS.map((item) => item.id);
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
   '██╔══██╗██╔════╝╚██╗██╔╝',
@@ -69,6 +107,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   const [mode, setMode] = useState(initialPaletteOpen ? 'palette' : initialMode);
   const [lastResult, setLastResult] = useState('');
   const [viewerLaunchBusy, setViewerLaunchBusy] = useState(false);
+  const [deployBusy, setDeployBusy] = useState(false);
   const [viewerUrl, setViewerUrl] = useState('');
   const [viewerServer, setViewerServer] = useState(null);
 
@@ -127,9 +166,47 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
     }
   };
 
+  const runDeploy = async () => {
+    if (deployBusy) return;
+    setDeployBusy(true);
+    try {
+      const { runDeployShortcut } = await import('../lib/deploy.mjs');
+      const result = runDeployShortcut({ cwd: process.cwd() });
+      if (!result.ok) {
+        const detail = [result.error, result.stderr, result.output].filter(Boolean).join(' ');
+        setLastResult(`Deploy failed: ${detail}`);
+      } else {
+        const suffix = result.usedSetUpstream ? ' (set upstream)' : '';
+        setLastResult(`Deploy ok: pushed ${result.branch} -> ${result.remote}${suffix}`);
+      }
+    } catch (error) {
+      setLastResult(`Deploy failed: ${error?.message || String(error)}`);
+    } finally {
+      setDeployBusy(false);
+      setMode('menu');
+    }
+  };
+
+  const activateItem = (itemId) => {
+    if (itemId === 'view') {
+      setPaletteOpen(false);
+      void launchViewer();
+      return;
+    }
+    if (itemId === 'deploy') {
+      setPaletteOpen(false);
+      void runDeploy();
+      return;
+    }
+    if (MODE_ITEMS.has(itemId)) {
+      setPaletteOpen(false);
+      setMode(itemId);
+    }
+  };
+
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) { exit(); return; }
-    if (mode === 'init' || mode === 'update' || mode === 'doctor' || mode === 'polls' || mode === 'catalog' || mode === 'status' || mode === 'newsletter') return;
+    if (MODE_ITEMS.has(mode)) return;
 
     if (input === '?') {
       setPaletteOpen((open) => !open);
@@ -141,12 +218,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
       if (key.escape) { setPaletteOpen(false); setMode('menu'); return; }
       if (key.return) {
         const item = filteredPalette[paletteSelected];
-        if (item === 'view') {
-          setPaletteOpen(false);
-          void launchViewer();
-          return;
-        }
-        if (item === 'init' || item === 'update' || item === 'doctor' || item === 'polls' || item === 'catalog' || item === 'status' || item === 'newsletter') { setPaletteOpen(false); setMode(item); }
+        if (item) activateItem(item);
         return;
       }
       if (key.upArrow) { setPaletteSelected((idx) => (filteredPalette.length ? (idx - 1 + filteredPalette.length) % filteredPalette.length : 0)); return; }
@@ -159,27 +231,7 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
     if (key.upArrow) { setSelected((idx) => (idx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length); return; }
     if (key.downArrow) { setSelected((idx) => (idx + 1) % MENU_ITEMS.length); return; }
     if (key.return && MENU_ITEMS[selected]) {
-      if (MENU_ITEMS[selected].id === 'view') {
-        void launchViewer();
-        return;
-      }
-      if (MENU_ITEMS[selected].id === 'polls') {
-        setMode('polls');
-        return;
-      }
-      if (MENU_ITEMS[selected].id === 'catalog') {
-        setMode('catalog');
-        return;
-      }
-      if (MENU_ITEMS[selected].id === 'status') {
-        setMode('status');
-        return;
-      }
-      if (MENU_ITEMS[selected].id === 'newsletter') {
-        setMode('newsletter');
-        return;
-      }
-      setMode(MENU_ITEMS[selected].id);
+      activateItem(MENU_ITEMS[selected].id);
     }
   });
 
@@ -193,7 +245,6 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
   const workspaceHeight = Math.max(6, rows - headerHeight - footerHeight);
   const paletteListHeight = Math.max(3, paletteHeight - 4);
   const paletteWindow = computeWindow({ total: filteredPalette.length, cursor: paletteSelected, height: paletteListHeight });
-  const menuWindow = computeWindow({ total: MENU_ITEMS.length, cursor: selected, height: Math.max(3, workspaceHeight - 3) });
 
   const headerTop = `entry creation tool   ${badge(version || 'dev')}`;
 
@@ -226,7 +277,15 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
             },
           })
           : mode === 'doctor'
-            ? React.createElement(DoctorScreen, {})
+            ? React.createElement(DoctorScreen, {
+              onExit: () => setMode('menu'),
+            })
+            : mode === 'entry-audit'
+              ? React.createElement(EntryAuditManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
             : mode === 'polls'
               ? React.createElement(PollsManager, {
                 onExit: () => setMode('menu'),
@@ -234,11 +293,29 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
                 height: Math.max(12, workspaceHeight - 2),
               })
               : mode === 'catalog'
-                ? React.createElement(CatalogSeasonsManager, {
-                  onExit: () => setMode('menu'),
-                  width: Math.max(60, cols - 8),
-                  height: Math.max(12, workspaceHeight - 2),
-                })
+              ? React.createElement(CatalogManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
+              : mode === 'home'
+              ? React.createElement(HomeFeaturedManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
+              : mode === 'notes'
+              ? React.createElement(DexNotesManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
+              : mode === 'assets'
+              ? React.createElement(ProtectedAssetsManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
               : mode === 'status'
               ? React.createElement(StatusManager, {
                 onExit: () => setMode('menu'),
@@ -253,14 +330,30 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
                 })
         : React.createElement(Box, { flexDirection: 'column' },
           React.createElement(Text, { color: '#8f98a8', dimColor: true }, 'Commands'),
-          menuWindow.start > 0 ? React.createElement(Text, { key: 'menu-up', color: '#8f98a8' }, '…') : null,
-          ...MENU_ITEMS.slice(menuWindow.start, menuWindow.end).map((item, localIdx) => {
-            const idx = menuWindow.start + localIdx;
-            return React.createElement(Box, { key: item.id, height: 1 },
-            React.createElement(Text, idx === selected ? { inverse: true } : { color: '#d0d5df' }, `${item.label} — ${item.description}`),
+          ...MENU_SECTIONS.flatMap((section, sectionIndex) => {
+            const rowsOut = [];
+            rowsOut.push(
+              React.createElement(Text, { key: `section-${section.id}`, color: '#8f98a8' }, `[${section.label}]`),
             );
+            rowsOut.push(
+              ...section.items.map((item) => {
+                const itemIndex = MENU_ITEMS.findIndex((menuItem) => menuItem.id === item.id);
+                return React.createElement(
+                  Box,
+                  { key: item.id, height: 1 },
+                  React.createElement(
+                    Text,
+                    itemIndex === selected ? { inverse: true } : { color: '#d0d5df' },
+                    `${item.label} — ${item.description}`,
+                  ),
+                );
+              }),
+            );
+            if (sectionIndex < MENU_SECTIONS.length - 1) {
+              rowsOut.push(React.createElement(Text, { key: `section-gap-${section.id}` }, ''));
+            }
+            return rowsOut;
           }),
-          menuWindow.end < MENU_ITEMS.length ? React.createElement(Text, { key: 'menu-down', color: '#8f98a8' }, '…') : null,
           lastResult ? React.createElement(Text, { color: '#a6e3a1' }, lastResult) : null,
         ),
     ),

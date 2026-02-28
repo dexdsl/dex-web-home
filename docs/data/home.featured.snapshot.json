@@ -1,0 +1,39 @@
+{
+  "version": "home-featured-v1",
+  "updatedAt": "2026-02-27T23:09:07.363Z",
+  "maxSlots": 4,
+  "featured": [
+    {
+      "slot_index": 0,
+      "entry_id": "jakob-heinemann",
+      "lookup": "S.Pdb. He AV2024 S2",
+      "artist": "jakob heinemann",
+      "instrument": "SPLINTERINGS for DOUBLE BASS",
+      "season": "S2",
+      "tags": [
+        "dexFest"
+      ],
+      "leadIn": "",
+      "video": "",
+      "url": "/entry/jakob-heinemann/",
+      "thumbnail": "",
+      "date": ""
+    },
+    {
+      "slot_index": 1,
+      "entry_id": "prepared-oboe-sky-macklay",
+      "lookup": "W.Ob. Ma AV2024 S2",
+      "artist": "macklay, sky",
+      "instrument": "PREPARED OBOE",
+      "season": "S2",
+      "tags": [
+        "dexFest"
+      ],
+      "leadIn": "",
+      "video": "",
+      "url": "/entry/prepared-oboe-sky-macklay/",
+      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/1f7b1a18-e28e-4ab0-b6d1-1f54c4c21ddc/dex+sky.png",
+      "date": ""
+    }
+  ]
+}

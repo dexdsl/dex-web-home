@@ -12,10 +12,12 @@ import {
   normalizeManifest,
   slugify,
 } from './lib/entry-schema.mjs';
-import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from './lib/init-core.mjs';
+import { buildEmptyManifestSkeleton, prepareTemplate } from './lib/init-core.mjs';
 import { scanEntries } from './lib/doctor.mjs';
 import { deriveCanonicalEntry, descriptionTextFromSeed } from './lib/entry-html.mjs';
 import { parseViewerArgs, startViewer } from './lib/viewer-server.mjs';
+import { runDeployShortcut } from './lib/deploy.mjs';
+import { writeEntryFromData } from './lib/entry-run.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 
@@ -251,11 +253,38 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'catalog', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'home') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'home', rest: args.slice(idx + 1) };
+  }
+  if (firstNonFlag === 'notes') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'notes', rest: args.slice(idx + 1) };
+  }
+  if (firstNonFlag === 'assets') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'assets', rest: args.slice(idx + 1) };
+  }
+  if (firstNonFlag === 'entry') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'entry', rest: args.slice(idx + 1) };
+  }
+  if (firstNonFlag === 'deploy') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'deploy', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
 function parseInitArgs(rest = []) {
-  const opts = { quick: true, out: './entries' };
+  const opts = {
+    quick: true,
+    out: './entries',
+    catalogLink: {
+      mode: 'create-linked',
+      enabled: true,
+    },
+  };
   let slugArg;
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
@@ -270,6 +299,29 @@ function parseInitArgs(rest = []) {
     if (arg.startsWith('--out=')) { opts.out = arg.slice('--out='.length); continue; }
     if (arg === '--from' && next) { opts.from = next; i += 1; continue; }
     if (arg.startsWith('--from=')) { opts.from = arg.slice('--from='.length); continue; }
+    if (arg === '--catalog-link' && next) { opts.catalogLink.mode = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-link=')) { opts.catalogLink.mode = arg.slice('--catalog-link='.length); continue; }
+    if (arg === '--catalog-file' && next) { opts.catalogFilePath = next; opts.catalogLink.filePath = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-file=')) {
+      const filePath = arg.slice('--catalog-file='.length);
+      opts.catalogFilePath = filePath;
+      opts.catalogLink.filePath = filePath;
+      continue;
+    }
+    if (arg === '--catalog-status' && next) { opts.catalogLink.status = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-status=')) { opts.catalogLink.status = arg.slice('--catalog-status='.length); continue; }
+    if (arg === '--catalog-entry-id' && next) { opts.catalogLink.entryId = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-entry-id=')) { opts.catalogLink.entryId = arg.slice('--catalog-entry-id='.length); continue; }
+    if (arg === '--catalog-entry-href' && next) { opts.catalogLink.entryHref = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-entry-href=')) { opts.catalogLink.entryHref = arg.slice('--catalog-entry-href='.length); continue; }
+    if (arg === '--catalog-lookup' && next) { opts.catalogLink.lookupNumber = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-lookup=')) { opts.catalogLink.lookupNumber = arg.slice('--catalog-lookup='.length); continue; }
+    if (arg === '--catalog-season' && next) { opts.catalogLink.season = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-season=')) { opts.catalogLink.season = arg.slice('--catalog-season='.length); continue; }
+    if (arg === '--catalog-performer' && next) { opts.catalogLink.performer = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-performer=')) { opts.catalogLink.performer = arg.slice('--catalog-performer='.length); continue; }
+    if (arg === '--catalog-instrument' && next) { opts.catalogLink.instrument = next; i += 1; continue; }
+    if (arg.startsWith('--catalog-instrument=')) { opts.catalogLink.instrument = arg.slice('--catalog-instrument='.length); continue; }
     if (!arg.startsWith('-') && !slugArg) slugArg = arg;
   }
   return { slugArg, opts };
@@ -412,27 +464,399 @@ async function runPollsCommand(rest = []) {
 }
 
 async function runCatalogCommand(rest = []) {
-  const [subcommand = '', ...tail] = rest;
+  const [subcommand = ''] = rest;
+  if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
+    const { runDashboard } = await import('./ui/dashboard.mjs');
+    await runDashboard({
+      initialMode: 'catalog',
+      version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+    });
+    return;
+  }
+  const { runCatalogCommand: runCommand, printCatalogUsage } = await import('./lib/catalog-cli.mjs');
+  if (!subcommand) {
+    printCatalogUsage();
+    return;
+  }
+  await runCommand(rest);
+}
+
+async function runHomeCommand(rest = []) {
+  const [subcommand = ''] = rest;
+  if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
+    const { runDashboard } = await import('./ui/dashboard.mjs');
+    await runDashboard({
+      initialMode: 'home',
+      version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+    });
+    return;
+  }
+  const { runHomeCommand: runCommand, printHomeUsage } = await import('./lib/home-featured-cli.mjs');
+  if (!subcommand) {
+    printHomeUsage();
+    return;
+  }
+  await runCommand(rest);
+}
+
+async function runNotesCommand(rest = []) {
+  const [subcommand = ''] = rest;
+  if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
+    const { runDashboard } = await import('./ui/dashboard.mjs');
+    await runDashboard({
+      initialMode: 'notes',
+      version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+    });
+    return;
+  }
+  const { runDexNotesCommand, printDexNotesUsage } = await import('./lib/dex-notes-cli.mjs');
+  if (!subcommand) {
+    printDexNotesUsage();
+    return;
+  }
+  await runDexNotesCommand(rest);
+}
+
+function parseBooleanFlag(value, fallback = false) {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') return true;
+  if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
+  return fallback;
+}
+
+function printAssetsUsage() {
+  console.log('Usage: dex assets <validate|diff|publish|bucket> [args]');
+  console.log('  dex assets validate [--file data/protected.assets.json]');
+  console.log('  dex assets diff [--env test|prod] [--file data/protected.assets.json]');
+  console.log('  dex assets publish [--env test|prod] [--dry-run] [--file data/protected.assets.json]');
+  console.log('  dex assets bucket ensure [--env test|prod] [--name dex-protected-assets] [--dry-run]');
+}
+
+function printDeployUsage() {
+  console.log('Usage: dex deploy [--remote origin] [--no-set-upstream]');
+  console.log('Pushes the current branch to remote with upstream setup when needed.');
+}
+
+async function runDeployCommand(rest = []) {
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+  if (subcommand === 'help' || subcommand === '-h' || subcommand === '--help'
+    || flags.has('--help') || values.includes('-h') || values.includes('--help')) {
+    printDeployUsage();
+    return;
+  }
+
+  const remote = String(flags.get('--remote') || 'origin').trim() || 'origin';
+  const setUpstream = !flags.has('--no-set-upstream');
+  const result = runDeployShortcut({ cwd: process.cwd(), remote, setUpstream });
+  if (!result.ok) {
+    const details = [result.error, result.stderr, result.output].filter(Boolean).join('\n');
+    throw new Error(details || 'deploy failed');
+  }
+  const upstreamMsg = result.usedSetUpstream ? ' (upstream configured)' : '';
+  console.log(`deploy: pushed ${result.branch} -> ${result.remote}${upstreamMsg}`);
+  if (result.output) console.log(result.output);
+  if (result.stderr) console.log(result.stderr);
+}
+
+async function runAssetsCommand(rest = []) {
+  const {
+    buildProtectedAssetsPayload,
+    diffProtectedAssets,
+    ensureProtectedAssetsBucket,
+    publishProtectedAssets,
+    readProtectedAssetsFile,
+    validateCatalogLookupCoverage,
+  } = await import('./lib/protected-assets-publisher.mjs');
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+
   if (!subcommand) {
     if (process.stdout.isTTY && process.stdin.isTTY) {
       const { runDashboard } = await import('./ui/dashboard.mjs');
       await runDashboard({
-        initialMode: 'catalog',
+        initialMode: 'assets',
         version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
       });
       return;
     }
-    console.log('Usage: dex catalog seasons <list|get|set|teaser> [args]');
+    printAssetsUsage();
     return;
   }
 
-  if (subcommand === 'seasons') {
-    const { runCatalogSeasonsCommand } = await import('./lib/catalog-seasons-cli.mjs');
-    await runCatalogSeasonsCommand(tail);
+  const filePath = flags.get('--file');
+  const env = flags.get('--env') || flags.get('--target') || 'test';
+  const dryRun = parseBooleanFlag(flags.get('--dry-run'), false) || flags.has('--dry-run');
+
+  if (subcommand === 'validate') {
+    const { data, filePath: resolvedPath } = await readProtectedAssetsFile(filePath);
+    const coverage = await validateCatalogLookupCoverage({
+      assetsData: data,
+      catalogFilePath: process.env.DEX_CATALOG_EDITORIAL_PATH,
+    });
+    if (!coverage.ok) {
+      throw new Error(`assets:validate missing coverage for active catalog lookups: ${coverage.missing.join(', ')}`);
+    }
+    const built = buildProtectedAssetsPayload(data);
+    console.log(`assets:validate passed (${resolvedPath}) lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} exemptions=${built.payload.exemptions?.length || 0} hash=${built.manifestHash.slice(0, 12)}`);
     return;
   }
 
-  throw new Error(`Unknown catalog command: ${subcommand}`);
+  if (subcommand === 'diff') {
+    const result = await diffProtectedAssets({
+      env,
+      filePath,
+      apiBase: flags.get('--api-base'),
+      adminToken: flags.get('--token'),
+    });
+    console.log(`assets:diff (${result.env}) local=${result.localHash.slice(0, 12)} remote=${(result.remoteHash || '').slice(0, 12) || 'none'}`);
+    console.log(`  lookups      +${result.lookups.added} -${result.lookups.removed} ~${result.lookups.changed} (local=${result.counts.local.lookups} remote=${result.counts.remote.lookups})`);
+    console.log(`  files        +${result.files.added} -${result.files.removed} ~${result.files.changed} (local=${result.counts.local.files} remote=${result.counts.remote.files})`);
+    console.log(`  entitlements +${result.entitlements.added} -${result.entitlements.removed} ~${result.entitlements.changed} (local=${result.counts.local.entitlements} remote=${result.counts.remote.entitlements})`);
+    return;
+  }
+
+  if (subcommand === 'publish') {
+    const result = await publishProtectedAssets({
+      env,
+      filePath,
+      dryRun,
+      apiBase: flags.get('--api-base'),
+      adminToken: flags.get('--token'),
+    });
+    console.log(`assets:publish (${result.env}) lookups=${result.counts.lookups} files=${result.counts.files} entitlements=${result.counts.entitlements} dryRun=${result.dryRun ? 'yes' : 'no'} hash=${result.manifestHash.slice(0, 12)} -> ${result.apiBase}`);
+    return;
+  }
+
+  if (subcommand === 'bucket') {
+    const action = String(values[0] || '').trim().toLowerCase();
+    if (action !== 'ensure') {
+      throw new Error(`Unknown assets bucket command: ${action || '(empty)'}`);
+    }
+    const result = await ensureProtectedAssetsBucket({
+      env,
+      filePath,
+      bucketName: flags.get('--name'),
+      dryRun,
+      apiBase: flags.get('--api-base'),
+      adminToken: flags.get('--token'),
+    });
+    console.log(`assets:bucket:ensure (${result.env}) bucket=${result.bucket} dryRun=${result.dryRun ? 'yes' : 'no'} -> ${result.apiBase}`);
+    return;
+  }
+
+  throw new Error(`Unknown assets command: ${subcommand}`);
+}
+
+function printEntryUsage() {
+  console.log('Usage: dex entry <audit|link> [args]');
+  console.log('  dex entry audit [--slug <slug>] [--all] [--inventory-only]');
+  console.log('  dex entry link --entry <slug> [--catalog <id|href|slug>] [--status draft|active|archived] [--dry-run]');
+  console.log('    Optional: --lookup --season --performer --instrument --title --catalog-file data/catalog.editorial.json');
+  console.log('    Optional: --catalog-entries-file data/catalog.entries.json');
+}
+
+async function runEntryCommand(rest = []) {
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+  if (!subcommand || subcommand === 'help' || subcommand === '--help' || subcommand === '-h') {
+    printEntryUsage();
+    return;
+  }
+
+  if (subcommand === 'audit') {
+    const { auditEntryRuntime } = await import('./lib/entry-runtime-audit.mjs');
+    const slug = flags.get('--slug') || flags.get('--entry') || '';
+    const includeAll = flags.has('--all');
+    const inventoryOnly = parseBooleanFlag(flags.get('--inventory-only')) || flags.has('--inventory-only');
+    const result = await auditEntryRuntime({
+      slug: slug || undefined,
+      all: includeAll || !slug,
+      entriesDir: flags.get('--entries-dir') || './entries',
+      includeLegacy: String(flags.get('--include-legacy') || '').toLowerCase() === 'true' || flags.has('--include-legacy'),
+      includeRuntime: !inventoryOnly,
+      includeInventory: true,
+      catalogEntriesFile: flags.get('--catalog-entries-file') || path.resolve('data', 'catalog.entries.json'),
+      catalogEditorialFile: flags.get('--catalog-file') || path.resolve('data', 'catalog.editorial.json'),
+      protectedAssetsFile: flags.get('--assets-file') || path.resolve('data', 'protected.assets.json'),
+    });
+
+    if (!inventoryOnly) {
+      for (const report of result.reports) {
+        if (report.skippedLegacy) {
+          console.log(`SKIP ${report.slug} (legacy exemption)`);
+          continue;
+        }
+        const status = report.ok ? 'PASS' : 'FAIL';
+        console.log(`${status} ${report.slug}`);
+        for (const issue of report.issues) {
+          console.log(`  - ${issue}`);
+        }
+      }
+    }
+
+    const rows = Array.isArray(result?.inventory?.rows) ? result.inventory.rows : [];
+    console.log(`entry:inventory rows=${rows.length} linked=${result.inventory.counts.linked} entryOnly=${result.inventory.counts.entryOnly} catalogOnly=${result.inventory.counts.catalogOnly} withAssets=${result.inventory.counts.withAssets}`);
+    console.log(`  catalog.entries: ${result.inventory.files.catalogEntriesFile}`);
+    console.log(`  catalog.editorial: ${result.inventory.files.catalogEditorialFile}`);
+    console.log(`  protected.assets: ${result.inventory.files.protectedAssetsFile}`);
+    console.log('ENTRY\tSTATE\tCATALOG\tLOOKUP\tBUCKETS\tFILE_IDS');
+    for (const row of rows) {
+      const catalogTag = row.catalog?.source
+        ? `${row.catalog.entryId || row.entryId} (${row.catalog.source})`
+        : '-';
+      const lookupValue = row.lookups?.[0] || '-';
+      const buckets = Array.isArray(row.assets?.buckets) && row.assets.buckets.length ? row.assets.buckets.join(',') : '-';
+      const fileIds = Array.isArray(row.assets?.fileIds) && row.assets.fileIds.length ? row.assets.fileIds.join(',') : '-';
+      console.log(`${row.entryId}\t${row.state}\t${catalogTag}\t${lookupValue}\t${buckets}\t${fileIds}`);
+      if (Array.isArray(row.warnings) && row.warnings.length) {
+        for (const warning of row.warnings) {
+          console.log(`  ! ${row.entryId}: ${warning}`);
+        }
+      }
+    }
+
+    if (result.failures > 0) {
+      throw new Error(`entry:audit failed for ${result.failures}/${result.reports.length} entries`);
+    }
+    console.log(`entry:audit passed (${result.reports.length} runtime checks, inventory=${rows.length}).`);
+    return;
+  }
+
+  if (subcommand === 'link') {
+    const {
+      canonicalEntryHrefFromId,
+      checkCatalogManifestRowLinkage,
+      normalizeEntryHref,
+      slugFromEntryHref,
+    } = await import('./lib/entry-catalog-linkage.mjs');
+    const {
+      defaultCatalogEditorialData,
+      findCatalogManifestEntry,
+      readCatalogEditorialFile,
+      upsertCatalogManifestEntry,
+      writeCatalogEditorialFile,
+    } = await import('./lib/catalog-editorial-store.mjs');
+
+    const entryToken = String(flags.get('--entry') || flags.get('--slug') || values[0] || '').trim();
+    const catalogToken = String(flags.get('--catalog') || flags.get('--from-catalog') || entryToken).trim();
+    if (!entryToken && !catalogToken) {
+      throw new Error('entry link requires --entry <slug> or --catalog <id|href|slug>');
+    }
+
+    const catalogEntriesFile = path.resolve(flags.get('--catalog-entries-file') || 'data/catalog.entries.json');
+    let catalogEntries = [];
+    try {
+      const source = JSON.parse(await fs.readFile(catalogEntriesFile, 'utf8'));
+      catalogEntries = Array.isArray(source?.entries) ? source.entries : [];
+    } catch (error) {
+      if (String(error?.code || '') !== 'ENOENT') throw error;
+    }
+
+    const findCatalogEntry = (token) => {
+      const needle = String(token || '').trim().toLowerCase();
+      if (!needle) return null;
+      return catalogEntries.find((entry) => {
+        const id = String(entry?.id || '').trim().toLowerCase();
+        const href = String(normalizeEntryHref(entry?.entry_href || '') || '').toLowerCase();
+        const slug = String(slugFromEntryHref(entry?.entry_href || '') || '').toLowerCase();
+        return id === needle || href === String(normalizeEntryHref(needle)).toLowerCase() || slug === needle;
+      }) || null;
+    };
+
+    const fromCatalog = findCatalogEntry(catalogToken) || findCatalogEntry(entryToken);
+    const derivedEntryId = String(entryToken || fromCatalog?.id || slugFromEntryHref(fromCatalog?.entry_href || '')).trim();
+    if (!derivedEntryId) throw new Error('Unable to resolve entry id for linkage.');
+    const canonicalHref = normalizeEntryHref(flags.get('--entry-href') || fromCatalog?.entry_href || canonicalEntryHrefFromId(derivedEntryId));
+
+    const catalogFilePath = flags.get('--catalog-file');
+    let editorialData;
+    let resolvedCatalogFilePath;
+    try {
+      const loaded = await readCatalogEditorialFile(catalogFilePath);
+      editorialData = loaded.data;
+      resolvedCatalogFilePath = loaded.filePath;
+    } catch (error) {
+      if (String(error?.code || '') === 'ENOENT' || String(error?.message || '').includes('ENOENT')) {
+        editorialData = defaultCatalogEditorialData();
+        resolvedCatalogFilePath = path.resolve(catalogFilePath || 'data/catalog.editorial.json');
+      } else {
+        throw error;
+      }
+    }
+
+    const existing = findCatalogManifestEntry(editorialData, derivedEntryId)
+      || findCatalogManifestEntry(editorialData, canonicalHref);
+
+    const presence = await checkCatalogManifestRowLinkage({
+      entry_id: derivedEntryId,
+      entry_href: canonicalHref,
+      status: 'active',
+    }, { rootDir: process.cwd() });
+    const entryPageExists = Array.isArray(presence.existingPaths) && presence.existingPaths.length > 0;
+
+    const explicitStatus = String(flags.get('--status') || '').trim().toLowerCase();
+    const status = explicitStatus
+      || String(existing?.status || '').trim()
+      || (entryPageExists ? 'active' : 'draft');
+
+    const patch = {
+      entry_id: derivedEntryId,
+      entry_href: canonicalHref,
+      title_raw: String(flags.get('--title') || existing?.title_raw || fromCatalog?.title_raw || '').trim(),
+      lookup_number: String(flags.get('--lookup') || existing?.lookup_number || fromCatalog?.lookup_raw || '').trim(),
+      season: String(flags.get('--season') || existing?.season || fromCatalog?.season || '').trim(),
+      performer: String(flags.get('--performer') || existing?.performer || fromCatalog?.performer_raw || '').trim(),
+      instrument: String(
+        flags.get('--instrument')
+        || existing?.instrument
+        || ((Array.isArray(fromCatalog?.instrument_labels) && fromCatalog.instrument_labels[0]) || '')
+        || '',
+      ).trim(),
+      status: status || 'draft',
+    };
+
+    if (!String(patch.lookup_number || '').trim() && !fromCatalog && !existing) {
+      throw new Error('entry link requires --catalog <id|href|slug> or explicit --lookup metadata when no staged row exists.');
+    }
+
+    const checked = await checkCatalogManifestRowLinkage(patch, {
+      rootDir: process.cwd(),
+      requireEntryExistsForStatuses: new Set(['active']),
+    });
+    if (!checked.ok) {
+      throw new Error(`entry link invalid: ${checked.issues.join('; ')}`);
+    }
+
+    const dryRun = parseBooleanFlag(flags.get('--dry-run')) || flags.has('--dry-run');
+    if (dryRun) {
+      console.log(`entry:link dry-run ${patch.entry_id}`);
+      console.log(`  href=${patch.entry_href}`);
+      console.log(`  lookup=${patch.lookup_number || '-'}`);
+      console.log(`  season=${patch.season || '-'}`);
+      console.log(`  performer=${patch.performer || '-'}`);
+      console.log(`  instrument=${patch.instrument || '-'}`);
+      console.log(`  status=${patch.status || '-'}`);
+      console.log(`  entryPageExists=${entryPageExists ? 'yes' : 'no'}`);
+      return;
+    }
+
+    const next = upsertCatalogManifestEntry(editorialData, patch);
+    const written = await writeCatalogEditorialFile(next, resolvedCatalogFilePath);
+    const linked = findCatalogManifestEntry(written.data, derivedEntryId) || patch;
+    console.log(`entry:link wrote ${linked.entry_id} -> ${resolvedCatalogFilePath}`);
+    console.log(`  href=${linked.entry_href}`);
+    console.log(`  lookup=${linked.lookup_number || '-'}`);
+    console.log(`  season=${linked.season || '-'}`);
+    console.log(`  performer=${linked.performer || '-'}`);
+    console.log(`  instrument=${linked.instrument || '-'}`);
+    console.log(`  status=${linked.status || '-'}`);
+    console.log(`  entryPageExists=${entryPageExists ? 'yes' : 'no'}`);
+    return;
+  }
+
+  throw new Error(`Unknown entry command: ${subcommand}`);
 }
 
 function parseCsvRow(line) {
@@ -795,6 +1219,31 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'newsletter') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'catalog') {
   await runCatalogCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'home') {
+  await runHomeCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'notes') {
+  await runNotesCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'assets') {
+  await runAssetsCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'entry') {
+  await runEntryCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'deploy') {
+  await runDeployCommand(topLevel.rest);
   process.exit(0);
 }
 

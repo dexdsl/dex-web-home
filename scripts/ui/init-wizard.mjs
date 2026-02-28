@@ -3,8 +3,10 @@ import path from 'node:path';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { BUCKETS, slugify } from '../lib/entry-schema.mjs';
-import { buildEmptyManifestSkeleton, prepareTemplate, writeEntryFromData } from '../lib/init-core.mjs';
-import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { buildEmptyManifestSkeleton, prepareTemplate } from '../lib/init-core.mjs';
+import { writeEntryFromData } from '../lib/entry-run.mjs';
+import { isBackspaceKey, sanitizePastedInputChunk, shouldAppendWizardChar } from '../lib/input-guard.mjs';
+import { isAssetReferenceToken } from '../lib/asset-ref.mjs';
 import { computeWindow } from './rolodex.mjs';
 
 const CHANNELS = ['mono', 'stereo', 'multichannel'];
@@ -52,10 +54,6 @@ export function createDefaultWizardForm() {
   };
 }
 function withCaret(value, cursor, caretOn) { const safe = value || ''; return caretOn ? `${safe.slice(0, cursor)}▌${safe.slice(cursor)}` : safe; }
-function looksLikeEscapeSequence(input) { return typeof input === 'string' && input.includes('\x1b'); }
-function looksLikeBracketTildeSequence(input) {
-  return typeof input === 'string' && (/^\[[0-9;]+~$/.test(input) || /^[0-9;]+~$/.test(input));
-}
 const safeList = (arr) => (Array.isArray(arr) ? arr.map((v) => String(v || '').trim()).filter(Boolean) : []);
 const roleValue = (credits, roleKey) => roleKey.includes('.') ? credits[roleKey.split('.')[0]][roleKey.split('.')[1]] : credits[roleKey];
 const roleSet = (credits, roleKey, value) => {
@@ -66,7 +64,7 @@ const roleSet = (credits, roleKey, value) => {
   return { ...credits, [roleKey]: value };
 };
 
-export function applyKeyToInputState(state, input, key = {}) {
+export function applyKeyToInputState(state, input, key = {}, options = {}) {
   const value = state?.value ?? '';
   const cursor = Math.max(0, Math.min(value.length, state?.cursor ?? 0));
   if ((key.ctrl && (input === 'q' || input === 'Q')) || input === '\x11') return { value, cursor, quit: true };
@@ -81,8 +79,13 @@ export function applyKeyToInputState(state, input, key = {}) {
   if (isEnd) return { value, cursor: value.length };
   if (isBackspaceKey(input, key)) { if (cursor === 0) return { value, cursor }; return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 }; }
   if (isDelete) { if (cursor >= value.length) return { value, cursor }; return { value: `${value.slice(0, cursor)}${value.slice(cursor + 1)}`, cursor }; }
-  if (looksLikeBracketTildeSequence(input)) return { value, cursor };
-  if (looksLikeEscapeSequence(input)) return { value, cursor };
+  const pasted = sanitizePastedInputChunk(input, { allowMultiline: Boolean(options?.allowMultiline) });
+  if (pasted && (pasted.length > 1 || pasted.includes('\n') || pasted.includes('\t'))) {
+    return {
+      value: `${value.slice(0, cursor)}${pasted}${value.slice(cursor)}`,
+      cursor: cursor + pasted.length,
+    };
+  }
   if (shouldAppendWizardChar(input, key)) return { value: `${value.slice(0, cursor)}${input}${value.slice(cursor)}`, cursor: cursor + 1 };
   return { value, cursor };
 }
@@ -130,13 +133,6 @@ export function validateStep(stepId, form, selectedRole, formatKeys) {
   return null;
 }
 
-function parseDriveId(value) {
-  const id = String(value || '').trim();
-  if (!id) return false;
-  if (/http|\//i.test(id)) return false;
-  return /^[A-Za-z0-9_-]{10,}$/.test(id);
-}
-
 function parsePasteBlock(buffer, selectedBuckets, formatKeys) {
   const rows = String(buffer || '').split(/\r?\n/).map((line, idx) => ({ line, idx: idx + 1 })).filter((r) => r.line.trim());
   const next = { audio: {}, video: {} };
@@ -151,7 +147,7 @@ function parsePasteBlock(buffer, selectedBuckets, formatKeys) {
     const bucket = bucketRaw.toUpperCase();
     if (!selectedBuckets.includes(bucket)) { errors.push(`L${idx}: bucket ${bucket} not selected`); return; }
     if (!(formatKeys[type] || []).includes(keyRaw)) { errors.push(`L${idx}: invalid ${type} format ${keyRaw}`); return; }
-    if (!parseDriveId(idRaw)) { errors.push(`L${idx}: invalid driveId`); return; }
+    if (!isAssetReferenceToken(idRaw)) { errors.push(`L${idx}: invalid assetRef (use lookup:/asset:/bundle:)`); return; }
     next[type][bucket] = next[type][bucket] || {};
     next[type][bucket][keyRaw] = idRaw;
   });
@@ -215,7 +211,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const applyTextEdit = (input, key = {}, stepId = step.id) => {
     const value = (stepId in form) ? form[stepId] ?? '' : '';
     const pos = cursorByStep[stepId] ?? value.length;
-    const next = applyKeyToInputState({ value, cursor: pos }, input, key);
+    const next = applyKeyToInputState(
+      { value, cursor: pos },
+      input,
+      key,
+      { allowMultiline: stepId === 'descriptionText' },
+    );
     if (next.value !== value || next.cursor !== pos) {
       setForm((p) => ({ ...p, [stepId]: next.value, ...(stepId === 'slug' ? { slugTouched: true } : {}) }));
       setCursorByStep((p) => ({ ...p, [stepId]: next.cursor }));
@@ -275,7 +276,30 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
         };
-        const { report } = await writeEntryFromData({ templatePath, templateHtml, data: { slug: form.slug, title: form.title, video: { mode: 'url', dataUrl: form.videoUrl, dataUrlOriginal: form.videoUrl, dataHtml: '' }, descriptionText: form.descriptionText || '', series: form.series, selectedBuckets: form.buckets, creditsData, fileSpecs: sidebar.fileSpecs, metadata: sidebar.metadata, sidebar, manifest, authEnabled: true, outDir: path.resolve(outDirDefault || './entries') }, opts: {} });
+        const { report } = await writeEntryFromData({
+          templatePath,
+          templateHtml,
+          data: {
+            slug: form.slug,
+            title: form.title,
+            video: { mode: 'url', dataUrl: form.videoUrl, dataUrlOriginal: form.videoUrl, dataHtml: '' },
+            descriptionText: form.descriptionText || '',
+            series: form.series,
+            selectedBuckets: form.buckets,
+            creditsData,
+            fileSpecs: sidebar.fileSpecs,
+            metadata: sidebar.metadata,
+            sidebar,
+            manifest,
+            authEnabled: true,
+            outDir: path.resolve(outDirDefault || './entries'),
+          },
+          opts: {
+            catalogLink: {
+              mode: 'create-linked',
+            },
+          },
+        });
         await fs.mkdir(path.resolve(outDirDefault || './entries'), { recursive: true }).catch(() => {});
         await fs.writeFile(path.join(path.resolve(outDirDefault || './entries'), LAST_CACHE), `${JSON.stringify({ lastInstruments: creditsData.instruments }, null, 2)}\n`, 'utf8');
         setDoneReport(report);
@@ -314,7 +338,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         return;
       }
       if (key.return) { void maybeAdvance(); return; }
-      const next = applyKeyToInputState(creditsInputState, input, key);
+      const next = applyKeyToInputState(creditsInputState, input, key, { allowMultiline: false });
       setCreditsInputState({ value: next.value, cursor: next.cursor });
       if (isScalar && selectedRole?.key) {
         setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, next.value) }));
@@ -338,7 +362,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           return;
         }
         if (key.return) { setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteBuffer: `${p.downloadData.pasteBuffer}\n` } })); return; }
-        const n = applyKeyToInputState({ value: form.downloadData.pasteBuffer, cursor: form.downloadData.pasteBuffer.length }, input, key);
+        const n = applyKeyToInputState(
+          { value: form.downloadData.pasteBuffer, cursor: form.downloadData.pasteBuffer.length },
+          input,
+          key,
+          { allowMultiline: true },
+        );
         setForm((p) => ({ ...p, downloadData: { ...p.downloadData, pasteBuffer: n.value } }));
         return;
       }
@@ -381,7 +410,12 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       const cur = rows[downloadCursor];
       if (cur) {
         const current = form.downloadData[cur.type]?.[cur.b]?.[cur.k] || '';
-        const n = applyKeyToInputState({ value: current, cursor: current.length }, input, key);
+        const n = applyKeyToInputState(
+          { value: current, cursor: current.length },
+          input,
+          key,
+          { allowMultiline: false },
+        );
         setForm((p) => ({ ...p, downloadData: { ...p.downloadData, [cur.type]: { ...p.downloadData[cur.type], [cur.b]: { ...(p.downloadData[cur.type]?.[cur.b] || {}), [cur.k]: n.value } } } }));
       }
       return;
@@ -413,7 +447,15 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   return React.createElement(Box, { flexDirection: 'column', height: '100%' },
     React.createElement(Text, { color: '#8f98a8' }, `Step ${stepIdx + 1}/${totalSteps} — ${step.label}`),
     React.createElement(Box, { marginTop: 1, borderStyle: 'round', borderColor: '#6fa8ff', paddingX: 1, flexDirection: 'column' },
-      step.kind === 'text' ? React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(form[step.id] || '', cursorByStep[step.id] ?? 0, caretOn || process.env.DEX_NO_ANIM === '1')} ]`) : null,
+      step.kind === 'text' && step.id !== 'descriptionText'
+        ? React.createElement(Text, { color: '#d0d5df' }, `› ${step.label}: [ ${withCaret(form[step.id] || '', cursorByStep[step.id] ?? 0, caretOn || process.env.DEX_NO_ANIM === '1')} ]`)
+        : null,
+      step.kind === 'text' && step.id === 'descriptionText'
+        ? React.createElement(Box, { flexDirection: 'column' },
+          React.createElement(Text, { color: '#d0d5df' }, '› Description:'),
+          React.createElement(Text, { color: '#d0d5df' }, withCaret(form.descriptionText || '', cursorByStep.descriptionText ?? 0, caretOn || process.env.DEX_NO_ANIM === '1')),
+        )
+        : null,
       step.kind === 'select' ? React.createElement(Text, { color: '#d0d5df' }, `› Series: ${form.series} (←/→)`) : null,
       step.kind === 'multi' ? React.createElement(Box, { flexDirection: 'column' },
         bucketsWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'buckets-up' }, '…') : null,
@@ -437,7 +479,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         creditsWindow.end < creditRoles.length ? React.createElement(Text, { color: '#8f98a8', key: 'credits-down' }, '…') : null,
       ) : null,
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'column' },
-        pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,driveId\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
+        pasteMode ? React.createElement(Text, { color: '#d0d5df' }, `Paste rows type,bucket,formatKey,assetRef\nCtrl+P finish & parse • Esc cancel\n${form.downloadData.pasteBuffer}`) : null,
         !pasteMode ? React.createElement(Text, { color: '#8f98a8' }, `channels=${form.downloadData.fileSpecs.channels} • focus=${downloadFocus}`) : null,
         !pasteMode && downloadWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
         !pasteMode ? downloadRows.slice(downloadWindow.start, downloadWindow.end).map((row, localIdx) => {

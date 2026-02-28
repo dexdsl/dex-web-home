@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { isBackspaceKey, shouldAppendWizardChar } from './lib/input-guard.mjs';
+import { isBackspaceKey, sanitizePastedInputChunk, shouldAppendWizardChar } from './lib/input-guard.mjs';
 import { applyKeyToInputState } from './ui/init-wizard.mjs';
 import { DEFAULT_ASSET_ORIGIN } from './lib/asset-origin.mjs';
 import { assertAnchorOnlyChanges as assertTemplateDrift, injectEntryHtml } from './lib/entry-html.mjs';
@@ -45,6 +45,18 @@ const dry = run(['init', '--quick', '--template', './index.html', '--out', './en
 if (dry.status !== 0) throw new Error(`dry-run failed: ${dry.stderr}\n${dry.stdout}`);
 const real = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json']);
 if (real.status !== 0) throw new Error(`write run failed: ${real.stderr}\n${real.stdout}`);
+
+await fs.writeFile(path.join(temp, 'seed-missing-catalog.json'), JSON.stringify({
+  title: 'No Linkage',
+  slug: 'no-linkage',
+  video: { dataUrl: 'https://youtu.be/CSFGiU1gg4g?si=x' },
+  sidebarPageConfig: { lookupNumber: '' },
+}), 'utf8');
+const missingLinkage = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed-missing-catalog.json']);
+if (missingLinkage.status === 0) throw new Error('init should fail when required catalog linkage fields are missing');
+if (!/Catalog linkage requires/i.test(`${missingLinkage.stderr}\n${missingLinkage.stdout}`)) {
+  throw new Error('init missing-linkage failure should mention catalog linkage requirements');
+}
 
 const generatedDirs = (await fs.readdir(path.join(temp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());
 if (!generatedDirs.length) throw new Error('no generated entry dir');
@@ -110,6 +122,13 @@ if (!outEntry.lifecycle?.publishedAt || !outEntry.lifecycle?.updatedAt) throw ne
 if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.publishedAt)) throw new Error('entry.json lifecycle.publishedAt should be ISO datetime');
 if (!/^\d{4}-\d{2}-\d{2}T/.test(outEntry.lifecycle.updatedAt)) throw new Error('entry.json lifecycle.updatedAt should be ISO datetime');
 
+const catalogPath = path.join(temp, 'data', 'catalog.editorial.json');
+const catalog = JSON.parse(await fs.readFile(catalogPath, 'utf8'));
+const linkedRow = (catalog.manifest || []).find((row) => row.entry_id === generatedSlug);
+if (!linkedRow) throw new Error('dex init should create a linked catalog manifest row');
+if (!String(linkedRow.lookup_number || '').trim()) throw new Error('linked catalog row missing lookup_number');
+if (!String(linkedRow.entry_href || '').startsWith('/entry/')) throw new Error('linked catalog row missing canonical entry_href');
+
 const cfgMatch = outHtml.match(/<script id="dex-sidebar-config" type="application\/json">([\s\S]*?)<\/script>/);
 if (!cfgMatch) throw new Error('missing #dex-sidebar-config script node in output html');
 const cfg = JSON.parse(cfgMatch[1]);
@@ -148,6 +167,23 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
 {
   const next = applyKeyToInputState({ value: 'abc', cursor: 3 }, '', { backspace: true });
   if (next.value !== 'ab' || next.cursor !== 2) throw new Error('backspace should delete char before cursor');
+}
+{
+  const next = applyKeyToInputState({ value: 'abc', cursor: 3 }, ' pasted text', {}, { allowMultiline: false });
+  if (next.value !== 'abc pasted text') throw new Error('single-line paste chunk should insert at cursor');
+}
+{
+  const next = applyKeyToInputState(
+    { value: 'abc', cursor: 3 },
+    'line1\nline2',
+    {},
+    { allowMultiline: true },
+  );
+  if (next.value !== 'abcline1\nline2') throw new Error('multiline paste chunk should preserve newlines');
+}
+{
+  const parsed = sanitizePastedInputChunk('\x1b[200~line1\nline2\x1b[201~', { allowMultiline: true });
+  if (parsed !== 'line1\nline2') throw new Error('bracketed paste markers should be removed');
 }
 
 const portableTemp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-portable-'));
