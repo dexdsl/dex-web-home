@@ -103,10 +103,186 @@
     el.innerHTML = `${header}${html}`;
   };
 
-  const buildUrl = (cfg, type, bucket, key) => {
-    const id = type === 'audio' ? cfg.downloads.audioFileIds?.[bucket]?.[key] : cfg.downloads.videoFileIds?.[bucket]?.[key];
-    if (!id) return '#';
-    return cfg.downloads.driveBase + encodeURIComponent(id);
+  const DEFAULT_ASSETS_API = 'https://dex-api.spring-fog-8edd.workers.dev';
+  const MAX_BUNDLE_POLLS = 30;
+
+  const resolveAssetsApiBase = () => {
+    const configured = String(window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_ASSETS_API || '').trim();
+    return configured.replace(/\/+$/, '');
+  };
+
+  const parseAssetRefToken = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw || /^https?:\/\//i.test(raw)) return null;
+    const pivot = raw.indexOf(':');
+    if (pivot <= 0 || pivot >= raw.length - 1) return null;
+    const kind = raw.slice(0, pivot).toLowerCase();
+    const tokenValue = raw.slice(pivot + 1).trim();
+    if (!tokenValue) return null;
+    if (kind === 'lookup') {
+      if (!/^[A-Z]\.[A-Za-z0-9._-]{1,64}$/i.test(tokenValue)
+        && !/^SUB\d{2,4}-[A-Z]\.[A-Za-z]{3}\s[A-Za-z]{2}\s(?:AV|A|V|O)\d{4}$/i.test(tokenValue)
+        && !/^[A-Z]\.[A-Za-z]{3}\.\s[A-Za-z]{2}\s(?:AV|A|V|O)\d{4}(?:\sS\d+)?$/i.test(tokenValue)) {
+        return null;
+      }
+      return { kind, value: tokenValue, normalized: `lookup:${tokenValue}` };
+    }
+    if (kind === 'asset' || kind === 'bundle') {
+      if (!/^[A-Za-z0-9._:-]{3,160}$/.test(tokenValue)) return null;
+      return { kind, value: tokenValue, normalized: `${kind}:${tokenValue}` };
+    }
+    return null;
+  };
+
+  const setDownloadState = (row, state, message) => {
+    if (!row) return;
+    const statusEl = row.querySelector('[data-dx-download-status]');
+    row.setAttribute('data-dx-download-state', state || 'idle');
+    if (!statusEl) return;
+    statusEl.textContent = String(message || '');
+    statusEl.hidden = !String(message || '').trim();
+  };
+
+  const getAccessToken = async () => {
+    const auth = window.DEX_AUTH || window.dexAuth || null;
+    if (!auth || typeof auth.getAccessToken !== 'function') return '';
+    try {
+      const token = await auth.getAccessToken();
+      return String(token || '').trim();
+    } catch {
+      return '';
+    }
+  };
+
+  const requestAssetsJson = async ({ path, method, body }) => {
+    const token = await getAccessToken();
+    if (!token) {
+      const err = new Error('unauthorized');
+      err.code = 'forbidden';
+      throw err;
+    }
+
+    const headers = {
+      accept: 'application/json',
+      authorization: `Bearer ${token}`,
+    };
+    if (body !== undefined) headers['content-type'] = 'application/json';
+
+    const res = await fetch(`${resolveAssetsApiBase()}${path}`, {
+      method: method || 'GET',
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'omit',
+    });
+    const text = await res.text();
+    let payload = {};
+    try {
+      payload = text ? JSON.parse(text) : {};
+    } catch {
+      payload = { raw: text };
+    }
+    if (!res.ok) {
+      const err = new Error(payload?.message || payload?.error || `http_${res.status}`);
+      if (res.status === 403) err.code = 'forbidden';
+      else if (res.status === 404) err.code = 'not-found';
+      else err.code = 'failed';
+      err.status = res.status;
+      err.payload = payload;
+      throw err;
+    }
+    return payload;
+  };
+
+  const resolveBundleReadyPayload = (payload) => {
+    const status = String(payload?.status || '').toLowerCase();
+    if (status === 'forbidden') {
+      const err = new Error('forbidden');
+      err.code = 'forbidden';
+      throw err;
+    }
+    if (status === 'not_found' || status === 'not-found') {
+      const err = new Error('not-found');
+      err.code = 'not-found';
+      throw err;
+    }
+    if (status === 'error' || status === 'failed') {
+      const err = new Error(payload?.message || 'failed');
+      err.code = 'failed';
+      throw err;
+    }
+    const signedUrl = String(payload?.signedUrl || payload?.url || payload?.downloadUrl || '').trim();
+    if (status === 'ready' && signedUrl) {
+      return { signedUrl, expiresAt: String(payload?.expiresAt || '').trim() };
+    }
+    return null;
+  };
+
+  const pollBundleReady = async (jobId, onQueuedTick) => {
+    const safeJobId = encodeURIComponent(String(jobId || '').trim());
+    if (!safeJobId) {
+      const err = new Error('missing job id');
+      err.code = 'failed';
+      throw err;
+    }
+    for (let attempt = 0; attempt < MAX_BUNDLE_POLLS; attempt += 1) {
+      const payload = await requestAssetsJson({
+        path: `/me/assets/bundle/${safeJobId}`,
+        method: 'GET',
+      });
+      const ready = resolveBundleReadyPayload(payload);
+      if (ready) return ready;
+      if (typeof onQueuedTick === 'function') onQueuedTick(attempt, payload);
+      const waitMs = Number(payload?.pollAfterMs || 1200);
+      await new Promise((resolve) => window.setTimeout(resolve, Math.max(350, Math.min(waitMs, 3000))));
+    }
+    const err = new Error('bundle_timeout');
+    err.code = 'failed';
+    throw err;
+  };
+
+  const openSignedUrl = (url) => {
+    const href = String(url || '').trim();
+    if (!href) return false;
+    const win = window.open(href, '_blank', 'noopener');
+    if (win) return true;
+    window.location.assign(href);
+    return true;
+  };
+
+  const requestBundleDownload = async ({ lookup, tokens, onQueuedTick }) => {
+    const safeLookup = String(lookup || '').trim();
+    if (!safeLookup) {
+      const err = new Error('missing lookup');
+      err.code = 'not-found';
+      throw err;
+    }
+    const payload = await requestAssetsJson({
+      path: `/me/assets/${encodeURIComponent(safeLookup)}/bundle`,
+      method: 'POST',
+      body: {
+        tokens: Array.isArray(tokens) ? tokens : [],
+        source: 'entry-sidebar',
+      },
+    });
+    const delivery = String(payload?.delivery || '').toLowerCase();
+    if (delivery === 'sync') {
+      const signedUrl = String(payload?.signedUrl || payload?.url || '').trim();
+      if (!signedUrl) {
+        const err = new Error('missing signed url');
+        err.code = 'failed';
+        throw err;
+      }
+      return { signedUrl, expiresAt: String(payload?.expiresAt || '').trim() };
+    }
+    if (delivery === 'async') {
+      const jobId = String(payload?.jobId || '').trim();
+      return pollBundleReady(jobId, onQueuedTick);
+    }
+    const fallback = resolveBundleReadyPayload(payload);
+    if (fallback) return fallback;
+    const err = new Error('unsupported bundle response');
+    err.code = 'failed';
+    throw err;
   };
 
   const bucketHasAnyAsset = (cfg, bucket) => {
@@ -541,23 +717,67 @@
         const bucketAvailable = Object.values(fileIds).some(Boolean);
 
         formats.forEach((fmt) => {
-          const href = buildUrl(cfg, type, bucket, fmt.key);
-          const fileId = String(fileIds?.[fmt.key] || '').trim();
+          const tokenRaw = String(fileIds?.[fmt.key] || '').trim();
+          const parsedToken = parseAssetRefToken(tokenRaw);
+          const fileId = tokenRaw;
           const row = document.createElement('div');
           row.style.display = 'flex';
           row.style.alignItems = 'center';
           row.style.justifyContent = 'space-between';
           row.style.gap = '0.55rem';
           row.style.flexWrap = 'wrap';
+          row.setAttribute('data-dx-download-state', 'idle');
 
-          if (href !== '#') {
+          if (parsedToken) {
             visibleRows += 1;
-            const link = document.createElement('a');
-            link.href = href;
-            link.target = '_blank';
-            link.rel = 'noopener';
-            link.textContent = `${bucket} · ${fmt.label}`;
-            row.appendChild(link);
+            const actionWrap = document.createElement('div');
+            actionWrap.style.display = 'inline-flex';
+            actionWrap.style.alignItems = 'center';
+            actionWrap.style.gap = '0.45rem';
+            actionWrap.style.flexWrap = 'wrap';
+
+            const actionButton = document.createElement('button');
+            actionButton.type = 'button';
+            actionButton.className = 'dx-button-element--secondary';
+            actionButton.textContent = `${bucket} · ${fmt.label}`;
+
+            const status = document.createElement('span');
+            status.setAttribute('data-dx-download-status', '1');
+            status.style.opacity = '0.8';
+            status.style.fontSize = '0.76rem';
+            status.hidden = true;
+
+            actionButton.addEventListener('click', async () => {
+              setDownloadState(row, 'resolving', 'Resolving secure download…');
+              actionButton.disabled = true;
+              try {
+                const result = await requestBundleDownload({
+                  lookup: context?.lookup,
+                  tokens: [parsedToken.normalized],
+                  onQueuedTick: () => {
+                    setDownloadState(row, 'queued', 'Preparing bundle…');
+                  },
+                });
+                setDownloadState(row, 'ready', 'Ready. Opening download…');
+                openSignedUrl(result?.signedUrl);
+                window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
+              } catch (error) {
+                const code = String(error?.code || '').toLowerCase();
+                if (code === 'forbidden') {
+                  setDownloadState(row, 'forbidden', 'Access denied (403).');
+                } else if (code === 'not-found') {
+                  setDownloadState(row, 'not-found', 'Download not found (404).');
+                } else {
+                  setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+                }
+              } finally {
+                actionButton.disabled = false;
+              }
+            });
+
+            actionWrap.appendChild(actionButton);
+            actionWrap.appendChild(status);
+            row.appendChild(actionWrap);
 
             const favoritesApi = context?.favoritesApi || getFavoritesApi();
             if (favoritesApi) {
@@ -580,6 +800,13 @@
               });
               row.appendChild(favButton);
             }
+          } else if (tokenRaw) {
+            const invalid = document.createElement('span');
+            invalid.setAttribute('aria-disabled', 'true');
+            invalid.style.opacity = '0.75';
+            invalid.style.cursor = 'not-allowed';
+            invalid.textContent = `${bucket} · ${fmt.label} (invalid token)`;
+            row.appendChild(invalid);
           } else if (!bucketAvailable) {
             const disabled = document.createElement('span');
             disabled.setAttribute('aria-disabled', 'true');
@@ -763,7 +990,7 @@
         },
       },
       downloads: {
-        driveBase: 'https://drive.google.com/uc?export=download&id=',
+        delivery: 'worker_bundle',
         formats: {
           audio: Array.isArray(globalCfg?.downloads?.formats?.audio) ? globalCfg.downloads.formats.audio : [],
           video: Array.isArray(globalCfg?.downloads?.formats?.video) ? globalCfg.downloads.formats.video : [],

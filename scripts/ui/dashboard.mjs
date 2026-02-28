@@ -1,4 +1,6 @@
 import process from 'node:process';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Text, render, useApp, useInput, useStdout } from 'ink';
 import chalk from 'chalk';
@@ -170,6 +172,16 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
     if (deployBusy) return;
     setDeployBusy(true);
     try {
+      const preflight = spawnSync(
+        process.execPath,
+        [path.resolve(process.cwd(), 'scripts/dex.mjs'), 'release', 'preflight', '--env', 'test'],
+        { cwd: process.cwd(), encoding: 'utf8' },
+      );
+      if (preflight.status !== 0) {
+        const detail = [preflight.stdout, preflight.stderr].filter(Boolean).join(' ').trim();
+        setLastResult(`Deploy blocked: preflight failed. ${detail}`);
+        return;
+      }
       const { runDeployShortcut } = await import('../lib/deploy.mjs');
       const result = runDeployShortcut({ cwd: process.cwd() });
       if (!result.ok) {

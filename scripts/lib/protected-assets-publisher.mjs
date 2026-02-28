@@ -6,7 +6,7 @@ import {
   PROTECTED_ASSETS_VERSION,
   normalizeProtectedAssetsFile,
 } from './protected-assets-schema.mjs';
-import { readCatalogEditorialFile } from './catalog-editorial-store.mjs';
+import { readCatalogEditorialSource } from './catalog-publisher.mjs';
 
 const DEFAULT_API_BY_ENV = {
   prod: 'https://dex-api.spring-fog-8edd.workers.dev',
@@ -210,32 +210,36 @@ export async function validateCatalogLookupCoverage({
   catalogFilePath,
 } = {}) {
   const normalized = normalizeProtectedAssetsFile(assetsData || defaultProtectedAssetsData());
-  const { data: catalog } = await readCatalogEditorialFile(catalogFilePath);
-  const activeRows = (Array.isArray(catalog?.manifest) ? catalog.manifest : [])
+  const source = await readCatalogEditorialSource(catalogFilePath);
+  const effectiveManifest = Array.isArray(source?.built?.payload?.snapshot?.manifest)
+    ? source.built.payload.snapshot.manifest
+    : (Array.isArray(source?.data?.manifest) ? source.data.manifest : []);
+  const activeRows = effectiveManifest
     .filter((row) => String(row?.status || 'active').trim().toLowerCase() === 'active');
 
   const lookupSet = new Set((normalized.lookups || []).map((entry) => String(entry.lookupNumber || '').trim().toLowerCase()).filter(Boolean));
   const exemptionSet = new Set((normalized.exemptions || []).map((entry) => String(entry.lookupNumber || '').trim().toLowerCase()).filter(Boolean));
   const missing = [];
-  let skippedLegacyLookupCount = 0;
+  const exempted = [];
   for (const row of activeRows) {
     const lookupNumber = String(row?.lookup_number || '').trim();
     if (!lookupNumber) continue;
-    if (!/^SUB\d+/i.test(lookupNumber)) {
-      skippedLegacyLookupCount += 1;
+    const key = lookupNumber.toLowerCase();
+    if (lookupSet.has(key)) continue;
+    if (exemptionSet.has(key)) {
+      exempted.push(lookupNumber);
       continue;
     }
-    const key = lookupNumber.toLowerCase();
-    if (lookupSet.has(key) || exemptionSet.has(key)) continue;
     missing.push(lookupNumber);
   }
   return {
     ok: missing.length === 0,
     missing,
+    exempted,
     activeCount: activeRows.length,
+    effectiveManifestCount: effectiveManifest.length,
     mappedCount: lookupSet.size,
     exemptCount: exemptionSet.size,
-    skippedLegacyLookupCount,
   };
 }
 
@@ -295,6 +299,7 @@ export async function publishProtectedAssets({
   adminToken,
   sourceData,
 } = {}) {
+  const normalizedEnv = normalizeEnv(env);
   const localData = sourceData
     ? normalizeProtectedAssetsFile(sourceData)
     : (await readProtectedAssetsFile(filePath)).data;
@@ -305,11 +310,14 @@ export async function publishProtectedAssets({
   if (!coverage.ok) {
     throw new Error(`Missing protected asset coverage for active catalog lookups: ${coverage.missing.join(', ')}`);
   }
+  if (normalizedEnv === 'prod' && coverage.exempted.length > 0) {
+    throw new Error(`Production publish blocked: active catalog lookups cannot use exemptions (${coverage.exempted.join(', ')})`);
+  }
   const built = buildProtectedAssetsPayload(localData);
 
   const response = await requestJson('/admin/assets/publish', {
     method: 'POST',
-    env,
+    env: normalizedEnv,
     apiBase,
     adminToken,
     body: {

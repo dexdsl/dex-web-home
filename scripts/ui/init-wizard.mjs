@@ -67,17 +67,39 @@ const roleSet = (credits, roleKey, value) => {
 export function applyKeyToInputState(state, input, key = {}, options = {}) {
   const value = state?.value ?? '';
   const cursor = Math.max(0, Math.min(value.length, state?.cursor ?? 0));
+  const rawInput = typeof input === 'string' ? input : '';
+  const keySequence = typeof key?.sequence === 'string' ? key.sequence : '';
+  const controlSequence = rawInput || keySequence;
   if ((key.ctrl && (input === 'q' || input === 'Q')) || input === '\x11') return { value, cursor, quit: true };
   const isLeft = !!(key.leftArrow || input === '\x1b[D' || input === '\x1bOD');
   const isRight = !!(key.rightArrow || input === '\x1b[C' || input === '\x1bOC');
   const isHome = !!(key.home || input === '\x1b[H' || input === '\x1bOH' || input === '\x1b[1~' || input === '\x1b[7~');
   const isEnd = !!(key.end || input === '\x1b[F' || input === '\x1bOF' || input === '\x1b[4~' || input === '\x1b[8~');
-  const isDelete = !!(key.delete || (typeof input === 'string' && /^\x1b\[3(?:;\d+)*~$/.test(input)));
+  const isDeleteSequence = !!(
+    /^\x1b\[3(?:;\d+)*~$/.test(controlSequence)
+    || /^\x1b\[3(?:;\d+)*u$/.test(controlSequence)
+  );
+  const isBackspaceSequence = !!(/^\x1b\[127(?:;\d+)*u$/.test(controlSequence));
+  const hasControlSequence = Boolean(rawInput || keySequence);
+  const isAmbiguousDeleteKey = Boolean(
+    key.delete
+      && !isDeleteSequence
+      && !key.backspace
+      && !isBackspaceSequence
+      && !hasControlSequence,
+  );
+  const isDelete = Boolean(key.delete || isDeleteSequence);
   if (isLeft) return { value, cursor: Math.max(0, cursor - 1) };
   if (isRight) return { value, cursor: Math.min(value.length, cursor + 1) };
   if (isHome) return { value, cursor: 0 };
   if (isEnd) return { value, cursor: value.length };
-  if (isBackspaceKey(input, key)) { if (cursor === 0) return { value, cursor }; return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 }; }
+  if (isBackspaceKey(input, key) || isBackspaceSequence) {
+    if (cursor === 0) return { value, cursor };
+    return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 };
+  }
+  if (isAmbiguousDeleteKey && cursor === value.length && cursor > 0) {
+    return { value: `${value.slice(0, cursor - 1)}${value.slice(cursor)}`, cursor: cursor - 1 };
+  }
   if (isDelete) { if (cursor >= value.length) return { value, cursor }; return { value: `${value.slice(0, cursor)}${value.slice(cursor + 1)}`, cursor }; }
   const pasted = sanitizePastedInputChunk(input, { allowMultiline: Boolean(options?.allowMultiline) });
   if (pasted && (pasted.length > 1 || pasted.includes('\n') || pasted.includes('\t'))) {

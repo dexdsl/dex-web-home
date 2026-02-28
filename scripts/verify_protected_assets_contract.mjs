@@ -86,6 +86,9 @@ function main() {
     'manifestHash',
     'validateCatalogLookupCoverage',
     'exemptions',
+    'effectiveManifestCount',
+    'exempted',
+    'Production publish blocked',
   ];
   for (const marker of requiredPublisherMarkers) {
     if (!publisherSource.includes(marker)) {

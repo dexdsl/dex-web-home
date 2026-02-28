@@ -85,7 +85,7 @@ export function EntryAuditManager({ onExit, width = 100, height = 24 }) {
       ...inventoryRows.slice(0, 5).map((row) => React.createElement(
         Text,
         { key: `inv-${row.entryId}`, color: row.state === 'linked' ? '#a6e3a1' : '#d0d5df' },
-        `${row.entryId} · ${row.state} · lookup=${row.lookups?.[0] || '-'} · buckets=${(row.assets?.buckets || []).join(',') || '-'} · files=${(row.assets?.fileIds || []).join(',') || '-'}`,
+        `${row.entryId} · ${row.state} · catalog=${row.catalog?.source || '-'} · lookup=${row.lookups?.[0] || '-'} · buckets=${(row.assets?.buckets || []).join(',') || '-'} · files=${(row.assets?.fileIds || []).join(',') || '-'}`,
       )),
     ),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },

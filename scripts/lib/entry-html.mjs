@@ -678,11 +678,19 @@ ${videoMarkup}
 }
 
 function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
+  const globalConfig = JSON.parse(JSON.stringify(globalSidebarConfig || {}));
+  if (globalConfig && typeof globalConfig === 'object') {
+    if (!globalConfig.downloads || typeof globalConfig.downloads !== 'object') {
+      globalConfig.downloads = {};
+    }
+    delete globalConfig.downloads.driveBase;
+    globalConfig.downloads.delivery = 'worker_bundle';
+  }
   const compiled = {
     ...sidebarConfig,
     credits: compileSidebarCredits(sidebarConfig?.credits || {}),
   };
-  const globalJson = JSON.stringify(globalSidebarConfig || {}, null, 2);
+  const globalJson = JSON.stringify(globalConfig, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);
   const manifestJson = JSON.stringify(manifest || {}, null, 2);
   return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}">\nwindow.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');\n</script>\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;

@@ -56,7 +56,7 @@ export function resolveEntryLinkageFromInitData(data = {}, catalogLink = {}) {
       || (Array.isArray(data?.creditsData?.instruments) ? data.creditsData.instruments[0] : '')
       || (Array.isArray(data?.sidebar?.credits?.instruments) ? data.sidebar.credits.instruments[0] : ''),
   );
-  const status = toText(catalogLink.status || 'active') || 'active';
+  const status = toText(catalogLink.status || 'draft') || 'draft';
   const titleRaw = toText(catalogLink.titleRaw || data.title);
   return {
     entryId,

@@ -273,6 +273,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'deploy', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'release') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'release', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
@@ -525,6 +529,13 @@ function parseBooleanFlag(value, fallback = false) {
   return fallback;
 }
 
+function normalizeReleaseEnv(value) {
+  const raw = String(value || 'test').trim().toLowerCase();
+  if (raw === 'prod' || raw === 'production') return 'prod';
+  if (raw === 'test' || raw === 'staging' || raw === 'sandbox') return 'test';
+  throw new Error(`Unsupported env: ${value}`);
+}
+
 function printAssetsUsage() {
   console.log('Usage: dex assets <validate|diff|publish|bucket> [args]');
   console.log('  dex assets validate [--file data/protected.assets.json]');
@@ -535,12 +546,111 @@ function printAssetsUsage() {
 
 function printDeployUsage() {
   console.log('Usage: dex deploy [--remote origin] [--no-set-upstream]');
+  console.log('                 [--no-preflight] [--preflight-env test|prod]');
   console.log('Pushes the current branch to remote with upstream setup when needed.');
 }
 
+function printReleaseUsage() {
+  console.log('Usage: dex release <preflight|publish> [args]');
+  console.log('  dex release preflight [--env test|prod]');
+  console.log('  dex release publish [--env test|prod] [--dry-run] [--no-preflight]');
+}
+
+function runNodeScript(scriptPath, args = []) {
+  const command = [path.resolve(scriptPath), ...args.map((arg) => String(arg || ''))];
+  const result = spawnSync(process.execPath, command, {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+  return {
+    ok: result.status === 0,
+    status: result.status,
+    stdout: String(result.stdout || ''),
+    stderr: String(result.stderr || ''),
+  };
+}
+
+async function runReleasePreflight({ env = 'test' } = {}) {
+  const normalizedEnv = normalizeReleaseEnv(env);
+  const logs = [];
+
+  logs.push(`preflight:env=${normalizedEnv}`);
+
+  const { auditEntryRuntime } = await import('./lib/entry-runtime-audit.mjs');
+  const audit = await auditEntryRuntime({
+    entriesDir: './entries',
+    all: true,
+    includeLegacy: false,
+    includeRuntime: true,
+    includeInventory: true,
+    catalogEntriesFile: path.resolve('data', 'catalog.entries.json'),
+    catalogEditorialFile: path.resolve('data', 'catalog.editorial.json'),
+    protectedAssetsFile: path.resolve('data', 'protected.assets.json'),
+  });
+  const nonSkipped = audit.reports.filter((report) => !report.skippedLegacy);
+  if (!audit.reports.length || !nonSkipped.length) {
+    throw new Error('preflight failed: no non-exempt entries were audited.');
+  }
+  if (audit.failures > 0) {
+    const failing = audit.reports.filter((report) => !report.ok).slice(0, 5).map((report) => report.slug).join(', ');
+    throw new Error(`preflight failed: entry audit failures (${audit.failures}/${audit.reports.length}) ${failing}`);
+  }
+  logs.push(`✓ entry audit (${audit.reports.length} entries, inventory=${audit.inventory?.rows?.length || 0})`);
+
+  const {
+    readProtectedAssetsFile,
+    validateCatalogLookupCoverage,
+  } = await import('./lib/protected-assets-publisher.mjs');
+  const assetsFile = await readProtectedAssetsFile();
+  const coverage = await validateCatalogLookupCoverage({
+    assetsData: assetsFile.data,
+    catalogFilePath: process.env.DEX_CATALOG_EDITORIAL_PATH,
+  });
+  if (!coverage.ok) {
+    throw new Error(`preflight failed: missing protected asset coverage (${coverage.missing.join(', ')})`);
+  }
+  if (normalizedEnv === 'prod' && Array.isArray(coverage.exempted) && coverage.exempted.length > 0) {
+    throw new Error(`preflight failed: prod cannot use active exemptions (${coverage.exempted.join(', ')})`);
+  }
+  logs.push(`✓ protected assets coverage (active=${coverage.activeCount} mapped=${coverage.mappedCount} exempt=${coverage.exemptCount})`);
+
+  const { runCatalogCommand } = await import('./lib/catalog-cli.mjs');
+  await runCatalogCommand(['validate']);
+  logs.push('✓ catalog validate');
+
+  const verifyGenerated = runNodeScript('scripts/verify-generated-html.mjs');
+  if (!verifyGenerated.ok) {
+    const detail = [verifyGenerated.stdout, verifyGenerated.stderr].filter(Boolean).join('\n').trim();
+    throw new Error(`preflight failed: verify-generated-html\n${detail}`);
+  }
+  logs.push('✓ generated html secure checks');
+
+  return { env: normalizedEnv, logs };
+}
+
 async function runDeployCommand(rest = []) {
-  const parsed = parsePollsCommandArgs(rest);
-  const { subcommand, flags, values } = parsed;
+  const flags = new Map();
+  const values = [];
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = String(rest[index] || '');
+    if (arg.startsWith('--')) {
+      const [name, inlineValue] = arg.split('=', 2);
+      if (inlineValue !== undefined) {
+        flags.set(name, inlineValue);
+        continue;
+      }
+      const next = rest[index + 1];
+      if (next && !String(next).startsWith('--')) {
+        flags.set(name, String(next));
+        index += 1;
+        continue;
+      }
+      flags.set(name, 'true');
+      continue;
+    }
+    values.push(arg);
+  }
+  const subcommand = values[0] || '';
   if (subcommand === 'help' || subcommand === '-h' || subcommand === '--help'
     || flags.has('--help') || values.includes('-h') || values.includes('--help')) {
     printDeployUsage();
@@ -549,6 +659,15 @@ async function runDeployCommand(rest = []) {
 
   const remote = String(flags.get('--remote') || 'origin').trim() || 'origin';
   const setUpstream = !flags.has('--no-set-upstream');
+  const noPreflight = flags.has('--no-preflight');
+  const preflightEnv = normalizeReleaseEnv(flags.get('--preflight-env') || 'test');
+
+  if (!noPreflight) {
+    const preflight = await runReleasePreflight({ env: preflightEnv });
+    preflight.logs.forEach((line) => console.log(line));
+    console.log('preflight:passed');
+  }
+
   const result = runDeployShortcut({ cwd: process.cwd(), remote, setUpstream });
   if (!result.ok) {
     const details = [result.error, result.stderr, result.output].filter(Boolean).join('\n');
@@ -558,6 +677,67 @@ async function runDeployCommand(rest = []) {
   console.log(`deploy: pushed ${result.branch} -> ${result.remote}${upstreamMsg}`);
   if (result.output) console.log(result.output);
   if (result.stderr) console.log(result.stderr);
+}
+
+async function runReleaseCommand(rest = []) {
+  const parsed = parsePollsCommandArgs(rest);
+  const { subcommand, flags } = parsed;
+  const action = String(subcommand || '').trim().toLowerCase();
+  if (!action || action === 'help' || action === '--help' || action === '-h') {
+    printReleaseUsage();
+    return;
+  }
+
+  const env = normalizeReleaseEnv(flags.get('--env') || flags.get('--target') || 'test');
+  const dryRun = parseBooleanFlag(flags.get('--dry-run'), false) || flags.has('--dry-run');
+  const noPreflight = flags.has('--no-preflight');
+
+  if (action === 'preflight') {
+    const result = await runReleasePreflight({ env });
+    result.logs.forEach((line) => console.log(line));
+    console.log(`release:preflight passed (${result.env})`);
+    return;
+  }
+
+  if (action === 'publish') {
+    if (!noPreflight) {
+      const preflight = await runReleasePreflight({ env });
+      preflight.logs.forEach((line) => console.log(line));
+      console.log('preflight:passed');
+    }
+    const {
+      publishProtectedAssets,
+    } = await import('./lib/protected-assets-publisher.mjs');
+    const {
+      publishCatalogCuration,
+      writeCatalogSnapshotFromLocal,
+    } = await import('./lib/catalog-publisher.mjs');
+
+    const assetsResult = await publishProtectedAssets({
+      env,
+      dryRun,
+      apiBase: flags.get('--assets-api-base') || flags.get('--api-base'),
+      adminToken: flags.get('--assets-token') || flags.get('--token'),
+    });
+    console.log(`release:assets ${assetsResult.env} hash=${assetsResult.manifestHash.slice(0, 12)} dryRun=${dryRun ? 'yes' : 'no'}`);
+
+    const catalogResult = await publishCatalogCuration({
+      env,
+      dryRun,
+      apiBase: flags.get('--catalog-api-base') || flags.get('--api-base'),
+      adminToken: flags.get('--catalog-token') || flags.get('--token'),
+    });
+    console.log(`release:catalog ${catalogResult.env} hash=${catalogResult.manifestHash.slice(0, 12)} dryRun=${dryRun ? 'yes' : 'no'}`);
+
+    if (!dryRun) {
+      await writeCatalogSnapshotFromLocal();
+      console.log('release:snapshot synced');
+    }
+    console.log(`release:publish complete (${env})`);
+    return;
+  }
+
+  throw new Error(`Unknown release command: ${action}`);
 }
 
 async function runAssetsCommand(rest = []) {
@@ -586,7 +766,7 @@ async function runAssetsCommand(rest = []) {
   }
 
   const filePath = flags.get('--file');
-  const env = flags.get('--env') || flags.get('--target') || 'test';
+  const env = normalizeReleaseEnv(flags.get('--env') || flags.get('--target') || 'test');
   const dryRun = parseBooleanFlag(flags.get('--dry-run'), false) || flags.has('--dry-run');
 
   if (subcommand === 'validate') {
@@ -598,8 +778,14 @@ async function runAssetsCommand(rest = []) {
     if (!coverage.ok) {
       throw new Error(`assets:validate missing coverage for active catalog lookups: ${coverage.missing.join(', ')}`);
     }
+    if (env === 'prod' && Array.isArray(coverage.exempted) && coverage.exempted.length > 0) {
+      throw new Error(`assets:validate prod blocked by active exemptions: ${coverage.exempted.join(', ')}`);
+    }
     const built = buildProtectedAssetsPayload(data);
-    console.log(`assets:validate passed (${resolvedPath}) lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} exemptions=${built.payload.exemptions?.length || 0} hash=${built.manifestHash.slice(0, 12)}`);
+    const exemptionSummary = Array.isArray(coverage.exempted) && coverage.exempted.length
+      ? ` activeExemptions=${coverage.exempted.join(',')}`
+      : '';
+    console.log(`assets:validate passed (${resolvedPath}) lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} exemptions=${built.payload.exemptions?.length || 0} active=${coverage.activeCount} effective=${coverage.effectiveManifestCount} hash=${built.manifestHash.slice(0, 12)}${exemptionSummary}`);
     return;
   }
 
@@ -1244,6 +1430,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'entry') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'deploy') {
   await runDeployCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'release') {
+  await runReleaseCommand(topLevel.rest);
   process.exit(0);
 }
 

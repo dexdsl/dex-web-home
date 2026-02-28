@@ -44,6 +44,11 @@ assert.equal(valid.lookups.length, 1);
 assert.equal(valid.lookups[0].files[0].bucketNumber, 'A.01');
 assert.equal(valid.lookups[0].files[0].fileId, 'A.01');
 
+const catalogLookupFixture = makeValidFixture();
+catalogLookupFixture.lookups[0].lookupNumber = 'X.Gtr. Ch AV2024 S1';
+const catalogLookup = normalizeProtectedAssetsFile(catalogLookupFixture);
+assert.equal(catalogLookup.lookups[0].lookupNumber, 'X.Gtr. Ch AV2024 S1');
+
 const duplicateLookup = makeValidFixture();
 duplicateLookup.lookups.push({ ...duplicateLookup.lookups[0] });
 assert.throws(() => normalizeProtectedAssetsFile(duplicateLookup), /Duplicate lookupNumber/);

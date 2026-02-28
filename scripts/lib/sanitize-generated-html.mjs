@@ -239,6 +239,8 @@ export const REQUIRED_SANITIZED_SNIPPETS = [
 
 export const VERIFY_TOKEN_CHECKS = [
   { token: 'blocked legacysite script src', regex: /<script[^>]*src=["'][^"']*(?:legacysite\.com|sqspcdn\.com)[^"']*["']/i },
+  { token: 'raw google drive url', regex: /https?:\/\/drive\.google\.com\//i },
+  { token: 'sidebar driveBase', regex: /"driveBase"\s*:/i },
   { token: 'Static runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\bStatic(?:\.|\s*=)/ },
   { token: 'legacysite_ runtime marker', regex: /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?legacysite_/i },
   { token: 'protocol-relative src/href', regex: /\b(?:src|href)\s*=\s*["']\/\//i },

@@ -7,6 +7,7 @@ import {
   ensureProtectedAssetsBucket,
   publishProtectedAssets,
   readProtectedAssetsFile,
+  validateCatalogLookupCoverage,
 } from '../lib/protected-assets-publisher.mjs';
 
 function safeMessage(error) {
@@ -29,6 +30,7 @@ export function ProtectedAssetsManager({ onExit, width = 100, height = 24 }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [statusLine, setStatusLine] = useState('Loading protected assets manifest…');
+  const [coverageInfo, setCoverageInfo] = useState(null);
 
   const lookups = useMemo(() => (Array.isArray(data?.lookups) ? data.lookups : []), [data]);
   const selectedLookup = lookups[selectedIndex] || null;
@@ -48,10 +50,16 @@ export function ProtectedAssetsManager({ onExit, width = 100, height = 24 }) {
         setSelectedIndex(0);
       }
       const built = buildProtectedAssetsPayload(loaded.data);
-      setStatusLine(`Loaded manifest: lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} hash=${shortHash(built.manifestHash)}`);
+      const coverage = await validateCatalogLookupCoverage({
+        assetsData: loaded.data,
+        catalogFilePath: process.env.DEX_CATALOG_EDITORIAL_PATH,
+      });
+      setCoverageInfo(coverage);
+      setStatusLine(`Loaded manifest: lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} hash=${shortHash(built.manifestHash)} active=${coverage.activeCount} missing=${coverage.missing.length}`);
     } catch (error) {
       setStatusLine(`Load failed: ${safeMessage(error)}`);
       setData(null);
+      setCoverageInfo(null);
     } finally {
       setBusy(false);
     }
@@ -62,7 +70,19 @@ export function ProtectedAssetsManager({ onExit, width = 100, height = 24 }) {
     setBusy(true);
     try {
       const built = buildProtectedAssetsPayload(data);
-      setStatusLine(`Manifest valid: lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} hash=${shortHash(built.manifestHash)}`);
+      const coverage = await validateCatalogLookupCoverage({
+        assetsData: data,
+        catalogFilePath: process.env.DEX_CATALOG_EDITORIAL_PATH,
+      });
+      setCoverageInfo(coverage);
+      if (!coverage.ok) {
+        setStatusLine(`Validation failed: missing mappings for ${coverage.missing.join(', ')}`);
+      } else {
+        const exempted = Array.isArray(coverage.exempted) && coverage.exempted.length
+          ? ` exemptions(active)=${coverage.exempted.join(',')}`
+          : '';
+        setStatusLine(`Manifest valid: lookups=${built.counts.lookups} files=${built.counts.files} entitlements=${built.counts.entitlements} hash=${shortHash(built.manifestHash)} active=${coverage.activeCount}${exempted}`);
+      }
     } catch (error) {
       setStatusLine(`Validation failed: ${safeMessage(error)}`);
     } finally {
@@ -191,6 +211,13 @@ export function ProtectedAssetsManager({ onExit, width = 100, height = 24 }) {
     ),
     React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
       React.createElement(Text, { color: '#8f98a8' }, 'v validate  d diff(test)  f diff(prod)  p publish(test)  o publish(prod)  b ensure bucket(test)  n ensure bucket(prod)  r reload  Esc back'),
+      coverageInfo
+        ? React.createElement(
+          Text,
+          { color: coverageInfo.ok ? '#8f98a8' : '#ff6b6b' },
+          `coverage active=${coverageInfo.activeCount} mapped=${coverageInfo.mappedCount} exempt=${coverageInfo.exemptCount} missing=${coverageInfo.missing.length}`,
+        )
+        : null,
       React.createElement(Text, { color: busy ? '#ffcc66' : '#a6e3a1' }, busy ? 'Working…' : statusLine),
     ),
   );
