@@ -1,6 +1,6 @@
 {
   "version": "protected-assets-v1",
-  "updatedAt": "2026-02-27T00:00:00.000Z",
+  "updatedAt": "2026-02-28T05:30:49.030Z",
   "settings": {
     "storageBucket": "dex-protected-assets",
     "allowedBuckets": [
@@ -13,7 +13,844 @@
     ],
     "syncStrategy": "manifest-publish"
   },
-  "lookups": [],
+  "lookups": [
+    {
+      "lookupNumber": "P.Pto. Fe AV2024 S2",
+      "title": "PREPARED FLOOR TOM",
+      "status": "draft",
+      "season": "S2",
+      "files": [
+        {
+          "bucketNumber": "A.1",
+          "fileId": "tim-feeney-a-001",
+          "bucket": "A",
+          "r2Key": "tim-feeney/a/001.mov",
+          "driveFileId": "1BFSylUw04oKmLvTw2pmvql_zMhJfIf3Q",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 1,
+          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.1",
+          "fileId": "tim-feeney-b-001",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/001.mov",
+          "driveFileId": "1brXeztgoHwnhEZd_ywkph2KNtvK_nD5l",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 2,
+          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+          "sourceLabel": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.2",
+          "fileId": "tim-feeney-b-002",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/002.mov",
+          "driveFileId": "1N1NvI0CLjXcLwHvHMD5y6qop5In4-vtt",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 3,
+          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+          "sourceLabel": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.3",
+          "fileId": "tim-feeney-b-003",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/003.mov",
+          "driveFileId": "1c4qJM3tsW8zHPAoPhswQNFA9vN896j_H",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 4,
+          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+          "sourceLabel": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.4",
+          "fileId": "tim-feeney-b-004",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/004.mov",
+          "driveFileId": "1rbKfk6e5luwRv_DQ7DchqLdp4PY5-fz6",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 5,
+          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+          "sourceLabel": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.5",
+          "fileId": "tim-feeney-b-005",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/005.mov",
+          "driveFileId": "1RxOBe9Wy0D79Q2F5yovFrs4Noy2cebCO",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 6,
+          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+          "sourceLabel": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.6",
+          "fileId": "tim-feeney-b-006",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/006.mov",
+          "driveFileId": "16WBWqzF2ANOrwNuJ-kuMG1qHFYTS3zDi",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 7,
+          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+          "sourceLabel": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "B.7",
+          "fileId": "tim-feeney-b-007",
+          "bucket": "B",
+          "r2Key": "tim-feeney/b/007.mov",
+          "driveFileId": "167c4yYctS5klHRyFQ8CwYChZt7KY7ix-",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 8,
+          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.1",
+          "fileId": "tim-feeney-c-001",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/001.mov",
+          "driveFileId": "1akOwheZ87pibPkwEACe5HZzsBUmQkj2D",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 9,
+          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+          "sourceLabel": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.2",
+          "fileId": "tim-feeney-c-002",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/002.mov",
+          "driveFileId": "1k7Cgm96r8esJDs54tW_1vS2tgkXZ9gD3",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 10,
+          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+          "sourceLabel": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.3",
+          "fileId": "tim-feeney-c-003",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/003.mov",
+          "driveFileId": "1WgqbDB9OaugX9TRJKM0DX24GMj_vm7Ij",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 11,
+          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+          "sourceLabel": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.4",
+          "fileId": "tim-feeney-c-004",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/004.mov",
+          "driveFileId": "1vwQfDg6pA1XImimANelu8A3T_YqgPJ5O",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 12,
+          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+          "sourceLabel": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.5",
+          "fileId": "tim-feeney-c-005",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/005.mov",
+          "driveFileId": "18zy7H4KDKCQeKQamg0MssbqPV_6AMvX3",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 13,
+          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+          "sourceLabel": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.6",
+          "fileId": "tim-feeney-c-006",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/006.mov",
+          "driveFileId": "1wdZz939V_R04ErVhYCyjdPn3lBLejAQU",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 14,
+          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+          "sourceLabel": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.7",
+          "fileId": "tim-feeney-c-007",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/007.mov",
+          "driveFileId": "11wNyecZrdNiwGccU2WFGmgVv2uNpXgoE",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 15,
+          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+          "sourceLabel": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.8",
+          "fileId": "tim-feeney-c-008",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/008.mov",
+          "driveFileId": "1Ephfx_HVdIb9jB_f1WP92YiLoSZ7Ils6",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 16,
+          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+          "sourceLabel": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.9",
+          "fileId": "tim-feeney-c-009",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/009.mov",
+          "driveFileId": "1ZAJMIu-zJoGhoRgoMhVbNdc0kzYbrd-e",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 17,
+          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+          "sourceLabel": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.10",
+          "fileId": "tim-feeney-c-010",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/010.mov",
+          "driveFileId": "1Z6FCIQ8BtFVgBkzd3vDRqAKLIHCXj--Y",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 18,
+          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+          "sourceLabel": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.11",
+          "fileId": "tim-feeney-c-011",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/011.mov",
+          "driveFileId": "1HRYiH4XW566FKctha6AMpsEOLDKouyTE",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 19,
+          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+          "sourceLabel": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.12",
+          "fileId": "tim-feeney-c-012",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/012.mov",
+          "driveFileId": "1rnQT_7LD2I8Gcz2frSz-FJKor1-ZoVj4",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 20,
+          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+          "sourceLabel": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.13",
+          "fileId": "tim-feeney-c-013",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/013.mov",
+          "driveFileId": "13dadP_3C8Zi1ZpQMl1Jy6DjAowA2RMEi",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 21,
+          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+          "sourceLabel": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.14",
+          "fileId": "tim-feeney-c-014",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/014.mov",
+          "driveFileId": "1FphYqMl3Cms9Gf6FJ4Vg6OQ3udmIoRhj",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 22,
+          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+          "sourceLabel": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.15",
+          "fileId": "tim-feeney-c-015",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/015.mov",
+          "driveFileId": "1TGvNUsIJ9z4Qsvm8wQEUbg_evmjL-Q_6",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 23,
+          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+          "sourceLabel": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.16",
+          "fileId": "tim-feeney-c-016",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/016.mov",
+          "driveFileId": "1mWGfFIR2qDrKxxEAfnQ-KF5DGyCDO0wS",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 24,
+          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+          "sourceLabel": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.17",
+          "fileId": "tim-feeney-c-017",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/017.mov",
+          "driveFileId": "1f4i4roBedusvQf9YimdTkcuvTaGaAk0Z",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 25,
+          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+          "sourceLabel": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.18",
+          "fileId": "tim-feeney-c-018",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/018.mov",
+          "driveFileId": "1IxwTtyh2vnjIDUmUpEu1iLzVkZ9kSxq-",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 26,
+          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+          "sourceLabel": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.19",
+          "fileId": "tim-feeney-c-019",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/019.mov",
+          "driveFileId": "1eXXmcq8Su7xebv7eyBL_u-Q9Cg-ijaXc",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 27,
+          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+          "sourceLabel": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.20",
+          "fileId": "tim-feeney-c-020",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/020.mov",
+          "driveFileId": "1bIyRsg22wdGv0kcLW9gTWmeUBH-Ioxf6",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 28,
+          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+          "sourceLabel": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.21",
+          "fileId": "tim-feeney-c-021",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/021.mov",
+          "driveFileId": "16GLlFzLbzj-xmwWfSqsHzm-4o_HGobLG",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 29,
+          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+          "sourceLabel": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.22",
+          "fileId": "tim-feeney-c-022",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/022.mov",
+          "driveFileId": "1fdQTbYcawMOfRfKGRqyXt5iUaJHOqVNR",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 30,
+          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+          "sourceLabel": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.23",
+          "fileId": "tim-feeney-c-023",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/023.mov",
+          "driveFileId": "19HmE485908yFNSXEoT0l5bkPttZL9Ev_",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 31,
+          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+          "sourceLabel": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.24",
+          "fileId": "tim-feeney-c-024",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/024.mov",
+          "driveFileId": "1weFEgNuMT8WSMR--FOb7J-nRAwTBr5y6",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 32,
+          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+          "sourceLabel": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.25",
+          "fileId": "tim-feeney-c-025",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/025.mov",
+          "driveFileId": "1PdAV2cw0A-nF5mCPSxJC4_RO0li6w19u",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 33,
+          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+          "sourceLabel": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.26",
+          "fileId": "tim-feeney-c-026",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/026.mov",
+          "driveFileId": "13m4A1oUaQYEAUX74Gd7h4aCaCQfguC6Y",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 34,
+          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+          "sourceLabel": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.27",
+          "fileId": "tim-feeney-c-027",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/027.mov",
+          "driveFileId": "11dOREMGhm5tEpVkbVA-wXHviMQTfAFkO",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 35,
+          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+          "sourceLabel": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.28",
+          "fileId": "tim-feeney-c-028",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/028.mov",
+          "driveFileId": "1KQgUXJfRQdLSz5TIoAFg15OeQekIHpu-",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 36,
+          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+          "sourceLabel": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.29",
+          "fileId": "tim-feeney-c-029",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/029.mov",
+          "driveFileId": "1v6GRaVf9zkPzRB--YRPWvZd2EWqu0MF-",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 37,
+          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+          "sourceLabel": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.30",
+          "fileId": "tim-feeney-c-030",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/030.mov",
+          "driveFileId": "1btgORtK9Bj982N1oQK89y3ccUi6ixpM8",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 38,
+          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+          "sourceLabel": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.31",
+          "fileId": "tim-feeney-c-031",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/031.mov",
+          "driveFileId": "1G4A-HtqodORVwFhygZs00E0lVwrhwxcL",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 39,
+          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+          "sourceLabel": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.32",
+          "fileId": "tim-feeney-c-032",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/032.mov",
+          "driveFileId": "1ATgmk7YNxAUI--VboYKs_EtFu1_Wyk8g",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 40,
+          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+          "sourceLabel": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.33",
+          "fileId": "tim-feeney-c-033",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/033.mov",
+          "driveFileId": "1ePQ61gGgXepjpG8kORd4kOi2CUaEpxkl",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 41,
+          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+          "sourceLabel": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.34",
+          "fileId": "tim-feeney-c-034",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/034.mov",
+          "driveFileId": "1TZC9l2jMw_1cBXPKGRRSF61_2EIxVN97",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 42,
+          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+          "sourceLabel": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.35",
+          "fileId": "tim-feeney-c-035",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/035.mov",
+          "driveFileId": "1IDyEDJEMEVsUXQ551nRX2MwNI7-l2qgb",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 43,
+          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+          "sourceLabel": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "C.36",
+          "fileId": "tim-feeney-c-036",
+          "bucket": "C",
+          "r2Key": "tim-feeney/c/036.mov",
+          "driveFileId": "1icVKcpAHgH0Tyb1t6fS1wnFAk1t0sv4E",
+          "sizeBytes": 0,
+          "mime": "video/*",
+          "position": 44,
+          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
+        },
+        {
+          "bucketNumber": "X.1",
+          "fileId": "tim-feeney-recording-index-pdf",
+          "bucket": "X",
+          "r2Key": "tim-feeney/recording-index/recording-index.pdf",
+          "driveFileId": "",
+          "sizeBytes": 0,
+          "mime": "application/pdf",
+          "position": 45,
+          "label": "Recording Index PDF",
+          "sourceLabel": "Recording Index PDF",
+          "type": "pdf",
+          "availableTypes": [
+            "pdf"
+          ],
+          "role": "recording_index_pdf"
+        }
+      ],
+      "entitlements": [
+        {
+          "type": "membership_tier",
+          "value": "member"
+        }
+      ],
+      "recordingIndex": {
+        "sheetUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0",
+        "sheetId": "1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q",
+        "gid": "0",
+        "pdfAssetId": "tim-feeney-recording-index-pdf",
+        "bundleAllToken": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
+        "rootFolderUrl": "https://drive.google.com/drive/folders/1H-X8Gsz-xc3UvOG_oH9qBDHb52Ty_zfS?usp=drive_link",
+        "bucketFolderUrls": {
+          "A": "https://drive.google.com/drive/folders/1WCuVYq2ru6WX0--gIv2sBB3r_yg4viNH?usp=drive_link",
+          "B": "https://drive.google.com/drive/folders/1ofrzmEKAgLX8HdKt3Cun9rHaFHdvxgv-?usp=drive_link",
+          "C": "https://drive.google.com/drive/folders/1BCONONV2PTs9OgeUynAILa2LPztTzcTt?usp=drive_link"
+        }
+      }
+    }
+  ],
   "exemptions": [
     {
       "lookupNumber": "X.Gtr. Ch AV2024 S1",

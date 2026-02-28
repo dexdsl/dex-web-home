@@ -148,30 +148,63 @@ export function resolveBreadcrumbBackStrategy({ referrer = '', locationOrigin = 
   }
 }
 
-function pinFor(name) {
-  const safeName = escapeHtml(name);
-  const linksJson = JSON.stringify([]);
+function normalizePersonKey(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function normalizeLinksByPerson(raw) {
+  const map = new Map();
+  if (!raw || typeof raw !== 'object') return map;
+  for (const [nameRaw, linksRaw] of Object.entries(raw)) {
+    const key = normalizePersonKey(nameRaw);
+    if (!key) continue;
+    const links = Array.isArray(linksRaw) ? linksRaw : [];
+    const seen = new Set();
+    const next = [];
+    for (const link of links) {
+      const label = String(link?.label || '').trim();
+      const href = String(link?.href || '').trim();
+      if (!label || !href) continue;
+      const dedupeKey = `${label.toLowerCase()}|${href}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      next.push({ label, href });
+    }
+    map.set(key, next);
+  }
+  return map;
+}
+
+function pinFor(name, linksByPerson = new Map()) {
+  const rawName = String(name || '').trim();
+  const safeName = escapeHtml(rawName);
+  const links = linksByPerson.get(normalizePersonKey(rawName)) || [];
+  const linksJson = encodeAttrEntities(JSON.stringify(links));
   return `<span data-person="${safeName}" data-links='${linksJson}' style="position:relative; cursor:pointer;">${safeName}<span class="person-pin"></span></span>`;
 }
 
-function pinsString(names) {
-  return normalizeNameList(names).map(pinFor).join(', ');
+function pinsString(names, linksByPerson = new Map()) {
+  return normalizeNameList(names).map((name) => pinFor(name, linksByPerson)).join(', ');
 }
 
 export function compileSidebarCredits(credits = {}) {
+  const linksByPerson = normalizeLinksByPerson(credits.linksByPerson);
+  const instrumentLinksEnabled = Boolean(credits.instrumentLinksEnabled);
   return {
-    artist: pinsString(credits.artist),
+    artist: pinsString(credits.artist, linksByPerson),
     artistAlt: credits.artistAlt ?? null,
-    instruments: normalizeNameList(credits.instruments).map(pinFor),
+    instruments: normalizeNameList(credits.instruments).map((name) => pinFor(name, instrumentLinksEnabled ? linksByPerson : new Map())),
+    instrumentLinksEnabled,
+    linksByPerson: Object.fromEntries(linksByPerson.entries()),
     video: {
-      director: pinsString(credits.video?.director),
-      cinematography: pinsString(credits.video?.cinematography),
-      editing: pinsString(credits.video?.editing),
+      director: pinsString(credits.video?.director, linksByPerson),
+      cinematography: pinsString(credits.video?.cinematography, linksByPerson),
+      editing: pinsString(credits.video?.editing, linksByPerson),
     },
     audio: {
-      recording: pinsString(credits.audio?.recording),
-      mix: pinsString(credits.audio?.mix),
-      master: pinsString(credits.audio?.master),
+      recording: pinsString(credits.audio?.recording, linksByPerson),
+      mix: pinsString(credits.audio?.mix, linksByPerson),
+      master: pinsString(credits.audio?.master, linksByPerson),
     },
     year: credits.year,
     season: credits.season,

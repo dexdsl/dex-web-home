@@ -174,6 +174,18 @@ const SYNC_MAP = [
     targets: ['assets/css/dex.css', 'docs/assets/css/dex.css'],
   },
   {
+    source: 'public/assets/series/dex.png',
+    targets: ['assets/series/dex.png', 'docs/assets/series/dex.png'],
+  },
+  {
+    source: 'public/assets/series/index.png',
+    targets: ['assets/series/index.png', 'docs/assets/series/index.png'],
+  },
+  {
+    source: 'public/assets/series/dexfest.png',
+    targets: ['assets/series/dexfest.png', 'docs/assets/series/dexfest.png'],
+  },
+  {
     source: 'public/assets/dex-auth.js',
     targets: ['assets/dex-auth.js', 'docs/assets/dex-auth.js'],
   },

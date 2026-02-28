@@ -25,7 +25,7 @@ await fs.writeFile(path.join(temp, 'seed.json'), JSON.stringify({
   video: { dataUrl: 'https://youtu.be/CSFGiU1gg4g?si=x' },
   creditsData: { artist:['Artist'], artistAlt:null, instruments:['Synth'], video:{director:['Dir'],cinematography:['Cin'],editing:['Edit']}, audio:{recording:['Rec'],mix:['Mix'],master:['Master']}, year:2026, season:'S2', location:'Somewhere' },
   manifest: { audio: { A: { wav: 'a1' } }, video: { A: { '1080p': 'v1' } } },
-  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', downloads: { recordingIndexPdfRef: 'lookup:X.99' }, credits: { artist: ['Artist'], instruments: ['Synth'], year: 2026, season: 'S2', location: 'Somewhere', video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] }, audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] } } },
+  sidebarPageConfig: { lookupNumber: 'LOOKUP-1', attributionSentence: 'attrib', buckets: ['A','B'], specialEventImage: '/assets/series/dex.png', downloads: { recordingIndexPdfRef: 'lookup:X.99' }, credits: { artist: ['Artist'], instruments: ['Synth'], instrumentLinksEnabled: true, linksByPerson: { Artist: [{ label: 'Site', href: 'https://example.com' }] }, year: 2026, season: 'S2', location: 'Somewhere', video: { director: ['Dir'], cinematography: ['Cin'], editing: ['Edit'] }, audio: { recording: ['Rec'], mix: ['Mix'], master: ['Master'] } } },
 }), 'utf8');
 
 
@@ -40,7 +40,14 @@ const ytInjected = injectEntryHtml(tmpl, {
 });
 if (!ytInjected.html.includes('src="https://www.youtube-nocookie.com/embed/CSFGiU1gg4g"')) throw new Error('youtube normalization failed');
 if (!ytInjected.html.includes('data-person') || !ytInjected.html.includes('person-pin')) throw new Error('compiled credits pins missing');
-const run = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: temp, encoding: 'utf8' });
+const run = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], {
+  cwd: temp,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    DEX_WORKSPACE_FILE: path.join(temp, '.dex-workspace-test.json'),
+  },
+});
 const dry = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json', '--dry-run']);
 if (dry.status !== 0) throw new Error(`dry-run failed: ${dry.stderr}\n${dry.stdout}`);
 const real = run(['init', '--quick', '--template', './index.html', '--out', './entries', '--from', './seed.json']);
@@ -163,6 +170,13 @@ if (outEntry.sidebarPageConfig?.downloads?.recordingIndexPdfRef !== 'lookup:X.99
 if ('recordingIndexPdfRef' in (outEntry.sidebarPageConfig || {})) {
   throw new Error('entry.json should not use legacy sidebarPageConfig.recordingIndexPdfRef field');
 }
+const initWizardSource = await fs.readFile(path.join(root, 'scripts/ui/init-wizard.mjs'), 'utf8');
+if (!initWizardSource.includes("id: 'creditLinks'")) {
+  throw new Error('init wizard missing creditLinks step');
+}
+if (!initWizardSource.includes('linksByPerson') || !initWizardSource.includes('instrumentLinksEnabled')) {
+  throw new Error('init wizard missing credit links persistence markers');
+}
 
 const catalogPath = path.join(temp, 'data', 'catalog.editorial.json');
 const catalog = JSON.parse(await fs.readFile(catalogPath, 'utf8'));
@@ -238,7 +252,14 @@ if (isBackspaceKey('\x08', {}) !== true) throw new Error('backspace helper shoul
 }
 
 const portableTemp = await fs.mkdtemp(path.join(os.tmpdir(), 'dex-smoke-portable-'));
-const runPortable = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], { cwd: portableTemp, encoding: 'utf8' });
+const runPortable = (args) => spawnSync('node', [path.join(root, 'scripts/dex.mjs'), ...args], {
+  cwd: portableTemp,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    DEX_WORKSPACE_FILE: path.join(portableTemp, '.dex-workspace-test.json'),
+  },
+});
 const portable = runPortable(['init', '--quick', '--template', path.join(root, 'entry-template', 'index.html'), '--out', './entries', '--from', path.join(temp, 'seed.json')]);
 if (portable.status !== 0) throw new Error(`portable write run failed: ${portable.stderr}\n${portable.stdout}`);
 const portableDirs = (await fs.readdir(path.join(portableTemp, 'entries'), { withFileTypes: true })).filter((d) => d.isDirectory());

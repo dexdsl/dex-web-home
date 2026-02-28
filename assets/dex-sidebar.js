@@ -95,6 +95,12 @@
   };
 
   const randomizeTitle = (txt) => String(txt || '').toUpperCase();
+  const escapeHtml = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
   const render = (sel, title, html, noHeader = false) => {
     const el = document.querySelector(sel);
@@ -709,6 +715,66 @@
     };
   };
 
+  const getDownloadModalConfig = (cfg = {}) => {
+    const raw = cfg?.downloads?.modal && typeof cfg.downloads.modal === 'object'
+      ? cfg.downloads.modal
+      : {};
+    const groupBy = String(raw.groupBy || 'bucket').toLowerCase() === 'format' ? 'format' : 'bucket';
+    const defaultFilter = String(raw.defaultFilter || 'available').toLowerCase() === 'all' ? 'all' : 'available';
+    return {
+      groupBy,
+      showUnavailable: Boolean(raw.showUnavailable),
+      defaultFilter,
+      enableBatch: raw.enableBatch !== false,
+    };
+  };
+
+  const buildDownloadRows = ({ cfg, type, buckets, formats }) => {
+    const rows = [];
+    for (const bucket of buckets) {
+      const fileIds = (type === 'audio' ? cfg.downloads.audioFileIds?.[bucket] : cfg.downloads.videoFileIds?.[bucket]) || {};
+      for (const fmt of formats) {
+        const tokenRaw = String(fileIds?.[fmt.key] || '').trim();
+        const parsedToken = parseAssetRefToken(tokenRaw);
+        rows.push({
+          bucket,
+          format: fmt,
+          tokenRaw,
+          parsedToken,
+          available: Boolean(parsedToken),
+          invalid: Boolean(tokenRaw && !parsedToken),
+          rowId: `${bucket}:${fmt.key}`,
+        });
+      }
+    }
+    return rows;
+  };
+
+  const sortDownloadRows = (rows, groupBy) => {
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    list.sort((a, b) => {
+      if (groupBy === 'format') {
+        const f = String(a.format?.label || a.format?.key || '').localeCompare(String(b.format?.label || b.format?.key || ''));
+        if (f !== 0) return f;
+      } else {
+        const bucketCmp = String(a.bucket || '').localeCompare(String(b.bucket || ''));
+        if (bucketCmp !== 0) return bucketCmp;
+      }
+      return String(a.format?.label || a.format?.key || '').localeCompare(String(b.format?.label || b.format?.key || ''));
+    });
+    return list;
+  };
+
+  const buildDownloadRowsForRender = (rows, { filterMode, showUnavailable }) => {
+    let nextRows = Array.isArray(rows) ? rows.slice() : [];
+    if (filterMode === 'available') {
+      nextRows = nextRows.filter((row) => row.available);
+    } else if (!showUnavailable) {
+      nextRows = nextRows.filter((row) => row.available || row.invalid);
+    }
+    return nextRows;
+  };
+
   const attach = (cfg, type, btnSel, context) => {
     const btn = document.querySelector(btnSel);
     if (!btn || btn.dataset.dexBound === '1') return;
@@ -716,6 +782,18 @@
     btn.addEventListener('click', () => {
       const formats = cfg.downloads.formats[type] || [];
       const allBuckets = ALL_BUCKETS;
+      const modalConfig = getDownloadModalConfig(cfg);
+      const rows = sortDownloadRows(
+        buildDownloadRows({
+          cfg,
+          type,
+          buckets: allBuckets,
+          formats,
+        }),
+        modalConfig.groupBy,
+      );
+      const selectedTokens = new Set();
+      let filterMode = modalConfig.defaultFilter;
 
       const modal = document.createElement('div');
       modal.className = 'dex-download-modal';
@@ -726,51 +804,156 @@
       close.setAttribute('aria-label', 'Close');
       close.type = 'button';
       close.textContent = '×';
-      inner.appendChild(close);
 
-      let visibleRows = 0;
-      allBuckets.forEach((bucket) => {
-        const fileIds = (type === 'audio' ? cfg.downloads.audioFileIds?.[bucket] : cfg.downloads.videoFileIds?.[bucket]) || {};
-        const bucketAvailable = Object.values(fileIds).some(Boolean);
+      const heading = document.createElement('h4');
+      heading.textContent = `${type === 'audio' ? 'Audio' : 'Video'} downloads`;
+      heading.style.margin = '0 0 0.35rem';
+      heading.style.fontFamily = '"Typefesse", sans-serif';
+      heading.style.letterSpacing = '0.02em';
+      heading.style.textTransform = 'uppercase';
 
-        formats.forEach((fmt) => {
-          const tokenRaw = String(fileIds?.[fmt.key] || '').trim();
-          const parsedToken = parseAssetRefToken(tokenRaw);
-          const fileId = tokenRaw;
+      const controls = document.createElement('div');
+      controls.style.display = 'flex';
+      controls.style.alignItems = 'center';
+      controls.style.justifyContent = 'space-between';
+      controls.style.gap = '0.45rem';
+      controls.style.flexWrap = 'wrap';
+
+      const chipWrap = document.createElement('div');
+      chipWrap.style.display = 'inline-flex';
+      chipWrap.style.gap = '0.35rem';
+
+      const chipAll = document.createElement('button');
+      chipAll.type = 'button';
+      chipAll.className = 'dx-button-element--secondary';
+      chipAll.textContent = 'All';
+      chipAll.style.padding = '0.34rem 0.55rem';
+      chipAll.style.fontSize = '0.7rem';
+
+      const chipAvailable = document.createElement('button');
+      chipAvailable.type = 'button';
+      chipAvailable.className = 'dx-button-element--secondary';
+      chipAvailable.textContent = 'Available';
+      chipAvailable.style.padding = '0.34rem 0.55rem';
+      chipAvailable.style.fontSize = '0.7rem';
+
+      const batchButton = document.createElement('button');
+      batchButton.type = 'button';
+      batchButton.className = 'dx-button-element--secondary';
+      batchButton.textContent = 'Download selected';
+      batchButton.style.padding = '0.34rem 0.55rem';
+      batchButton.style.fontSize = '0.72rem';
+      batchButton.hidden = !modalConfig.enableBatch;
+      batchButton.disabled = true;
+
+      chipWrap.appendChild(chipAll);
+      chipWrap.appendChild(chipAvailable);
+      controls.appendChild(chipWrap);
+      controls.appendChild(batchButton);
+
+      const list = document.createElement('div');
+      list.style.display = 'grid';
+      list.style.gap = '0.4rem';
+      list.style.maxHeight = '60vh';
+      list.style.overflowY = 'auto';
+      list.style.paddingRight = '0.15rem';
+
+      const updateChipState = () => {
+        chipAll.setAttribute('aria-pressed', String(filterMode === 'all'));
+        chipAvailable.setAttribute('aria-pressed', String(filterMode === 'available'));
+        chipAll.style.opacity = filterMode === 'all' ? '1' : '0.75';
+        chipAvailable.style.opacity = filterMode === 'available' ? '1' : '0.75';
+      };
+
+      const updateBatchState = () => {
+        batchButton.disabled = selectedTokens.size === 0;
+        batchButton.textContent = selectedTokens.size > 0
+          ? `Download selected (${selectedTokens.size})`
+          : 'Download selected';
+      };
+
+      const removeModal = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+      };
+      const onKeyDown = (event) => {
+        if (event.key === 'Escape') removeModal();
+      };
+
+      const renderRows = () => {
+        list.replaceChildren();
+        const visibleRows = buildDownloadRowsForRender(rows, {
+          filterMode,
+          showUnavailable: modalConfig.showUnavailable,
+        });
+        if (!visibleRows.length) {
+          const empty = document.createElement('p');
+          empty.style.margin = '0';
+          empty.style.opacity = '0.75';
+          empty.textContent = 'No downloads available for this filter.';
+          list.appendChild(empty);
+          updateBatchState();
+          return;
+        }
+
+        visibleRows.forEach((rowData) => {
           const row = document.createElement('div');
-          row.style.display = 'flex';
+          row.style.display = 'grid';
+          row.style.gridTemplateColumns = modalConfig.enableBatch ? 'auto minmax(0,1fr) auto' : 'minmax(0,1fr) auto';
           row.style.alignItems = 'center';
-          row.style.justifyContent = 'space-between';
-          row.style.gap = '0.55rem';
-          row.style.flexWrap = 'wrap';
+          row.style.gap = '0.45rem';
+          row.style.padding = '0.35rem 0.4rem';
+          row.style.border = '1px solid rgba(0,0,0,0.12)';
+          row.style.borderRadius = '10px';
           row.setAttribute('data-dx-download-state', 'idle');
 
-          if (parsedToken) {
-            visibleRows += 1;
-            const actionWrap = document.createElement('div');
-            actionWrap.style.display = 'inline-flex';
-            actionWrap.style.alignItems = 'center';
-            actionWrap.style.gap = '0.45rem';
-            actionWrap.style.flexWrap = 'wrap';
+          if (modalConfig.enableBatch) {
+            const select = document.createElement('input');
+            select.type = 'checkbox';
+            select.disabled = !rowData.available;
+            select.checked = rowData.available && selectedTokens.has(rowData.parsedToken?.normalized);
+            select.addEventListener('change', () => {
+              if (!rowData.available || !rowData.parsedToken?.normalized) return;
+              if (select.checked) selectedTokens.add(rowData.parsedToken.normalized);
+              else selectedTokens.delete(rowData.parsedToken.normalized);
+              updateBatchState();
+            });
+            row.appendChild(select);
+          }
 
-            const actionButton = document.createElement('button');
-            actionButton.type = 'button';
-            actionButton.className = 'dx-button-element--secondary';
-            actionButton.textContent = `${bucket} · ${fmt.label}`;
+          const actionWrap = document.createElement('div');
+          actionWrap.style.display = 'inline-flex';
+          actionWrap.style.flexDirection = 'column';
+          actionWrap.style.gap = '0.2rem';
 
-            const status = document.createElement('span');
-            status.setAttribute('data-dx-download-status', '1');
-            status.style.opacity = '0.8';
-            status.style.fontSize = '0.76rem';
-            status.hidden = true;
+          const actionButton = document.createElement('button');
+          actionButton.type = 'button';
+          actionButton.className = 'dx-button-element--secondary';
+          actionButton.style.justifySelf = 'start';
+          actionButton.textContent = `${rowData.bucket} · ${rowData.format?.label || rowData.format?.key || 'file'}`;
 
+          const status = document.createElement('span');
+          status.setAttribute('data-dx-download-status', '1');
+          status.style.opacity = '0.8';
+          status.style.fontSize = '0.74rem';
+          status.hidden = true;
+
+          if (!rowData.available) {
+            actionButton.disabled = true;
+            actionButton.setAttribute('aria-disabled', 'true');
+            if (rowData.invalid) {
+              setDownloadState(row, 'error', 'Invalid token');
+            } else {
+              setDownloadState(row, 'not-found', 'Unavailable');
+            }
+          } else {
             actionButton.addEventListener('click', async () => {
               setDownloadState(row, 'resolving', 'Resolving secure download…');
               actionButton.disabled = true;
               try {
                 const result = await requestBundleDownload({
                   lookup: context?.lookup,
-                  tokens: [parsedToken.normalized],
+                  tokens: [rowData.parsedToken.normalized],
                   onQueuedTick: () => {
                     setDownloadState(row, 'queued', 'Preparing bundle…');
                   },
@@ -780,79 +963,86 @@
                 window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
               } catch (error) {
                 const code = String(error?.code || '').toLowerCase();
-                if (code === 'forbidden') {
-                  setDownloadState(row, 'forbidden', 'Access denied (403).');
-                } else if (code === 'not-found') {
-                  setDownloadState(row, 'not-found', 'Download not found (404).');
-                } else {
-                  setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
-                }
+                if (code === 'forbidden') setDownloadState(row, 'forbidden', 'Access denied (403).');
+                else if (code === 'not-found') setDownloadState(row, 'not-found', 'Download not found (404).');
+                else setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
               } finally {
                 actionButton.disabled = false;
               }
             });
-
-            actionWrap.appendChild(actionButton);
-            actionWrap.appendChild(status);
-            row.appendChild(actionWrap);
-
-            const favoritesApi = context?.favoritesApi || getFavoritesApi();
-            if (favoritesApi) {
-              const favButton = document.createElement('button');
-              favButton.type = 'button';
-              favButton.className = 'dx-button-element--secondary dx-fav-toggle dx-fav-file-toggle';
-              favButton.setAttribute('aria-label', 'Add file to favorites');
-              favButton.setAttribute('title', 'Add file to favorites');
-              const record = buildFileFavoriteRecord({
-                lookup: context?.lookup,
-                entryHref: context?.entryHref,
-                bucket,
-                format: fmt,
-                fileId,
-                type,
-              });
-              bindFavoriteToggle(favButton, favoritesApi, record, {
-                active: 'Favorited file',
-                inactive: 'Favorite file',
-              });
-              row.appendChild(favButton);
-            }
-          } else if (tokenRaw) {
-            const invalid = document.createElement('span');
-            invalid.setAttribute('aria-disabled', 'true');
-            invalid.style.opacity = '0.75';
-            invalid.style.cursor = 'not-allowed';
-            invalid.textContent = `${bucket} · ${fmt.label} (invalid token)`;
-            row.appendChild(invalid);
-          } else if (!bucketAvailable) {
-            const disabled = document.createElement('span');
-            disabled.setAttribute('aria-disabled', 'true');
-            disabled.style.opacity = '0.5';
-            disabled.style.cursor = 'not-allowed';
-            disabled.textContent = `${bucket} · ${fmt.label} (unavailable)`;
-            row.appendChild(disabled);
           }
 
-          if (row.childNodes.length > 0) {
-            inner.appendChild(row);
+          actionWrap.appendChild(actionButton);
+          actionWrap.appendChild(status);
+          row.appendChild(actionWrap);
+
+          const favoritesApi = context?.favoritesApi || getFavoritesApi();
+          if (favoritesApi && rowData.tokenRaw) {
+            const favButton = document.createElement('button');
+            favButton.type = 'button';
+            favButton.className = 'dx-button-element--secondary dx-fav-toggle dx-fav-file-toggle';
+            favButton.setAttribute('aria-label', 'Add file to favorites');
+            favButton.setAttribute('title', 'Add file to favorites');
+            const record = buildFileFavoriteRecord({
+              lookup: context?.lookup,
+              entryHref: context?.entryHref,
+              bucket: rowData.bucket,
+              format: rowData.format,
+              fileId: rowData.tokenRaw,
+              type,
+            });
+            bindFavoriteToggle(favButton, favoritesApi, record, {
+              active: 'Favorited file',
+              inactive: 'Favorite file',
+            });
+            row.appendChild(favButton);
           }
+          list.appendChild(row);
         });
+        updateBatchState();
+      };
+
+      chipAll.addEventListener('click', () => {
+        filterMode = 'all';
+        updateChipState();
+        renderRows();
+      });
+      chipAvailable.addEventListener('click', () => {
+        filterMode = 'available';
+        updateChipState();
+        renderRows();
       });
 
-      if (!visibleRows) {
-        const empty = document.createElement('p');
-        empty.style.margin = '0';
-        empty.style.opacity = '0.75';
-        empty.textContent = 'No downloads available for this entry yet.';
-        inner.appendChild(empty);
-      }
+      batchButton.addEventListener('click', async () => {
+        if (!selectedTokens.size) return;
+        batchButton.disabled = true;
+        try {
+          const result = await requestBundleDownload({
+            lookup: context?.lookup,
+            tokens: Array.from(selectedTokens),
+          });
+          openSignedUrl(result?.signedUrl);
+        } catch (error) {
+          const msg = String(error?.code || 'failed').toLowerCase();
+          window.alert(msg === 'forbidden' ? 'Access denied (403).' : 'Batch download failed (DX-DL-500).');
+        } finally {
+          updateBatchState();
+        }
+      });
 
+      inner.appendChild(close);
+      inner.appendChild(heading);
+      inner.appendChild(controls);
+      inner.appendChild(list);
       modal.appendChild(inner);
       document.body.appendChild(modal);
-      close.addEventListener('click', () => modal.remove());
+      updateChipState();
+      renderRows();
+      close.addEventListener('click', removeModal);
       modal.addEventListener('click', (event) => {
-        if (event.target === modal) modal.remove();
+        if (event.target === modal) removeModal();
       });
+      document.addEventListener('keydown', onKeyDown);
       refreshFavoriteButtons(context?.favoritesApi || getFavoritesApi(), modal);
     });
   };
@@ -924,10 +1114,20 @@
       holder.addEventListener('click', (e) => {
         e.stopPropagation();
         document.querySelectorAll('.person-popup').forEach((p) => p.remove());
-        const links = JSON.parse(holder.getAttribute('data-links') || '[]');
+        let links = [];
+        try {
+          const parsed = JSON.parse(holder.getAttribute('data-links') || '[]');
+          links = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          links = [];
+        }
         const pop = document.createElement('div');
         pop.className = 'person-popup';
-        pop.innerHTML = links.map((l) => `<a href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`).join('');
+        if (!links.length) {
+          pop.innerHTML = '<span>No links available.</span>';
+        } else {
+          pop.innerHTML = links.map((l) => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener">${escapeHtml(l.label)}</a>`).join('');
+        }
         document.body.append(pop);
         pop.style.position = 'absolute';
         pop.style.left = `${e.pageX + 4}px`;
@@ -1118,6 +1318,20 @@
 
     const overviewEl = document.querySelector('.dex-overview');
     if (overviewEl) {
+      overviewEl.innerHTML = `
+        <div class="overview-item">
+          <span class="overview-lookup">#${lookup}</span>
+          <p class="p3 overview-label">Lookup #</p>
+        </div>
+        <div class="overview-item">
+          <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
+          <p class="p3 overview-label">Series</p>
+        </div>
+      `;
+    }
+
+    const collectionsEl = document.querySelector('.dex-collections');
+    if (collectionsEl) {
       const bucketFavoriteButtonsHtml = favoriteBuckets
         .map((bucket) => `
           <button
@@ -1130,15 +1344,8 @@
           ></button>
         `)
         .join('');
-      overviewEl.innerHTML = `
-        <div class="overview-item">
-          <span class="overview-lookup">#${lookup}</span>
-          <p class="p3 overview-label">Lookup #</p>
-        </div>
-        <div class="overview-item">
-          <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
-          <p class="p3 overview-label">Series</p>
-        </div>
+      collectionsEl.innerHTML = `
+        <h3>${randomizeTitle('Collection')}</h3>
         <div class="overview-item">
           <div class="overview-badges">${badgesHtml}</div>
           <p class="p3 overview-label">Buckets</p>
@@ -1150,7 +1357,7 @@
             aria-label="Add entry to favorites"
             title="Add entry to favorites"
           ></button>
-          <p class="p3 overview-label">Collection</p>
+          <p class="p3 overview-label">Favorite Collection</p>
         </div>
         <div class="overview-item">
           <div class="overview-badges">${bucketFavoriteButtonsHtml || '<span class="badge unavailable">No buckets</span>'}</div>
@@ -1159,7 +1366,7 @@
       `;
 
       if (favoritesApi) {
-        const entryFavButton = overviewEl.querySelector('.dx-fav-entry-toggle');
+        const entryFavButton = collectionsEl.querySelector('.dx-fav-entry-toggle');
         if (entryFavButton) {
           bindFavoriteToggle(entryFavButton, favoritesApi, buildEntryFavoriteRecord(lookup, entryHref), {
             active: 'Favorited entry',
@@ -1167,7 +1374,7 @@
           });
         }
 
-        overviewEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
+        collectionsEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
           const bucket = String(bucketButton.getAttribute('data-bucket') || '').trim().toUpperCase();
           if (!bucket) return;
           bindFavoriteToggle(bucketButton, favoritesApi, buildBucketFavoriteRecord(lookup, entryHref, bucket), {
@@ -1204,9 +1411,9 @@
       });
     }
 
+    const instrumentsLine = (cfg.credits.instruments || []).join(', ');
     render('.dex-credits', 'Credits', `
-      <p><strong>${cfg.credits.artist}</strong>${cfg.credits.artistAlt ? `<br>${cfg.credits.artistAlt}` : ''}</p>
-      <p>${(cfg.credits.instruments || []).join(', ')}</p>
+      <p><strong>${cfg.credits.artist}</strong>${instrumentsLine ? `, ${instrumentsLine}` : ''}${cfg.credits.artistAlt ? `<br>${cfg.credits.artistAlt}` : ''}</p>
       <p><em>Video:</em> Dir:${cfg.credits.video.director}, Cin:${cfg.credits.video.cinematography}, Edit:${cfg.credits.video.editing}</p>
       <p><em>Audio:</em> Rec:${cfg.credits.audio.recording}, Mix:${cfg.credits.audio.mix}, Master:${cfg.credits.audio.master}</p>
       <div class="dex-badges">

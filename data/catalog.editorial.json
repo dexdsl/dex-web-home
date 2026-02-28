@@ -1,6 +1,6 @@
 {
   "version": "catalog-editorial-v1",
-  "updatedAt": "2026-02-28T05:09:13.161Z",
+  "updatedAt": "2026-02-28T06:36:28.882Z",
   "manifest": [
     {
       "entry_id": "andrew-chanover",
@@ -13,13 +13,23 @@
       "status": "active"
     },
     {
+      "entry_id": "smoke-title",
+      "entry_href": "/entry/smoke-title/",
+      "title_raw": "Smoke Title",
+      "lookup_number": "LOOKUP-1",
+      "season": "S2",
+      "performer": "Artist",
+      "instrument": "Synth",
+      "status": "draft"
+    },
+    {
       "entry_id": "tim-feeney",
       "entry_href": "/entry/tim-feeney/",
       "title_raw": "PREPARED FLOOR TOM",
       "lookup_number": "P.Pto. Fe AV2024 S2",
       "season": "S2",
       "performer": "Tim Feeney",
-      "instrument": "test",
+      "instrument": "Prepared Floor Tom",
       "status": "draft"
     }
   ],

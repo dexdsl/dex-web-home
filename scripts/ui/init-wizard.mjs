@@ -29,6 +29,83 @@ function mapSeriesToImage(series) {
 const LAST_CACHE = '.dex-last.json';
 
 function emptyCredits() { return { artist: [], artistAlt: '', instruments: [], video: { director: [], cinematography: [], editing: [] }, audio: { recording: [], mix: [], master: [] }, year: `${new Date().getUTCFullYear()}`, season: 'S1', location: '' }; }
+function normalizeCreditPersonKey(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function dedupeCreditLinks(links) {
+  const seen = new Set();
+  const out = [];
+  for (const link of Array.isArray(links) ? links : []) {
+    const label = String(link?.label || '').trim();
+    const href = String(link?.href || '').trim();
+    if (!label || !href) continue;
+    let parsed;
+    try {
+      parsed = new URL(href);
+    } catch {
+      continue;
+    }
+    if (!/^https?:$/i.test(parsed.protocol)) continue;
+    const dedupeKey = `${label.toLowerCase()}|${parsed.toString()}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    out.push({ label, href: parsed.toString() });
+  }
+  return out;
+}
+
+function collectCreditLinkPeople(creditsData, instrumentLinksEnabled) {
+  const groups = [
+    creditsData?.artist,
+    creditsData?.video?.director,
+    creditsData?.video?.cinematography,
+    creditsData?.video?.editing,
+    creditsData?.audio?.recording,
+    creditsData?.audio?.mix,
+    creditsData?.audio?.master,
+  ];
+  if (instrumentLinksEnabled) groups.push(creditsData?.instruments);
+  const seen = new Set();
+  const people = [];
+  for (const group of groups) {
+    for (const name of safeList(group)) {
+      const key = normalizeCreditPersonKey(name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      people.push(name);
+    }
+  }
+  return people;
+}
+
+function normalizeCreditLinksData(value = {}) {
+  const source = value && typeof value === 'object' ? value : {};
+  const linksByPerson = {};
+  for (const [nameRaw, linksRaw] of Object.entries(source.linksByPerson || {})) {
+    const key = normalizeCreditPersonKey(nameRaw);
+    if (!key) continue;
+    const label = String(nameRaw || '').replace(/\s+/g, ' ').trim();
+    if (!label) continue;
+    const links = dedupeCreditLinks(linksRaw);
+    if (links.length) linksByPerson[label] = links;
+  }
+  return {
+    instrumentLinksEnabled: Boolean(source.instrumentLinksEnabled),
+    linksByPerson,
+  };
+}
+
+function emptyCreditLinksData() {
+  return {
+    instrumentLinksEnabled: false,
+    linksByPerson: {},
+    inputValue: '',
+    inputCursor: 0,
+    personCursor: 0,
+  };
+}
+
 function emptyDownloadData() {
   return {
     mode: 'guided',
@@ -205,6 +282,7 @@ export function createDefaultWizardForm() {
     buckets: ['A'],
     attributionSentence: '',
     creditsData: emptyCredits(),
+    creditLinksData: emptyCreditLinksData(),
     downloadData: emptyDownloadData(),
   };
 }
@@ -296,6 +374,32 @@ export function validateStep(stepId, form, selectedRole, formatKeys) {
     if (!String(creditsData.season || '').trim()) return 'Season is required.';
     if (!String(creditsData.location || '').trim()) return 'Location is required.';
   }
+  if (stepId === 'creditLinks') {
+    const creditsData = safeForm.creditsData || emptyCredits();
+    const creditLinksData = normalizeCreditLinksData(safeForm.creditLinksData || {});
+    const allowedPeople = new Set(
+      collectCreditLinkPeople(creditsData, creditLinksData.instrumentLinksEnabled).map((name) => normalizeCreditPersonKey(name)),
+    );
+    for (const [person, links] of Object.entries(creditLinksData.linksByPerson || {})) {
+      const personKey = normalizeCreditPersonKey(person);
+      if (personKey && allowedPeople.size && !allowedPeople.has(personKey)) {
+        return `Credit links contain unknown person: ${person}`;
+      }
+      for (const link of links || []) {
+        const label = String(link?.label || '').trim();
+        const href = String(link?.href || '').trim();
+        if (!label || !href) return 'Credit link entries must include label and URL.';
+        try {
+          const parsed = new URL(href);
+          if (!/^https?:$/i.test(parsed.protocol)) {
+            return `Credit link must use http(s): ${href}`;
+          }
+        } catch {
+          return `Credit link URL is invalid: ${href}`;
+        }
+      }
+    }
+  }
   if (stepId === 'download') {
     const downloadData = safeForm.downloadData || emptyDownloadData();
     if (!downloadData || typeof downloadData !== 'object') return 'Download configuration is missing.';
@@ -360,6 +464,7 @@ const STEPS = [
   { id: 'buckets', label: 'Buckets', kind: 'multi' },
   { id: 'attributionSentence', label: 'Attribution sentence', kind: 'text' },
   { id: 'credits', label: 'Credits', kind: 'credits' },
+  { id: 'creditLinks', label: 'Credit Links', kind: 'creditLinks' },
   { id: 'download', label: 'Download', kind: 'download' },
   { id: 'tags', label: 'Tags', kind: 'tags' },
   { id: 'summary', label: 'Summary', kind: 'summary' },
@@ -370,6 +475,8 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const [stepIdx, setStepIdx] = useState(0); const [caretOn, setCaretOn] = useState(true); const [error, setError] = useState('');
   const [busy, setBusy] = useState(false); const [doneReport, setDoneReport] = useState(null); const [multiCursor, setMultiCursor] = useState(0);
   const [creditsCursor, setCreditsCursor] = useState(0); const [creditsInputState, setCreditsInputState] = useState({ value: '', cursor: 0 }); const [reuseAsked, setReuseAsked] = useState(false); const [reuseChoice, setReuseChoice] = useState(true);
+  const [creditLinksCursor, setCreditLinksCursor] = useState(0);
+  const [creditLinksInputState, setCreditLinksInputState] = useState({ value: '', cursor: 0 });
   const [downloadCursor, setDownloadCursor] = useState(0); const [pasteMode, setPasteMode] = useState(false); const [downloadFocus, setDownloadFocus] = useState('rows');
   const [recordingIndexPdfCursor, setRecordingIndexPdfCursor] = useState(0);
   const [recordingIndexBundleCursor, setRecordingIndexBundleCursor] = useState(0);
@@ -403,6 +510,16 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     const value = scalarCreditKeys.has(roleKey) ? String(roleValue(form.creditsData, roleKey) || '') : '';
     setCreditsInputState({ value, cursor: value.length });
   }, [creditsCursor]);
+
+  useEffect(() => {
+    const creditLinksData = normalizeCreditLinksData(form.creditLinksData || {});
+    const people = collectCreditLinkPeople(form.creditsData, creditLinksData.instrumentLinksEnabled);
+    if (!people.length) {
+      setCreditLinksCursor(0);
+      return;
+    }
+    setCreditLinksCursor((current) => Math.max(0, Math.min(current, people.length - 1)));
+  }, [form.creditsData, form.creditLinksData]);
 
   useEffect(() => {
     const loadTags = async () => {
@@ -554,6 +671,13 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
               instruments: safeList((entry.sidebarPageConfig.credits.instruments || []).map((x) => x.name)),
             }
             : {}),
+        },
+        creditLinksData: {
+          ...emptyCreditLinksData(),
+          ...normalizeCreditLinksData({
+            instrumentLinksEnabled: Boolean(entry.sidebarPageConfig?.credits?.instrumentLinksEnabled),
+            linksByPerson: entry.sidebarPageConfig?.credits?.linksByPerson || {},
+          }),
         },
         downloadData: {
           ...p.downloadData,
@@ -773,7 +897,18 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         if (recordingIndexSourceUrl) downloads.recordingIndexSourceUrl = recordingIndexSourceUrl;
         const sidebar = {
           lookupNumber: form.lookupNumber, buckets: form.buckets, specialEventImage: mapSeriesToImage(form.series), attributionSentence: form.attributionSentence,
-          credits: { artist: creditsData.artist, artistAlt: creditsData.artistAlt, instruments: creditsData.instruments, video: { director: creditsData.video.director, cinematography: creditsData.video.cinematography, editing: creditsData.video.editing }, audio: { recording: creditsData.audio.recording, mix: creditsData.audio.mix, master: creditsData.audio.master }, year: creditsData.year, season: creditsData.season, location: creditsData.location },
+          credits: {
+            artist: creditsData.artist,
+            artistAlt: creditsData.artistAlt,
+            instruments: creditsData.instruments,
+            instrumentLinksEnabled: Boolean(form.creditLinksData?.instrumentLinksEnabled),
+            linksByPerson: normalizeCreditLinksData(form.creditLinksData || {}).linksByPerson,
+            video: { director: creditsData.video.director, cinematography: creditsData.video.cinematography, editing: creditsData.video.editing },
+            audio: { recording: creditsData.audio.recording, mix: creditsData.audio.mix, master: creditsData.audio.master },
+            year: creditsData.year,
+            season: creditsData.season,
+            location: creditsData.location,
+          },
           fileSpecs: { bitDepth: Number(form.downloadData.fileSpecs.bitDepth) || 24, sampleRate: Number(form.downloadData.fileSpecs.sampleRate) || 48000, channels: form.downloadData.fileSpecs.channels, staticSizes: form.downloadData.fileSpecs.staticSizes },
           metadata: { sampleLength: 'AUTO', tags: safeList(form.downloadData.metadata.tagsSelected) },
           ...(Object.keys(downloads).length ? { downloads } : {}),
@@ -869,6 +1004,126 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
       setCreditsInputState({ value: next.value, cursor: next.cursor });
       if (isScalar && selectedRole?.key) {
         setForm((p) => ({ ...p, creditsData: roleSet(p.creditsData, selectedRole.key, next.value) }));
+      }
+      return;
+    }
+    if (step.kind === 'creditLinks') {
+      const isToggleInstrument = (key.ctrl && (input === 't' || input === 'T')) || input === '\x14';
+      const isAdd = (key.ctrl && (input === 'a' || input === 'A')) || input === '\x01';
+      const isRemoveLast = (key.ctrl && (input === 'd' || input === 'D')) || (key.ctrl && key.backspace);
+      const normalized = normalizeCreditLinksData(form.creditLinksData || {});
+      const people = collectCreditLinkPeople(form.creditsData, normalized.instrumentLinksEnabled);
+      const selectedPerson = people[Math.min(creditLinksCursor, Math.max(0, people.length - 1))] || '';
+
+      if (key.upArrow) {
+        setCreditLinksCursor((current) => Math.max(0, current - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setCreditLinksCursor((current) => Math.min(Math.max(0, people.length - 1), current + 1));
+        return;
+      }
+
+      if (isToggleInstrument) {
+        setForm((p) => {
+          const current = normalizeCreditLinksData(p.creditLinksData || {});
+          const nextEnabled = !current.instrumentLinksEnabled;
+          const allowed = new Set(
+            collectCreditLinkPeople(p.creditsData, nextEnabled).map((name) => normalizeCreditPersonKey(name)),
+          );
+          const nextMap = {};
+          for (const [name, links] of Object.entries(current.linksByPerson || {})) {
+            if (!allowed.has(normalizeCreditPersonKey(name))) continue;
+            const deduped = dedupeCreditLinks(links);
+            if (deduped.length) nextMap[name] = deduped;
+          }
+          return {
+            ...p,
+            creditLinksData: {
+              ...p.creditLinksData,
+              instrumentLinksEnabled: nextEnabled,
+              linksByPerson: nextMap,
+            },
+          };
+        });
+        return;
+      }
+
+      if (isAdd) {
+        const raw = String(creditLinksInputState.value || '').trim();
+        if (!selectedPerson) {
+          setError('No credited person selected for links.');
+          return;
+        }
+        const pivot = raw.indexOf('|');
+        if (pivot <= 0 || pivot >= raw.length - 1) {
+          setError('Add links as "label|https://url".');
+          return;
+        }
+        const label = raw.slice(0, pivot).trim();
+        const href = raw.slice(pivot + 1).trim();
+        if (!label || !href) {
+          setError('Credit link requires both label and URL.');
+          return;
+        }
+        try {
+          const parsed = new URL(href);
+          if (!/^https?:$/i.test(parsed.protocol)) throw new Error('protocol');
+          setForm((p) => {
+            const current = normalizeCreditLinksData(p.creditLinksData || {});
+            const nextMap = { ...current.linksByPerson };
+            const nextLinks = dedupeCreditLinks([...(nextMap[selectedPerson] || []), { label, href: parsed.toString() }]);
+            if (nextLinks.length) nextMap[selectedPerson] = nextLinks;
+            return {
+              ...p,
+              creditLinksData: {
+                ...p.creditLinksData,
+                instrumentLinksEnabled: current.instrumentLinksEnabled,
+                linksByPerson: nextMap,
+              },
+            };
+          });
+          setCreditLinksInputState({ value: '', cursor: 0 });
+          setError('');
+        } catch {
+          setError('Credit link URL must be valid http(s).');
+        }
+        return;
+      }
+
+      if (isRemoveLast) {
+        if (!selectedPerson) return;
+        setForm((p) => {
+          const current = normalizeCreditLinksData(p.creditLinksData || {});
+          const nextMap = { ...current.linksByPerson };
+          const links = Array.isArray(nextMap[selectedPerson]) ? nextMap[selectedPerson].slice(0, -1) : [];
+          if (links.length) nextMap[selectedPerson] = links;
+          else delete nextMap[selectedPerson];
+          return {
+            ...p,
+            creditLinksData: {
+              ...p.creditLinksData,
+              instrumentLinksEnabled: current.instrumentLinksEnabled,
+              linksByPerson: nextMap,
+            },
+          };
+        });
+        return;
+      }
+
+      if (key.return) {
+        void maybeAdvance();
+        return;
+      }
+
+      const next = applyKeyToInputState(
+        creditLinksInputState,
+        input,
+        key,
+        { allowMultiline: false },
+      );
+      if (next.value !== creditLinksInputState.value || next.cursor !== creditLinksInputState.cursor) {
+        setCreditLinksInputState(next);
       }
       return;
     }
@@ -1240,6 +1495,16 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
   const safeTagCursor = Math.min(Math.max(0, form.downloadData.metadata.tagsCursor || 0), Math.max(0, filteredTags.length - 1));
   const rowsAvailable = Math.max(4, Math.min(12, (stdout?.rows || 24) - 16));
   const creditsWindow = computeWindow({ total: creditRoles.length, cursor: creditsCursor, height: rowsAvailable });
+  const normalizedCreditLinks = normalizeCreditLinksData(form.creditLinksData || {});
+  const creditLinkPeople = collectCreditLinkPeople(form.creditsData, normalizedCreditLinks.instrumentLinksEnabled);
+  const safeCreditLinksCursor = Math.min(Math.max(0, creditLinksCursor), Math.max(0, creditLinkPeople.length - 1));
+  const creditLinksWindow = computeWindow({ total: creditLinkPeople.length, cursor: safeCreditLinksCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
+  const selectedCreditLinkPerson = creditLinkPeople[safeCreditLinksCursor] || '';
+  const selectedCreditLinks = selectedCreditLinkPerson ? (normalizedCreditLinks.linksByPerson[selectedCreditLinkPerson] || []) : [];
+  const creditLinksCount = Object.values(normalizedCreditLinks.linksByPerson || {}).reduce(
+    (sum, links) => sum + (Array.isArray(links) ? links.length : 0),
+    0,
+  );
   const bucketsWindow = computeWindow({ total: BUCKETS.length, cursor: multiCursor, height: rowsAvailable });
   const downloadWindow = computeWindow({ total: downloadRows.length, cursor: downloadCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
   const tagsWindow = computeWindow({ total: filteredTags.length, cursor: safeTagCursor, height: Math.max(4, Math.floor(rowsAvailable / 2)) });
@@ -1261,6 +1526,8 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
     ? 'Enter return to menu'
     : step.kind === 'credits'
       ? 'Type to edit • Ctrl+A add (lists) • Ctrl+D remove last • Enter next • Esc back • Ctrl+Q quit'
+      : step.kind === 'creditLinks'
+        ? 'Type label|url • Ctrl+A add • Ctrl+D remove last • Ctrl+T toggle instruments • Enter next • Esc back • Ctrl+Q quit'
       : step.kind === 'download'
         ? (importMode
           ? 'Ctrl+I import mode • Tab switch sheet/fallback • Enter import • Esc close'
@@ -1304,6 +1571,29 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
           return React.createElement(Text, { key: r.key, inverse: i === creditsCursor }, `${i === creditsCursor ? '›' : ' '} ${r.label}: ${display}`);
         }),
         creditsWindow.end < creditRoles.length ? React.createElement(Text, { color: '#8f98a8', key: 'credits-down' }, '…') : null,
+      ) : null,
+      step.kind === 'creditLinks' ? React.createElement(Box, { flexDirection: 'column' },
+        React.createElement(Text, { color: '#8f98a8' }, `Instrument links: ${normalizedCreditLinks.instrumentLinksEnabled ? 'on' : 'off'} (Ctrl+T)`),
+        React.createElement(Text, { color: '#d0d5df' }, `Input [label|url]: ${withCaret(creditLinksInputState.value, creditLinksInputState.cursor, caretOn || process.env.DEX_NO_ANIM === '1')}`),
+        React.createElement(Text, { color: '#8f98a8' }, `People: ${creditLinkPeople.length}`),
+        creditLinksWindow.start > 0 ? React.createElement(Text, { color: '#8f98a8', key: 'credit-links-up' }, '…') : null,
+        ...creditLinkPeople.slice(creditLinksWindow.start, creditLinksWindow.end).map((person, localIdx) => {
+          const idx = creditLinksWindow.start + localIdx;
+          const links = normalizedCreditLinks.linksByPerson[person] || [];
+          return React.createElement(Text, { key: `credit-link-person-${person}`, inverse: idx === safeCreditLinksCursor }, `${idx === safeCreditLinksCursor ? '›' : ' '} ${person} (${links.length})`);
+        }),
+        creditLinksWindow.end < creditLinkPeople.length ? React.createElement(Text, { color: '#8f98a8', key: 'credit-links-down' }, '…') : null,
+        selectedCreditLinkPerson
+          ? React.createElement(Text, { color: '#d0d5df' }, `Selected: ${selectedCreditLinkPerson}`)
+          : React.createElement(Text, { color: '#8f98a8' }, 'Selected: (none)'),
+        ...selectedCreditLinks.slice(0, 6).map((link, idx) => React.createElement(
+          Text,
+          { key: `credit-link-${idx}-${link.href}`, color: '#8f98a8' },
+          `  • ${link.label} -> ${link.href}`,
+        )),
+        selectedCreditLinks.length > 6
+          ? React.createElement(Text, { color: '#8f98a8' }, `  • +${selectedCreditLinks.length - 6} more`)
+          : null,
       ) : null,
       step.kind === 'download' ? React.createElement(Box, { flexDirection: 'row' },
         React.createElement(Box, { flexDirection: 'column', width: downloadPaneLeftWidth },
@@ -1389,6 +1679,7 @@ export function InitWizard({ templateArg, outDirDefault, onCancel, onDone }) {
         React.createElement(Text, { color: String(form.downloadData.recordingIndexPdfRef || '').trim() ? '#d0d5df' : '#ffcc66' }, String(form.downloadData.recordingIndexPdfRef || '').trim() ? `› Recording index PDF: ${form.downloadData.recordingIndexPdfRef}` : '› Advisory: recording index PDF token is empty (draft allowed, active publish will fail).'),
         React.createElement(Text, { color: String(form.downloadData.recordingIndexBundleRef || '').trim() ? '#d0d5df' : '#ffcc66' }, String(form.downloadData.recordingIndexBundleRef || '').trim() ? `› Recording index bundle: ${form.downloadData.recordingIndexBundleRef}` : '› Advisory: recording index bundle token is empty (draft allowed, active publish will fail).'),
         React.createElement(Text, { color: '#d0d5df' }, `› Imported segments: ${importedSegments.length}`),
+        React.createElement(Text, { color: '#d0d5df' }, `› Credit links: ${creditLinksCount} (${normalizedCreditLinks.instrumentLinksEnabled ? 'instrument links on' : 'instrument links off'})`),
         React.createElement(Text, { color: downloadHealthSummary.ok ? '#a6e3a1' : '#ff6b6b' }, `› Download tree health: ${downloadHealthSummary.ok ? 'PASS' : 'FAIL'} (critical=${downloadHealthSummary.criticalCount} warn=${downloadHealthSummary.warnCount})`),
         React.createElement(Text, { color: safeList(form.downloadData.metadata.tagsSelected).length > 0 ? '#a6e3a1' : '#ff6b6b' }, `› Tags: ${safeList(form.downloadData.metadata.tagsSelected).length > 0 ? 'PASS' : 'FAIL'} (${safeList(form.downloadData.metadata.tagsSelected).length} selected)`),
         React.createElement(Text, { color: '#d0d5df' }, '› Press Enter to Generate'),

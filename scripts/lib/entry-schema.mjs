@@ -5,6 +5,7 @@ export const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 export const ALL_BUCKETS = BUCKETS;
 
 const linkSchema = z.object({ label: z.string().min(1), href: z.string().min(1) });
+const linksByPersonSchema = z.record(z.string().min(1), z.array(linkSchema).default([])).default({});
 const personSchema = z.object({ name: z.string().min(1), links: z.array(linkSchema).optional() });
 const personNameListSchema = z.array(z.string().min(1)).default([]);
 const personArraySchema = z.array(personSchema).default([]);
@@ -19,6 +20,8 @@ export const creditsSchema = z.object({
   artist: peopleFieldSchema,
   artistAlt: z.string().nullable().optional(),
   instruments: personNameListSchema,
+  instrumentLinksEnabled: z.boolean().default(false),
+  linksByPerson: linksByPersonSchema,
   video: z.object({ director: peopleFieldSchema, cinematography: peopleFieldSchema, editing: peopleFieldSchema }),
   audio: z.object({ recording: peopleFieldSchema, mix: peopleFieldSchema, master: peopleFieldSchema }),
   year: z.number().int(),

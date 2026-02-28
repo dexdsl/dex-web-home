@@ -29,6 +29,7 @@ const CHECKS = [
   'License sentence',
   'Instruments',
   'Credits / People',
+  'Credit Links',
   'Downloads',
   'File Specs',
   'Metadata',
@@ -103,6 +104,42 @@ function normalizeCreditsData(raw, fallback = {}) {
     year,
     season,
     location,
+  };
+}
+
+function normalizeCreditLinks(raw, fallback = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const fallbackSource = fallback && typeof fallback === 'object' ? fallback : {};
+  const linksByPersonRaw = source.linksByPerson && typeof source.linksByPerson === 'object'
+    ? source.linksByPerson
+    : (fallbackSource.linksByPerson && typeof fallbackSource.linksByPerson === 'object' ? fallbackSource.linksByPerson : {});
+  const linksByPerson = {};
+  for (const [nameRaw, linksRaw] of Object.entries(linksByPersonRaw)) {
+    const name = String(nameRaw || '').replace(/\s+/g, ' ').trim();
+    if (!name) continue;
+    const list = [];
+    const seen = new Set();
+    for (const link of Array.isArray(linksRaw) ? linksRaw : []) {
+      const label = String(link?.label || '').trim();
+      const href = String(link?.href || '').trim();
+      if (!label || !href) continue;
+      let parsed;
+      try {
+        parsed = new URL(href);
+      } catch {
+        continue;
+      }
+      if (!/^https?:$/i.test(parsed.protocol)) continue;
+      const dedupeKey = `${label.toLowerCase()}|${parsed.toString()}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      list.push({ label, href: parsed.toString() });
+    }
+    if (list.length) linksByPerson[name] = list;
+  }
+  return {
+    instrumentLinksEnabled: Boolean(source.instrumentLinksEnabled ?? fallbackSource.instrumentLinksEnabled),
+    linksByPerson,
   };
 }
 
@@ -281,6 +318,7 @@ function setManifestBundleTokensFromSegments(existingManifest, formatKeys, bucke
 function sectionAllowsMultiline(section) {
   return section === 'Description'
     || section === 'Credits / People'
+    || section === 'Credit Links'
     || section === 'Downloads'
     || section === 'File Specs';
 }
@@ -297,6 +335,11 @@ function sectionDisplayValue(section, form) {
     case 'License sentence': return form.attributionSentence;
     case 'Instruments': return form.instruments.join(', ');
     case 'Credits / People': return JSON.stringify(form.creditsData, null, 2);
+    case 'Credit Links':
+      return JSON.stringify({
+        instrumentLinksEnabled: Boolean(form.creditLinks?.instrumentLinksEnabled),
+        linksByPerson: form.creditLinks?.linksByPerson || {},
+      }, null, 2);
     case 'Downloads': return serializeDownloads(form.manifest, form.buckets, form.formatKeys);
     case 'File Specs': return JSON.stringify(form.fileSpecs, null, 2);
     case 'Metadata': return form.metadataTags.join(', ');
@@ -322,6 +365,12 @@ function clone(value) {
 function ensureSidebarStructures(entry) {
   if (!entry.sidebarPageConfig || typeof entry.sidebarPageConfig !== 'object') entry.sidebarPageConfig = {};
   if (!entry.sidebarPageConfig.credits || typeof entry.sidebarPageConfig.credits !== 'object') entry.sidebarPageConfig.credits = {};
+  if (typeof entry.sidebarPageConfig.credits.instrumentLinksEnabled !== 'boolean') {
+    entry.sidebarPageConfig.credits.instrumentLinksEnabled = false;
+  }
+  if (!entry.sidebarPageConfig.credits.linksByPerson || typeof entry.sidebarPageConfig.credits.linksByPerson !== 'object') {
+    entry.sidebarPageConfig.credits.linksByPerson = {};
+  }
   if (!entry.sidebarPageConfig.metadata || typeof entry.sidebarPageConfig.metadata !== 'object') entry.sidebarPageConfig.metadata = {};
   if (!entry.sidebarPageConfig.fileSpecs || typeof entry.sidebarPageConfig.fileSpecs !== 'object') entry.sidebarPageConfig.fileSpecs = {};
   if (!entry.sidebarPageConfig.downloads || typeof entry.sidebarPageConfig.downloads !== 'object') entry.sidebarPageConfig.downloads = {};
@@ -356,6 +405,7 @@ export function applySelectedSectionsToDraft({
   ensureSidebarStructures(nextEntry);
 
   let creditsData = normalizeCreditsData(nextEntry.creditsData, nextEntry.sidebarPageConfig.credits);
+  let creditLinks = normalizeCreditLinks(nextEntry.sidebarPageConfig.credits, {});
   let fileSpecs = normalizeFileSpecs(nextEntry.fileSpecs, nextEntry.sidebarPageConfig.fileSpecs);
 
   for (const section of CHECKS) {
@@ -408,6 +458,14 @@ export function applySelectedSectionsToDraft({
         throw new Error('Credits / People must be valid JSON.');
       }
       creditsData = normalizeCreditsData(parsed, creditsData);
+    } else if (section === 'Credit Links') {
+      let parsed = {};
+      try {
+        parsed = JSON.parse(raw || '{}');
+      } catch {
+        throw new Error('Credit Links must be valid JSON.');
+      }
+      creditLinks = normalizeCreditLinks(parsed, creditLinks);
     } else if (section === 'Downloads') {
       nextManifest = parseDownloads(raw, formatKeys, nextManifest);
     } else if (section === 'File Specs') {
@@ -465,6 +523,8 @@ export function applySelectedSectionsToDraft({
     artist: creditsData.artist,
     artistAlt: creditsData.artistAlt,
     instruments: creditsData.instruments,
+    instrumentLinksEnabled: Boolean(creditLinks.instrumentLinksEnabled),
+    linksByPerson: creditLinks.linksByPerson || {},
     video: {
       director: creditsData.video.director,
       cinematography: creditsData.video.cinematography,
@@ -532,6 +592,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
     } catch {}
 
     const creditsData = normalizeCreditsData(payload.entry.creditsData, payload.entry.sidebarPageConfig?.credits || {});
+    const creditLinks = normalizeCreditLinks(payload.entry.sidebarPageConfig?.credits || {}, {});
     const fileSpecs = normalizeFileSpecs(payload.entry.fileSpecs, payload.entry.sidebarPageConfig?.fileSpecs || {});
     const metadataTags = safeList(payload.entry.metadata?.tags || payload.entry.sidebarPageConfig?.metadata?.tags || []);
     const loaded = {
@@ -545,6 +606,7 @@ export function UpdateWizard({ initialSlug = '', onDone, onCancel }) {
       attributionSentence: String(payload.entry.sidebarPageConfig?.attributionSentence || ''),
       instruments: safeList(creditsData.instruments),
       creditsData,
+      creditLinks,
       metadataTags,
       recordingIndexPdfRef: String(
         payload.entry.sidebarPageConfig?.downloads?.recordingIndexPdfRef

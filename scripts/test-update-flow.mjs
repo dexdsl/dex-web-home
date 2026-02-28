@@ -62,6 +62,7 @@ const selectedSections = [
   'Downloads',
   'File Specs',
   'Credits / People',
+  'Credit Links',
   'Recording Index PDF',
 ];
 
@@ -88,6 +89,13 @@ const editorValues = {
     year: 2027,
     season: 'S3',
     location: 'Dex Hall',
+  }),
+  'Credit Links': JSON.stringify({
+    instrumentLinksEnabled: true,
+    linksByPerson: {
+      'Updated Artist': [{ label: 'Site', href: 'https://example.com/artist' }],
+      percussion: [{ label: 'Docs', href: 'https://example.com/percussion' }],
+    },
   }),
 };
 
@@ -117,6 +125,8 @@ assert.deepEqual(entry.creditsData.artist, ['Updated Artist']);
 assert.deepEqual(entry.sidebarPageConfig.credits.artist, ['Updated Artist']);
 assert.deepEqual(entry.sidebarPageConfig.credits.audio.mix, ['New Mix']);
 assert.equal(entry.sidebarPageConfig.credits.season, 'S3');
+assert.equal(entry.sidebarPageConfig.credits.instrumentLinksEnabled, true);
+assert.equal(entry.sidebarPageConfig.credits.linksByPerson['Updated Artist'][0].label, 'Site');
 assert.equal(entry.sidebarPageConfig.downloads.recordingIndexPdfRef, 'asset:rec-pdf-1');
 assert.equal(descriptionText, '');
 

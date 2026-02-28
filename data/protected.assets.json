@@ -1,6 +1,6 @@
 {
   "version": "protected-assets-v1",
-  "updatedAt": "2026-02-28T05:09:13.164Z",
+  "updatedAt": "2026-02-28T05:30:49.030Z",
   "settings": {
     "storageBucket": "dex-protected-assets",
     "allowedBuckets": [
@@ -29,7 +29,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 1,
-          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste"
+          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.1",
@@ -40,7 +47,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 2,
-          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste"
+          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+          "sourceLabel": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.2",
@@ -51,7 +65,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 3,
-          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste"
+          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+          "sourceLabel": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.3",
@@ -62,7 +83,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 4,
-          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste"
+          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+          "sourceLabel": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.4",
@@ -73,7 +101,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 5,
-          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste"
+          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+          "sourceLabel": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.5",
@@ -84,7 +119,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 6,
-          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste"
+          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+          "sourceLabel": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.6",
@@ -95,7 +137,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 7,
-          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste"
+          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+          "sourceLabel": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "B.7",
@@ -106,7 +155,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 8,
-          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste"
+          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.1",
@@ -117,7 +173,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 9,
-          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste"
+          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+          "sourceLabel": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.2",
@@ -128,7 +191,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 10,
-          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste"
+          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+          "sourceLabel": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.3",
@@ -139,7 +209,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 11,
-          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste"
+          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+          "sourceLabel": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.4",
@@ -150,7 +227,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 12,
-          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste"
+          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+          "sourceLabel": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.5",
@@ -161,7 +245,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 13,
-          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste"
+          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+          "sourceLabel": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.6",
@@ -172,7 +263,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 14,
-          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste"
+          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+          "sourceLabel": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.7",
@@ -183,7 +281,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 15,
-          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste"
+          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+          "sourceLabel": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.8",
@@ -194,7 +299,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 16,
-          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste"
+          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+          "sourceLabel": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.9",
@@ -205,7 +317,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 17,
-          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste"
+          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+          "sourceLabel": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.10",
@@ -216,7 +335,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 18,
-          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste"
+          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+          "sourceLabel": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.11",
@@ -227,7 +353,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 19,
-          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste"
+          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+          "sourceLabel": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.12",
@@ -238,7 +371,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 20,
-          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste"
+          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+          "sourceLabel": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.13",
@@ -249,7 +389,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 21,
-          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste"
+          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+          "sourceLabel": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.14",
@@ -260,7 +407,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 22,
-          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste"
+          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+          "sourceLabel": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.15",
@@ -271,7 +425,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 23,
-          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste"
+          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+          "sourceLabel": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.16",
@@ -282,7 +443,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 24,
-          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste"
+          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+          "sourceLabel": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.17",
@@ -293,7 +461,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 25,
-          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste"
+          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+          "sourceLabel": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.18",
@@ -304,7 +479,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 26,
-          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste"
+          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+          "sourceLabel": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.19",
@@ -315,7 +497,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 27,
-          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste"
+          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+          "sourceLabel": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.20",
@@ -326,7 +515,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 28,
-          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste"
+          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+          "sourceLabel": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.21",
@@ -337,7 +533,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 29,
-          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste"
+          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+          "sourceLabel": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.22",
@@ -348,7 +551,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 30,
-          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste"
+          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+          "sourceLabel": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.23",
@@ -359,7 +569,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 31,
-          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste"
+          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+          "sourceLabel": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.24",
@@ -370,7 +587,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 32,
-          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste"
+          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+          "sourceLabel": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.25",
@@ -381,7 +605,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 33,
-          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste"
+          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+          "sourceLabel": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.26",
@@ -392,7 +623,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 34,
-          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste"
+          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+          "sourceLabel": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.27",
@@ -403,7 +641,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 35,
-          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste"
+          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+          "sourceLabel": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.28",
@@ -414,7 +659,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 36,
-          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste"
+          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+          "sourceLabel": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.29",
@@ -425,7 +677,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 37,
-          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste"
+          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+          "sourceLabel": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.30",
@@ -436,7 +695,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 38,
-          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste"
+          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+          "sourceLabel": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.31",
@@ -447,7 +713,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 39,
-          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste"
+          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+          "sourceLabel": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.32",
@@ -458,7 +731,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 40,
-          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste"
+          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+          "sourceLabel": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.33",
@@ -469,7 +749,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 41,
-          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste"
+          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+          "sourceLabel": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.34",
@@ -480,7 +767,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 42,
-          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste"
+          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+          "sourceLabel": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.35",
@@ -491,7 +785,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 43,
-          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste"
+          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+          "sourceLabel": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "C.36",
@@ -502,7 +803,14 @@
           "sizeBytes": 0,
           "mime": "video/*",
           "position": 44,
-          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste"
+          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+          "sourceLabel": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+          "type": "video",
+          "availableTypes": [
+            "video",
+            "audio"
+          ],
+          "role": "media"
         },
         {
           "bucketNumber": "X.1",
@@ -513,7 +821,13 @@
           "sizeBytes": 0,
           "mime": "application/pdf",
           "position": 45,
-          "label": "Recording Index PDF"
+          "label": "Recording Index PDF",
+          "sourceLabel": "Recording Index PDF",
+          "type": "pdf",
+          "availableTypes": [
+            "pdf"
+          ],
+          "role": "recording_index_pdf"
         }
       ],
       "entitlements": [
