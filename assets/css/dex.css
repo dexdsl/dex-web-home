@@ -3574,18 +3574,104 @@ a[data-dx-donate-rendered] {
 #dx-submit-tooltip-layer {
   position: fixed;
   inset: auto auto auto auto;
-  z-index: 1200;
+  z-index: 1305;
+  min-width: 196px;
   width: max-content;
-  max-width: min(280px, 92vw);
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: rgba(255, 255, 255, 0.98);
-  color: #111;
-  font: 600 11px/1.35 var(--font-body, system-ui);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  max-width: min(312px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 19, 28, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.95));
+  color: rgba(18, 21, 28, 0.94);
+  font: 600 11px/1.35 var(--font-body, "Courier Prime", monospace);
+  box-shadow: 0 14px 28px rgba(9, 14, 24, 0.2);
   pointer-events: none;
   white-space: normal;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translate3d(0, 6px, 0) scale(0.985);
+  transition: opacity 130ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#dx-submit-tooltip-layer[data-state="visible"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-card {
+  display: grid;
+  gap: 8px;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-title {
+  margin: 0;
+  font: 800 0.78rem/1 "Typefesse", var(--font-heading, sans-serif);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  font: 700 0.56rem/1 var(--font-body, "Courier Prime", monospace);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-status.is-available {
+  color: #fff;
+  border-color: rgba(255, 25, 16, 0.55);
+  background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92));
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-status.is-unavailable {
+  color: rgba(20, 22, 29, 0.82);
+  border-color: rgba(20, 22, 29, 0.24);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-metrics {
+  margin: 0;
+  display: grid;
+  gap: 3px;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 8px;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-metric dt,
+#dx-submit-tooltip-layer .dx-submit-tooltip-metric dd {
+  margin: 0;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-metric dt {
+  font: 600 0.58rem/1.15 var(--font-body, "Courier Prime", monospace);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+#dx-submit-tooltip-layer .dx-submit-tooltip-metric dd {
+  font: 700 0.63rem/1.15 var(--font-body, "Courier Prime", monospace);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 #dx-submit-tooltip-layer[hidden] {
@@ -3968,6 +4054,7 @@ body.dx-entry-page .dex-collections {
   --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
   --dx-entry-tile-radius: clamp(10px, 0.8vw, 12px);
   --dx-entry-tile-gap: clamp(6px, 0.6vw, 10px);
+  --dx-entry-tile-edge-pad: clamp(8px, 0.85vw, 12px);
   display: grid !important;
   grid-template-columns: 1fr !important;
   row-gap: clamp(10px, 1vw, 14px) !important;
@@ -3980,7 +4067,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collection
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   justify-content: stretch !important;
   gap: var(--dx-entry-tile-gap) !important;
-  padding: 0 clamp(4px, 0.5vw, 8px) !important;
+  padding: 0 var(--dx-entry-tile-edge-pad) !important;
   align-items: stretch !important;
 }
 
@@ -4005,39 +4092,46 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
   cursor: help !important;
   overflow: visible !important;
   isolation: isolate !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  transform-origin: center center !important;
+  will-change: transform, opacity, filter, box-shadow !important;
+  transition:
+    transform 230ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    filter 200ms ease,
+    box-shadow 220ms ease !important;
 }
 
 body.dx-entry-page .dex-collections .overview-buckets-grid {
   overflow: visible !important;
 }
 
+body.dx-entry-page .dex-collections .overview-item--buckets {
+  overflow: visible !important;
+}
+
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover,
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible {
   z-index: 20 !important;
+  transform: translate3d(0, -1px, 0) scale(1.04) !important;
+  opacity: 0.97 !important;
+  filter: saturate(1.07) brightness(1.02) !important;
 }
 
-@media (hover: hover) {
-  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover::after,
-  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible::after {
-    content: attr(data-dx-tooltip);
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 8px);
-    transform: translateX(-50%);
-    z-index: 1300;
-    width: max-content;
-    max-width: min(280px, 92vw);
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    background: rgba(255, 255, 255, 0.98);
-    color: #111;
-    font: 600 11px/1.35 var(--font-body, system-ui);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-    pointer-events: none;
-    white-space: normal;
-    text-transform: none;
-    letter-spacing: 0;
+@media (prefers-reduced-motion: reduce) {
+  #dx-submit-tooltip-layer {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover,
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible {
+    transform: none !important;
   }
 }
 
@@ -4099,5 +4193,6 @@ body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-buc
   body.dx-entry-page .dex-collections .overview-buckets-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
     justify-content: stretch !important;
+    padding: 0 var(--dx-entry-tile-edge-pad) !important;
   }
 }

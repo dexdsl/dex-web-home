@@ -55,6 +55,14 @@ function ensureRuntimeMarkers(runtimeJs) {
     'COLLECTION_HEADING_CANONICAL',
     'randomizeTitle(COLLECTION_HEADING_CANONICAL',
     '.dex-collections',
+    'data-dx-tooltip-status=',
+    'data-dx-tooltip-audio=',
+    'data-dx-tooltip-video=',
+    'data-dx-tooltip-mapped=',
+    'data-dx-tooltip-pdf=',
+    'data-dx-tooltip-bundle=',
+    'buildEntryTooltipMarkup',
+    'dx-submit-tooltip-status',
     'data-dx-download-kind="recording-index-pdf"',
     'data-dx-entry-rail-mode',
   ];
@@ -79,6 +87,24 @@ function ensureCollectionHeadingLigatureContract(dexCss) {
   }
   if (!/font-variant-ligatures\s*:\s*common-ligatures/i.test(ruleBody)) {
     fail('collection heading rule missing ligature-enabled declaration');
+  }
+}
+
+function ensureTooltipCssContract(dexCss) {
+  const legacyPseudoTooltipRx = /dx-bucket-tile\[data-dx-tooltip\]:(?:hover|focus-visible)::after/i;
+  if (legacyPseudoTooltipRx.test(dexCss)) {
+    fail('dex.css still contains legacy pseudo-element tooltip renderer for bucket tiles');
+  }
+  const requiredMarkers = [
+    '#dx-submit-tooltip-layer .dx-submit-tooltip-head',
+    '.dx-submit-tooltip-status.is-available',
+    '.dx-submit-tooltip-metric dt',
+    '.overview-item--buckets',
+  ];
+  for (const marker of requiredMarkers) {
+    if (!dexCss.includes(marker)) {
+      fail(`dex.css missing tooltip polish marker: ${marker}`);
+    }
   }
 }
 
@@ -113,6 +139,7 @@ async function main() {
   ensureRecordingIndexSecondary(templateHtml);
   ensureRuntimeMarkers(runtimeJs);
   ensureCollectionHeadingLigatureContract(dexCss);
+  ensureTooltipCssContract(dexCss);
   ensureCompilerMarkers(entryHtmlSource);
   console.log('verify:entry-sidebar-contract passed');
 }

@@ -576,6 +576,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
+
+
+
+
+
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .dx-code-container,
@@ -947,6 +952,7 @@ body.dx-entry-page .dex-collections {
   --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
   --dx-entry-tile-radius: clamp(10px, 0.8vw, 12px);
   --dx-entry-tile-gap: clamp(6px, 0.6vw, 10px);
+  --dx-entry-tile-edge-pad: clamp(8px, 0.85vw, 12px);
   display: grid !important;
   grid-template-columns: 1fr !important;
   gap: clamp(10px, 1vw, 14px) !important;
@@ -985,7 +991,7 @@ body.dx-entry-page .dex-collections .overview-buckets-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   gap: var(--dx-entry-tile-gap) !important;
   width: 100% !important;
-  padding: 0 clamp(4px, 0.5vw, 8px) !important;
+  padding: 0 var(--dx-entry-tile-edge-pad) !important;
   align-items: stretch !important;
 }
 body.dx-entry-page .dex-collections .dx-bucket-tile {
@@ -1013,36 +1019,36 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
   cursor: help !important;
   overflow: visible !important;
   isolation: isolate !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  transform-origin: center center !important;
+  will-change: transform, opacity, filter, box-shadow !important;
+  transition:
+    transform 230ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    filter 200ms ease,
+    box-shadow 220ms ease !important;
 }
 body.dx-entry-page .dex-collections .overview-buckets-grid {
+  overflow: visible !important;
+}
+body.dx-entry-page .dex-collections .overview-item--buckets {
   overflow: visible !important;
 }
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover,
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible {
   z-index: 20 !important;
+  transform: translate3d(0, -1px, 0) scale(1.04) !important;
+  opacity: 0.97 !important;
+  filter: saturate(1.07) brightness(1.02) !important;
 }
-@media (hover: hover) {
-  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover::after,
-  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible::after {
-    content: attr(data-dx-tooltip);
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 8px);
-    transform: translateX(-50%);
-    z-index: 1300;
-    width: max-content;
-    max-width: min(280px, 92vw);
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    background: rgba(255, 255, 255, 0.98);
-    color: #111;
-    font: 600 11px/1.35 var(--font-body, system-ui);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-    pointer-events: none;
-    white-space: normal;
-    text-transform: none;
-    letter-spacing: 0;
+@media (prefers-reduced-motion: reduce) {
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
+    transition: none !important;
+    transform: none !important;
+  }
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover,
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible {
+    transform: none !important;
   }
 }
 body.dx-entry-page .dex-collections .dx-bucket-tile.available {
@@ -2878,6 +2884,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
   }
 }
 </script><script id="dex-sidebar-page-config-bridge">window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');</script>
+
 
 
 

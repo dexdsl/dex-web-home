@@ -17,6 +17,7 @@
   let favoritesSignalsBound = false;
   let favoritesToastTimer = 0;
   let activeEntryTooltipTarget = null;
+  let entryTooltipHideTimer = 0;
   let entryRailLayoutBound = false;
   const ENTRY_RAIL_BREAKPOINT = 980;
   const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
@@ -91,9 +92,11 @@
     };
   };
 
+  const getBucketTooltipStatus = (stats) => ((stats?.selected || stats?.totalMapped > 0) ? 'available' : 'unavailable');
+
   const formatBucketTooltip = (stats) => {
     if (!stats) return '';
-    const status = (stats.selected || stats.totalMapped > 0) ? 'available' : 'unavailable';
+    const status = getBucketTooltipStatus(stats);
     const recordingPdf = stats.hasPdf ? 'yes' : 'no';
     const recordingBundle = stats.hasBundle ? 'yes' : 'no';
     return [
@@ -142,7 +145,13 @@
         const tooltipText = String(liveTooltip || persistedTooltip || `Bucket ${bucket}`).trim();
         nextTooltipCache[bucket] = tooltipText;
         const tooltip = escapeHtml(tooltipText);
-        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" title="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
+        const status = escapeHtml(getBucketTooltipStatus(stats));
+        const audio = escapeHtml(String(stats?.audioCount ?? 0));
+        const video = escapeHtml(String(stats?.videoCount ?? 0));
+        const mapped = escapeHtml(String(stats?.totalMapped ?? 0));
+        const pdf = escapeHtml(stats?.hasPdf ? 'yes' : 'no');
+        const bundle = escapeHtml(stats?.hasBundle ? 'yes' : 'no');
+        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" data-dx-tooltip-status="${status}" data-dx-tooltip-audio="${audio}" data-dx-tooltip-video="${video}" data-dx-tooltip-mapped="${mapped}" data-dx-tooltip-pdf="${pdf}" data-dx-tooltip-bundle="${bundle}" title="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
     writeBucketTooltipCache(lookupNumber, nextTooltipCache);
@@ -517,12 +526,53 @@
     return null;
   };
 
-  const canUsePointerHoverTooltip = () => {
-    try {
-      return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    } catch {
-      return true;
-    }
+  const clearEntryTooltipHideTimer = () => {
+    if (!entryTooltipHideTimer) return;
+    window.clearTimeout(entryTooltipHideTimer);
+    entryTooltipHideTimer = 0;
+  };
+
+  const buildEntryTooltipMarkup = (target, fallbackTooltip = '') => {
+    if (!(target instanceof HTMLElement)) return '';
+    const bucketKey = String(target.getAttribute('data-dx-bucket-key') || '').trim().toUpperCase();
+    const statusRaw = String(target.getAttribute('data-dx-tooltip-status') || '').trim().toLowerCase();
+    const audio = String(target.getAttribute('data-dx-tooltip-audio') || '').trim();
+    const video = String(target.getAttribute('data-dx-tooltip-video') || '').trim();
+    const mapped = String(target.getAttribute('data-dx-tooltip-mapped') || '').trim();
+    const pdf = String(target.getAttribute('data-dx-tooltip-pdf') || '').trim().toLowerCase();
+    const bundle = String(target.getAttribute('data-dx-tooltip-bundle') || '').trim().toLowerCase();
+
+    const hasStructuredMetrics = statusRaw || audio || video || mapped || pdf || bundle;
+    if (!hasStructuredMetrics) return '';
+
+    const title = escapeHtml(bucketKey ? `Bucket ${bucketKey}` : String(fallbackTooltip || '').trim());
+    const status = statusRaw === 'available' ? 'available' : 'unavailable';
+    const statusLabel = status === 'available' ? 'Available' : 'Unavailable';
+    const normalizeCount = (value) => {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? String(parsed) : '0';
+    };
+    const normalizeBinary = (value) => (String(value || '').trim().toLowerCase() === 'yes' ? 'Yes' : 'No');
+    const metrics = [
+      ['Audio Formats', normalizeCount(audio)],
+      ['Video Formats', normalizeCount(video)],
+      ['Mapped Rows', normalizeCount(mapped)],
+      ['Recording PDF', normalizeBinary(pdf)],
+      ['Recording Bundle', normalizeBinary(bundle)],
+    ];
+    const metricRows = metrics
+      .map(([label, value]) => `<div class="dx-submit-tooltip-metric"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+      .join('');
+
+    return `
+      <div class="dx-submit-tooltip-card">
+        <div class="dx-submit-tooltip-head">
+          <span class="dx-submit-tooltip-title">${title}</span>
+          <span class="dx-submit-tooltip-status is-${status}">${statusLabel}</span>
+        </div>
+        <dl class="dx-submit-tooltip-metrics">${metricRows}</dl>
+      </div>
+    `;
   };
 
   const ensureEntryTooltipLayer = () => {
@@ -532,18 +582,47 @@
     layer.id = 'dx-submit-tooltip-layer';
     layer.setAttribute('role', 'tooltip');
     layer.setAttribute('aria-hidden', 'true');
+    layer.setAttribute('data-state', 'hidden');
     layer.hidden = true;
+    layer.style.position = 'fixed';
+    layer.style.pointerEvents = 'none';
+    layer.style.zIndex = '2147483000';
+    layer.style.left = '0px';
+    layer.style.top = '0px';
+    layer.style.visibility = 'hidden';
+    layer.style.opacity = '0';
     document.body.appendChild(layer);
     return layer;
   };
 
-  const hideEntryTooltip = () => {
+  const hideEntryTooltip = ({ immediate = false } = {}) => {
+    clearEntryTooltipHideTimer();
     activeEntryTooltipTarget = null;
     const layer = document.getElementById('dx-submit-tooltip-layer');
     if (!(layer instanceof HTMLElement)) return;
-    layer.hidden = true;
-    layer.textContent = '';
     layer.setAttribute('aria-hidden', 'true');
+    layer.setAttribute('data-state', 'hidden');
+
+    const finalizeHide = () => {
+      const current = document.getElementById('dx-submit-tooltip-layer');
+      if (!(current instanceof HTMLElement)) return;
+      if (current.getAttribute('data-state') !== 'hidden') return;
+      current.hidden = true;
+      current.style.visibility = 'hidden';
+      current.style.opacity = '0';
+      current.textContent = '';
+      current.removeAttribute('data-rich');
+    };
+
+    if (immediate) {
+      finalizeHide();
+      return;
+    }
+
+    entryTooltipHideTimer = window.setTimeout(() => {
+      entryTooltipHideTimer = 0;
+      finalizeHide();
+    }, 150);
   };
 
   const positionEntryTooltip = (layer, target) => {
@@ -556,7 +635,7 @@
     const targetRect = target.getBoundingClientRect();
     const tooltipRect = layer.getBoundingClientRect();
 
-    let left = targetRect.right - tooltipRect.width;
+    let left = targetRect.left + ((targetRect.width - tooltipRect.width) / 2);
     left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
 
     let top = targetRect.bottom + 8;
@@ -573,15 +652,29 @@
     if (!(target instanceof HTMLElement)) return;
     const tooltip = String(target.getAttribute('data-dx-tooltip') || '').trim();
     if (!tooltip) {
-      hideEntryTooltip();
+      hideEntryTooltip({ immediate: true });
       return;
     }
+    clearEntryTooltipHideTimer();
     const layer = ensureEntryTooltipLayer();
-    layer.textContent = tooltip;
+    const richMarkup = buildEntryTooltipMarkup(target, tooltip);
+    if (richMarkup) {
+      layer.innerHTML = richMarkup;
+      layer.setAttribute('data-rich', '1');
+    } else {
+      layer.textContent = tooltip;
+      layer.removeAttribute('data-rich');
+    }
     layer.hidden = false;
+    layer.style.visibility = 'visible';
+    layer.style.opacity = '1';
     layer.setAttribute('aria-hidden', 'false');
-    positionEntryTooltip(layer, target);
+    layer.setAttribute('data-state', 'hidden');
     activeEntryTooltipTarget = target;
+    positionEntryTooltip(layer, target);
+    void layer.offsetWidth;
+    layer.setAttribute('data-state', 'visible');
+    positionEntryTooltip(layer, target);
   };
 
   const resolveEntryTooltipTarget = (input, scope) => {
@@ -603,6 +696,7 @@
     const controller = new AbortController();
     scope.__dxEntryTooltipAbortController = controller;
     const options = { signal: controller.signal };
+    const pointerSupported = typeof window.PointerEvent === 'function';
     const addScopedListener = (target, type, handler, opts = options) => {
       try {
         target.addEventListener(type, handler, opts);
@@ -611,34 +705,16 @@
       }
     };
 
+    hideEntryTooltip({ immediate: true });
     const tooltipNodes = Array.from(scope.querySelectorAll('[data-dx-tooltip]'));
     tooltipNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
-      node.removeAttribute('title');
       const tooltipText = String(node.getAttribute('data-dx-tooltip') || '').trim();
       if (!tooltipText) return;
+      node.setAttribute('title', tooltipText);
       if (!node.getAttribute('aria-label')) node.setAttribute('aria-label', tooltipText);
     });
 
-    addScopedListener(scope, 'pointerover', (event) => {
-      const target = resolveEntryTooltipTarget(event.target, scope);
-      if (!target) return;
-      if (activeEntryTooltipTarget === target) return;
-      showEntryTooltip(target);
-    });
-
-    addScopedListener(scope, 'pointerout', (event) => {
-      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
-      const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
-      if (next === activeEntryTooltipTarget) return;
-      if (next) {
-        showEntryTooltip(next);
-        return;
-      }
-      hideEntryTooltip();
-    });
-
-    // Mouse event fallback for browsers/environments with inconsistent PointerEvent behavior.
     addScopedListener(scope, 'mouseover', (event) => {
       const target = resolveEntryTooltipTarget(event.target, scope);
       if (!target) return;
@@ -672,23 +748,43 @@
       hideEntryTooltip();
     });
 
-    // Direct node listeners as a hard fallback in case delegated pointer events are swallowed.
     tooltipNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
+      if (pointerSupported) {
+        addScopedListener(node, 'pointerenter', () => showEntryTooltip(node));
+        addScopedListener(node, 'pointerleave', (event) => {
+          const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+          if (next) {
+            showEntryTooltip(next);
+            return;
+          }
+          if (activeEntryTooltipTarget === node) hideEntryTooltip();
+        });
+      }
       addScopedListener(node, 'mouseenter', () => showEntryTooltip(node));
-      addScopedListener(node, 'mouseleave', () => {
+      addScopedListener(node, 'mouseleave', (event) => {
+        const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+        if (next) {
+          showEntryTooltip(next);
+          return;
+        }
         if (activeEntryTooltipTarget === node) hideEntryTooltip();
       });
-      addScopedListener(node, 'focus', () => showEntryTooltip(node));
-      addScopedListener(node, 'blur', () => {
-        if (activeEntryTooltipTarget === node) hideEntryTooltip();
-      });
+    });
+
+    addScopedListener(scope, 'keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      hideEntryTooltip({ immediate: true });
     });
 
     addScopedListener(window, 'scroll', () => {
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
+        if (!document.contains(activeEntryTooltipTarget)) {
+          hideEntryTooltip({ immediate: true });
+          return;
+        }
         positionEntryTooltip(layer, activeEntryTooltipTarget);
       }
     }, { signal: controller.signal, passive: true });
@@ -697,6 +793,10 @@
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
+        if (!document.contains(activeEntryTooltipTarget)) {
+          hideEntryTooltip({ immediate: true });
+          return;
+        }
         positionEntryTooltip(layer, activeEntryTooltipTarget);
       }
     });
