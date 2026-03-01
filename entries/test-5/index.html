@@ -4179,5 +4179,89 @@ body.dx-entry-page .person-popup.person-popup--dx .person-popup-link:focus-visib
   -webkit-text-fill-color: rgba(16, 16, 16, 1) !important;
   text-decoration-color: rgba(16, 16, 16, 0.95) !important;
 }
+
+/* test-5: match header corner radius across sidebar + media */
+body.dx-entry-page {
+  --dx-test5-header-radius: var(--radius-002, 4px);
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout .dex-sidebar,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+  --dx-fetch-shell-radius: var(--dx-test5-header-radius) !important;
+  --dx-entry-card-radius: var(--dx-test5-header-radius) !important;
+  border-radius: var(--dx-test5-header-radius) !important;
+}
+body.dx-entry-page .dex-entry-layout .dex-sidebar > section,
+body.dx-entry-page .dex-sidebar > section {
+  border-radius: var(--dx-test5-header-radius) !important;
+}
+body.dx-entry-page .dex-video-card,
+body.dx-entry-page .dex-video,
+body.dx-entry-page .dex-video-aspect,
+body.dx-entry-page .dex-video-card iframe,
+body.dx-entry-page .dex-video-card video,
+body.dx-entry-page .dex-video-card .intrinsic,
+body.dx-entry-page .dex-video-card .sqs-video-wrapper,
+body.dx-entry-page .dex-video-card .sqs-oembed,
+body.dx-entry-page .dex-video-card .sqs-embed-content,
+body.dx-entry-page .dex-video-aspect iframe {
+  border-radius: var(--dx-test5-header-radius) !important;
+}
+
+/* test-5: restore credits/file-specs/metadata badge pills */
+body.dx-entry-page .dex-sidebar .dex-credits .dex-badges .badge,
+body.dx-entry-page .dex-sidebar #file-specs .dex-badges .badge,
+body.dx-entry-page .dex-sidebar #metadata .dex-badges .badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  padding: 0.3rem 0.62rem !important;
+  border-radius: var(--dx-test5-header-radius) !important;
+  border: 1px solid var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42)) !important;
+  background: var(--dx-header-glass-bg, linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%)) !important;
+  box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32)) !important;
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px)) !important;
+  backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px)) !important;
+  color: rgba(20, 20, 20, 0.92) !important;
+  font-family: var(--font-body, "Courier New", monospace) !important;
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.05 !important;
+}
+
+/* test-5: restore favorite heart glyphs (collection + bucket buttons) */
+body.dx-entry-page .dex-collections .dx-fav-heart-btn .dx-fav-heart-icon,
+body.dx-entry-page .dex-collections .dx-fav-entry-toggle .dx-fav-heart-icon,
+body.dx-entry-page .dex-collections .dx-fav-bucket-toggle .dx-fav-heart-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+body.dx-entry-page .dex-collections .dx-fav-heart-btn .dx-fav-heart-svg {
+  display: block !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn .dx-fav-heart-icon {
+  display: inline-flex !important;
+  width: 1rem !important;
+  height: 1rem !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn .dx-fav-heart-svg path,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle.dx-fav-heart-btn .dx-fav-heart-svg path {
+  stroke: currentColor !important;
+  fill: transparent !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:empty::before,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle:empty::before {
+  content: "♡" !important;
+  display: inline-block !important;
+  font-family: var(--font-body, "Courier New", monospace) !important;
+  font-size: 1.08rem !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  color: currentColor !important;
+}
 </style>
 </body></html>
