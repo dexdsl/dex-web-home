@@ -994,6 +994,105 @@ function ensureDexLayoutPatchStyle($, head) {
   min-width: 0;
   row-gap: 0.35rem;
 }
+.dex-overview {
+  display: grid !important;
+  grid-template-columns: minmax(0, 2fr) minmax(84px, 0.8fr);
+  gap: 12px;
+  align-items: start !important;
+}
+.dex-overview .overview-item--lookup {
+  align-items: flex-start !important;
+}
+.dex-overview .overview-item--lookup .overview-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+.dex-overview .overview-label--lookup {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+.dex-overview .overview-item--series {
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+.dex-overview .overview-label--series {
+  justify-content: flex-end !important;
+  text-align: right !important;
+}
+.dex-overview .overview-lookup {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(0.72rem, 1vw, 0.9rem) !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.12 !important;
+}
+.dex-collections {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.dex-collections > h3[data-dx-entry-heading] {
+  font-variant-ligatures: none !important;
+  font-feature-settings: "liga" 0, "calt" 0 !important;
+}
+.dex-collections .overview-item {
+  align-items: stretch !important;
+}
+.dex-collections .overview-item--buckets .overview-label,
+.dex-collections .overview-item--favorite-buckets .overview-label,
+.dex-collections .overview-item--favorite-collection .overview-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+.dex-collections .overview-buckets-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  align-items: stretch !important;
+}
+.dex-collections .dx-bucket-tile {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: clamp(30px, 2.4vw, 38px) !important;
+  max-height: clamp(30px, 2.4vw, 38px) !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: var(--dx-header-glass-radius, 10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  padding: clamp(5px, 0.7vw, 8px) !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  color: rgba(26, 26, 26, 0.8) !important;
+  font: 800 clamp(0.82rem, 1.02vw, 0.98rem) / 1 "Typefesse", sans-serif;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em;
+  align-self: stretch !important;
+}
+.dex-collections .dx-bucket-tile.available {
+  border-color: rgba(255, 25, 16, 0.5) !important;
+  color: #fff !important;
+  background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92)) !important;
+  box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
+}
+.dex-collections .dx-bucket-tile.unavailable {
+  opacity: 0.86;
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+.dex-collections .overview-item--favorite-buckets .overview-badges {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+.dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
+  width: 100%;
+}
 .dex-overview .overview-item:nth-child(1),
 .dex-overview .overview-item:nth-child(2),
 .dex-overview .overview-item:nth-child(3) {
