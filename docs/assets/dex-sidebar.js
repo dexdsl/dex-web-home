@@ -17,7 +17,6 @@
   let favoritesSignalsBound = false;
   let favoritesToastTimer = 0;
   let activeEntryTooltipTarget = null;
-  let entryTooltipHideTimer = 0;
   let entryRailLayoutBound = false;
   const ENTRY_RAIL_BREAKPOINT = 980;
   const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
@@ -526,12 +525,6 @@
     return null;
   };
 
-  const clearEntryTooltipHideTimer = () => {
-    if (!entryTooltipHideTimer) return;
-    window.clearTimeout(entryTooltipHideTimer);
-    entryTooltipHideTimer = 0;
-  };
-
   const buildEntryTooltipMarkup = (target, fallbackTooltip = '') => {
     if (!(target instanceof HTMLElement)) return '';
     const bucketKey = String(target.getAttribute('data-dx-bucket-key') || '').trim().toUpperCase();
@@ -561,16 +554,21 @@
       ['Recording Bundle', normalizeBinary(bundle)],
     ];
     const metricRows = metrics
-      .map(([label, value]) => `<div class="dx-submit-tooltip-metric"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+      .map(([label, value]) => `
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:baseline;">
+          <dt style="margin:0;font:600 0.58rem/1.15 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.02em;text-transform:uppercase;opacity:0.72;">${escapeHtml(label)}</dt>
+          <dd style="margin:0;font:700 0.63rem/1.15 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.01em;text-transform:uppercase;">${escapeHtml(value)}</dd>
+        </div>
+      `)
       .join('');
 
     return `
-      <div class="dx-submit-tooltip-card">
-        <div class="dx-submit-tooltip-head">
-          <span class="dx-submit-tooltip-title">${title}</span>
-          <span class="dx-submit-tooltip-status is-${status}">${statusLabel}</span>
+      <div class="dx-submit-tooltip-card" style="display:grid;gap:8px;min-width:196px;max-width:min(312px,calc(100vw - 16px));">
+        <div class="dx-submit-tooltip-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span class="dx-submit-tooltip-title" style="margin:0;font:800 0.78rem/1 var(--font-heading, 'Typefesse', sans-serif);letter-spacing:0.05em;text-transform:uppercase;">${title}</span>
+          <span class="dx-submit-tooltip-status is-${status}" style="display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;border:1px solid ${status === 'available' ? 'rgba(255,25,16,0.55)' : 'rgba(20,22,29,0.24)'};font:700 0.56rem/1 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.03em;text-transform:uppercase;white-space:nowrap;color:${status === 'available' ? '#fff' : 'rgba(20,22,29,0.82)'};background:${status === 'available' ? 'linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92))' : 'rgba(255,255,255,0.76)'};">${statusLabel}</span>
         </div>
-        <dl class="dx-submit-tooltip-metrics">${metricRows}</dl>
+        <dl class="dx-submit-tooltip-metrics" style="margin:0;display:grid;gap:3px;">${metricRows}</dl>
       </div>
     `;
   };
@@ -591,38 +589,33 @@
     layer.style.top = '0px';
     layer.style.visibility = 'hidden';
     layer.style.opacity = '0';
+    layer.style.setProperty('display', 'none', 'important');
+    layer.style.padding = '10px 12px';
+    layer.style.borderRadius = '10px';
+    layer.style.border = '1px solid rgba(15, 19, 28, 0.18)';
+    layer.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.95))';
+    layer.style.boxShadow = '0 14px 28px rgba(9, 14, 24, 0.2)';
+    layer.style.backdropFilter = 'blur(10px)';
+    layer.style.webkitBackdropFilter = 'blur(10px)';
+    layer.style.whiteSpace = 'normal';
+    layer.style.color = 'rgba(18, 21, 28, 0.94)';
+    layer.style.font = "600 11px/1.35 var(--font-body, 'Courier Prime', monospace)";
     document.body.appendChild(layer);
     return layer;
   };
 
-  const hideEntryTooltip = ({ immediate = false } = {}) => {
-    clearEntryTooltipHideTimer();
+  const hideEntryTooltip = () => {
     activeEntryTooltipTarget = null;
     const layer = document.getElementById('dx-submit-tooltip-layer');
     if (!(layer instanceof HTMLElement)) return;
     layer.setAttribute('aria-hidden', 'true');
     layer.setAttribute('data-state', 'hidden');
-
-    const finalizeHide = () => {
-      const current = document.getElementById('dx-submit-tooltip-layer');
-      if (!(current instanceof HTMLElement)) return;
-      if (current.getAttribute('data-state') !== 'hidden') return;
-      current.hidden = true;
-      current.style.visibility = 'hidden';
-      current.style.opacity = '0';
-      current.textContent = '';
-      current.removeAttribute('data-rich');
-    };
-
-    if (immediate) {
-      finalizeHide();
-      return;
-    }
-
-    entryTooltipHideTimer = window.setTimeout(() => {
-      entryTooltipHideTimer = 0;
-      finalizeHide();
-    }, 150);
+    layer.hidden = true;
+    layer.style.setProperty('display', 'none', 'important');
+    layer.style.setProperty('visibility', 'hidden', 'important');
+    layer.style.setProperty('opacity', '0', 'important');
+    layer.textContent = '';
+    layer.removeAttribute('data-rich');
   };
 
   const positionEntryTooltip = (layer, target) => {
@@ -652,10 +645,9 @@
     if (!(target instanceof HTMLElement)) return;
     const tooltip = String(target.getAttribute('data-dx-tooltip') || '').trim();
     if (!tooltip) {
-      hideEntryTooltip({ immediate: true });
+      hideEntryTooltip();
       return;
     }
-    clearEntryTooltipHideTimer();
     const layer = ensureEntryTooltipLayer();
     const richMarkup = buildEntryTooltipMarkup(target, tooltip);
     if (richMarkup) {
@@ -666,14 +658,15 @@
       layer.removeAttribute('data-rich');
     }
     layer.hidden = false;
-    layer.style.visibility = 'visible';
-    layer.style.opacity = '1';
+    layer.removeAttribute('hidden');
+    layer.style.setProperty('display', 'block', 'important');
+    layer.style.setProperty('visibility', 'visible', 'important');
+    layer.style.setProperty('opacity', '1', 'important');
+    layer.style.setProperty('z-index', '2147483000', 'important');
+    layer.style.setProperty('pointer-events', 'none', 'important');
     layer.setAttribute('aria-hidden', 'false');
-    layer.setAttribute('data-state', 'hidden');
-    activeEntryTooltipTarget = target;
-    positionEntryTooltip(layer, target);
-    void layer.offsetWidth;
     layer.setAttribute('data-state', 'visible');
+    activeEntryTooltipTarget = target;
     positionEntryTooltip(layer, target);
   };
 
@@ -705,13 +698,13 @@
       }
     };
 
-    hideEntryTooltip({ immediate: true });
+    hideEntryTooltip();
     const tooltipNodes = Array.from(scope.querySelectorAll('[data-dx-tooltip]'));
     tooltipNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
       const tooltipText = String(node.getAttribute('data-dx-tooltip') || '').trim();
       if (!tooltipText) return;
-      node.setAttribute('title', tooltipText);
+      node.removeAttribute('title');
       if (!node.getAttribute('aria-label')) node.setAttribute('aria-label', tooltipText);
     });
 
@@ -774,7 +767,7 @@
 
     addScopedListener(scope, 'keydown', (event) => {
       if (event.key !== 'Escape') return;
-      hideEntryTooltip({ immediate: true });
+      hideEntryTooltip();
     });
 
     addScopedListener(window, 'scroll', () => {
@@ -782,7 +775,7 @@
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
         if (!document.contains(activeEntryTooltipTarget)) {
-          hideEntryTooltip({ immediate: true });
+          hideEntryTooltip();
           return;
         }
         positionEntryTooltip(layer, activeEntryTooltipTarget);
@@ -794,7 +787,7 @@
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
         if (!document.contains(activeEntryTooltipTarget)) {
-          hideEntryTooltip({ immediate: true });
+          hideEntryTooltip();
           return;
         }
         positionEntryTooltip(layer, activeEntryTooltipTarget);
