@@ -162,6 +162,10 @@ const SYNC_MAP = [
     targets: ['assets/js/header-slot.js', 'docs/assets/js/header-slot.js'],
   },
   {
+    source: 'public/assets/js/dex-breadcrumb-motion.js',
+    targets: ['assets/js/dex-breadcrumb-motion.js', 'docs/assets/js/dex-breadcrumb-motion.js'],
+  },
+  {
     source: 'public/assets/js/dx-scroll-dot.js',
     targets: ['assets/js/dx-scroll-dot.js', 'docs/assets/js/dx-scroll-dot.js'],
   },
@@ -172,6 +176,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/css/dex.css',
     targets: ['assets/css/dex.css', 'docs/assets/css/dex.css'],
+  },
+  {
+    source: 'public/assets/dex-sidebar.js',
+    targets: ['assets/dex-sidebar.js', 'docs/assets/dex-sidebar.js'],
   },
   {
     source: 'public/assets/series/dex.png',

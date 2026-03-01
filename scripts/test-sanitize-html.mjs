@@ -112,7 +112,10 @@ const fixtureHtml = `
 const sanitized = sanitizeGeneratedHtml(fixtureHtml);
 const sanitizedTwice = sanitizeGeneratedHtml(sanitized);
 const verify = verifySanitizedHtml(sanitized);
-const normalizeWhitespace = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const normalizeWhitespace = (value) => String(value || '')
+  .replace(/aria-busy="true"\s+data-dx-fetch-state="loading"/g, 'data-dx-fetch-state="loading" aria-busy="true"')
+  .replace(/\s+/g, ' ')
+  .trim();
 const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const legacySiteCssRegex = new RegExp(
   `https://${escapeRegex(legacySiteHost)}/static/${escapeRegex(versionedCssSegment)}/demo/site\\.css`,
@@ -168,6 +171,8 @@ assert.equal($('.dex-entry-section').length, 1, 'Dex entry section should be tag
 assert.ok(!$('.dex-entry-section').hasClass('has-section-divider'), 'Dex entry section should drop section-divider class');
 assert.equal($('.dex-entry-fluid-engine').length, 1, 'Dex entry fluid engine should be tagged');
 assert.ok($('body').hasClass('dex-entry-page'), 'Sanitizer should tag entry pages on body for scoped layout overrides');
+assert.equal($('.dex-entry-layout').first().attr('data-dx-fetch-state'), 'loading', 'Entry fetch root should default to loading state');
+assert.equal($('.dex-entry-layout').first().attr('aria-busy'), 'true', 'Entry fetch root should default to aria-busy=true');
 assert.ok($('body').hasClass('announcement-bar-reserved-space'), 'Sanitizer should reserve announcement-bar spacing on entry pages');
 assert.equal($('#scroll-gradient-bg').length, 1, 'Sanitizer should inject entry gradient background layer');
 assert.equal($('#gooey-mesh-wrapper').length, 1, 'Sanitizer should inject entry blob background layer');

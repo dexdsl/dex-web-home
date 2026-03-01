@@ -52,6 +52,8 @@ function ensureRuntimeMarkers(runtimeJs) {
     'data-person-linkable="true"',
     'bindEntryTooltips',
     'COLLECTION',
+    'COLLECTION_HEADING_CANONICAL',
+    'randomizeTitle(COLLECTION_HEADING_CANONICAL',
     '.dex-collections',
     'data-dx-download-kind="recording-index-pdf"',
     'data-dx-entry-rail-mode',
@@ -60,6 +62,23 @@ function ensureRuntimeMarkers(runtimeJs) {
     if (!runtimeJs.includes(marker)) {
       fail(`runtime missing marker: ${marker}`);
     }
+  }
+}
+
+function ensureCollectionHeadingLigatureContract(dexCss) {
+  const headingRule = /body\.dx-entry-page\s+\.dex-collections\s*>\s*h3\[data-dx-entry-heading(?:="1")?\][\s\S]*?\{([\s\S]*?)\}/i.exec(dexCss);
+  if (!headingRule) {
+    fail('dex.css missing body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] rule');
+  }
+  const ruleBody = headingRule[1];
+  if (/font-variant-ligatures\s*:\s*none/i.test(ruleBody)) {
+    fail('collection heading rule must not disable ligatures');
+  }
+  if (/font-feature-settings\s*:\s*"liga"\s*0/i.test(ruleBody)) {
+    fail('collection heading rule must not disable liga/calt');
+  }
+  if (!/font-variant-ligatures\s*:\s*common-ligatures/i.test(ruleBody)) {
+    fail('collection heading rule missing ligature-enabled declaration');
   }
 }
 
@@ -77,10 +96,11 @@ function ensureCompilerMarkers(entryHtmlSource) {
 }
 
 async function main() {
-  const [templateHtml, runtimeJs, entryHtmlSource] = await Promise.all([
+  const [templateHtml, runtimeJs, entryHtmlSource, dexCss] = await Promise.all([
     read('entry-template/index.html'),
     read('assets/dex-sidebar.js'),
     read('scripts/lib/entry-html.mjs'),
+    read('assets/css/dex.css'),
   ]);
 
   await Promise.all([
@@ -92,6 +112,7 @@ async function main() {
   ensureOrderedSections(templateHtml);
   ensureRecordingIndexSecondary(templateHtml);
   ensureRuntimeMarkers(runtimeJs);
+  ensureCollectionHeadingLigatureContract(dexCss);
   ensureCompilerMarkers(entryHtmlSource);
   console.log('verify:entry-sidebar-contract passed');
 }

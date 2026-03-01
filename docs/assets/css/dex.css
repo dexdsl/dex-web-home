@@ -2004,7 +2004,10 @@ font-family: "Stretch Pro", sans-serif;
 font-size: clamp(2.2rem, 5.2vw, 4.8rem);
 line-height: 0.92;
 letter-spacing: 0.01em;
-text-transform: lowercase;
+text-transform: uppercase;
+font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
+text-rendering: optimizeLegibility;
 max-block-size: calc(3 * 0.92em);
 display: -webkit-box;
 -webkit-box-orient: vertical;
@@ -3647,9 +3650,10 @@ a[data-dx-donate-rendered] {
   gap: 12px;
 }
 
-.dex-collections > h3[data-dx-entry-heading] {
-  font-variant-ligatures: none !important;
-  font-feature-settings: "liga" 0, "calt" 0 !important;
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
 }
 
 .dex-collections .overview-item {
@@ -3756,7 +3760,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-sidebar {
   overflow-x: hidden !important;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding-right: 10px !important;
+  padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll {
@@ -3772,17 +3776,21 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-sec
   right: auto !important;
   bottom: auto !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
+  padding-right: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
   min-height: 0 !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-  padding-right: 12px !important;
+  padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
   margin-right: 0 !important;
-  padding-right: clamp(14px, 1.4vw, 18px) !important;
+  padding-left: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+  padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
 }
 
 .dex-entry-page-title {
@@ -3808,6 +3816,11 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar se
     left: auto;
     right: auto;
     bottom: auto;
+  }
+
+  html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
+    --dx-entry-rail-inline-pad: 0px;
+    --dx-entry-footer-inline-pad: 0px;
   }
 }
 
@@ -3843,6 +3856,8 @@ body.dx-entry-page [data-dex-breadcrumb-path] {
 /* Final desktop lock for entry rails (highest-priority override block). */
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
   overflow: hidden !important;
+  --dx-entry-rail-inline-pad: clamp(16px, 1.6vw, 22px);
+  --dx-entry-footer-inline-pad: var(--dx-entry-rail-inline-pad);
 }
 
 .dex-collections .overview-buckets-grid {
@@ -3862,14 +3877,14 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
 
 /* Sidebar hardening: keep overview/collections measurable and avoid bucket crowding on desktop rails. */
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-  padding-right: clamp(18px, 1.8vw, 24px) !important;
+  padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
   height: auto !important;
   min-height: max-content !important;
-  padding-left: clamp(16px, 1.5vw, 22px) !important;
-  padding-right: clamp(16px, 1.5vw, 22px) !important;
+  padding-left: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+  padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
 }
 
 body.dx-entry-page .dex-overview {
@@ -3890,7 +3905,7 @@ body.dx-entry-page .dex-overview .overview-item {
   position: relative !important;
   min-height: 0 !important;
   display: grid !important;
-  grid-template-rows: minmax(62px, 1fr) auto !important;
+  grid-template-rows: minmax(62px, 1fr) minmax(1.2em, auto) !important;
   justify-items: center !important;
   align-items: center !important;
   row-gap: clamp(4px, 0.42vw, 6px) !important;
@@ -3917,8 +3932,12 @@ body.dx-entry-page .dex-overview .overview-lookup {
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   text-align: center !important;
-  font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+  font-size: var(--dx-entry-overview-lookup-size, clamp(1.02rem, 1.72vw, 1.58rem)) !important;
   font-weight: 800 !important;
   line-height: 0.96 !important;
   letter-spacing: 0.03em !important;
@@ -3944,7 +3963,9 @@ body.dx-entry-page .dex-overview .overview-label {
 }
 
 body.dx-entry-page .dex-collections {
-  --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
+  --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
+  --dx-entry-tile-radius: clamp(10px, 0.8vw, 12px);
+  --dx-entry-tile-gap: clamp(6px, 0.6vw, 10px);
   display: grid !important;
   grid-template-columns: 1fr !important;
   row-gap: clamp(10px, 1vw, 14px) !important;
@@ -3956,7 +3977,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collection
   display: grid !important;
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   justify-content: stretch !important;
-  gap: clamp(6px, 0.6vw, 10px) !important;
+  gap: var(--dx-entry-tile-gap) !important;
   padding: 0 clamp(4px, 0.5vw, 8px) !important;
   align-items: stretch !important;
 }
@@ -3964,13 +3985,13 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collection
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collections .dx-bucket-tile {
   width: 100% !important;
   min-width: 0 !important;
-  min-height: clamp(28px, 1.85vw, 34px) !important;
-  max-height: clamp(28px, 1.85vw, 34px) !important;
-  height: clamp(28px, 1.85vw, 34px) !important;
+  min-height: var(--dx-entry-tile-height) !important;
+  max-height: var(--dx-entry-tile-height) !important;
+  height: var(--dx-entry-tile-height) !important;
   aspect-ratio: auto !important;
   padding: clamp(3px, 0.45vw, 6px) !important;
   box-sizing: border-box !important;
-  border-radius: var(--dx-entry-bucket-radius) !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
   font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
   line-height: 1 !important;
   letter-spacing: 0.02em !important;
@@ -3980,6 +4001,9 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collection
 body.dx-entry-page .dex-collections > h3[data-dx-entry-heading="1"] {
   margin: 0 !important;
   padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
 }
 
 body.dx-entry-page .dex-collections .overview-item {
@@ -4009,7 +4033,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-buc
   width: clamp(72px, 15%, 92px) !important;
   min-height: clamp(34px, 2.4vw, 44px) !important;
   max-height: clamp(34px, 2.4vw, 44px) !important;
-  border-radius: var(--dx-entry-bucket-radius) !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
   padding: clamp(4px, 0.55vw, 7px) !important;
   box-sizing: border-box !important;

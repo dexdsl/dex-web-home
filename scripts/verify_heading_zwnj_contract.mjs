@@ -81,6 +81,7 @@ function verifyHeadingRuntime() {
     'HEADING_DUPLICATE_LIGATURE_SUPPORTED',
     'insertCanonicalDoubleLetterSeparators',
     'normalizeRenderedDuplicateSeparators',
+    'stripCanonicalHeadingSeparators',
     'pickProbabilisticDuplicateCount',
     'window.__DX_HEADING_RANDOM_SEED',
     'window.__dxHeadingFx',
@@ -96,6 +97,24 @@ function verifyHeadingRuntime() {
     "data-dx-heading-rendered",
     'applyHeadingTypographyAndSupportHooks',
   ]);
+
+  if (!/return\s+stripCanonicalHeadingSeparators\(rendered\s*\|\|\s*separated\);/.test(text)) {
+    FAILURES.push(`${relPath} must normalize visible render output via stripCanonicalHeadingSeparators(rendered || separated)`);
+  }
+  if (/return\s+rendered\s*\|\|\s*separated\s*;/.test(text)) {
+    FAILURES.push(`${relPath} must not return raw rendered/separated heading output`);
+  }
+}
+
+function verifySidebarHeadingSeparatorPolicy() {
+  const relPath = 'public/assets/dex-sidebar.js';
+  const text = readText(relPath);
+  if (/replace\(\s*\/\[\s*\\u200C\\u200D\s*\]\/g,\s*''\s*\)/.test(text)) {
+    FAILURES.push(`${relPath} must not strip U+200D from visible randomizeTitle output`);
+  }
+  if (!/replace\(\s*\/\\u200C\/g,\s*''\s*\)/.test(text)) {
+    FAILURES.push(`${relPath} missing canonical separator strip for heading pass-through`);
+  }
 }
 
 function verifyNoInlineHeadingRandomizers() {
@@ -178,6 +197,7 @@ function verifySupportErrorHeadingHooks() {
 function main() {
   verifyNoAuthoredZwnj();
   verifyHeadingRuntime();
+  verifySidebarHeadingSeparatorPolicy();
   verifyNoInlineHeadingRandomizers();
   verifySupportFooterPadding();
   verifySettingsHeadingExclusion();

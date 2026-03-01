@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { extractFormatKeys, injectEntryHtml } from './lib/entry-html.mjs';
 import { sanitizeGeneratedHtml } from './lib/sanitize-generated-html.mjs';
 
@@ -18,6 +19,12 @@ const BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const FORBIDDEN_BUNDLE_PATTERNS = [
   { token: 'esm.sh import', regex: /esm\.sh/i },
   { token: 'dynamic import call', regex: /\bimport\s*\(/i },
+];
+const MIRROR_PARITY_GROUPS = [
+  ['public/assets/css/dex.css', 'assets/css/dex.css', 'docs/assets/css/dex.css'],
+  ['public/assets/dex-sidebar.js', 'assets/dex-sidebar.js', 'docs/assets/dex-sidebar.js'],
+  ['public/assets/js/header-slot.js', 'assets/js/header-slot.js', 'docs/assets/js/header-slot.js'],
+  ['public/assets/js/dex-breadcrumb-motion.js', 'assets/js/dex-breadcrumb-motion.js', 'docs/assets/js/dex-breadcrumb-motion.js'],
 ];
 
 function extractRuntimePaths(html) {
@@ -46,6 +53,29 @@ async function fileExists(filePath) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function sha1(filePath) {
+  const buffer = await fs.readFile(filePath);
+  return createHash('sha1').update(buffer).digest('hex');
+}
+
+async function verifyMirrorParity() {
+  for (const group of MIRROR_PARITY_GROUPS) {
+    const absolutePaths = group.map((relativePath) => path.join(PROJECT_ROOT, relativePath));
+    const existence = await Promise.all(absolutePaths.map((filePath) => fileExists(filePath)));
+    const missing = group.filter((_, index) => !existence[index]);
+    if (missing.length > 0) {
+      throw new Error(`Asset mirror parity failed: missing file(s): ${missing.join(', ')}`);
+    }
+    const hashes = await Promise.all(absolutePaths.map((filePath) => sha1(filePath)));
+    const first = hashes[0];
+    const mismatch = hashes.find((hash) => hash !== first);
+    if (mismatch) {
+      const labeled = group.map((relativePath, index) => `${relativePath}=${hashes[index]}`).join(', ');
+      throw new Error(`Asset mirror parity failed: checksum mismatch: ${labeled}`);
+    }
   }
 }
 
@@ -166,6 +196,7 @@ async function main() {
   }
 
   await verifyBreadcrumbBundleIntegrity();
+  await verifyMirrorParity();
 
   console.log('Asset surface verification passed.');
 }

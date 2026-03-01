@@ -22,6 +22,20 @@
   const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
+  const DX_MIN_SHEEN_MS = 120;
+  const FETCH_STATE_LOADING = 'loading';
+  const FETCH_STATE_READY = 'ready';
+  const FETCH_STATE_ERROR = 'error';
+  const ENTRY_FETCH_SHELL_MARKER = 'data-dx-entry-fetch-shell';
+  const ENTRY_FETCH_TARGET_SELECTORS = [
+    '.dex-entry-layout',
+    '.dex-entry-main',
+    '.dex-overview',
+    '.dex-collections',
+    '.dex-license',
+  ];
+  let overviewLookupFitBound = false;
+  let overviewLookupResizeObserver = null;
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -42,6 +56,8 @@
       return null;
     }
   };
+
+  const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
 
   const readManifestToken = (cfg, type, bucket, formatKey) => {
     const source = type === 'audio'
@@ -170,31 +186,6 @@
     const style = document.createElement('style');
     style.id = ENTRY_RUNTIME_STYLE_ID;
     style.textContent = `
-      body.dx-entry-page .dex-entry-header {
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-
-      body.dx-entry-page .dex-entry-section .content-wrapper {
-        align-items: flex-start !important;
-      }
-
-      body.dx-entry-page .dex-entry-host .dx-code-container {
-        padding-top: clamp(12px, 1.5vw, 20px) !important;
-        padding-bottom: clamp(12px, 1.5vw, 20px) !important;
-      }
-
-      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header {
-        position: sticky !important;
-        top: var(--dx-entry-header-offset, 0px) !important;
-        z-index: 12 !important;
-        margin: 0 0 12px !important;
-        padding-bottom: 0 !important;
-      }
-
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page,
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #siteWrapper,
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #page,
@@ -225,12 +216,12 @@
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-        padding-right: clamp(18px, 1.8vw, 24px) !important;
+        padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
-        padding-left: clamp(16px, 1.5vw, 22px) !important;
-        padding-right: clamp(16px, 1.5vw, 22px) !important;
+        padding-left: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+        padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
@@ -239,7 +230,10 @@
         right: auto !important;
         bottom: auto !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        padding-left: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
+        padding-right: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
         min-height: 0 !important;
       }
 
@@ -249,172 +243,9 @@
         min-height: 0 !important;
       }
 
-      body.dx-entry-page [data-dex-breadcrumb-path] {
-        opacity: 1 !important;
-        visibility: visible !important;
-        fill: none !important;
-        stroke: currentColor !important;
-      }
-
-      body.dx-entry-page .dex-overview {
-        display: grid !important;
-        height: auto !important;
-        min-height: clamp(126px, 13.5vw, 188px) !important;
-        grid-template-columns: 65% 35% !important;
-        grid-auto-rows: max-content !important;
-        align-content: center !important;
-        align-items: stretch !important;
-        column-gap: clamp(8px, 1vw, 12px) !important;
-        padding-block: clamp(10px, 1vw, 14px) !important;
-        padding-inline: clamp(12px, 1.3vw, 18px) !important;
-        box-sizing: border-box !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-item {
-        position: relative !important;
-        min-height: 0 !important;
-        display: grid !important;
-        grid-template-rows: minmax(62px, 1fr) auto !important;
-        justify-items: center !important;
-        align-items: center !important;
-        row-gap: clamp(4px, 0.42vw, 6px) !important;
-        width: 100% !important;
-        padding-inline: clamp(6px, 0.7vw, 10px) !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-item--lookup,
-      body.dx-entry-page .dex-overview .overview-item--series {
-        align-items: center !important;
-        justify-items: center !important;
-        justify-content: center !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-lookup,
-      body.dx-entry-page .dex-overview .overview-series-img {
-        justify-self: center !important;
-        place-self: center !important;
-        margin: 0 auto !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-lookup {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-        text-align: center !important;
-        font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
-        font-weight: 800 !important;
-        line-height: 0.96 !important;
-        letter-spacing: 0.03em !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-series-img {
-        width: clamp(90px, 8.2vw, 126px) !important;
-        max-height: clamp(58px, 5.4vw, 78px) !important;
-        height: auto !important;
-        object-fit: contain !important;
-      }
-
-      body.dx-entry-page .dex-overview .overview-label {
-        min-height: 1.18em !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        align-self: end !important;
-        margin: 0 !important;
-        width: 100% !important;
-        font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
-        line-height: 1 !important;
-      }
-
       body.dx-entry-page .dex-sidebar section {
         height: auto !important;
         min-height: max-content !important;
-      }
-
-      body.dx-entry-page .dex-collections {
-        --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
-        display: grid !important;
-        grid-template-columns: 1fr !important;
-        row-gap: clamp(10px, 1vw, 14px) !important;
-        padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
-        box-sizing: border-box !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-buckets-grid {
-        display: grid !important;
-        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-        justify-content: stretch !important;
-        gap: clamp(6px, 0.6vw, 10px) !important;
-        padding: 0 clamp(4px, 0.5vw, 8px) !important;
-        align-items: stretch !important;
-      }
-
-      body.dx-entry-page .dex-collections .dx-bucket-tile {
-        width: 100% !important;
-        min-width: 0 !important;
-        min-height: clamp(28px, 1.85vw, 34px) !important;
-        max-height: clamp(28px, 1.85vw, 34px) !important;
-        height: clamp(28px, 1.85vw, 34px) !important;
-        aspect-ratio: auto !important;
-        padding: clamp(3px, 0.45vw, 6px) !important;
-        box-sizing: border-box !important;
-        border-radius: var(--dx-entry-bucket-radius) !important;
-        font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
-        line-height: 1 !important;
-        letter-spacing: 0.02em !important;
-        overflow: hidden !important;
-      }
-
-      body.dx-entry-page .dex-collections > h3[data-dx-entry-heading="1"] {
-        margin: 0 !important;
-        padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-item {
-        row-gap: clamp(4px, 0.45vw, 7px) !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-label {
-        order: -1 !important;
-        margin: 0 !important;
-        margin-bottom: 1px !important;
-        font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
-        font-style: italic !important;
-        letter-spacing: 0.02em !important;
-        text-transform: none !important;
-        line-height: 1 !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 8px !important;
-        width: 100% !important;
-        justify-content: flex-start !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn {
-        width: clamp(72px, 15%, 92px) !important;
-        min-height: clamp(34px, 2.4vw, 44px) !important;
-        max-height: clamp(34px, 2.4vw, 44px) !important;
-        border-radius: var(--dx-entry-bucket-radius) !important;
-        border: 1px solid rgba(0, 0, 0, 0.2) !important;
-        padding: clamp(4px, 0.55vw, 7px) !important;
-        box-sizing: border-box !important;
-        background: rgba(255, 255, 255, 0.55) !important;
-        box-shadow: none !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn.is-active {
-        border-color: rgba(255, 25, 16, 0.5) !important;
-        color: #fff !important;
-        background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92)) !important;
-        box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
-      }
-
-      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn .dx-fav-heart-icon {
-        display: none !important;
       }
 
       @media (max-width: 979px) {
@@ -425,11 +256,6 @@
           max-height: none !important;
           overflow: visible !important;
         }
-
-        body.dx-entry-page .dex-collections .overview-buckets-grid {
-          grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-          justify-content: stretch !important;
-        }
       }
     `;
     document.head.appendChild(style);
@@ -438,6 +264,126 @@
   const parseCssPx = (value) => {
     const num = Number.parseFloat(String(value || '').trim().replace(/px$/i, ''));
     return Number.isFinite(num) ? num : 0;
+  };
+
+  const setFetchState = (root, state) => {
+    if (!(root instanceof HTMLElement)) return;
+    root.setAttribute('data-dx-fetch-state', state);
+    if (state === FETCH_STATE_LOADING) {
+      root.setAttribute('aria-busy', 'true');
+    } else {
+      root.removeAttribute('aria-busy');
+    }
+  };
+
+  const createFetchShell = (variant = 'card') => {
+    const shell = document.createElement('div');
+    shell.className = `dx-fetch-shell dx-fetch-shell--${variant === 'rows' ? 'rows' : 'card'}`;
+    if (variant === 'rows') {
+      shell.innerHTML = `
+        <span class="dx-fetch-shell-pill"></span>
+        <span class="dx-fetch-shell-line" style="width: 94%;"></span>
+        <span class="dx-fetch-shell-line" style="width: 86%;"></span>
+        <span class="dx-fetch-shell-line" style="width: 72%;"></span>
+      `;
+      return shell;
+    }
+
+    shell.innerHTML = `
+      <span class="dx-fetch-shell-pill"></span>
+      <span class="dx-fetch-shell-line"></span>
+      <span class="dx-fetch-shell-line" style="width: 76%;"></span>
+    `;
+    return shell;
+  };
+
+  const ensureFetchShell = (target) => {
+    if (!(target instanceof HTMLElement)) return;
+    const existing = target.querySelector(`:scope > .dx-fetch-shell-overlay[${ENTRY_FETCH_SHELL_MARKER}="1"]`);
+    if (existing) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'dx-fetch-shell-overlay';
+    overlay.setAttribute(ENTRY_FETCH_SHELL_MARKER, '1');
+    overlay.setAttribute('aria-hidden', 'true');
+    const variant = target.classList.contains('dex-entry-layout') || target.classList.contains('dex-collections')
+      ? 'rows'
+      : 'card';
+    overlay.appendChild(createFetchShell(variant));
+    target.prepend(overlay);
+  };
+
+  const collectEntryFetchTargets = () => {
+    const seen = new Set();
+    const targets = [];
+    ENTRY_FETCH_TARGET_SELECTORS.forEach((selector) => {
+      const node = document.querySelector(selector);
+      if (!(node instanceof HTMLElement)) return;
+      if (seen.has(node)) return;
+      seen.add(node);
+      targets.push(node);
+    });
+    return targets;
+  };
+
+  const ensureEntryFetchShells = (targets = []) => {
+    targets.forEach((target) => {
+      setFetchState(target, FETCH_STATE_LOADING);
+      ensureFetchShell(target);
+    });
+  };
+
+  const finalizeEntryFetchState = async (targets = [], state = FETCH_STATE_READY, startTs = performance.now()) => {
+    const elapsed = performance.now() - startTs;
+    if (elapsed < DX_MIN_SHEEN_MS) {
+      await delay(DX_MIN_SHEEN_MS - elapsed);
+    }
+    targets.forEach((target) => setFetchState(target, state));
+  };
+
+  const fitOverviewLookupText = () => {
+    const lookup = document.querySelector('.dex-overview .overview-lookup');
+    if (!(lookup instanceof HTMLElement)) return;
+    const lookupItem = lookup.closest('.overview-item--lookup');
+    const host = lookupItem instanceof HTMLElement ? lookupItem : lookup.parentElement;
+    if (!(host instanceof HTMLElement)) return;
+
+    const hostStyle = window.getComputedStyle(host);
+    const availableWidth = Math.max(
+      56,
+      host.clientWidth
+      - parseCssPx(hostStyle.paddingLeft)
+      - parseCssPx(hostStyle.paddingRight)
+      - 2,
+    );
+
+    const MIN_SIZE = 13;
+    const MAX_SIZE = 34;
+    lookup.style.setProperty('font-size', `${MAX_SIZE}px`, 'important');
+    const measuredWidth = Math.max(1, Math.ceil(lookup.scrollWidth));
+    const fitSize = measuredWidth > availableWidth
+      ? Math.max(MIN_SIZE, Math.floor((MAX_SIZE * (availableWidth / measuredWidth)) * 100) / 100)
+      : MAX_SIZE;
+    lookup.style.setProperty('font-size', `${fitSize}px`, 'important');
+  };
+
+  const bindOverviewLookupFit = () => {
+    const schedule = () => window.requestAnimationFrame(() => fitOverviewLookupText());
+    if (overviewLookupFitBound) {
+      schedule();
+      return;
+    }
+    overviewLookupFitBound = true;
+    window.addEventListener('resize', schedule, { passive: true });
+    if (typeof window.ResizeObserver === 'function') {
+      overviewLookupResizeObserver = new ResizeObserver(schedule);
+      const overview = document.querySelector('.dex-overview');
+      const lookup = document.querySelector('.dex-overview .overview-lookup');
+      if (overview instanceof HTMLElement) overviewLookupResizeObserver.observe(overview);
+      if (lookup instanceof HTMLElement) overviewLookupResizeObserver.observe(lookup);
+    }
+    schedule();
+    window.setTimeout(schedule, 60);
+    window.setTimeout(schedule, 240);
   };
 
   const normalizeLocationPath = (pathname) => {
@@ -481,7 +427,7 @@
   const renderStretchHeading = (value, { seedKey = '', uppercase = true } = {}) => {
     const input = uppercase ? String(value || '').toUpperCase() : String(value || '');
     const runtime = window.__dxHeadingFx;
-    const stripHeadingSeparators = (text) => String(text == null ? '' : text).replace(/[\u200C\u200D]/g, '');
+    const stripHeadingSeparators = (text) => String(text == null ? '' : text).replace(/\u200C/g, '');
     if (runtime && typeof runtime.renderHeadingText === 'function') {
       try {
         return stripHeadingSeparators(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
@@ -726,6 +672,8 @@
       document.body.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
       document.body.classList.remove('dx-entry-desktop-fixed');
       root.style.removeProperty('--dx-entry-rails-height');
+      root.style.removeProperty('--dx-entry-rail-inline-pad');
+      root.style.removeProperty('--dx-entry-footer-inline-pad');
       document.body.style.removeProperty('overflow');
       main.style.height = '';
       main.style.maxHeight = '';
@@ -751,7 +699,10 @@
     const layoutRect = layout.getBoundingClientRect();
     const topInset = Math.max(0, Math.ceil(layoutRect.top));
     const available = Math.max(280, Math.floor(window.innerHeight - topInset - bottomInset));
+    const railInlinePad = Math.max(14, Math.min(24, Math.round(window.innerWidth * 0.016)));
     root.style.setProperty('--dx-entry-rails-height', `${available}px`);
+    root.style.setProperty('--dx-entry-rail-inline-pad', `${railInlinePad}px`);
+    root.style.setProperty('--dx-entry-footer-inline-pad', `${railInlinePad}px`);
     root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.classList.add('dx-entry-desktop-fixed');
@@ -1925,261 +1876,269 @@
 
   const boot = async () => {
     if (document.documentElement.dataset.dexSidebarRendered === '1') return;
+    const bootStartTs = performance.now();
+    const fetchTargets = collectEntryFetchTargets();
+    ensureEntryFetchShells(fetchTargets);
+    try {
+      const pageJson = parseJsonScript('dex-sidebar-page-config');
+      const page = pageJson || window.dexSidebarPageConfig;
+      if (!page) {
+        throw new Error('Missing per-page sidebar config');
+      }
 
-    const pageJson = parseJsonScript('dex-sidebar-page-config');
-    const page = pageJson || window.dexSidebarPageConfig;
-    if (!page) {
-      console.error('Missing per-page sidebar config');
-      return;
-    }
+      const globalCfg = parseJsonScript('dex-sidebar-config') || {};
+      const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
 
-    const globalCfg = parseJsonScript('dex-sidebar-config') || {};
-    const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
-
-    const credits = page.credits || {};
-    const cfg = {
-      license: globalCfg.license || {},
-      attributionSentence: page.attributionSentence,
-      credits: {
-        ...credits,
-        artist: pin(credits.artist),
-        artistAlt: credits.artistAlt,
-        instruments: (credits.instruments || []).map(pin),
-        video: {
-          director: pin(credits.video?.director),
-          cinematography: pin(credits.video?.cinematography),
-          editing: pin(credits.video?.editing),
+      const credits = page.credits || {};
+      const cfg = {
+        license: globalCfg.license || {},
+        attributionSentence: page.attributionSentence,
+        credits: {
+          ...credits,
+          artist: pin(credits.artist),
+          artistAlt: credits.artistAlt,
+          instruments: (credits.instruments || []).map(pin),
+          video: {
+            director: pin(credits.video?.director),
+            cinematography: pin(credits.video?.cinematography),
+            editing: pin(credits.video?.editing),
+          },
+          audio: {
+            recording: pin(credits.audio?.recording),
+            mix: pin(credits.audio?.mix),
+            master: pin(credits.audio?.master),
+          },
         },
-        audio: {
-          recording: pin(credits.audio?.recording),
-          mix: pin(credits.audio?.mix),
-          master: pin(credits.audio?.master),
+        downloads: {
+          delivery: 'worker_bundle',
+          formats: {
+            audio: Array.isArray(globalCfg?.downloads?.formats?.audio) ? globalCfg.downloads.formats.audio : [],
+            video: Array.isArray(globalCfg?.downloads?.formats?.video) ? globalCfg.downloads.formats.video : [],
+          },
+          recordingIndexPdfRef: String(
+            page?.downloads?.recordingIndexPdfRef
+            || page?.recordingIndexPdfRef
+            || '',
+          ).trim(),
+          recordingIndexBundleRef: String(
+            page?.downloads?.recordingIndexBundleRef
+            || page?.recordingIndexBundleRef
+            || '',
+          ).trim(),
+          recordingIndexSourceUrl: String(
+            page?.downloads?.recordingIndexSourceUrl
+            || page?.recordingIndexSourceUrl
+            || '',
+          ).trim(),
+          audioFileIds: manifest.audio || {},
+          videoFileIds: manifest.video || {},
         },
-      },
-      downloads: {
-        delivery: 'worker_bundle',
-        formats: {
-          audio: Array.isArray(globalCfg?.downloads?.formats?.audio) ? globalCfg.downloads.formats.audio : [],
-          video: Array.isArray(globalCfg?.downloads?.formats?.video) ? globalCfg.downloads.formats.video : [],
-        },
-        recordingIndexPdfRef: String(
-          page?.downloads?.recordingIndexPdfRef
-          || page?.recordingIndexPdfRef
-          || '',
-        ).trim(),
-        recordingIndexBundleRef: String(
-          page?.downloads?.recordingIndexBundleRef
-          || page?.recordingIndexBundleRef
-          || '',
-        ).trim(),
-        recordingIndexSourceUrl: String(
-          page?.downloads?.recordingIndexSourceUrl
-          || page?.recordingIndexSourceUrl
-          || '',
-        ).trim(),
-        audioFileIds: manifest.audio || {},
-        videoFileIds: manifest.video || {},
-      },
-      fileSpecs: page.fileSpecs || {},
-      metadata: page.metadata || {},
-    };
+        fileSpecs: page.fileSpecs || {},
+        metadata: page.metadata || {},
+      };
 
-    const lookup = String(page.lookupNumber || '').trim() || 'Unknown lookup';
-    const selected = normalizeBuckets(page.buckets);
-    const badgesHtml = buildBucketsHtml(page.buckets, cfg, lookup);
-    const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
+      const lookup = String(page.lookupNumber || '').trim() || 'Unknown lookup';
+      const selected = normalizeBuckets(page.buckets);
+      const badgesHtml = buildBucketsHtml(page.buckets, cfg, lookup);
+      const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
 
-    const origin = getSidebarAssetOrigin();
-    ensureProfileChromeRuntime(origin);
-    ensureEntryRuntimeLayoutOverrides();
-    const favoritesApi = await ensureFavoritesApi(origin);
-    if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
-      try {
-        favoritesApi.migrateLegacy();
-      } catch {}
-      bindFavoritesSignals(favoritesApi);
-    }
+      const origin = getSidebarAssetOrigin();
+      ensureProfileChromeRuntime(origin);
+      ensureEntryRuntimeLayoutOverrides();
+      const favoritesApi = await ensureFavoritesApi(origin);
+      if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
+        try {
+          favoritesApi.migrateLegacy();
+        } catch {}
+        bindFavoritesSignals(favoritesApi);
+      }
 
-    const SERIES_PATHS = {
-      dex: '/assets/series/dex.png',
-      index: '/assets/series/index.png',
-      dexfest: '/assets/series/dexfest.png',
-    };
-    const sk = seriesKey(page);
-    const seriesSrc = new URL(SERIES_PATHS[sk] || SERIES_PATHS.dex, origin).toString();
-    const entryHref = normalizeLocationPath(window.location.pathname || '/');
+      const SERIES_PATHS = {
+        dex: '/assets/series/dex.png',
+        index: '/assets/series/index.png',
+        dexfest: '/assets/series/dexfest.png',
+      };
+      const sk = seriesKey(page);
+      const seriesSrc = new URL(SERIES_PATHS[sk] || SERIES_PATHS.dex, origin).toString();
+      const entryHref = normalizeLocationPath(window.location.pathname || '/');
 
-    const overviewEl = document.querySelector('.dex-overview');
-    if (overviewEl) {
-      overviewEl.innerHTML = `
-        <div class="overview-item overview-item--lookup">
-          <span class="overview-lookup">#${lookup}</span>
-          <p class="p3 overview-label overview-label--lookup">Lookup #</p>
-        </div>
-        <div class="overview-item overview-item--series">
-          <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
-          <p class="p3 overview-label overview-label--series">Series</p>
-        </div>
-      `;
-    }
+      const overviewEl = document.querySelector('.dex-overview');
+      if (overviewEl) {
+        overviewEl.innerHTML = `
+          <div class="overview-item overview-item--lookup">
+            <span class="overview-lookup">#${lookup}</span>
+            <p class="p3 overview-label overview-label--lookup">Lookup #</p>
+          </div>
+          <div class="overview-item overview-item--series">
+            <img src="${seriesSrc}" alt="Series" class="overview-series-img"/>
+            <p class="p3 overview-label overview-label--series">Series</p>
+          </div>
+        `;
+        bindOverviewLookupFit();
+      }
 
-    const collectionsEl = document.querySelector('.dex-collections');
-    if (collectionsEl) {
-      const bucketFavoriteButtonsHtml = favoriteBuckets
-        .map((bucket) => `
-          <button
-            type="button"
-            class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle"
-            data-bucket="${bucket}"
-            data-dx-fav-chip="${bucket}"
-            aria-label="Add bucket ${bucket} to favorites"
-            title="Add bucket ${bucket} to favorites"
-          ></button>
-        `)
-        .join('');
-      collectionsEl.innerHTML = `
-        <h3 data-dx-entry-heading="1">${randomizeTitle(COLLECTION_HEADING_CANONICAL, { uppercase: false, seedKey: `${window.location.pathname || '/'}|collection` })}</h3>
-        <div class="overview-item overview-item--buckets">
-          <p class="p3 overview-label">Available Buckets</p>
-          <div class="overview-buckets-grid">${badgesHtml}</div>
-        </div>
-        <div class="overview-item overview-item--favorite-collection">
-          <p class="p3 overview-label">Favorite This Collection</p>
-          <button
-            type="button"
-            class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle"
-            aria-label="Add entry to favorites"
-            title="Add entry to favorites"
-          ></button>
-        </div>
-        <div class="overview-item overview-item--favorite-buckets">
-          <p class="p3 overview-label">Favorite Buckets</p>
-          <div class="overview-badges">${bucketFavoriteButtonsHtml || '<span class="badge unavailable">No buckets</span>'}</div>
-        </div>
-      `;
+      const collectionsEl = document.querySelector('.dex-collections');
+      if (collectionsEl) {
+        const bucketFavoriteButtonsHtml = favoriteBuckets
+          .map((bucket) => `
+            <button
+              type="button"
+              class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle"
+              data-bucket="${bucket}"
+              data-dx-fav-chip="${bucket}"
+              aria-label="Add bucket ${bucket} to favorites"
+              title="Add bucket ${bucket} to favorites"
+            ></button>
+          `)
+          .join('');
+        collectionsEl.innerHTML = `
+          <h3 data-dx-entry-heading="1">${randomizeTitle(COLLECTION_HEADING_CANONICAL, { uppercase: false, seedKey: `${window.location.pathname || '/'}|collection` })}</h3>
+          <div class="overview-item overview-item--buckets">
+            <p class="p3 overview-label">Available Buckets</p>
+            <div class="overview-buckets-grid">${badgesHtml}</div>
+          </div>
+          <div class="overview-item overview-item--favorite-collection">
+            <p class="p3 overview-label">Favorite This Collection</p>
+            <button
+              type="button"
+              class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle"
+              aria-label="Add entry to favorites"
+              title="Add entry to favorites"
+            ></button>
+          </div>
+          <div class="overview-item overview-item--favorite-buckets">
+            <p class="p3 overview-label">Favorite Buckets</p>
+            <div class="overview-badges">${bucketFavoriteButtonsHtml || '<span class="badge unavailable">No buckets</span>'}</div>
+          </div>
+        `;
 
-      bindEntryTooltips(collectionsEl);
+        bindEntryTooltips(collectionsEl);
 
-      if (favoritesApi) {
-        const entryFavButton = collectionsEl.querySelector('.dx-fav-entry-toggle');
-        if (entryFavButton) {
-          bindFavoriteToggle(entryFavButton, favoritesApi, buildEntryFavoriteRecord(lookup, entryHref), {
-            active: 'Favorited entry',
-            inactive: 'Favorite entry',
+        if (favoritesApi) {
+          const entryFavButton = collectionsEl.querySelector('.dx-fav-entry-toggle');
+          if (entryFavButton) {
+            bindFavoriteToggle(entryFavButton, favoritesApi, buildEntryFavoriteRecord(lookup, entryHref), {
+              active: 'Favorited entry',
+              inactive: 'Favorite entry',
+            });
+          }
+
+          collectionsEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
+            const bucket = String(bucketButton.getAttribute('data-bucket') || '').trim().toUpperCase();
+            if (!bucket) return;
+            bindFavoriteToggle(bucketButton, favoritesApi, buildBucketFavoriteRecord(lookup, entryHref, bucket), {
+              active: `Favorited ${bucket}`,
+              inactive: `Favorite ${bucket}`,
+            });
           });
         }
+      }
 
-        collectionsEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
-          const bucket = String(bucketButton.getAttribute('data-bucket') || '').trim().toUpperCase();
-          if (!bucket) return;
-          bindFavoriteToggle(bucketButton, favoritesApi, buildBucketFavoriteRecord(lookup, entryHref, bucket), {
-            active: `Favorited ${bucket}`,
-            inactive: `Favorite ${bucket}`,
-          });
+      render('.dex-license', 'License', `
+        <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
+        <p class="dex-attrib">This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}</p>
+        <div class="dex-license-controls">
+          <button type="button" class="license-btn copy-btn dx-button-element--primary" title="Copy attribution"><span class="copy-text">Copy</span></button>
+          <button type="button" class="license-btn usage-btn dx-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">Usage Notes</button>
+        </div>
+      `);
+
+      const copyBtn = document.querySelector('.dex-license .copy-btn');
+      if (copyBtn && copyBtn.dataset.dexBound !== '1') {
+        copyBtn.dataset.dexBound = '1';
+        copyBtn.addEventListener('click', () => {
+          const txt = `This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}`;
+          navigator.clipboard?.writeText(txt);
+          const span = copyBtn.querySelector('.copy-text');
+          const orig = span?.textContent || 'Copy';
+          if (span) {
+            span.textContent = 'Copied!';
+            setTimeout(() => {
+              span.textContent = orig;
+            }, 2000);
+          }
         });
       }
-    }
 
-    render('.dex-license', 'License', `
-      <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
-      <p class="dex-attrib">This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}</p>
-      <div class="dex-license-controls">
-        <button type="button" class="license-btn copy-btn dx-button-element--primary" title="Copy attribution"><span class="copy-text">Copy</span></button>
-        <button type="button" class="license-btn usage-btn dx-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">Usage Notes</button>
-      </div>
-    `);
+      const instrumentsLine = (cfg.credits.instruments || []).join(', ');
+      render('.dex-credits', 'Credits', `
+        <p><strong>${cfg.credits.artist}</strong>${instrumentsLine ? `, ${instrumentsLine}` : ''}${cfg.credits.artistAlt ? `<br>${cfg.credits.artistAlt}` : ''}</p>
+        <p><em>Video:</em> Dir:${cfg.credits.video.director}, Cin:${cfg.credits.video.cinematography}, Edit:${cfg.credits.video.editing}</p>
+        <p><em>Audio:</em> Rec:${cfg.credits.audio.recording}, Mix:${cfg.credits.audio.mix}, Master:${cfg.credits.audio.master}</p>
+        <div class="dex-badges">
+          <span class="badge">${cfg.credits.season || ''} ${cfg.credits.year || ''}</span>
+          <span class="badge">${cfg.credits.location || ''}</span>
+        </div>
+      `);
 
-    const copyBtn = document.querySelector('.dex-license .copy-btn');
-    if (copyBtn && copyBtn.dataset.dexBound !== '1') {
-      copyBtn.dataset.dexBound = '1';
-      copyBtn.addEventListener('click', () => {
-        const txt = `This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}`;
-        navigator.clipboard?.writeText(txt);
-        const span = copyBtn.querySelector('.copy-text');
-        const orig = span?.textContent || 'Copy';
-        if (span) {
-          span.textContent = 'Copied!';
-          setTimeout(() => {
-            span.textContent = orig;
-          }, 2000);
-        }
-      });
-    }
+      render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${randomizeTitle('Recording Index PDF')}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
+      render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
+      render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
 
-    const instrumentsLine = (cfg.credits.instruments || []).join(', ');
-    render('.dex-credits', 'Credits', `
-      <p><strong>${cfg.credits.artist}</strong>${instrumentsLine ? `, ${instrumentsLine}` : ''}${cfg.credits.artistAlt ? `<br>${cfg.credits.artistAlt}` : ''}</p>
-      <p><em>Video:</em> Dir:${cfg.credits.video.director}, Cin:${cfg.credits.video.cinematography}, Edit:${cfg.credits.video.editing}</p>
-      <p><em>Audio:</em> Rec:${cfg.credits.audio.recording}, Mix:${cfg.credits.audio.mix}, Master:${cfg.credits.audio.master}</p>
-      <div class="dex-badges">
-        <span class="badge">${cfg.credits.season || ''} ${cfg.credits.year || ''}</span>
-        <span class="badge">${cfg.credits.location || ''}</span>
-      </div>
-    `);
+      document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
+        if (btn.dataset.dexBound === '1') return;
+        btn.dataset.dexBound = '1';
+        btn.addEventListener('click', () => {
+          const owner = btn.closest('.dex-file-info') || btn.closest('.dex-sidebar') || document;
+          const panels = Array.from(owner.querySelectorAll('.file-info-panels > div'));
+          const previous = panels.find((panel) => !panel.hidden) || null;
+          document.querySelectorAll('.file-info-tabs button').forEach((b) => b.setAttribute('aria-selected', 'false'));
+          btn.setAttribute('aria-selected', 'true');
+          const target = btn.dataset.tab;
+          document.querySelectorAll('.file-info-panels > div').forEach((panel) => {
+            panel.hidden = panel.id !== target;
+          });
 
-    render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${randomizeTitle('Recording Index PDF')}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
-    render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
-    render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
-
-    document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
-      if (btn.dataset.dexBound === '1') return;
-      btn.dataset.dexBound = '1';
-      btn.addEventListener('click', () => {
-        const owner = btn.closest('.dex-file-info') || btn.closest('.dex-sidebar') || document;
-        const panels = Array.from(owner.querySelectorAll('.file-info-panels > div'));
-        const previous = panels.find((panel) => !panel.hidden) || null;
-        document.querySelectorAll('.file-info-tabs button').forEach((b) => b.setAttribute('aria-selected', 'false'));
-        btn.setAttribute('aria-selected', 'true');
-        const target = btn.dataset.tab;
-        document.querySelectorAll('.file-info-panels > div').forEach((panel) => {
-          panel.hidden = panel.id !== target;
-        });
-
-        requestAnimationFrame(() => {
-          const next = panels.find((panel) => !panel.hidden) || null;
-          if (previous && previous !== next) {
-            animateNode(
-              previous,
-              [
-                { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-                { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
-              ],
-              {
-                duration: 160,
-                easing: 'cubic-bezier(.4,0,.2,1)',
-                fill: 'forwards',
-              },
-            );
-          }
-          if (next) {
-            animateNode(
-              next,
-              [
-                { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
-                { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-              ],
-              {
-                duration: 200,
-                easing: 'cubic-bezier(.22,.8,.24,1)',
-                fill: 'both',
-              },
-            );
-          }
+          requestAnimationFrame(() => {
+            const next = panels.find((panel) => !panel.hidden) || null;
+            if (previous && previous !== next) {
+              animateNode(
+                previous,
+                [
+                  { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+                  { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
+                ],
+                {
+                  duration: 160,
+                  easing: 'cubic-bezier(.4,0,.2,1)',
+                  fill: 'forwards',
+                },
+              );
+            }
+            if (next) {
+              animateNode(
+                next,
+                [
+                  { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
+                  { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+                ],
+                {
+                  duration: 200,
+                  easing: 'cubic-bezier(.22,.8,.24,1)',
+                  fill: 'both',
+                },
+              );
+            }
+          });
         });
       });
-    });
 
-    attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
-    attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });
-    attachRecordingIndex(cfg, '#downloads .btn-recording-index', { lookup, entryHref, favoritesApi });
-    initPersonPins();
-    installSidebarRevealMotion();
-    installSidebarInteractiveMotion();
-    bindEntryRailLayout();
-    bindBreadcrumbSpinFallback();
-    refreshFavoriteButtons(favoritesApi, document);
+      attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
+      attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });
+      attachRecordingIndex(cfg, '#downloads .btn-recording-index', { lookup, entryHref, favoritesApi });
+      initPersonPins();
+      installSidebarRevealMotion();
+      installSidebarInteractiveMotion();
+      bindEntryRailLayout();
+      bindBreadcrumbSpinFallback();
+      refreshFavoriteButtons(favoritesApi, document);
 
-    document.documentElement.dataset.dexSidebarRendered = '1';
+      document.documentElement.dataset.dexSidebarRendered = '1';
+      await finalizeEntryFetchState(fetchTargets, FETCH_STATE_READY, bootStartTs);
+    } catch (error) {
+      await finalizeEntryFetchState(fetchTargets, FETCH_STATE_ERROR, bootStartTs);
+      throw error;
+    }
   };
 
   if (document.readyState === 'loading') {

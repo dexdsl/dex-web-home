@@ -535,7 +535,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
-<script defer="" src="https://dexdsl.github.io/assets/js/header-slot.js"></script>
+
+
+
+
+
+<script defer="" src="https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js"></script>
+
+
+
+
+
+
+
+
+
+
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .dx-code-container,
@@ -568,14 +583,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   gap: clamp(16px, 2vw, 24px) !important;
   align-items: stretch !important;
-}
-.dex-entry-layout[data-dx-fetch-state],
-.dex-entry-main[data-dx-fetch-state],
-.dex-sidebar[data-dx-fetch-state],
-.dex-overview[data-dx-fetch-state],
-.dex-collections[data-dx-fetch-state],
-.dex-license[data-dx-fetch-state] {
-  position: relative;
 }
 @media (max-width: 960px) {
   .dex-entry-layout {
@@ -681,7 +688,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   font-size: clamp(2.2rem, 5.2vw, 4.8rem);
   line-height: 0.92;
   letter-spacing: 0.01em;
-  text-transform: lowercase;
+  text-transform: uppercase;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
   max-block-size: calc(3 * 0.92em);
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -852,30 +862,145 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     row-gap: 6px;
   }
 }
-.dex-overview .overview-item {
-  align-items: center !important;
-  justify-content: flex-start !important;
-  flex: 1 1 0 !important;
-  min-width: 0;
-  row-gap: 0.35rem;
+body.dx-entry-page .dex-overview {
+  display: grid !important;
+  grid-template-columns: 65% 35% !important;
+  column-gap: clamp(8px, 1vw, 12px) !important;
+  min-height: clamp(126px, 13.5vw, 188px) !important;
+  padding-block: clamp(10px, 1vw, 14px) !important;
+  padding-inline: clamp(12px, 1.3vw, 18px) !important;
+  align-content: center !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
 }
-.dex-overview .overview-item:nth-child(1),
-.dex-overview .overview-item:nth-child(2),
-.dex-overview .overview-item:nth-child(3) {
+body.dx-entry-page .dex-overview .overview-item {
   align-items: center !important;
+  justify-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-rows: minmax(62px, 1fr) minmax(1.2em, auto) !important;
+  row-gap: clamp(4px, 0.42vw, 6px) !important;
+  padding-inline: clamp(6px, 0.7vw, 10px) !important;
 }
-.dex-overview .overview-label {
+body.dx-entry-page .dex-overview .overview-lookup {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: center !important;
+  font-size: var(--dx-entry-overview-lookup-size, clamp(1.02rem, 1.72vw, 1.58rem)) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  line-height: 0.96 !important;
+}
+body.dx-entry-page .dex-overview .overview-series-img {
+  width: clamp(90px, 8.2vw, 126px) !important;
+  max-height: clamp(58px, 5.4vw, 78px) !important;
+  height: auto !important;
+  object-fit: contain !important;
+  justify-self: center !important;
+}
+body.dx-entry-page .dex-overview .overview-label {
   margin: 0 !important;
-  min-height: 1.25em;
+  min-height: 1.25em !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
   text-align: center !important;
+  width: 100% !important;
+  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
 }
-.dex-overview .overview-item .overview-badges {
-  min-height: 2rem;
-  align-items: center !important;
+body.dx-entry-page .dex-collections {
+  --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
+  --dx-entry-tile-radius: clamp(10px, 0.8vw, 12px);
+  --dx-entry-tile-gap: clamp(6px, 0.6vw, 10px);
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: clamp(10px, 1vw, 14px) !important;
+  padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
+  box-sizing: border-box !important;
+}
+body.dx-entry-page .dex-entry-page-title,
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
+}
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  margin: 0 !important;
+  padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
+}
+body.dx-entry-page .dex-collections .overview-item {
+  align-items: stretch !important;
+  row-gap: clamp(4px, 0.45vw, 7px) !important;
+}
+body.dx-entry-page .dex-collections .overview-item--buckets .overview-label,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-label,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .overview-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+body.dx-entry-page .dex-collections .overview-label {
+  margin: 0 0 1px !important;
+  font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
+  font-style: italic !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1 !important;
+}
+body.dx-entry-page .dex-collections .overview-buckets-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: var(--dx-entry-tile-gap) !important;
+  width: 100% !important;
+  padding: 0 clamp(4px, 0.5vw, 8px) !important;
+  align-items: stretch !important;
+}
+body.dx-entry-page .dex-collections .dx-bucket-tile {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: var(--dx-entry-tile-height) !important;
+  max-height: var(--dx-entry-tile-height) !important;
+  height: var(--dx-entry-tile-height) !important;
+  aspect-ratio: auto !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  padding: clamp(3px, 0.45vw, 6px) !important;
+  box-sizing: border-box !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  color: rgba(26, 26, 26, 0.8) !important;
+  font: 800 clamp(0.72rem, 0.88vw, 0.9rem) / 1 "Typefesse", sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+  overflow: hidden !important;
+}
+body.dx-entry-page .dex-collections .dx-bucket-tile.available {
+  border-color: rgba(255, 25, 16, 0.5) !important;
+  color: #fff !important;
+  background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92)) !important;
+  box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
+}
+body.dx-entry-page .dex-collections .dx-bucket-tile.unavailable {
+  opacity: 0.86;
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
+  width: 100% !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
 }
 .dex-sidebar .dex-license-controls .copy-btn,
 .dex-sidebar .dex-license-controls .usage-btn,
@@ -983,20 +1108,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <script defer="" src="https://dexdsl.github.io/assets/vendor/auth0-spa-js.umd.min.js"></script>
 <script defer="" src="https://dexdsl.github.io/assets/dex-auth0-config.js"></script>
 <script defer="" src="https://dexdsl.github.io/assets/dex-auth.js"></script>
-<script defer="" src="https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js"></script></head>
+<script defer="" src="https://dexdsl.github.io/assets/js/header-slot.js"></script></head>
 
-  <body id="collection-687eb3031ba8de4bb237fbce" class="
-      tweak-blog-alternating-side-by-side-width-full tweak-blog-alternating-side-by-side-image-aspect-ratio-11-square tweak-blog-alternating-side-by-side-text-alignment-left tweak-blog-alternating-side-by-side-read-more-style-hide tweak-blog-alternating-side-by-side-image-text-alignment-middle tweak-blog-alternating-side-by-side-delimiter-bullet tweak-blog-alternating-side-by-side-meta-position-top tweak-blog-alternating-side-by-side-primary-meta-categories tweak-blog-alternating-side-by-side-secondary-meta-date tweak-blog-alternating-side-by-side-excerpt-show form-use-theme-colors form-field-style-outline form-field-shape-square form-field-border-bottom form-field-checkbox-type-button form-field-checkbox-fill-outline form-field-checkbox-color-inverted form-field-checkbox-shape-square form-field-checkbox-layout-fit form-field-radio-type-button form-field-radio-fill-outline form-field-radio-color-inverted form-field-radio-shape-square form-field-radio-layout-fit form-field-survey-fill-outline form-field-survey-color-inverted form-field-survey-shape-square form-field-hover-focus-opacity form-submit-button-style-bar  tweak-global-animations-complexity-level-detailed tweak-global-animations-animation-style-fade tweak-global-animations-animation-type-none tweak-global-animations-animation-curve-ease tweak-blog-masonry-width-inset tweak-blog-masonry-text-alignment-left tweak-blog-masonry-primary-meta-categories tweak-blog-masonry-secondary-meta-date tweak-blog-masonry-meta-position-top tweak-blog-masonry-read-more-style-hide tweak-blog-masonry-delimiter-space tweak-blog-masonry-image-placement-above tweak-blog-masonry-excerpt-show tweak-portfolio-grid-overlay-width-full tweak-portfolio-grid-overlay-height-large tweak-portfolio-grid-overlay-image-aspect-ratio-11-square tweak-portfolio-grid-overlay-text-placement-center tweak-portfolio-grid-overlay-show-text-after-hover image-block-poster-text-alignment-center image-block-card-content-position-center image-block-card-text-alignment-left image-block-overlap-content-position-center image-block-overlap-text-alignment-left image-block-collage-content-position-center image-block-collage-text-alignment-center image-block-stack-text-alignment-left tweak-blog-single-column-width-inset tweak-blog-single-column-text-alignment-center tweak-blog-single-column-image-placement-above tweak-blog-single-column-delimiter-bullet tweak-blog-single-column-read-more-style-show tweak-blog-single-column-primary-meta-categories tweak-blog-single-column-secondary-meta-date tweak-blog-single-column-meta-position-top tweak-blog-single-column-content-full-post header-width-inset  tweak-fixed-header tweak-fixed-header-style-basic tweak-blog-item-width-medium tweak-blog-item-text-alignment-left tweak-blog-item-meta-position-below-title tweak-blog-item-show-categories tweak-blog-item-show-date tweak-blog-item-show-author-name  tweak-blog-item-delimiter-pipe tweak-blog-side-by-side-width-inset tweak-blog-side-by-side-image-placement-left tweak-blog-side-by-side-image-aspect-ratio-11-square tweak-blog-side-by-side-primary-meta-categories tweak-blog-side-by-side-secondary-meta-date tweak-blog-side-by-side-meta-position-top tweak-blog-side-by-side-text-alignment-left tweak-blog-side-by-side-image-text-alignment-middle tweak-blog-side-by-side-read-more-style-show tweak-blog-side-by-side-delimiter-bullet tweak-blog-side-by-side-excerpt-show primary-button-style-solid primary-button-shape-square secondary-button-style-outline secondary-button-shape-square tertiary-button-style-outline tertiary-button-shape-square tweak-events-stacked-width-full tweak-events-stacked-height-large  tweak-events-stacked-show-thumbnails tweak-events-stacked-thumbnail-size-32-standard tweak-events-stacked-date-style-with-text tweak-events-stacked-show-time tweak-events-stacked-show-location  tweak-events-stacked-show-excerpt  tweak-blog-basic-grid-width-inset tweak-blog-basic-grid-image-aspect-ratio-23-standard-vertical tweak-blog-basic-grid-text-alignment-left tweak-blog-basic-grid-delimiter-bullet tweak-blog-basic-grid-image-placement-above tweak-blog-basic-grid-read-more-style-hide tweak-blog-basic-grid-primary-meta-categories tweak-blog-basic-grid-secondary-meta-date tweak-blog-basic-grid-excerpt-show tweak-portfolio-grid-basic-width-full tweak-portfolio-grid-basic-height-small tweak-portfolio-grid-basic-image-aspect-ratio-11-square tweak-portfolio-grid-basic-text-alignment-left tweak-portfolio-grid-basic-hover-effect-fade header-overlay-alignment-center tweak-portfolio-index-background-link-format-stacked tweak-portfolio-index-background-width-full tweak-portfolio-index-background-height-large  tweak-portfolio-index-background-vertical-alignment-middle tweak-portfolio-index-background-horizontal-alignment-center tweak-portfolio-index-background-delimiter-none tweak-portfolio-index-background-animation-type-fade tweak-portfolio-index-background-animation-duration-medium tweak-portfolio-hover-follow-layout-inline  tweak-portfolio-hover-follow-delimiter-bullet tweak-portfolio-hover-follow-animation-type-fade tweak-portfolio-hover-follow-animation-duration-fast tweak-portfolio-hover-static-layout-inline tweak-portfolio-hover-static-front tweak-portfolio-hover-static-delimiter-hyphen tweak-portfolio-hover-static-animation-type-fade tweak-portfolio-hover-static-animation-duration-fast hide-opentable-icons opentable-style-dark tweak-product-quick-view-button-style-floating tweak-product-quick-view-button-position-center tweak-product-quick-view-lightbox-excerpt-display-truncate tweak-product-quick-view-lightbox-show-arrows tweak-product-quick-view-lightbox-show-close-button tweak-product-quick-view-lightbox-controls-weight-light native-currency-code-usd collection-type-page collection-687eb3031ba8de4bb237fbce collection-layout-default mobile-style-available dx-seven-one
-      
-        
-          
-            
-              
-            
-          
-        
-      
-    " tabindex="-1">
+  <body id="collection-687eb3031ba8de4bb237fbce" class="tweak-blog-alternating-side-by-side-width-full tweak-blog-alternating-side-by-side-image-aspect-ratio-11-square tweak-blog-alternating-side-by-side-text-alignment-left tweak-blog-alternating-side-by-side-read-more-style-hide tweak-blog-alternating-side-by-side-image-text-alignment-middle tweak-blog-alternating-side-by-side-delimiter-bullet tweak-blog-alternating-side-by-side-meta-position-top tweak-blog-alternating-side-by-side-primary-meta-categories tweak-blog-alternating-side-by-side-secondary-meta-date tweak-blog-alternating-side-by-side-excerpt-show form-use-theme-colors form-field-style-outline form-field-shape-square form-field-border-bottom form-field-checkbox-type-button form-field-checkbox-fill-outline form-field-checkbox-color-inverted form-field-checkbox-shape-square form-field-checkbox-layout-fit form-field-radio-type-button form-field-radio-fill-outline form-field-radio-color-inverted form-field-radio-shape-square form-field-radio-layout-fit form-field-survey-fill-outline form-field-survey-color-inverted form-field-survey-shape-square form-field-hover-focus-opacity form-submit-button-style-bar tweak-global-animations-complexity-level-detailed tweak-global-animations-animation-style-fade tweak-global-animations-animation-type-none tweak-global-animations-animation-curve-ease tweak-blog-masonry-width-inset tweak-blog-masonry-text-alignment-left tweak-blog-masonry-primary-meta-categories tweak-blog-masonry-secondary-meta-date tweak-blog-masonry-meta-position-top tweak-blog-masonry-read-more-style-hide tweak-blog-masonry-delimiter-space tweak-blog-masonry-image-placement-above tweak-blog-masonry-excerpt-show tweak-portfolio-grid-overlay-width-full tweak-portfolio-grid-overlay-height-large tweak-portfolio-grid-overlay-image-aspect-ratio-11-square tweak-portfolio-grid-overlay-text-placement-center tweak-portfolio-grid-overlay-show-text-after-hover image-block-poster-text-alignment-center image-block-card-content-position-center image-block-card-text-alignment-left image-block-overlap-content-position-center image-block-overlap-text-alignment-left image-block-collage-content-position-center image-block-collage-text-alignment-center image-block-stack-text-alignment-left tweak-blog-single-column-width-inset tweak-blog-single-column-text-alignment-center tweak-blog-single-column-image-placement-above tweak-blog-single-column-delimiter-bullet tweak-blog-single-column-read-more-style-show tweak-blog-single-column-primary-meta-categories tweak-blog-single-column-secondary-meta-date tweak-blog-single-column-meta-position-top tweak-blog-single-column-content-full-post header-width-inset tweak-fixed-header tweak-fixed-header-style-basic tweak-blog-item-width-medium tweak-blog-item-text-alignment-left tweak-blog-item-meta-position-below-title tweak-blog-item-show-categories tweak-blog-item-show-date tweak-blog-item-show-author-name tweak-blog-item-delimiter-pipe tweak-blog-side-by-side-width-inset tweak-blog-side-by-side-image-placement-left tweak-blog-side-by-side-image-aspect-ratio-11-square tweak-blog-side-by-side-primary-meta-categories tweak-blog-side-by-side-secondary-meta-date tweak-blog-side-by-side-meta-position-top tweak-blog-side-by-side-text-alignment-left tweak-blog-side-by-side-image-text-alignment-middle tweak-blog-side-by-side-read-more-style-show tweak-blog-side-by-side-delimiter-bullet tweak-blog-side-by-side-excerpt-show primary-button-style-solid primary-button-shape-square secondary-button-style-outline secondary-button-shape-square tertiary-button-style-outline tertiary-button-shape-square tweak-events-stacked-width-full tweak-events-stacked-height-large tweak-events-stacked-show-thumbnails tweak-events-stacked-thumbnail-size-32-standard tweak-events-stacked-date-style-with-text tweak-events-stacked-show-time tweak-events-stacked-show-location tweak-events-stacked-show-excerpt tweak-blog-basic-grid-width-inset tweak-blog-basic-grid-image-aspect-ratio-23-standard-vertical tweak-blog-basic-grid-text-alignment-left tweak-blog-basic-grid-delimiter-bullet tweak-blog-basic-grid-image-placement-above tweak-blog-basic-grid-read-more-style-hide tweak-blog-basic-grid-primary-meta-categories tweak-blog-basic-grid-secondary-meta-date tweak-blog-basic-grid-excerpt-show tweak-portfolio-grid-basic-width-full tweak-portfolio-grid-basic-height-small tweak-portfolio-grid-basic-image-aspect-ratio-11-square tweak-portfolio-grid-basic-text-alignment-left tweak-portfolio-grid-basic-hover-effect-fade header-overlay-alignment-center tweak-portfolio-index-background-link-format-stacked tweak-portfolio-index-background-width-full tweak-portfolio-index-background-height-large tweak-portfolio-index-background-vertical-alignment-middle tweak-portfolio-index-background-horizontal-alignment-center tweak-portfolio-index-background-delimiter-none tweak-portfolio-index-background-animation-type-fade tweak-portfolio-index-background-animation-duration-medium tweak-portfolio-hover-follow-layout-inline tweak-portfolio-hover-follow-delimiter-bullet tweak-portfolio-hover-follow-animation-type-fade tweak-portfolio-hover-follow-animation-duration-fast tweak-portfolio-hover-static-layout-inline tweak-portfolio-hover-static-front tweak-portfolio-hover-static-delimiter-hyphen tweak-portfolio-hover-static-animation-type-fade tweak-portfolio-hover-static-animation-duration-fast hide-opentable-icons opentable-style-dark tweak-product-quick-view-button-style-floating tweak-product-quick-view-button-position-center tweak-product-quick-view-lightbox-excerpt-display-truncate tweak-product-quick-view-lightbox-show-arrows tweak-product-quick-view-lightbox-show-close-button tweak-product-quick-view-lightbox-controls-weight-light native-currency-code-usd collection-type-page collection-687eb3031ba8de4bb237fbce collection-layout-default mobile-style-available dx-seven-one dx-entry-page" tabindex="-1">
     <div id="siteWrapper" class="clearfix site-wrapper">
       
         <div id="floatingCart" class="floating-cart hidden">
@@ -2704,6 +2818,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
+
+
+
 <script>
   try {
     const el = document.getElementById('dex-sidebar-page-config');
@@ -2771,9 +2888,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
 
 <!-- B) Sidebar container -->
-<aside class="dex-sidebar" data-dx-fetch-state="loading" aria-busy="true">
-    <section class="dex-overview" data-dx-fetch-state="loading" aria-busy="true"></section>
-    <section class="dex-license" data-dx-fetch-state="loading" aria-busy="true"></section>
+<aside class="dex-sidebar" aria-busy="true" data-dx-fetch-state="loading">
+    <section class="dex-overview" aria-busy="true"></section>
+    <section class="dex-license" aria-busy="true"></section>
     <section class="dex-credits"></section>
 
     <!-- → REPLACED: Downloads / File Specs / Metadata merge into one dynamic card -->

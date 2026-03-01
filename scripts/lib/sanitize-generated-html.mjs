@@ -3,7 +3,7 @@ import { load as loadHtml } from 'cheerio';
 export const DEX_ORIGIN = 'https://dexdsl.github.io';
 export const DEX_CSS_HREF = `${DEX_ORIGIN}/assets/css/dex.css`;
 export const DEX_SIDEBAR_SRC = `${DEX_ORIGIN}/assets/dex-sidebar.js`;
-export const DEX_HEADER_SLOT_SRC = '/assets/js/header-slot.js';
+export const DEX_HEADER_SLOT_SRC = `${DEX_ORIGIN}/assets/js/header-slot.js`;
 export const AUTH_VENDOR_SRC = `${DEX_ORIGIN}/assets/vendor/auth0-spa-js.umd.min.js`;
 
 const AUTH_CONFIG_PATHS = ['/assets/dex-auth0-config.js', '/assets/dex-auth-config.js'];
@@ -17,6 +17,8 @@ const SITE_CSS_HREF_PATTERN = new RegExp(
   'i',
 );
 const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
+const STALE_ENTRY_OVERRIDE_STYLE_IDS = ['dex-entry-sidebar-vnext-overrides'];
+const ENTRY_FETCH_ROOT_SELECTORS = ['.dex-entry-layout', '.dex-sidebar'];
 const DEX_ENTRY_BG_STYLE_ID = 'dex-entry-gooey-bg-style';
 const DEX_ENTRY_BG_SCRIPT_ID = 'dex-entry-gooey-bg-script';
 const DEFAULT_ANNOUNCEMENT_HTML = '<p>Donate to dex today to help us provide arts resources &amp; events!</p>';
@@ -816,7 +818,10 @@ function ensureDexLayoutPatchStyle($, head) {
   font-size: clamp(2.2rem, 5.2vw, 4.8rem);
   line-height: 0.92;
   letter-spacing: 0.01em;
-  text-transform: lowercase;
+  text-transform: uppercase;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
   max-block-size: calc(3 * 0.92em);
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -987,169 +992,145 @@ function ensureDexLayoutPatchStyle($, head) {
     row-gap: 6px;
   }
 }
-.dex-overview .overview-item {
-  align-items: center !important;
-  justify-content: center !important;
-  flex: 1 1 0 !important;
-  min-width: 0;
+body.dx-entry-page .dex-overview {
   display: grid !important;
-  grid-template-rows: minmax(62px, 1fr) auto !important;
-  row-gap: clamp(4px, 0.42vw, 6px);
-  padding-inline: clamp(6px, 0.7vw, 10px);
-}
-.dex-overview {
-  display: grid !important;
-  grid-template-columns: 65% 35%;
-  column-gap: clamp(8px, 1vw, 12px);
-  min-height: clamp(126px, 13.5vw, 188px);
-  padding-block: clamp(10px, 1vw, 14px);
-  padding-inline: clamp(12px, 1.3vw, 18px);
+  grid-template-columns: 65% 35% !important;
+  column-gap: clamp(8px, 1vw, 12px) !important;
+  min-height: clamp(126px, 13.5vw, 188px) !important;
+  padding-block: clamp(10px, 1vw, 14px) !important;
+  padding-inline: clamp(12px, 1.3vw, 18px) !important;
   align-content: center !important;
   align-items: stretch !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
-.dex-overview .overview-item--lookup {
+body.dx-entry-page .dex-overview .overview-item {
   align-items: center !important;
-}
-.dex-overview .overview-item--lookup .overview-label {
+  justify-items: center !important;
   justify-content: center !important;
-  text-align: center !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-rows: minmax(62px, 1fr) minmax(1.2em, auto) !important;
+  row-gap: clamp(4px, 0.42vw, 6px) !important;
+  padding-inline: clamp(6px, 0.7vw, 10px) !important;
 }
-.dex-overview .overview-label--lookup {
-  justify-content: center !important;
-  text-align: center !important;
-}
-.dex-overview .overview-item--series {
+body.dx-entry-page .dex-overview .overview-lookup {
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-}
-.dex-overview .overview-label--series {
-  justify-content: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   text-align: center !important;
-}
-.dex-overview .overview-lookup {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+  font-size: var(--dx-entry-overview-lookup-size, clamp(1.02rem, 1.72vw, 1.58rem)) !important;
   font-weight: 800 !important;
   letter-spacing: 0.03em !important;
   line-height: 0.96 !important;
 }
-.dex-collections {
-  --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
+body.dx-entry-page .dex-overview .overview-series-img {
+  width: clamp(90px, 8.2vw, 126px) !important;
+  max-height: clamp(58px, 5.4vw, 78px) !important;
+  height: auto !important;
+  object-fit: contain !important;
+  justify-self: center !important;
+}
+body.dx-entry-page .dex-overview .overview-label {
+  margin: 0 !important;
+  min-height: 1.25em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  width: 100% !important;
+  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
+}
+body.dx-entry-page .dex-collections {
+  --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
+  --dx-entry-tile-radius: clamp(10px, 0.8vw, 12px);
+  --dx-entry-tile-gap: clamp(6px, 0.6vw, 10px);
   display: grid !important;
-  grid-template-columns: 1fr;
-  gap: clamp(10px, 1vw, 14px);
-  padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px);
-  box-sizing: border-box;
+  grid-template-columns: 1fr !important;
+  gap: clamp(10px, 1vw, 14px) !important;
+  padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
+  box-sizing: border-box !important;
 }
-.dex-collections > h3[data-dx-entry-heading] {
-  font-variant-ligatures: none !important;
-  font-feature-settings: "liga" 0, "calt" 0 !important;
-  margin: 0;
-  padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px);
+body.dx-entry-page .dex-entry-page-title,
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
 }
-.dex-collections .overview-item {
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  margin: 0 !important;
+  padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
+}
+body.dx-entry-page .dex-collections .overview-item {
   align-items: stretch !important;
   row-gap: clamp(4px, 0.45vw, 7px) !important;
 }
-.dex-collections .overview-item--buckets .overview-label,
-.dex-collections .overview-item--favorite-buckets .overview-label,
-.dex-collections .overview-item--favorite-collection .overview-label {
+body.dx-entry-page .dex-collections .overview-item--buckets .overview-label,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-label,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .overview-label {
   justify-content: flex-start !important;
   text-align: left !important;
 }
-.dex-collections .overview-label {
+body.dx-entry-page .dex-collections .overview-label {
   margin: 0 0 1px !important;
   font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
   font-style: italic !important;
   letter-spacing: 0.02em !important;
   line-height: 1 !important;
 }
-.dex-collections .overview-buckets-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(6px, 0.6vw, 10px);
-  width: 100%;
-  padding: 0 clamp(4px, 0.5vw, 8px);
+body.dx-entry-page .dex-collections .overview-buckets-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: var(--dx-entry-tile-gap) !important;
+  width: 100% !important;
+  padding: 0 clamp(4px, 0.5vw, 8px) !important;
   align-items: stretch !important;
 }
-.dex-collections .dx-bucket-tile {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-width: 0;
-  min-height: clamp(28px, 1.85vw, 34px) !important;
-  max-height: clamp(28px, 1.85vw, 34px) !important;
-  height: clamp(28px, 1.85vw, 34px) !important;
+body.dx-entry-page .dex-collections .dx-bucket-tile {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: var(--dx-entry-tile-height) !important;
+  max-height: var(--dx-entry-tile-height) !important;
+  height: var(--dx-entry-tile-height) !important;
   aspect-ratio: auto !important;
-  border-radius: var(--dx-entry-bucket-radius) !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
   padding: clamp(3px, 0.45vw, 6px) !important;
+  box-sizing: border-box !important;
   background: rgba(255, 255, 255, 0.68) !important;
   color: rgba(26, 26, 26, 0.8) !important;
-  font: 800 clamp(0.82rem, 1.02vw, 0.98rem) / 1 "Typefesse", sans-serif;
+  font: 800 clamp(0.72rem, 0.88vw, 0.9rem) / 1 "Typefesse", sans-serif !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.03em;
-  align-self: stretch !important;
-  font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
-  line-height: 1 !important;
   letter-spacing: 0.02em !important;
   overflow: hidden !important;
 }
-.dex-collections .dx-bucket-tile.available {
+body.dx-entry-page .dex-collections .dx-bucket-tile.available {
   border-color: rgba(255, 25, 16, 0.5) !important;
   color: #fff !important;
   background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92)) !important;
   box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
 }
-.dex-collections .dx-bucket-tile.unavailable {
+body.dx-entry-page .dex-collections .dx-bucket-tile.unavailable {
   opacity: 0.86;
   background: rgba(255, 255, 255, 0.55) !important;
 }
-.dex-collections .overview-item--favorite-buckets .overview-badges {
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: 8px;
-  width: 100%;
-}
-.dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
-.dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
-  width: 100%;
-}
-.dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle {
-  border-radius: var(--dx-entry-bucket-radius) !important;
-}
-.dex-overview .overview-item:nth-child(1),
-.dex-overview .overview-item:nth-child(2),
-.dex-overview .overview-item:nth-child(3) {
-  align-items: center !important;
-}
-.dex-overview .overview-label {
-  margin: 0 !important;
-  min-height: 1.25em;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: end !important;
-  line-height: 1 !important;
-  text-align: center !important;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)) !important;
+  gap: 8px !important;
   width: 100% !important;
-  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
 }
-.dex-overview .overview-item .overview-badges {
-  min-height: 2rem;
-  align-items: center !important;
-}
-.dex-overview .overview-series-img {
-  width: clamp(90px, 8.2vw, 126px) !important;
-  max-height: clamp(58px, 5.4vw, 78px) !important;
-  height: auto !important;
-  object-fit: contain !important;
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
+  width: 100% !important;
+  border-radius: var(--dx-entry-tile-radius) !important;
 }
 .dex-sidebar .dex-license-controls .copy-btn,
 .dex-sidebar .dex-license-controls .usage-btn,
@@ -1321,6 +1302,23 @@ function ensureEntryBodyClasses($) {
   );
   classSet.add('dx-entry-page');
   body.attr('class', Array.from(classSet).join(' '));
+}
+
+function findEntryFetchRoot($) {
+  for (const selector of ENTRY_FETCH_ROOT_SELECTORS) {
+    const node = $(selector).first();
+    if (node.length) {
+      return { node, selector };
+    }
+  }
+  return { node: null, selector: ENTRY_FETCH_ROOT_SELECTORS[0] };
+}
+
+function ensureEntryFetchRootContract($) {
+  const { node: fetchRoot } = findEntryFetchRoot($);
+  if (!fetchRoot.length) return;
+  fetchRoot.attr('data-dx-fetch-state', 'loading');
+  fetchRoot.attr('aria-busy', 'true');
 }
 
 function isContractScriptId(id) {
@@ -1522,6 +1520,23 @@ function collectSanitizationIssues($) {
     issues.push({ type: 'duplicate', token: DEX_HEADER_SLOT_SRC });
   }
 
+  const hasEntryStructure = $('.dex-entry-layout').length > 0 || $('.dex-sidebar').length > 0;
+  const { node: entryFetchRoot, selector: entryFetchSelector } = findEntryFetchRoot($);
+  if (hasEntryStructure) {
+    if (!entryFetchRoot.length) {
+      issues.push({ type: 'missing', token: `${entryFetchSelector} (entry fetch root)` });
+    } else {
+      const fetchState = String(entryFetchRoot.attr('data-dx-fetch-state') || '').trim().toLowerCase();
+      const ariaBusy = String(entryFetchRoot.attr('aria-busy') || '').trim().toLowerCase();
+      if (fetchState !== 'loading') {
+        issues.push({ type: 'missing', token: `${entryFetchSelector} data-dx-fetch-state="loading"` });
+      }
+      if (ariaBusy !== 'true') {
+        issues.push({ type: 'missing', token: `${entryFetchSelector} aria-busy="true"` });
+      }
+    }
+  }
+
   if (hasDexSidebarRuntime($) && scriptTagCount($, 'dex-sidebar-page-config') === 0) {
     issues.push({
       type: 'missing',
@@ -1541,6 +1556,7 @@ export function sanitizeGeneratedHtml(html) {
   striplegacysiteRuntimeDataAttrs($);
   markDexEntryHosts($);
   ensureEntryBodyClasses($);
+  ensureEntryFetchRootContract($);
   normalizeDexSectionSpacing($);
   const classFamily = resolveLegacyClassFamily($);
   const announcementConfig = resolveAnnouncementBarConfig($, classFamily);
@@ -1603,6 +1619,10 @@ export function sanitizeGeneratedHtml(html) {
       if (canonical) node.attr(attr, canonical);
     }
   });
+
+  for (const staleStyleId of STALE_ENTRY_OVERRIDE_STYLE_IDS) {
+    $(`style#${staleStyleId}`).remove();
+  }
 
   const head = ensureHead($);
   ensureDexLayoutPatchStyle($, head);

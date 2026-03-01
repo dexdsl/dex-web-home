@@ -94,6 +94,16 @@ async function main() {
     );
     if (headerSlotMatches.length === 0) runtimeIssues.push('missing /assets/js/header-slot.js runtime include');
     if (headerSlotMatches.length > 1) runtimeIssues.push('duplicate /assets/js/header-slot.js runtime include');
+    const entryLayoutMatch = String(html).match(/<div[^>]*class=["'][^"']*\bdex-entry-layout\b[^"']*["'][^>]*>/i);
+    if (entryLayoutMatch) {
+      const entryLayoutTag = entryLayoutMatch[0];
+      if (!/data-dx-fetch-state=["']loading["']/i.test(entryLayoutTag)) {
+        runtimeIssues.push('dex-entry-layout missing data-dx-fetch-state="loading"');
+      }
+      if (!/aria-busy=["']true["']/i.test(entryLayoutTag)) {
+        runtimeIssues.push('dex-entry-layout missing aria-busy="true"');
+      }
+    }
     if (/https?:\/\/drive\.google\.com\//i.test(html)) runtimeIssues.push('raw drive.google.com URL');
     const manifestMatch = html.match(/<script[^>]*id=["']dex-manifest["'][^>]*>([\s\S]*?)<\/script>/i);
     if (manifestMatch) {

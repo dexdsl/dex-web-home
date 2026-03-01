@@ -735,6 +735,16 @@
     return String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
   }
 
+  function stripCanonicalHeadingSeparators(value) {
+    // Visible heading output must not surface canonical separators (U+200C).
+    return String(value == null ? '' : value).replace(/\u200C/g, '');
+  }
+
+  function normalizeVisibleHeadingNodeValues(nodeValues) {
+    if (!Array.isArray(nodeValues) || !nodeValues.length) return [];
+    return nodeValues.map((value) => stripCanonicalHeadingSeparators(value));
+  }
+
   function insertCanonicalDoubleLetterSeparators(value) {
     const source = stripZwnjCharacters(value);
     if (!source) return source;
@@ -1058,7 +1068,9 @@
       excludedWords,
       excludedLetters,
     });
-    const renderedNodeValues = normalizeRenderedDuplicateSeparators(randomizedNodeValues);
+    const renderedNodeValues = normalizeVisibleHeadingNodeValues(
+      normalizeRenderedDuplicateSeparators(randomizedNodeValues),
+    );
 
     textNodes.forEach((node, index) => {
       const nextValue = renderedNodeValues[index] || '';
@@ -1095,7 +1107,7 @@
     const separated = insertCanonicalDoubleLetterSeparators(canonical);
     const randomFn = createHeadingRandom(options.seedKey || canonical);
     const [rendered] = normalizeRenderedDuplicateSeparators(applyProbabilisticHeadingDuplicates([separated], randomFn));
-    return rendered || separated;
+    return stripCanonicalHeadingSeparators(rendered || separated);
   }
 
   function isDonateAnchor(anchor) {
