@@ -1156,13 +1156,27 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
   text-decoration: none !important;
   text-transform: uppercase !important;
   letter-spacing: 0.02em !important;
-  font: 800 clamp(18px, 1.5vw, 36px) var(--font-heading, "Typefesse", sans-serif) !important;
+  font: 800 clamp(18px, 1.5vw, 36px) "Stretch Pro", sans-serif !important;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
   line-height: 1 !important;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 10px 30px rgba(255, 0, 80, 0.25) !important;
   cursor: pointer !important;
   filter: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
+}
+.dex-sidebar .dex-license-controls .copy-btn .copy-text,
+.dex-sidebar .dex-license-controls .usage-btn,
+.dex-sidebar #downloads .btn-audio > span,
+.dex-sidebar #downloads .btn-video > span,
+.dex-sidebar #downloads .btn-recording-index > span,
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button {
+  font-family: "Stretch Pro", sans-serif !important;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1 !important;
+  text-rendering: optimizeLegibility !important;
 }
 .dex-sidebar #downloads .btn-audio,
 .dex-sidebar #downloads .btn-video {
@@ -3474,7 +3488,7 @@ Visit Tim Feeney’s website at timfeeney.com</p>
 </div>
 
 <!-- C) Renderer – shared runtime -->
-<script defer="" src="https://dexdsl.github.io/assets/dex-sidebar.js"></script>
+<script defer="" src="/assets/dex-sidebar.js"></script>
 
   
 </div>
@@ -4355,11 +4369,52 @@ body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button {
   min-height: 0 !important;
 }
 body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button[aria-selected="true"] {
-  border-bottom: 2px solid var(--dex-accent) !important;
-  color: var(--dex-accent) !important;
+  border: none !important;
+  background: transparent !important;
+  color: rgba(17, 17, 17, 0.96) !important;
+  position: relative !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button[aria-selected="true"]::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0.35rem !important;
+  right: 0.35rem !important;
+  bottom: 0 !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(130deg, var(--dex-accent, #ff1910), orange) !important;
 }
 body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button:not([aria-selected="true"]):hover {
   background: rgba(0, 0, 0, 0.05) !important;
+}
+body.dx-entry-page .dex-sidebar .dex-credits .person-link[data-person-linkable="true"] {
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 0.12em !important;
+  color: inherit !important;
+  cursor: pointer !important;
+}
+body.dx-entry-page .person-popup {
+  z-index: 2147483000 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(0, 0, 0, 0.14) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18) !important;
+  padding: 8px 12px !important;
+}
+body.dx-entry-page .person-popup a {
+  color: rgba(17, 17, 17, 0.96) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.12em !important;
+  cursor: pointer !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:hover,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle:hover,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:focus-visible,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle:focus-visible {
+  color: rgba(24, 24, 24, 0.92) !important;
 }
 body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div {
   display: none !important;

@@ -276,8 +276,14 @@
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
+        padding-top: clamp(16px, 1.35vw, 22px) !important;
+        padding-bottom: clamp(16px, 1.35vw, 22px) !important;
         padding-left: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
         padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section + section {
+        margin-top: clamp(12px, 1.05vw, 18px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
@@ -302,6 +308,12 @@
       body.dx-entry-page .dex-sidebar section {
         height: auto !important;
         min-height: max-content !important;
+        padding: clamp(16px, 1.35vw, 22px) clamp(16px, 1.6vw, 22px) !important;
+        box-sizing: border-box !important;
+      }
+
+      body.dx-entry-page .dex-sidebar section + section {
+        margin-top: clamp(12px, 1.05vw, 18px) !important;
       }
 
       @media (max-width: 979px) {
@@ -742,6 +754,23 @@
   };
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
+  const addZeroWidthJoiners = (value) => {
+    const cleaned = String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
+    let output = '';
+    for (let i = 0; i < cleaned.length; i += 1) {
+      const current = cleaned.charAt(i);
+      const next = cleaned.charAt(i + 1);
+      output += current;
+      if (!next) continue;
+      const isAlphaPair = current.toLowerCase() !== current.toUpperCase()
+        && next.toLowerCase() !== next.toUpperCase();
+      if (!isAlphaPair) continue;
+      if (current.toLowerCase() !== next.toLowerCase()) continue;
+      output += '\u200D';
+    }
+    return output;
+  };
+  const randomizeTitleWithJoiners = (txt, options = {}) => addZeroWidthJoiners(randomizeTitle(txt, options));
   const escapeHtml = (value) => String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -2318,6 +2347,7 @@
         pop.style.position = 'absolute';
         pop.style.left = `${e.pageX + 4}px`;
         pop.style.top = `${e.pageY + 4}px`;
+        pop.style.zIndex = '2147483000';
         setTimeout(() => {
           document.addEventListener('click', function handler(evt) {
             if (!pop.contains(evt.target)) {
@@ -2583,12 +2613,19 @@
         await markTargetReady(fetchTargets, 'collections');
       }
 
+      const labelSeedBase = `${window.location.pathname || '/'}|sidebar-label`;
+      const copyLabel = randomizeTitleWithJoiners('Copy', { seedKey: `${labelSeedBase}|copy` });
+      const usageNotesLabel = randomizeTitleWithJoiners('Usage Notes', { seedKey: `${labelSeedBase}|usage-notes` });
+      const audioFilesLabel = randomizeTitleWithJoiners('Audio Files', { seedKey: `${labelSeedBase}|audio-files` });
+      const videoFilesLabel = randomizeTitleWithJoiners('Video Files', { seedKey: `${labelSeedBase}|video-files` });
+      const recordingIndexPdfLabel = randomizeTitleWithJoiners('Recording Index PDF', { seedKey: `${labelSeedBase}|recording-index-pdf` });
+
       render('.dex-license', 'License', `
         <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
         <p class="dex-attrib">This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}</p>
         <div class="dex-license-controls">
-          <button type="button" class="license-btn copy-btn dx-button-element--primary" title="Copy attribution"><span class="copy-text">Copy</span></button>
-          <button type="button" class="license-btn usage-btn dx-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">Usage Notes</button>
+          <button type="button" class="license-btn copy-btn dx-button-element--primary" title="Copy attribution"><span class="copy-text">${copyLabel}</span></button>
+          <button type="button" class="license-btn usage-btn dx-button-element--primary" onclick="window.open('https://dexdsl.com/copyright','_blank')">${usageNotesLabel}</button>
         </div>
       `);
 
@@ -2599,7 +2636,7 @@
           const txt = `This work contains samples licensed under CC-BY 4.0 by Dex Digital Sample Library and ${cfg.credits.artist}`;
           navigator.clipboard?.writeText(txt);
           const span = copyBtn.querySelector('.copy-text');
-          const orig = span?.textContent || 'Copy';
+          const orig = span?.textContent || copyLabel;
           if (span) {
             span.textContent = 'Copied!';
             setTimeout(() => {
@@ -2621,9 +2658,22 @@
         </div>
       `);
 
-      render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${randomizeTitle('Audio Files')}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${randomizeTitle('Video Files')}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${randomizeTitle('Recording Index PDF')}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
+      render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${audioFilesLabel}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${videoFilesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexPdfLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
       render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
       render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
+
+      const fileInfoTabLabels = {
+        downloads: 'Download',
+        'file-specs': 'File Specs',
+        metadata: 'Metadata',
+      };
+      document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
+        const tabKey = String(btn.dataset.tab || '').trim();
+        const canonical = fileInfoTabLabels[tabKey] || String(btn.textContent || '').trim() || tabKey;
+        if (canonical) {
+          btn.textContent = randomizeTitleWithJoiners(canonical, { seedKey: `${labelSeedBase}|tab|${tabKey || canonical}` });
+        }
+      });
 
       document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
         if (btn.dataset.dexBound === '1') return;
