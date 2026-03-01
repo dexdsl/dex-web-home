@@ -450,6 +450,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 .dex-sidebar section,
 .dex-overview,
+.dex-collections,
 .dex-license,
 .dex-credits {
   position: relative;
@@ -459,6 +460,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 /* the glow ring */
 .dex-sidebar section::before,
 .dex-overview::before,
+.dex-collections::before,
 .dex-license::before,
 .dex-credits::before {
   content: "";
@@ -505,6 +507,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 /* on hover, fade/scale it up */
 .dex-sidebar section:hover::before,
 .dex-overview:hover::before,
+.dex-collections:hover::before,
 .dex-license:hover::before,
 .dex-credits:hover::before {
   opacity: 1;
@@ -961,6 +964,7 @@ body.dx-entry-page .dex-overview .overview-lookup {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   text-align: center !important;
+  font-family: var(--font-heading, "Typefesse", sans-serif) !important;
   font-size: var(--dx-entry-overview-lookup-size, clamp(1.02rem, 1.72vw, 1.58rem)) !important;
   font-weight: 800 !important;
   letter-spacing: 0.03em !important;
@@ -994,6 +998,16 @@ body.dx-entry-page .dex-collections {
   gap: clamp(10px, 1vw, 14px) !important;
   padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
   box-sizing: border-box !important;
+}
+body.dx-entry-page .dex-sidebar > section {
+  padding: clamp(18px, 1.45vw, 24px) clamp(18px, 1.6vw, 26px) !important;
+  box-sizing: border-box !important;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout .dex-sidebar > section {
+  padding: clamp(18px, 1.45vw, 24px) clamp(18px, 1.6vw, 26px) !important;
+}
+body.dx-entry-page .dex-sidebar > section + section {
+  margin-top: clamp(14px, 1.1vw, 18px) !important;
 }
 body.dx-entry-page .dex-entry-page-title,
 body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
@@ -4283,4 +4297,39 @@ body.dx-entry-page .dex-footer-section {
   window.addEventListener('load', apply, { once: true });
 })();
 </script>
+<style id="dx-test5-sidebar-padding-final">
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout .dex-sidebar,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--liquid-bg, rgba(255, 255, 255, 0.14)) !important;
+  border: 1px solid var(--liquid-border, rgba(255, 255, 255, 0.32)) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding-top: clamp(24px, 2.2vw, 36px) !important;
+  padding-right: clamp(18px, 1.6vw, 24px) !important;
+  padding-bottom: clamp(28px, 2.4vw, 42px) !important;
+  padding-left: clamp(24px, 2.2vw, 36px) !important;
+  backdrop-filter: blur(var(--liquid-blur, 28px)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 28px)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+}
+body.dx-entry-page .dex-entry-layout .dex-sidebar > section,
+body.dx-entry-page .dex-sidebar > section {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  padding-top: clamp(18px, 1.45vw, 24px) !important;
+  padding-right: clamp(18px, 1.6vw, 26px) !important;
+  padding-bottom: clamp(18px, 1.45vw, 24px) !important;
+  padding-left: clamp(18px, 1.6vw, 26px) !important;
+  box-sizing: border-box !important;
+}
+body.dx-entry-page .dex-entry-layout .dex-sidebar > section + section,
+body.dx-entry-page .dex-sidebar > section + section {
+  margin-top: clamp(14px, 1.1vw, 18px) !important;
+}
+body.dx-entry-page .dex-sidebar .dex-license {
+  display: flex !important;
+  flex-direction: column !important;
+}
+</style>
 </body></html>

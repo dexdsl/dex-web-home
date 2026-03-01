@@ -276,8 +276,14 @@
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
+        padding-top: clamp(16px, 1.35vw, 22px) !important;
+        padding-bottom: clamp(16px, 1.35vw, 22px) !important;
         padding-left: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
         padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section + section {
+        margin-top: clamp(12px, 1.05vw, 18px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
@@ -302,6 +308,12 @@
       body.dx-entry-page .dex-sidebar section {
         height: auto !important;
         min-height: max-content !important;
+        padding: clamp(16px, 1.35vw, 22px) clamp(16px, 1.6vw, 22px) !important;
+        box-sizing: border-box !important;
+      }
+
+      body.dx-entry-page .dex-sidebar section + section {
+        margin-top: clamp(12px, 1.05vw, 18px) !important;
       }
 
       @media (max-width: 979px) {

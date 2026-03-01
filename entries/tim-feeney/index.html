@@ -1027,6 +1027,16 @@ body.dx-entry-page .dex-collections {
   padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
   box-sizing: border-box !important;
 }
+body.dx-entry-page .dex-sidebar > section {
+  padding: clamp(18px, 1.45vw, 24px) clamp(18px, 1.6vw, 26px) !important;
+  box-sizing: border-box !important;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout .dex-sidebar > section {
+  padding: clamp(18px, 1.45vw, 24px) clamp(18px, 1.6vw, 26px) !important;
+}
+body.dx-entry-page .dex-sidebar > section + section {
+  margin-top: clamp(14px, 1.1vw, 18px) !important;
+}
 body.dx-entry-page .dex-entry-page-title,
 body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
   font-variant-ligatures: common-ligatures discretionary-ligatures contextual !important;
