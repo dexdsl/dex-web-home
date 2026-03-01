@@ -551,6 +551,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
+
+
+
+
+
+
+
+
+
+
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .dx-code-container,
@@ -889,6 +899,8 @@ body.dx-entry-page .dex-overview .overview-lookup {
   justify-content: center !important;
   width: 100% !important;
   max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding-inline: 0.14em !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -911,10 +923,10 @@ body.dx-entry-page .dex-overview .overview-label {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  line-height: 1 !important;
+  line-height: 1.08 !important;
   text-align: center !important;
   width: 100% !important;
-  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
+  font-size: clamp(0.72rem, 1.02vw, 0.9rem) !important;
 }
 body.dx-entry-page .dex-collections {
   --dx-entry-tile-height: clamp(28px, 1.85vw, 34px);
@@ -2814,6 +2826,8 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
   }
 }
 </script><script id="dex-sidebar-page-config-bridge">window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');</script>
+
+
 
 
 

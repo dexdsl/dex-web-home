@@ -3571,9 +3571,9 @@ a[data-dx-donate-rendered] {
   cursor: pointer;
 }
 
-#dx-entry-tooltip-layer {
+#dx-submit-tooltip-layer {
   position: fixed;
-  inset: auto;
+  inset: auto auto auto auto;
   z-index: 1200;
   width: max-content;
   max-width: min(280px, 92vw);
@@ -3582,13 +3582,13 @@ a[data-dx-donate-rendered] {
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: rgba(255, 255, 255, 0.98);
   color: #111;
-  font: 600 11px/1.35 var(--font-body, "Courier Prime", monospace);
+  font: 600 11px/1.35 var(--font-body, system-ui);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
   pointer-events: none;
   white-space: normal;
 }
 
-#dx-entry-tooltip-layer[hidden] {
+#dx-submit-tooltip-layer[hidden] {
   display: none;
 }
 
@@ -3933,6 +3933,8 @@ body.dx-entry-page .dex-overview .overview-lookup {
   justify-content: center !important;
   width: 100% !important;
   max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding-inline: 0.14em !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -3958,8 +3960,8 @@ body.dx-entry-page .dex-overview .overview-label {
   align-self: end !important;
   margin: 0 !important;
   width: 100% !important;
-  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
-  line-height: 1 !important;
+  font-size: clamp(0.72rem, 1.02vw, 0.9rem) !important;
+  line-height: 1.08 !important;
 }
 
 body.dx-entry-page .dex-collections {

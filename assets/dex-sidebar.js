@@ -142,7 +142,7 @@
         const tooltipText = String(liveTooltip || persistedTooltip || `Bucket ${bucket}`).trim();
         nextTooltipCache[bucket] = tooltipText;
         const tooltip = escapeHtml(tooltipText);
-        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
+        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
     writeBucketTooltipCache(lookupNumber, nextTooltipCache);
@@ -353,15 +353,32 @@
       host.clientWidth
       - parseCssPx(hostStyle.paddingLeft)
       - parseCssPx(hostStyle.paddingRight)
-      - 2,
+      - 8,
     );
 
-    const MIN_SIZE = 13;
+    const MIN_SIZE = 12;
     const MAX_SIZE = 34;
-    lookup.style.setProperty('font-size', `${MAX_SIZE}px`, 'important');
-    const measuredWidth = Math.max(1, Math.ceil(lookup.scrollWidth));
+    const lookupStyle = window.getComputedStyle(lookup);
+    const probe = document.createElement('span');
+    probe.textContent = String(lookup.textContent || '').trim();
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.pointerEvents = 'none';
+    probe.style.whiteSpace = 'nowrap';
+    probe.style.fontFamily = lookupStyle.fontFamily;
+    probe.style.fontWeight = lookupStyle.fontWeight;
+    probe.style.fontStyle = lookupStyle.fontStyle;
+    probe.style.letterSpacing = lookupStyle.letterSpacing;
+    probe.style.lineHeight = lookupStyle.lineHeight;
+    probe.style.textTransform = lookupStyle.textTransform;
+    probe.style.fontSize = `${MAX_SIZE}px`;
+    host.appendChild(probe);
+    const measuredWidth = Math.max(1, Math.ceil(probe.getBoundingClientRect().width));
+    probe.remove();
+
+    const SAFE_RATIO = 0.94;
     const fitSize = measuredWidth > availableWidth
-      ? Math.max(MIN_SIZE, Math.floor((MAX_SIZE * (availableWidth / measuredWidth)) * 100) / 100)
+      ? Math.max(MIN_SIZE, Math.floor((MAX_SIZE * (availableWidth / measuredWidth) * SAFE_RATIO) * 100) / 100)
       : MAX_SIZE;
     lookup.style.setProperty('font-size', `${fitSize}px`, 'important');
   };
@@ -509,10 +526,10 @@
   };
 
   const ensureEntryTooltipLayer = () => {
-    let layer = document.getElementById('dx-entry-tooltip-layer');
+    let layer = document.getElementById('dx-submit-tooltip-layer');
     if (layer instanceof HTMLElement) return layer;
     layer = document.createElement('div');
-    layer.id = 'dx-entry-tooltip-layer';
+    layer.id = 'dx-submit-tooltip-layer';
     layer.setAttribute('role', 'tooltip');
     layer.setAttribute('aria-hidden', 'true');
     layer.hidden = true;
@@ -522,7 +539,7 @@
 
   const hideEntryTooltip = () => {
     activeEntryTooltipTarget = null;
-    const layer = document.getElementById('dx-entry-tooltip-layer');
+    const layer = document.getElementById('dx-submit-tooltip-layer');
     if (!(layer instanceof HTMLElement)) return;
     layer.hidden = true;
     layer.textContent = '';
@@ -589,7 +606,11 @@
     const hoverEnabled = canUsePointerHoverTooltip();
 
     scope.querySelectorAll('[data-dx-tooltip]').forEach((node) => {
-      if (node instanceof HTMLElement) node.removeAttribute('title');
+      if (!(node instanceof HTMLElement)) return;
+      node.removeAttribute('title');
+      const tooltipText = String(node.getAttribute('data-dx-tooltip') || '').trim();
+      if (!tooltipText) return;
+      if (!node.getAttribute('aria-label')) node.setAttribute('aria-label', tooltipText);
     });
 
     if (hoverEnabled) {
@@ -629,7 +650,7 @@
 
     window.addEventListener('scroll', () => {
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
-      const layer = document.getElementById('dx-entry-tooltip-layer');
+      const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
         positionEntryTooltip(layer, activeEntryTooltipTarget);
       }
@@ -637,7 +658,7 @@
 
     window.addEventListener('resize', () => {
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
-      const layer = document.getElementById('dx-entry-tooltip-layer');
+      const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
         positionEntryTooltip(layer, activeEntryTooltipTarget);
       }
