@@ -4331,5 +4331,41 @@ body.dx-entry-page .dex-sidebar .dex-license {
   display: flex !important;
   flex-direction: column !important;
 }
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs {
+  display: flex !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: var(--space-3) !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button {
+  flex: 1 !important;
+  padding: var(--space-2) !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  font-family: var(--font-heading) !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  letter-spacing: normal !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  min-height: 0 !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button[aria-selected="true"] {
+  border-bottom: 2px solid var(--dex-accent) !important;
+  color: var(--dex-accent) !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-tabs button:not([aria-selected="true"]):hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div {
+  display: none !important;
+}
+body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div:not([hidden]) {
+  display: block !important;
+}
 </style>
 </body></html>
