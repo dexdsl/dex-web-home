@@ -65,6 +65,15 @@ function ensureRuntimeMarkers(runtimeJs) {
     'dx-submit-tooltip-status',
     'data-dx-download-kind="recording-index-pdf"',
     'data-dx-entry-rail-mode',
+    'DX_ENTRY_TARGET_TIMEOUT_MS = 15000',
+    'ENTRY_FETCH_TARGET_SPECS',
+    'markAllEntryFetchTargets',
+    'bindHeaderFetchLifecycle',
+    'bindDescriptionFetchLifecycle',
+    'bindMediaFetchLifecycle',
+    'data-dx-entry-fetch-target',
+    'TOOLTIP_FETCH_SHELL_MARKER',
+    'setTooltipFetchState(layer, FETCH_STATE_LOADING)',
   ];
   for (const marker of required) {
     if (!runtimeJs.includes(marker)) {
@@ -97,6 +106,8 @@ function ensureTooltipCssContract(dexCss) {
   }
   const requiredMarkers = [
     '#dx-submit-tooltip-layer .dx-submit-tooltip-head',
+    '#dx-submit-tooltip-layer[data-dx-fetch-state="loading"]',
+    '#dx-submit-tooltip-layer .dx-fetch-shell-overlay[data-dx-tooltip-fetch-shell="1"]',
     '.dx-submit-tooltip-status.is-available',
     '.dx-submit-tooltip-metric dt',
     '.overview-item--buckets',

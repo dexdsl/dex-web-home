@@ -97,11 +97,31 @@ async function main() {
     const entryLayoutMatch = String(html).match(/<div[^>]*class=["'][^"']*\bdex-entry-layout\b[^"']*["'][^>]*>/i);
     if (entryLayoutMatch) {
       const entryLayoutTag = entryLayoutMatch[0];
+      if (!/data-dx-entry-fetch-target=["']layout["']/i.test(entryLayoutTag)) {
+        runtimeIssues.push('dex-entry-layout missing data-dx-entry-fetch-target="layout"');
+      }
       if (!/data-dx-fetch-state=["']loading["']/i.test(entryLayoutTag)) {
         runtimeIssues.push('dex-entry-layout missing data-dx-fetch-state="loading"');
       }
       if (!/aria-busy=["']true["']/i.test(entryLayoutTag)) {
         runtimeIssues.push('dex-entry-layout missing aria-busy="true"');
+      }
+    }
+    const targetContracts = [
+      { className: 'dex-entry-header', key: 'header' },
+      { className: 'dex-video-shell', key: 'media' },
+      { className: 'dex-entry-desc-scroll', key: 'description' },
+      { className: 'dex-overview', key: 'overview' },
+      { className: 'dex-collections', key: 'collections' },
+      { className: 'dex-license', key: 'license' },
+    ];
+    for (const contract of targetContracts) {
+      const rx = new RegExp(`<[^>]*class=["'][^"']*\\b${contract.className}\\b[^"']*["'][^>]*>`, 'i');
+      const match = String(html).match(rx);
+      if (!match) continue;
+      const tag = match[0];
+      if (!new RegExp(`data-dx-entry-fetch-target=["']${contract.key}["']`, 'i').test(tag)) {
+        runtimeIssues.push(`${contract.className} missing data-dx-entry-fetch-target="${contract.key}"`);
       }
     }
     if (/https?:\/\/drive\.google\.com\//i.test(html)) runtimeIssues.push('raw drive.google.com URL');

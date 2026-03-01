@@ -15,6 +15,7 @@ const FILES = {
   messagesRuntimeSource: path.join(ROOT, 'scripts', 'src', 'messages.inbox.entry.mjs'),
   pressroomRuntime: path.join(ROOT, 'public', 'assets', 'js', 'pressroom.js'),
   pressroomRuntimeSource: path.join(ROOT, 'scripts', 'src', 'pressroom.entry.mjs'),
+  sidebarRuntime: path.join(ROOT, 'public', 'assets', 'dex-sidebar.js'),
 };
 
 const COVERED_ROUTES = [
@@ -174,11 +175,32 @@ function verifyAchievementsTimeoutContract(failures) {
   }
 }
 
+function verifyEntrySidebarFetchContract(failures) {
+  if (!fs.existsSync(FILES.sidebarRuntime)) {
+    failures.push('public/assets/dex-sidebar.js missing for entry sidebar fetch contract');
+    return;
+  }
+  const runtime = readText(FILES.sidebarRuntime);
+  const requiredMarkers = [
+    'ENTRY_FETCH_TARGET_SPECS',
+    'data-dx-entry-fetch-target',
+    'DX_ENTRY_TARGET_TIMEOUT_MS = 15000',
+    'markAllEntryFetchTargets',
+    'setTooltipFetchState(layer, FETCH_STATE_LOADING)',
+  ];
+  for (const marker of requiredMarkers) {
+    if (!runtime.includes(marker)) {
+      failures.push(`public/assets/dex-sidebar.js missing entry fetch marker ${marker}`);
+    }
+  }
+}
+
 function main() {
   const failures = [];
 
   verifyRouteContracts(failures);
   verifyAchievementsTimeoutContract(failures);
+  verifyEntrySidebarFetchContract(failures);
   verifyCssContract(FILES.baseCss, 'public/css/base.css', failures);
   verifyCssContract(FILES.dexCss, 'public/assets/css/dex.css', failures);
 

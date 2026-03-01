@@ -83,7 +83,10 @@ const fixtureHtml = `
                     </div>
                   </div>
                   <div class="dex-entry-layout">
-                    <div class="dex-entry-main"></div>
+                    <div class="dex-entry-main">
+                      <div class="dex-video-shell"></div>
+                      <div class="dex-entry-desc-scroll"><div class="dex-entry-desc-content">Fixture description text.</div></div>
+                    </div>
                     <aside class="dex-sidebar"></aside>
                   </div>
                 </div>
@@ -173,6 +176,10 @@ assert.equal($('.dex-entry-fluid-engine').length, 1, 'Dex entry fluid engine sho
 assert.ok($('body').hasClass('dex-entry-page'), 'Sanitizer should tag entry pages on body for scoped layout overrides');
 assert.equal($('.dex-entry-layout').first().attr('data-dx-fetch-state'), 'loading', 'Entry fetch root should default to loading state');
 assert.equal($('.dex-entry-layout').first().attr('aria-busy'), 'true', 'Entry fetch root should default to aria-busy=true');
+assert.equal($('.dex-entry-layout').first().attr('data-dx-entry-fetch-target'), 'layout', 'Entry layout should be marked as fetch target "layout"');
+assert.equal($('.dex-entry-header').first().attr('data-dx-entry-fetch-target'), 'header', 'Entry header should be marked as fetch target "header"');
+assert.equal($('.dex-entry-main .dex-video-shell').first().attr('data-dx-entry-fetch-target'), 'media', 'Entry media shell should be marked as fetch target "media"');
+assert.equal($('.dex-entry-desc-scroll').first().attr('data-dx-entry-fetch-target'), 'description', 'Entry description should be marked as fetch target "description"');
 assert.ok($('body').hasClass('announcement-bar-reserved-space'), 'Sanitizer should reserve announcement-bar spacing on entry pages');
 assert.equal($('#scroll-gradient-bg').length, 1, 'Sanitizer should inject entry gradient background layer');
 assert.equal($('#gooey-mesh-wrapper').length, 1, 'Sanitizer should inject entry blob background layer');
@@ -198,6 +205,8 @@ assert.ok($('#dex-layout-patch').text().includes('touch-action: manipulation'), 
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-page-title'), 'Dex layout patch should include entry page title rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-scroll'), 'Dex layout patch should include entry description scroll rules');
 assert.ok($('#dex-layout-patch').text().includes('.dex-entry-desc-heading'), 'Dex layout patch should include description heading rules');
+assert.ok($('#dex-layout-patch').text().includes('[data-dx-entry-fetch-target="description"][data-dx-fetch-state="loading"]'), 'Dex layout patch should include description loading shell sizing rules');
+assert.ok($('#dex-layout-patch').text().includes('#dx-submit-tooltip-layer[data-dx-fetch-state="loading"]'), 'Dex layout patch should include tooltip loading-shell marker rules');
 assert.ok($('#dex-layout-patch').text().includes('.sqs-code-container'), 'Dex layout patch should include sqs code-container support');
 assert.equal($('.dex-entry-header').length, 1, 'Sanitizer should preserve entry header wrapper');
 assert.equal($('.dex-entry-page-title').length, 1, 'Sanitizer should preserve entry page title');

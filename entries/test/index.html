@@ -581,6 +581,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
+
+
+
+
+
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .dx-code-container,
@@ -782,6 +787,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 .dex-video-shell {
   position: relative;
   overflow: visible;
+}
+body.dx-entry-page [data-dx-entry-fetch-target="header"][data-dx-fetch-state="loading"] {
+  min-height: clamp(88px, 12vw, 146px);
+}
+body.dx-entry-page [data-dx-entry-fetch-target="media"][data-dx-fetch-state="loading"] {
+  min-height: clamp(176px, 24vw, 312px);
+}
+body.dx-entry-page [data-dx-entry-fetch-target="description"][data-dx-fetch-state="loading"] {
+  min-height: clamp(144px, 20vw, 248px);
 }
 .dex-video {
   position: relative;
@@ -1040,6 +1054,22 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visib
   transform: translate3d(0, -1px, 0) scale(1.04) !important;
   opacity: 0.97 !important;
   filter: saturate(1.07) brightness(1.02) !important;
+}
+#dx-submit-tooltip-layer {
+  --dx-fetch-min-shell-h: 76px;
+  --dx-fetch-shell-radius: 10px;
+}
+#dx-submit-tooltip-layer .dx-submit-tooltip-content {
+  position: relative;
+  z-index: 1;
+}
+#dx-submit-tooltip-layer .dx-fetch-shell-overlay[data-dx-tooltip-fetch-shell="1"] {
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+}
+#dx-submit-tooltip-layer[data-dx-fetch-state="loading"] .dx-submit-tooltip-content {
+  opacity: 0.22;
 }
 @media (prefers-reduced-motion: reduce) {
   body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
@@ -2899,6 +2929,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
 
 
 
+
 <script>
   try {
     const el = document.getElementById('dex-sidebar-page-config');
@@ -2966,9 +2997,9 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
 <!-- DEX:SIDEBAR_PAGE_CONFIG_END -->
 
 <!-- B) Sidebar container -->
-<aside class="dex-sidebar" aria-busy="true" data-dx-fetch-state="loading">
-    <section class="dex-overview" aria-busy="true"></section>
-    <section class="dex-license" aria-busy="true"></section>
+<aside class="dex-sidebar" aria-busy="true" data-dx-fetch-state="loading" data-dx-entry-fetch-target="layout">
+    <section class="dex-overview" aria-busy="true" data-dx-entry-fetch-target="overview"></section>
+    <section class="dex-license" aria-busy="true" data-dx-entry-fetch-target="license"></section>
     <section class="dex-credits"></section>
 
     <!-- → REPLACED: Downloads / File Specs / Metadata merge into one dynamic card -->

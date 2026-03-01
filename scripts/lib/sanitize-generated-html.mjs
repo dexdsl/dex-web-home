@@ -19,6 +19,16 @@ const SITE_CSS_HREF_PATTERN = new RegExp(
 const DEX_LAYOUT_PATCH_STYLE_ID = 'dex-layout-patch';
 const STALE_ENTRY_OVERRIDE_STYLE_IDS = ['dex-entry-sidebar-vnext-overrides'];
 const ENTRY_FETCH_ROOT_SELECTORS = ['.dex-entry-layout', '.dex-sidebar'];
+const ENTRY_FETCH_TARGET_ATTR = 'data-dx-entry-fetch-target';
+const ENTRY_FETCH_TARGET_SELECTORS = [
+  { key: 'layout', selectors: ['.dex-entry-layout', '.dex-sidebar'] },
+  { key: 'header', selectors: ['.dex-entry-header'] },
+  { key: 'media', selectors: ['.dex-entry-media', '.dex-video-shell'] },
+  { key: 'description', selectors: ['.dex-entry-desc-scroll'] },
+  { key: 'overview', selectors: ['.dex-overview'] },
+  { key: 'collections', selectors: ['.dex-collections'] },
+  { key: 'license', selectors: ['.dex-license'] },
+];
 const DEX_ENTRY_BG_STYLE_ID = 'dex-entry-gooey-bg-style';
 const DEX_ENTRY_BG_SCRIPT_ID = 'dex-entry-gooey-bg-script';
 const DEFAULT_ANNOUNCEMENT_HTML = '<p>Donate to dex today to help us provide arts resources &amp; events!</p>';
@@ -883,6 +893,15 @@ function ensureDexLayoutPatchStyle($, head) {
   position: relative;
   overflow: visible;
 }
+body.dx-entry-page [data-dx-entry-fetch-target="header"][data-dx-fetch-state="loading"] {
+  min-height: clamp(88px, 12vw, 146px);
+}
+body.dx-entry-page [data-dx-entry-fetch-target="media"][data-dx-fetch-state="loading"] {
+  min-height: clamp(176px, 24vw, 312px);
+}
+body.dx-entry-page [data-dx-entry-fetch-target="description"][data-dx-fetch-state="loading"] {
+  min-height: clamp(144px, 20vw, 248px);
+}
 .dex-video {
   position: relative;
   border-radius: var(--dex-entry-frame-radius);
@@ -1141,6 +1160,22 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visib
   opacity: 0.97 !important;
   filter: saturate(1.07) brightness(1.02) !important;
 }
+#dx-submit-tooltip-layer {
+  --dx-fetch-min-shell-h: 76px;
+  --dx-fetch-shell-radius: 10px;
+}
+#dx-submit-tooltip-layer .dx-submit-tooltip-content {
+  position: relative;
+  z-index: 1;
+}
+#dx-submit-tooltip-layer .dx-fetch-shell-overlay[data-dx-tooltip-fetch-shell="1"] {
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+}
+#dx-submit-tooltip-layer[data-dx-fetch-state="loading"] .dx-submit-tooltip-content {
+  opacity: 0.22;
+}
 @media (prefers-reduced-motion: reduce) {
   body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
     transition: none !important;
@@ -1361,6 +1396,23 @@ function ensureEntryFetchRootContract($) {
   fetchRoot.attr('aria-busy', 'true');
 }
 
+function ensureEntryFetchTargetMarkers($) {
+  const hasEntryStructure = $('.dex-entry-layout').length > 0 || $('.dex-sidebar').length > 0;
+  if (!hasEntryStructure) return;
+  for (const target of ENTRY_FETCH_TARGET_SELECTORS) {
+    let node = null;
+    for (const selector of target.selectors) {
+      const candidate = $(selector).first();
+      if (candidate.length) {
+        node = candidate;
+        break;
+      }
+    }
+    if (!node || !node.length) continue;
+    node.attr(ENTRY_FETCH_TARGET_ATTR, target.key);
+  }
+}
+
 function isContractScriptId(id) {
   return REQUIRED_CONTRACT_IDS.includes(String(id || '').trim()) || String(id || '').trim() === PAGE_CONFIG_BRIDGE_SCRIPT_ID;
 }
@@ -1575,6 +1627,24 @@ function collectSanitizationIssues($) {
         issues.push({ type: 'missing', token: `${entryFetchSelector} aria-busy="true"` });
       }
     }
+    for (const target of ENTRY_FETCH_TARGET_SELECTORS) {
+      let node = null;
+      for (const selector of target.selectors) {
+        const candidate = $(selector).first();
+        if (candidate.length) {
+          node = candidate;
+          break;
+        }
+      }
+      if (!node || !node.length) continue;
+      const marker = String(node.attr(ENTRY_FETCH_TARGET_ATTR) || '').trim().toLowerCase();
+      if (marker !== target.key) {
+        issues.push({
+          type: 'missing',
+          token: `${target.selectors[0]} ${ENTRY_FETCH_TARGET_ATTR}="${target.key}"`,
+        });
+      }
+    }
   }
 
   if (hasDexSidebarRuntime($) && scriptTagCount($, 'dex-sidebar-page-config') === 0) {
@@ -1597,6 +1667,7 @@ export function sanitizeGeneratedHtml(html) {
   markDexEntryHosts($);
   ensureEntryBodyClasses($);
   ensureEntryFetchRootContract($);
+  ensureEntryFetchTargetMarkers($);
   normalizeDexSectionSpacing($);
   const classFamily = resolveLegacyClassFamily($);
   const announcementConfig = resolveAnnouncementBarConfig($, classFamily);

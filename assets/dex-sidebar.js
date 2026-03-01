@@ -23,19 +23,33 @@
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
   const DX_MIN_SHEEN_MS = 120;
+  const DX_ENTRY_TARGET_TIMEOUT_MS = 15000;
   const FETCH_STATE_LOADING = 'loading';
   const FETCH_STATE_READY = 'ready';
   const FETCH_STATE_ERROR = 'error';
   const ENTRY_FETCH_SHELL_MARKER = 'data-dx-entry-fetch-shell';
-  const ENTRY_FETCH_TARGET_SELECTORS = [
-    '.dex-entry-layout',
-    '.dex-entry-main',
-    '.dex-overview',
-    '.dex-collections',
-    '.dex-license',
+  const TOOLTIP_FETCH_SHELL_MARKER = 'data-dx-tooltip-fetch-shell';
+  const ENTRY_FETCH_TARGET_SPECS = [
+    { key: 'layout', selectors: ['[data-dx-entry-fetch-target="layout"]', '.dex-entry-layout'], variant: 'rows' },
+    { key: 'header', selectors: ['[data-dx-entry-fetch-target="header"]', '.dex-entry-header'], variant: 'rows' },
+    { key: 'media', selectors: ['[data-dx-entry-fetch-target="media"]', '.dex-entry-media', '.dex-video-shell'], variant: 'card' },
+    { key: 'description', selectors: ['[data-dx-entry-fetch-target="description"]', '.dex-entry-desc-scroll'], variant: 'rows' },
+    { key: 'overview', selectors: ['[data-dx-entry-fetch-target="overview"]', '.dex-overview'], variant: 'card' },
+    { key: 'collections', selectors: ['[data-dx-entry-fetch-target="collections"]', '.dex-collections'], variant: 'rows' },
+    { key: 'license', selectors: ['[data-dx-entry-fetch-target="license"]', '.dex-license'], variant: 'card' },
+  ];
+  const ENTRY_FETCH_WATCH_OPTIONS = { childList: true, subtree: true, characterData: true, attributes: true };
+  const BUCKET_TOOLTIP_METRIC_ATTRS = [
+    'data-dx-tooltip-status',
+    'data-dx-tooltip-audio',
+    'data-dx-tooltip-video',
+    'data-dx-tooltip-mapped',
+    'data-dx-tooltip-pdf',
+    'data-dx-tooltip-bundle',
   ];
   let overviewLookupFitBound = false;
   let overviewLookupResizeObserver = null;
+  let activeEntryTooltipMetricsObserver = null;
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -305,47 +319,271 @@
     return shell;
   };
 
-  const ensureFetchShell = (target) => {
+  const nowTs = () => (typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now());
+
+  const ensureFetchShell = (target, variant = 'card', marker = ENTRY_FETCH_SHELL_MARKER) => {
     if (!(target instanceof HTMLElement)) return;
-    const existing = target.querySelector(`:scope > .dx-fetch-shell-overlay[${ENTRY_FETCH_SHELL_MARKER}="1"]`);
+    const existing = target.querySelector(`:scope > .dx-fetch-shell-overlay[${marker}="1"]`);
     if (existing) return;
     const overlay = document.createElement('div');
     overlay.className = 'dx-fetch-shell-overlay';
-    overlay.setAttribute(ENTRY_FETCH_SHELL_MARKER, '1');
+    overlay.setAttribute(marker, '1');
     overlay.setAttribute('aria-hidden', 'true');
-    const variant = target.classList.contains('dex-entry-layout') || target.classList.contains('dex-collections')
-      ? 'rows'
-      : 'card';
     overlay.appendChild(createFetchShell(variant));
     target.prepend(overlay);
   };
 
+  const resolveEntryFetchTarget = (selectors = []) => {
+    for (const selector of selectors) {
+      const node = document.querySelector(selector);
+      if (node instanceof HTMLElement) return node;
+    }
+    return null;
+  };
+
+  const queueFetchTransition = (record, nextState) => {
+    if (!record) return Promise.resolve();
+    record.pending = (record.pending || Promise.resolve()).then(async () => {
+      if (record.state !== FETCH_STATE_LOADING) return;
+      const elapsed = nowTs() - Number(record.startTs || 0);
+      if (elapsed < DX_MIN_SHEEN_MS) {
+        await delay(DX_MIN_SHEEN_MS - elapsed);
+      }
+      if (record.state !== FETCH_STATE_LOADING) return;
+      record.state = nextState;
+      setFetchState(record.target, nextState);
+      if (record.timeoutId) {
+        window.clearTimeout(record.timeoutId);
+        record.timeoutId = 0;
+      }
+    });
+    return record.pending;
+  };
+
   const collectEntryFetchTargets = () => {
     const seen = new Set();
-    const targets = [];
-    ENTRY_FETCH_TARGET_SELECTORS.forEach((selector) => {
-      const node = document.querySelector(selector);
-      if (!(node instanceof HTMLElement)) return;
-      if (seen.has(node)) return;
-      seen.add(node);
-      targets.push(node);
+    const byKey = new Map();
+    ENTRY_FETCH_TARGET_SPECS.forEach((spec) => {
+      const target = resolveEntryFetchTarget(spec.selectors);
+      if (!(target instanceof HTMLElement) || seen.has(target)) return;
+      seen.add(target);
+      target.setAttribute('data-dx-entry-fetch-target', spec.key);
+      byKey.set(spec.key, {
+        key: spec.key,
+        target,
+        variant: spec.variant === 'rows' ? 'rows' : 'card',
+        state: '',
+        startTs: 0,
+        timeoutId: 0,
+        pending: Promise.resolve(),
+      });
     });
-    return targets;
+    return {
+      byKey,
+      list: Array.from(byKey.values()),
+    };
+  };
+
+  const getEntryFetchRecord = (targets, key) => {
+    if (!targets || !(targets.byKey instanceof Map)) return null;
+    return targets.byKey.get(String(key || '').trim()) || null;
+  };
+
+  const startTargetLoading = (record, targets = null) => {
+    if (!record || !(record.target instanceof HTMLElement)) return;
+    record.state = FETCH_STATE_LOADING;
+    record.startTs = nowTs();
+    setFetchState(record.target, FETCH_STATE_LOADING);
+    ensureFetchShell(record.target, record.variant, ENTRY_FETCH_SHELL_MARKER);
+    if (record.timeoutId) {
+      window.clearTimeout(record.timeoutId);
+      record.timeoutId = 0;
+    }
+    record.timeoutId = window.setTimeout(() => {
+      if (record.state !== FETCH_STATE_LOADING) return;
+      if (targets && record.key) {
+        void markTargetError(targets, record.key);
+        return;
+      }
+      void queueFetchTransition(record, FETCH_STATE_ERROR);
+    }, DX_ENTRY_TARGET_TIMEOUT_MS);
   };
 
   const ensureEntryFetchShells = (targets = []) => {
-    targets.forEach((target) => {
-      setFetchState(target, FETCH_STATE_LOADING);
-      ensureFetchShell(target);
+    if (!targets || !Array.isArray(targets.list)) return;
+    targets.list.forEach((record) => {
+      startTargetLoading(record, targets);
     });
   };
 
-  const finalizeEntryFetchState = async (targets = [], state = FETCH_STATE_READY, startTs = performance.now()) => {
-    const elapsed = performance.now() - startTs;
-    if (elapsed < DX_MIN_SHEEN_MS) {
-      await delay(DX_MIN_SHEEN_MS - elapsed);
+  const maybeMarkEntryLayoutReady = async (targets) => {
+    const layout = getEntryFetchRecord(targets, 'layout');
+    if (!layout || layout.state !== FETCH_STATE_LOADING) return;
+    const keys = ['header', 'media', 'description', 'overview', 'collections', 'license'];
+    const unresolved = keys.some((key) => {
+      const record = getEntryFetchRecord(targets, key);
+      return record && record.state === FETCH_STATE_LOADING;
+    });
+    if (unresolved) return;
+    await queueFetchTransition(layout, FETCH_STATE_READY);
+  };
+
+  const markTargetReady = async (targets, key) => {
+    const record = getEntryFetchRecord(targets, key);
+    if (!record) return;
+    await queueFetchTransition(record, FETCH_STATE_READY);
+    if (key !== 'layout') await maybeMarkEntryLayoutReady(targets);
+  };
+
+  const markTargetError = async (targets, key) => {
+    const record = getEntryFetchRecord(targets, key);
+    if (!record) return;
+    await queueFetchTransition(record, FETCH_STATE_ERROR);
+    if (key !== 'layout') await maybeMarkEntryLayoutReady(targets);
+  };
+
+  const markAllEntryFetchTargets = async (targets, state = FETCH_STATE_ERROR) => {
+    if (!targets || !Array.isArray(targets.list)) return;
+    const nextState = state === FETCH_STATE_READY ? FETCH_STATE_READY : FETCH_STATE_ERROR;
+    await Promise.all(
+      targets.list.map((record) => {
+        if (!record || record.state !== FETCH_STATE_LOADING) return Promise.resolve();
+        return queueFetchTransition(record, nextState);
+      }),
+    );
+  };
+
+  const hasMeaningfulText = (value) => String(value || '').replace(/\s+/g, ' ').trim().length > 0;
+
+  const isHeaderReady = (target) => {
+    if (!(target instanceof HTMLElement)) return false;
+    const title = target.querySelector('[data-dex-entry-page-title], .dex-entry-page-title');
+    const subtitle = target.querySelector('[data-dex-entry-subtitle], .dex-entry-subtitle');
+    if (!(title instanceof HTMLElement) || !(subtitle instanceof HTMLElement)) return false;
+    const titleTextReady = hasMeaningfulText(title.textContent);
+    const subtitleValues = Array.from(subtitle.querySelectorAll('.dex-entry-subtitle-value'))
+      .filter((node) => node instanceof HTMLElement)
+      .map((node) => node.textContent)
+      .filter((value) => hasMeaningfulText(value));
+    const subtitleReady = subtitleValues.length > 0 || hasMeaningfulText(subtitle.textContent);
+    return titleTextReady && subtitleReady;
+  };
+
+  const isDescriptionReady = (target) => {
+    if (!(target instanceof HTMLElement)) return false;
+    const content = target.querySelector('.dex-entry-desc-content') || target;
+    if (!(content instanceof HTMLElement)) return false;
+    const text = String(content.textContent || '').replace(/\s+/g, ' ').trim();
+    return text.length >= 16;
+  };
+
+  const watchTargetUntilReady = (target, isReady, onReady) => {
+    if (!(target instanceof HTMLElement) || typeof isReady !== 'function' || typeof onReady !== 'function') return null;
+    if (isReady()) {
+      onReady();
+      return null;
     }
-    targets.forEach((target) => setFetchState(target, state));
+    if (typeof MutationObserver !== 'function') return null;
+    const observer = new MutationObserver(() => {
+      if (!isReady()) return;
+      observer.disconnect();
+      onReady();
+    });
+    observer.observe(target, ENTRY_FETCH_WATCH_OPTIONS);
+    return observer;
+  };
+
+  const bindHeaderFetchLifecycle = (targets) => {
+    const record = getEntryFetchRecord(targets, 'header');
+    if (!record) return;
+    watchTargetUntilReady(record.target, () => isHeaderReady(record.target), () => {
+      void markTargetReady(targets, 'header');
+    });
+  };
+
+  const bindDescriptionFetchLifecycle = (targets) => {
+    const record = getEntryFetchRecord(targets, 'description');
+    if (!record) return;
+    watchTargetUntilReady(record.target, () => isDescriptionReady(record.target), () => {
+      void markTargetReady(targets, 'description');
+    });
+  };
+
+  const mediaTargetLooksReady = (target) => {
+    if (!(target instanceof HTMLElement)) return false;
+    const mediaNode = target.querySelector('iframe, img, video, canvas');
+    if (!(mediaNode instanceof Element)) return false;
+    const targetRect = target.getBoundingClientRect();
+    const mediaRect = mediaNode.getBoundingClientRect();
+    return targetRect.width >= 120
+      && targetRect.height >= 64
+      && mediaRect.width >= 120
+      && mediaRect.height >= 64;
+  };
+
+  const bindMediaFetchLifecycle = (targets) => {
+    const record = getEntryFetchRecord(targets, 'media');
+    if (!record || !(record.target instanceof HTMLElement)) return;
+    let disposed = false;
+    let rafId = 0;
+    let observer = null;
+    const nodesBound = new WeakSet();
+
+    const cleanup = () => {
+      disposed = true;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      if (observer instanceof MutationObserver) {
+        observer.disconnect();
+        observer = null;
+      }
+    };
+
+    const settle = () => {
+      if (disposed) return;
+      cleanup();
+      void markTargetReady(targets, 'media');
+    };
+
+    const maybeSettle = () => {
+      if (disposed) return;
+      if (!mediaTargetLooksReady(record.target)) return;
+      settle();
+    };
+
+    const bindLoadHandlers = () => {
+      const nodes = Array.from(record.target.querySelectorAll('iframe, img, video'));
+      nodes.forEach((node) => {
+        if (!(node instanceof HTMLElement) || nodesBound.has(node)) return;
+        nodesBound.add(node);
+        node.addEventListener('load', maybeSettle, { once: true, passive: true });
+      });
+    };
+
+    bindLoadHandlers();
+    maybeSettle();
+    if (record.state !== FETCH_STATE_LOADING) return;
+
+    if (typeof MutationObserver === 'function') {
+      observer = new MutationObserver(() => {
+        bindLoadHandlers();
+        maybeSettle();
+      });
+      observer.observe(record.target, ENTRY_FETCH_WATCH_OPTIONS);
+    }
+
+    const tick = () => {
+      maybeSettle();
+      const current = getEntryFetchRecord(targets, 'media');
+      if (!disposed && current && current.state === FETCH_STATE_LOADING) {
+        rafId = window.requestAnimationFrame(tick);
+      }
+    };
+    rafId = window.requestAnimationFrame(tick);
+    window.setTimeout(maybeSettle, 60);
+    window.setTimeout(maybeSettle, 240);
   };
 
   const fitOverviewLookupText = () => {
@@ -555,7 +793,7 @@
     ];
     const metricRows = metrics
       .map(([label, value]) => `
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:baseline;">
+        <div class="dx-submit-tooltip-metric" style="display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:baseline;">
           <dt style="margin:0;font:600 0.58rem/1.15 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.02em;text-transform:uppercase;opacity:0.72;">${escapeHtml(label)}</dt>
           <dd style="margin:0;font:700 0.63rem/1.15 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.01em;text-transform:uppercase;">${escapeHtml(value)}</dd>
         </div>
@@ -575,12 +813,17 @@
 
   const ensureEntryTooltipLayer = () => {
     let layer = document.getElementById('dx-submit-tooltip-layer');
-    if (layer instanceof HTMLElement) return layer;
+    if (layer instanceof HTMLElement) {
+      ensureFetchShell(layer, 'rows', TOOLTIP_FETCH_SHELL_MARKER);
+      return layer;
+    }
     layer = document.createElement('div');
     layer.id = 'dx-submit-tooltip-layer';
     layer.setAttribute('role', 'tooltip');
     layer.setAttribute('aria-hidden', 'true');
     layer.setAttribute('data-state', 'hidden');
+    layer.setAttribute('data-dx-tooltip-layer', '1');
+    layer.setAttribute('data-dx-fetch-state', FETCH_STATE_READY);
     layer.hidden = true;
     layer.style.position = 'fixed';
     layer.style.pointerEvents = 'none';
@@ -600,21 +843,73 @@
     layer.style.whiteSpace = 'normal';
     layer.style.color = 'rgba(18, 21, 28, 0.94)';
     layer.style.font = "600 11px/1.35 var(--font-body, 'Courier Prime', monospace)";
+    layer.appendChild(document.createElement('div')).className = 'dx-submit-tooltip-content';
+    ensureFetchShell(layer, 'rows', TOOLTIP_FETCH_SHELL_MARKER);
     document.body.appendChild(layer);
     return layer;
   };
 
+  const getTooltipContentNode = (layer) => {
+    if (!(layer instanceof HTMLElement)) return null;
+    let content = layer.querySelector(':scope > .dx-submit-tooltip-content');
+    if (content instanceof HTMLElement) return content;
+    content = document.createElement('div');
+    content.className = 'dx-submit-tooltip-content';
+    layer.appendChild(content);
+    return content;
+  };
+
+  const clearEntryTooltipMetricObserver = () => {
+    if (!(activeEntryTooltipMetricsObserver instanceof MutationObserver)) return;
+    try {
+      activeEntryTooltipMetricsObserver.disconnect();
+    } catch {}
+    activeEntryTooltipMetricsObserver = null;
+  };
+
+  const hasBucketTooltipMetrics = (target) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return BUCKET_TOOLTIP_METRIC_ATTRS.every((attr) => hasMeaningfulText(target.getAttribute(attr)));
+  };
+
+  const setTooltipFetchState = (layer, state) => {
+    if (!(layer instanceof HTMLElement)) return;
+    setFetchState(layer, state);
+    layer.setAttribute('data-dx-tooltip-fetch-state', state);
+  };
+
+  const armEntryTooltipMetricObserver = (target) => {
+    clearEntryTooltipMetricObserver();
+    if (!(target instanceof HTMLElement)) return;
+    if (hasBucketTooltipMetrics(target)) return;
+    if (typeof MutationObserver !== 'function') return;
+    const observer = new MutationObserver(() => {
+      if (!(activeEntryTooltipTarget instanceof HTMLElement) || activeEntryTooltipTarget !== target) {
+        clearEntryTooltipMetricObserver();
+        return;
+      }
+      if (!hasBucketTooltipMetrics(target)) return;
+      clearEntryTooltipMetricObserver();
+      showEntryTooltip(target);
+    });
+    observer.observe(target, { attributes: true, attributeFilter: BUCKET_TOOLTIP_METRIC_ATTRS });
+    activeEntryTooltipMetricsObserver = observer;
+  };
+
   const hideEntryTooltip = () => {
     activeEntryTooltipTarget = null;
+    clearEntryTooltipMetricObserver();
     const layer = document.getElementById('dx-submit-tooltip-layer');
     if (!(layer instanceof HTMLElement)) return;
+    const content = getTooltipContentNode(layer);
+    if (content instanceof HTMLElement) content.textContent = '';
+    setTooltipFetchState(layer, FETCH_STATE_READY);
     layer.setAttribute('aria-hidden', 'true');
     layer.setAttribute('data-state', 'hidden');
     layer.hidden = true;
     layer.style.setProperty('display', 'none', 'important');
     layer.style.setProperty('visibility', 'hidden', 'important');
     layer.style.setProperty('opacity', '0', 'important');
-    layer.textContent = '';
     layer.removeAttribute('data-rich');
   };
 
@@ -649,13 +944,19 @@
       return;
     }
     const layer = ensureEntryTooltipLayer();
+    const content = getTooltipContentNode(layer);
+    if (!(content instanceof HTMLElement)) return;
+    clearEntryTooltipMetricObserver();
     const richMarkup = buildEntryTooltipMarkup(target, tooltip);
     if (richMarkup) {
-      layer.innerHTML = richMarkup;
+      content.innerHTML = richMarkup;
       layer.setAttribute('data-rich', '1');
+      setTooltipFetchState(layer, FETCH_STATE_READY);
     } else {
-      layer.textContent = tooltip;
+      content.textContent = tooltip;
       layer.removeAttribute('data-rich');
+      setTooltipFetchState(layer, FETCH_STATE_LOADING);
+      armEntryTooltipMetricObserver(target);
     }
     layer.hidden = false;
     layer.removeAttribute('hidden');
@@ -708,24 +1009,6 @@
       if (!node.getAttribute('aria-label')) node.setAttribute('aria-label', tooltipText);
     });
 
-    addScopedListener(scope, 'mouseover', (event) => {
-      const target = resolveEntryTooltipTarget(event.target, scope);
-      if (!target) return;
-      if (activeEntryTooltipTarget === target) return;
-      showEntryTooltip(target);
-    });
-
-    addScopedListener(scope, 'mouseout', (event) => {
-      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
-      const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
-      if (next === activeEntryTooltipTarget) return;
-      if (next) {
-        showEntryTooltip(next);
-        return;
-      }
-      hideEntryTooltip();
-    });
-
     addScopedListener(scope, 'focusin', (event) => {
       const target = resolveEntryTooltipTarget(event.target, scope);
       if (!target) return;
@@ -741,28 +1024,24 @@
       hideEntryTooltip();
     });
 
+    const leaveToNextTarget = (event, node) => {
+      const next = resolveEntryTooltipTarget(event?.relatedTarget, scope);
+      if (next && next !== node) {
+        showEntryTooltip(next);
+        return;
+      }
+      if (activeEntryTooltipTarget === node) hideEntryTooltip();
+    };
+
     tooltipNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
       if (pointerSupported) {
-        addScopedListener(node, 'pointerenter', () => showEntryTooltip(node));
-        addScopedListener(node, 'pointerleave', (event) => {
-          const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
-          if (next) {
-            showEntryTooltip(next);
-            return;
-          }
-          if (activeEntryTooltipTarget === node) hideEntryTooltip();
-        });
+        addScopedListener(node, 'pointerenter', () => showEntryTooltip(node), { ...options, capture: true });
+        addScopedListener(node, 'pointerleave', (event) => leaveToNextTarget(event, node), { ...options, capture: true });
+      } else {
+        addScopedListener(node, 'mouseenter', () => showEntryTooltip(node), { ...options, capture: true });
+        addScopedListener(node, 'mouseleave', (event) => leaveToNextTarget(event, node), { ...options, capture: true });
       }
-      addScopedListener(node, 'mouseenter', () => showEntryTooltip(node));
-      addScopedListener(node, 'mouseleave', (event) => {
-        const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
-        if (next) {
-          showEntryTooltip(next);
-          return;
-        }
-        if (activeEntryTooltipTarget === node) hideEntryTooltip();
-      });
     });
 
     addScopedListener(scope, 'keydown', (event) => {
@@ -2027,9 +2306,11 @@
 
   const boot = async () => {
     if (document.documentElement.dataset.dexSidebarRendered === '1') return;
-    const bootStartTs = performance.now();
     const fetchTargets = collectEntryFetchTargets();
     ensureEntryFetchShells(fetchTargets);
+    bindHeaderFetchLifecycle(fetchTargets);
+    bindDescriptionFetchLifecycle(fetchTargets);
+    bindMediaFetchLifecycle(fetchTargets);
     try {
       const pageJson = parseJsonScript('dex-sidebar-page-config');
       const page = pageJson || window.dexSidebarPageConfig;
@@ -2126,6 +2407,8 @@
           </div>
         `;
         bindOverviewLookupFit();
+        fitOverviewLookupText();
+        await markTargetReady(fetchTargets, 'overview');
       }
 
       const collectionsEl = document.querySelector('.dex-collections');
@@ -2183,6 +2466,7 @@
             });
           });
         }
+        await markTargetReady(fetchTargets, 'collections');
       }
 
       render('.dex-license', 'License', `
@@ -2210,6 +2494,7 @@
           }
         });
       }
+      await markTargetReady(fetchTargets, 'license');
 
       const instrumentsLine = (cfg.credits.instruments || []).join(', ');
       render('.dex-credits', 'Credits', `
@@ -2285,9 +2570,9 @@
       refreshFavoriteButtons(favoritesApi, document);
 
       document.documentElement.dataset.dexSidebarRendered = '1';
-      await finalizeEntryFetchState(fetchTargets, FETCH_STATE_READY, bootStartTs);
+      await maybeMarkEntryLayoutReady(fetchTargets);
     } catch (error) {
-      await finalizeEntryFetchState(fetchTargets, FETCH_STATE_ERROR, bootStartTs);
+      await markAllEntryFetchTargets(fetchTargets, FETCH_STATE_ERROR);
       throw error;
     }
   };
