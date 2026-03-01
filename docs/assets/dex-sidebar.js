@@ -142,7 +142,7 @@
         const tooltipText = String(liveTooltip || persistedTooltip || `Bucket ${bucket}`).trim();
         nextTooltipCache[bucket] = tooltipText;
         const tooltip = escapeHtml(tooltipText);
-        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
+        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" title="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
     writeBucketTooltipCache(lookupNumber, nextTooltipCache);
@@ -603,9 +603,16 @@
     const controller = new AbortController();
     scope.__dxEntryTooltipAbortController = controller;
     const options = { signal: controller.signal };
-    const hoverEnabled = canUsePointerHoverTooltip();
+    const addScopedListener = (target, type, handler, opts = options) => {
+      try {
+        target.addEventListener(type, handler, opts);
+      } catch {
+        target.addEventListener(type, handler);
+      }
+    };
 
-    scope.querySelectorAll('[data-dx-tooltip]').forEach((node) => {
+    const tooltipNodes = Array.from(scope.querySelectorAll('[data-dx-tooltip]'));
+    tooltipNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
       node.removeAttribute('title');
       const tooltipText = String(node.getAttribute('data-dx-tooltip') || '').trim();
@@ -613,42 +620,72 @@
       if (!node.getAttribute('aria-label')) node.setAttribute('aria-label', tooltipText);
     });
 
-    if (hoverEnabled) {
-      scope.addEventListener('pointerover', (event) => {
-        const target = resolveEntryTooltipTarget(event.target, scope);
-        if (!target) return;
-        if (activeEntryTooltipTarget === target) return;
-        showEntryTooltip(target);
-      }, options);
+    addScopedListener(scope, 'pointerover', (event) => {
+      const target = resolveEntryTooltipTarget(event.target, scope);
+      if (!target) return;
+      if (activeEntryTooltipTarget === target) return;
+      showEntryTooltip(target);
+    });
 
-      scope.addEventListener('pointerout', (event) => {
-        if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
-        const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
-        if (next === activeEntryTooltipTarget) return;
-        if (next) {
-          showEntryTooltip(next);
-          return;
-        }
-        hideEntryTooltip();
-      }, options);
-    }
+    addScopedListener(scope, 'pointerout', (event) => {
+      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
+      const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+      if (next === activeEntryTooltipTarget) return;
+      if (next) {
+        showEntryTooltip(next);
+        return;
+      }
+      hideEntryTooltip();
+    });
 
-    scope.addEventListener('focusin', (event) => {
+    // Mouse event fallback for browsers/environments with inconsistent PointerEvent behavior.
+    addScopedListener(scope, 'mouseover', (event) => {
+      const target = resolveEntryTooltipTarget(event.target, scope);
+      if (!target) return;
+      if (activeEntryTooltipTarget === target) return;
+      showEntryTooltip(target);
+    });
+
+    addScopedListener(scope, 'mouseout', (event) => {
+      if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
+      const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
+      if (next === activeEntryTooltipTarget) return;
+      if (next) {
+        showEntryTooltip(next);
+        return;
+      }
+      hideEntryTooltip();
+    });
+
+    addScopedListener(scope, 'focusin', (event) => {
       const target = resolveEntryTooltipTarget(event.target, scope);
       if (!target) return;
       showEntryTooltip(target);
-    }, options);
+    });
 
-    scope.addEventListener('focusout', (event) => {
+    addScopedListener(scope, 'focusout', (event) => {
       const next = resolveEntryTooltipTarget(event.relatedTarget, scope);
       if (next) {
         showEntryTooltip(next);
         return;
       }
       hideEntryTooltip();
-    }, options);
+    });
 
-    window.addEventListener('scroll', () => {
+    // Direct node listeners as a hard fallback in case delegated pointer events are swallowed.
+    tooltipNodes.forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      addScopedListener(node, 'mouseenter', () => showEntryTooltip(node));
+      addScopedListener(node, 'mouseleave', () => {
+        if (activeEntryTooltipTarget === node) hideEntryTooltip();
+      });
+      addScopedListener(node, 'focus', () => showEntryTooltip(node));
+      addScopedListener(node, 'blur', () => {
+        if (activeEntryTooltipTarget === node) hideEntryTooltip();
+      });
+    });
+
+    addScopedListener(window, 'scroll', () => {
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
@@ -656,13 +693,13 @@
       }
     }, { signal: controller.signal, passive: true });
 
-    window.addEventListener('resize', () => {
+    addScopedListener(window, 'resize', () => {
       if (!(activeEntryTooltipTarget instanceof HTMLElement)) return;
       const layer = document.getElementById('dx-submit-tooltip-layer');
       if (layer instanceof HTMLElement && !layer.hidden) {
         positionEntryTooltip(layer, activeEntryTooltipTarget);
       }
-    }, options);
+    });
   };
 
   const applyEntryRailLayout = () => {

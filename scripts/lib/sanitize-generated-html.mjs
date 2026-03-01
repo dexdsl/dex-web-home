@@ -1113,6 +1113,34 @@ body.dx-entry-page .dex-collections .dx-bucket-tile {
   letter-spacing: 0.02em !important;
   overflow: hidden !important;
 }
+body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
+  position: relative !important;
+  cursor: help !important;
+}
+@media (hover: hover) {
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover::after,
+  body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible::after {
+    content: attr(data-dx-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    z-index: 1300;
+    width: max-content;
+    max-width: min(280px, 92vw);
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.98);
+    color: #111;
+    font: 600 11px/1.35 var(--font-body, system-ui);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
+    white-space: normal;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}
 body.dx-entry-page .dex-collections .dx-bucket-tile.available {
   border-color: rgba(255, 25, 16, 0.5) !important;
   color: #fff !important;
