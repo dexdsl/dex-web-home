@@ -225,7 +225,7 @@
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
         height: var(--dx-entry-rails-height, 62vh) !important;
         min-height: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         align-items: stretch !important;
       }
 
@@ -247,11 +247,20 @@
         height: var(--dx-entry-rails-height, 62vh) !important;
         max-height: var(--dx-entry-rails-height, 62vh) !important;
         min-height: 0 !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
         overscroll-behavior: contain !important;
         scrollbar-gutter: stable !important;
         padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main {
+        overflow-y: hidden !important;
+        overflow-x: hidden !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main > :last-child {
@@ -259,7 +268,7 @@
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
-        margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+        margin-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
@@ -1209,18 +1218,17 @@
     main.style.maxHeight = `${available}px`;
     sidebar.style.height = `${available}px`;
     sidebar.style.maxHeight = `${available}px`;
-    main.style.overflowY = 'auto';
+    main.style.overflowY = 'hidden';
     sidebar.style.overflowY = 'auto';
 
     layout.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
 
     const desc = main.querySelector('.dex-entry-desc-scroll');
     if (desc instanceof HTMLElement) {
-      desc.style.height = 'auto';
-      desc.style.maxHeight = 'none';
-      desc.style.overflowY = 'visible';
-      desc.style.overscrollBehavior = 'auto';
-      desc.removeAttribute('data-dex-desc-scrollable');
+      desc.style.minHeight = '0px';
+      if (typeof window.__dexDescSyncSchedule === 'function') {
+        try { window.__dexDescSyncSchedule(); } catch {}
+      }
     }
   };
 

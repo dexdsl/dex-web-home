@@ -3863,7 +3863,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layo
   height: var(--dx-entry-rails-height, 62vh);
   min-height: 0;
   align-items: stretch !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
@@ -3875,12 +3875,21 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
   height: var(--dx-entry-rails-height, 62vh);
   min-height: 0;
   max-height: var(--dx-entry-rails-height, 62vh);
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
   padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main {
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main > :last-child {
@@ -3888,13 +3897,20 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
-  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+  margin-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll {
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
+  min-height: 0 !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll[data-dex-desc-scrollable="true"] {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll:not([data-dex-desc-scrollable="true"]) {
+  overflow-y: hidden !important;
   overscroll-behavior: auto !important;
 }
 
