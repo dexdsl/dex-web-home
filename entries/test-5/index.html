@@ -4367,5 +4367,12 @@ body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div {
 body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div:not([hidden]) {
   display: block !important;
 }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
+  --dx-test5-body-uplift: clamp(16px, 1.45vw, 24px);
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
+  transform: translateY(calc(-1 * var(--dx-test5-body-uplift))) !important;
+}
 </style>
 </body></html>
