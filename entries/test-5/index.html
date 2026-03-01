@@ -2972,7 +2972,7 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
     }
   }
 
-</style><div class="fluid-engine fe-687eb3031ba8de4bb237fbd0 dex-entry-fluid-engine"><div class="fe-block fe-block-yui_3_17_2_1_1753133745514_10145 dex-entry-host" style="grid-area: auto / 1 / auto / -1 !important; grid-column: 1 / -1 !important; justify-self: stretch !important;"><div class="sqs-block website-component-block sqs-block-website-component sqs-block-code code-block" data-block-type="1337" data-sqsp-block="code" id="block-yui_3_17_2_1_1753133745514_10145"><div class="sqs-block-content"><div class="sqs-code-container" data-localized="{&quot;enableSafeModeTitle&quot;:&quot;Embedded Scripts&quot;,&quot;exitSafeModeButton&quot;:&quot;Exit safe preview&quot;,&quot;enableSafeModeText&quot;:&quot;This block contains embedded scripts. Embedded scripts are disabled while you're logged in and editing your site.&quot;,&quot;enableSafeModeButton&quot;:&quot;Preview in safe mode&quot;,&quot;exitSafeModeTitle&quot;:&quot;Safe Preview&quot;,&quot;exitSafeModeText&quot;:&quot;Please view the page after logging out for accurate rendering.&quot;,&quot;globalSafeMode&quot;:&quot;Embedded Code: This block contains embedded code that has been disabled.&quot;,&quot;scriptDisabled&quot;:&quot;Script Disabled&quot;}">
+</style>
   
     <!-- ─── Dex Sidebar: per-page Code Block ─── -->
 
@@ -4231,6 +4231,56 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   } else {
     start();
   }
+})();
+</script>
+<style id="dx-remove-body-card">
+body.dx-entry-page #siteWrapper,
+body.dx-entry-page .site-wrapper,
+body.dx-entry-page #siteWrapper::before,
+body.dx-entry-page #siteWrapper::after,
+body.dx-entry-page #page,
+body.dx-entry-page #sections,
+body.dx-entry-page .dex-entry-section,
+body.dx-entry-page .dex-entry-section > .section-border,
+body.dx-entry-page .dex-entry-section > .section-border > .section-background,
+body.dx-entry-page .dex-entry-section > .content-wrapper,
+body.dx-entry-page .dex-entry-section > .content-wrapper > .content,
+body.dx-entry-page .dex-footer-section {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+</style>
+<script id="dx-remove-body-card-runtime">
+(function () {
+  var selectors = [
+    'body.dx-entry-page #siteWrapper',
+    'body.dx-entry-page .site-wrapper',
+    'body.dx-entry-page #page',
+    'body.dx-entry-page #sections',
+    'body.dx-entry-page .dex-entry-section',
+    'body.dx-entry-page .dex-entry-section > .section-border',
+    'body.dx-entry-page .dex-entry-section > .section-border > .section-background',
+    'body.dx-entry-page .dex-entry-section > .content-wrapper',
+    'body.dx-entry-page .dex-entry-section > .content-wrapper > .content'
+  ];
+  var apply = function () {
+    selectors.forEach(function (selector) {
+      document.querySelectorAll(selector).forEach(function (el) {
+        el.style.setProperty('background', 'transparent', 'important');
+        el.style.setProperty('border', '0', 'important');
+        el.style.setProperty('box-shadow', 'none', 'important');
+        el.style.setProperty('border-radius', '0', 'important');
+      });
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply, { once: true });
+  } else {
+    apply();
+  }
+  window.addEventListener('load', apply, { once: true });
 })();
 </script>
 </body></html>
