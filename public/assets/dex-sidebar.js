@@ -19,7 +19,7 @@
   let activeEntryTooltipTarget = null;
   let entryRailLayoutBound = false;
   const ENTRY_RAIL_BREAKPOINT = 980;
-  const COLLECTION_HEADING_CANONICAL = 'COLL\u200CECTION';
+  const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
 
@@ -145,7 +145,7 @@
 
   const ensureProfileChromeRuntime = (origin) => {
     if (!(document.body instanceof HTMLElement)) return;
-    document.body.classList.add('dx-route-profile-protected', 'dx-route-show-mesh');
+    document.body.classList.add('dx-entry-page', 'dx-route-profile-protected', 'dx-route-show-mesh');
     document.body.classList.remove('dx-route-standard-chrome');
     document.body.classList.remove('announcement-bar-reserved-space');
     const scriptPath = '/assets/js/header-slot.js';
@@ -257,26 +257,29 @@
       }
 
       body.dx-entry-page .dex-overview {
+        display: grid !important;
         height: auto !important;
-        min-height: max-content !important;
+        min-height: clamp(126px, 13.5vw, 188px) !important;
         grid-template-columns: 65% 35% !important;
         grid-auto-rows: max-content !important;
-        align-content: start !important;
+        align-content: center !important;
         align-items: stretch !important;
-        column-gap: 0 !important;
-        padding: clamp(10px, 1vw, 14px) clamp(14px, 1.4vw, 20px) !important;
+        column-gap: clamp(8px, 1vw, 12px) !important;
+        padding-block: clamp(10px, 1vw, 14px) !important;
+        padding-inline: clamp(12px, 1.3vw, 18px) !important;
+        box-sizing: border-box !important;
       }
 
       body.dx-entry-page .dex-overview .overview-item {
         position: relative !important;
-        min-height: max-content !important;
+        min-height: 0 !important;
         display: grid !important;
-        grid-template-rows: minmax(36px, 1fr) auto !important;
+        grid-template-rows: minmax(62px, 1fr) auto !important;
         justify-items: center !important;
         align-items: center !important;
-        row-gap: 6px !important;
+        row-gap: clamp(4px, 0.42vw, 6px) !important;
         width: 100% !important;
-        padding-inline: clamp(6px, 0.8vw, 10px) !important;
+        padding-inline: clamp(6px, 0.7vw, 10px) !important;
       }
 
       body.dx-entry-page .dex-overview .overview-item--lookup,
@@ -299,14 +302,29 @@
         justify-content: center !important;
         width: 100% !important;
         text-align: center !important;
+        font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+        font-weight: 800 !important;
+        line-height: 0.96 !important;
+        letter-spacing: 0.03em !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-series-img {
+        width: clamp(90px, 8.2vw, 126px) !important;
+        max-height: clamp(58px, 5.4vw, 78px) !important;
+        height: auto !important;
+        object-fit: contain !important;
       }
 
       body.dx-entry-page .dex-overview .overview-label {
-        min-height: 1.2em !important;
+        min-height: 1.18em !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        align-self: end !important;
         margin: 0 !important;
+        width: 100% !important;
+        font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
+        line-height: 1 !important;
       }
 
       body.dx-entry-page .dex-sidebar section {
@@ -314,38 +332,58 @@
         min-height: max-content !important;
       }
 
+      body.dx-entry-page .dex-collections {
+        --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        row-gap: clamp(10px, 1vw, 14px) !important;
+        padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
+        box-sizing: border-box !important;
+      }
+
       body.dx-entry-page .dex-collections .overview-buckets-grid {
+        display: grid !important;
         grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
         justify-content: stretch !important;
-        gap: 8px !important;
-        padding: 4px 0 !important;
+        gap: clamp(6px, 0.6vw, 10px) !important;
+        padding: 0 clamp(4px, 0.5vw, 8px) !important;
+        align-items: stretch !important;
       }
 
       body.dx-entry-page .dex-collections .dx-bucket-tile {
         width: 100% !important;
-        min-height: clamp(34px, 2.4vw, 44px) !important;
-        max-height: clamp(34px, 2.4vw, 44px) !important;
-        padding: clamp(4px, 0.55vw, 7px) !important;
+        min-width: 0 !important;
+        min-height: clamp(28px, 1.85vw, 34px) !important;
+        max-height: clamp(28px, 1.85vw, 34px) !important;
+        height: clamp(28px, 1.85vw, 34px) !important;
+        aspect-ratio: auto !important;
+        padding: clamp(3px, 0.45vw, 6px) !important;
         box-sizing: border-box !important;
-        border-radius: var(--dx-header-glass-radius, 10px) !important;
+        border-radius: var(--dx-entry-bucket-radius) !important;
+        font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
+        line-height: 1 !important;
+        letter-spacing: 0.02em !important;
+        overflow: hidden !important;
       }
 
       body.dx-entry-page .dex-collections > h3[data-dx-entry-heading="1"] {
         margin: 0 !important;
-        padding: 8px 0 0 8px !important;
+        padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
       }
 
       body.dx-entry-page .dex-collections .overview-item {
-        row-gap: 8px !important;
+        row-gap: clamp(4px, 0.45vw, 7px) !important;
       }
 
       body.dx-entry-page .dex-collections .overview-label {
         order: -1 !important;
         margin: 0 !important;
-        font-size: clamp(0.62rem, 0.82vw, 0.76rem) !important;
+        margin-bottom: 1px !important;
+        font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
         font-style: italic !important;
         letter-spacing: 0.02em !important;
         text-transform: none !important;
+        line-height: 1 !important;
       }
 
       body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
@@ -360,7 +398,7 @@
         width: clamp(72px, 15%, 92px) !important;
         min-height: clamp(34px, 2.4vw, 44px) !important;
         max-height: clamp(34px, 2.4vw, 44px) !important;
-        border-radius: var(--dx-header-glass-radius, 10px) !important;
+        border-radius: var(--dx-entry-bucket-radius) !important;
         border: 1px solid rgba(0, 0, 0, 0.2) !important;
         padding: clamp(4px, 0.55vw, 7px) !important;
         box-sizing: border-box !important;
@@ -443,12 +481,13 @@
   const renderStretchHeading = (value, { seedKey = '', uppercase = true } = {}) => {
     const input = uppercase ? String(value || '').toUpperCase() : String(value || '');
     const runtime = window.__dxHeadingFx;
+    const stripHeadingSeparators = (text) => String(text == null ? '' : text).replace(/[\u200C\u200D]/g, '');
     if (runtime && typeof runtime.renderHeadingText === 'function') {
       try {
-        return String(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
+        return stripHeadingSeparators(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
       } catch {}
     }
-    return input;
+    return stripHeadingSeparators(input);
   };
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);

@@ -989,35 +989,43 @@ function ensureDexLayoutPatchStyle($, head) {
 }
 .dex-overview .overview-item {
   align-items: center !important;
-  justify-content: flex-start !important;
+  justify-content: center !important;
   flex: 1 1 0 !important;
   min-width: 0;
-  row-gap: 0.35rem;
+  display: grid !important;
+  grid-template-rows: minmax(62px, 1fr) auto !important;
+  row-gap: clamp(4px, 0.42vw, 6px);
+  padding-inline: clamp(6px, 0.7vw, 10px);
 }
 .dex-overview {
   display: grid !important;
-  grid-template-columns: minmax(0, 2fr) minmax(84px, 0.8fr);
-  gap: 12px;
-  align-items: start !important;
+  grid-template-columns: 65% 35%;
+  column-gap: clamp(8px, 1vw, 12px);
+  min-height: clamp(126px, 13.5vw, 188px);
+  padding-block: clamp(10px, 1vw, 14px);
+  padding-inline: clamp(12px, 1.3vw, 18px);
+  align-content: center !important;
+  align-items: stretch !important;
+  box-sizing: border-box;
 }
 .dex-overview .overview-item--lookup {
-  align-items: flex-start !important;
+  align-items: center !important;
 }
 .dex-overview .overview-item--lookup .overview-label {
-  justify-content: flex-start !important;
-  text-align: left !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 .dex-overview .overview-label--lookup {
-  justify-content: flex-start !important;
-  text-align: left !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 .dex-overview .overview-item--series {
-  align-items: flex-end !important;
+  align-items: center !important;
   justify-content: center !important;
 }
 .dex-overview .overview-label--series {
-  justify-content: flex-end !important;
-  text-align: right !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 .dex-overview .overview-lookup {
   display: block;
@@ -1026,21 +1034,28 @@ function ensureDexLayoutPatchStyle($, head) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: clamp(0.72rem, 1vw, 0.9rem) !important;
-  letter-spacing: 0.02em !important;
-  line-height: 1.12 !important;
+  font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  line-height: 0.96 !important;
 }
 .dex-collections {
+  --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
   display: grid !important;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: clamp(10px, 1vw, 14px);
+  padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px);
+  box-sizing: border-box;
 }
 .dex-collections > h3[data-dx-entry-heading] {
   font-variant-ligatures: none !important;
   font-feature-settings: "liga" 0, "calt" 0 !important;
+  margin: 0;
+  padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px);
 }
 .dex-collections .overview-item {
   align-items: stretch !important;
+  row-gap: clamp(4px, 0.45vw, 7px) !important;
 }
 .dex-collections .overview-item--buckets .overview-label,
 .dex-collections .overview-item--favorite-buckets .overview-label,
@@ -1048,30 +1063,43 @@ function ensureDexLayoutPatchStyle($, head) {
   justify-content: flex-start !important;
   text-align: left !important;
 }
+.dex-collections .overview-label {
+  margin: 0 0 1px !important;
+  font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
+  font-style: italic !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1 !important;
+}
 .dex-collections .overview-buckets-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  gap: clamp(6px, 0.6vw, 10px);
   width: 100%;
-  padding: 4px 0;
+  padding: 0 clamp(4px, 0.5vw, 8px);
   align-items: stretch !important;
 }
 .dex-collections .dx-bucket-tile {
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: clamp(30px, 2.4vw, 38px) !important;
-  max-height: clamp(30px, 2.4vw, 38px) !important;
-  aspect-ratio: 1 / 1 !important;
-  border-radius: var(--dx-header-glass-radius, 10px) !important;
+  min-width: 0;
+  min-height: clamp(28px, 1.85vw, 34px) !important;
+  max-height: clamp(28px, 1.85vw, 34px) !important;
+  height: clamp(28px, 1.85vw, 34px) !important;
+  aspect-ratio: auto !important;
+  border-radius: var(--dx-entry-bucket-radius) !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
-  padding: clamp(5px, 0.7vw, 8px) !important;
+  padding: clamp(3px, 0.45vw, 6px) !important;
   background: rgba(255, 255, 255, 0.68) !important;
   color: rgba(26, 26, 26, 0.8) !important;
   font: 800 clamp(0.82rem, 1.02vw, 0.98rem) / 1 "Typefesse", sans-serif;
   text-transform: uppercase !important;
   letter-spacing: 0.03em;
   align-self: stretch !important;
+  font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
+  line-height: 1 !important;
+  letter-spacing: 0.02em !important;
+  overflow: hidden !important;
 }
 .dex-collections .dx-bucket-tile.available {
   border-color: rgba(255, 25, 16, 0.5) !important;
@@ -1093,6 +1121,9 @@ function ensureDexLayoutPatchStyle($, head) {
 .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle {
   width: 100%;
 }
+.dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle {
+  border-radius: var(--dx-entry-bucket-radius) !important;
+}
 .dex-overview .overview-item:nth-child(1),
 .dex-overview .overview-item:nth-child(2),
 .dex-overview .overview-item:nth-child(3) {
@@ -1104,12 +1135,21 @@ function ensureDexLayoutPatchStyle($, head) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  align-self: end !important;
   line-height: 1 !important;
   text-align: center !important;
+  width: 100% !important;
+  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
 }
 .dex-overview .overview-item .overview-badges {
   min-height: 2rem;
   align-items: center !important;
+}
+.dex-overview .overview-series-img {
+  width: clamp(90px, 8.2vw, 126px) !important;
+  max-height: clamp(58px, 5.4vw, 78px) !important;
+  height: auto !important;
+  object-fit: contain !important;
 }
 .dex-sidebar .dex-license-controls .copy-btn,
 .dex-sidebar .dex-license-controls .usage-btn,
@@ -1266,6 +1306,21 @@ function ensureHead($) {
   }
   head = $('head').first();
   return head;
+}
+
+function ensureEntryBodyClasses($) {
+  const hasEntryStructure = $('.dex-entry-layout').length > 0 || $('.dex-sidebar').length > 0;
+  if (!hasEntryStructure) return;
+  const body = $('body').first();
+  if (!body.length) return;
+  const classSet = new Set(
+    String(body.attr('class') || '')
+      .split(/\s+/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  classSet.add('dx-entry-page');
+  body.attr('class', Array.from(classSet).join(' '));
 }
 
 function isContractScriptId(id) {
@@ -1485,6 +1540,7 @@ export function sanitizeGeneratedHtml(html) {
   $('base').remove();
   striplegacysiteRuntimeDataAttrs($);
   markDexEntryHosts($);
+  ensureEntryBodyClasses($);
   normalizeDexSectionSpacing($);
   const classFamily = resolveLegacyClassFamily($);
   const announcementConfig = resolveAnnouncementBarConfig($, classFamily);

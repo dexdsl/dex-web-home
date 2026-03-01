@@ -299,8 +299,6 @@ div.dx-add-to-cart-button-inner {
   --dx-space-xl: 2rem;
   --dx-header-frame-width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px);
   --dx-header-frame-width-vw: min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px);
-  --dx-entry-rail-inline-pad: clamp(16px, 1.7vw, 24px);
-  --dx-entry-footer-inline-pad: var(--dx-entry-rail-inline-pad);
   --dx-header-glass-radius: var(--dx-radius-md, 10px);
   --dx-header-glass-bg: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%);
   --dx-header-glass-rim: rgba(255, 255, 255, 0.42);
@@ -385,10 +383,6 @@ div.dx-add-to-cart-button-inner {
   position: relative;
 }
 
-.dx-entry-fetch-target {
-  position: relative;
-}
-
 [data-dx-fetch-state='loading'] .dx-fetch-shell-overlay {
   opacity: 1;
   pointer-events: auto;
@@ -462,23 +456,6 @@ div.dx-add-to-cart-button-inner {
 
 [data-dx-fetch-state='loading'] .dx-fetch-shell-overlay::after {
   animation: dx-fetch-sheen var(--dx-fetch-sheen-duration) var(--dx-fetch-sheen-ease) infinite;
-}
-
-.dx-entry-fetch-target > .dx-fetch-shell-overlay {
-  display: grid;
-  align-content: stretch;
-}
-
-.dx-entry-fetch-target > .dx-fetch-shell-overlay > .dx-fetch-shell {
-  min-height: 100%;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.dex-overview.dx-entry-fetch-target > .dx-fetch-shell-overlay > .dx-fetch-shell,
-.dex-collections.dx-entry-fetch-target > .dx-fetch-shell-overlay > .dx-fetch-shell,
-.dex-license.dx-entry-fetch-target > .dx-fetch-shell-overlay > .dx-fetch-shell {
-  min-height: clamp(120px, 18vh, 260px);
 }
 
 @keyframes dx-fetch-sheen {
@@ -1378,18 +1355,6 @@ body.dx-route-profile-protected .dex-footer.dx-profile-footer-portaled {
   z-index: 1288 !important;
   margin: 0 auto !important;
   pointer-events: auto !important;
-}
-
-body.dx-route-profile-protected.dx-entry-page #footer-sections .dex-footer,
-body.dx-route-profile-protected.dx-entry-page .dex-footer.dx-profile-footer-portaled {
-  width: min(
-    var(--dx-header-frame-width-vw),
-    calc(100vw - (var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, 0px)) * 2))
-  ) !important;
-  max-width: min(
-    var(--dx-header-frame-width-vw),
-    calc(100vw - (var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, 0px)) * 2))
-  ) !important;
 }
 
 body.dx-route-profile-protected :is(
@@ -3758,12 +3723,6 @@ body[data-dx-entry-rail-mode="desktop-fixed"] {
   overflow: hidden !important;
 }
 
-html[data-dx-entry-rail-mode="mobile-flow"],
-body[data-dx-entry-rail-mode="mobile-flow"] {
-  --dx-entry-rail-inline-pad: 0px;
-  --dx-entry-footer-inline-pad: 0px;
-}
-
 body.dx-entry-page .dex-entry-section .content-wrapper {
   align-items: flex-start !important;
 }
@@ -3797,7 +3756,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-sidebar {
   overflow-x: hidden !important;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding-inline: var(--dx-entry-rail-inline-pad, clamp(16px, 1.7vw, 24px)) !important;
+  padding-right: 10px !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll {
@@ -3818,7 +3777,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-sec
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-  padding-inline: var(--dx-entry-rail-inline-pad, clamp(16px, 1.7vw, 24px)) !important;
+  padding-right: 12px !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
@@ -3842,7 +3801,6 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar se
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
-    padding-inline: 0 !important;
   }
 
   html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
@@ -3904,7 +3862,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
 
 /* Sidebar hardening: keep overview/collections measurable and avoid bucket crowding on desktop rails. */
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-  padding-inline: var(--dx-entry-rail-inline-pad, clamp(16px, 1.7vw, 24px)) !important;
+  padding-right: clamp(18px, 1.8vw, 24px) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
@@ -3915,26 +3873,29 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar se
 }
 
 body.dx-entry-page .dex-overview {
+  display: grid !important;
   height: auto !important;
-  min-height: max-content !important;
+  min-height: clamp(126px, 13.5vw, 188px) !important;
   grid-template-columns: 65% 35% !important;
   grid-auto-rows: max-content !important;
-  align-content: start !important;
+  align-content: center !important;
   align-items: stretch !important;
-  column-gap: 0 !important;
-  padding: clamp(10px, 1vw, 14px) clamp(14px, 1.4vw, 20px) !important;
+  column-gap: clamp(8px, 1vw, 12px) !important;
+  padding-block: clamp(10px, 1vw, 14px) !important;
+  padding-inline: clamp(12px, 1.3vw, 18px) !important;
+  box-sizing: border-box !important;
 }
 
 body.dx-entry-page .dex-overview .overview-item {
   position: relative !important;
-  min-height: max-content !important;
+  min-height: 0 !important;
   display: grid !important;
-  grid-template-rows: minmax(36px, 1fr) auto !important;
+  grid-template-rows: minmax(62px, 1fr) auto !important;
   justify-items: center !important;
   align-items: center !important;
-  row-gap: 6px !important;
+  row-gap: clamp(4px, 0.42vw, 6px) !important;
   width: 100% !important;
-  padding-inline: clamp(6px, 0.8vw, 10px) !important;
+  padding-inline: clamp(6px, 0.7vw, 10px) !important;
 }
 
 body.dx-entry-page .dex-overview .overview-item--lookup,
@@ -3957,46 +3918,83 @@ body.dx-entry-page .dex-overview .overview-lookup {
   justify-content: center !important;
   width: 100% !important;
   text-align: center !important;
+  font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+  font-weight: 800 !important;
+  line-height: 0.96 !important;
+  letter-spacing: 0.03em !important;
+}
+
+body.dx-entry-page .dex-overview .overview-series-img {
+  width: clamp(90px, 8.2vw, 126px) !important;
+  max-height: clamp(58px, 5.4vw, 78px) !important;
+  height: auto !important;
+  object-fit: contain !important;
 }
 
 body.dx-entry-page .dex-overview .overview-label {
-  min-height: 1.2em !important;
+  min-height: 1.18em !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  align-self: end !important;
   margin: 0 !important;
+  width: 100% !important;
+  font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
+  line-height: 1 !important;
+}
+
+body.dx-entry-page .dex-collections {
+  --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  row-gap: clamp(10px, 1vw, 14px) !important;
+  padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
+  box-sizing: border-box !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collections .overview-buckets-grid {
+  display: grid !important;
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   justify-content: stretch !important;
   gap: clamp(6px, 0.6vw, 10px) !important;
+  padding: 0 clamp(4px, 0.5vw, 8px) !important;
+  align-items: stretch !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collections .dx-bucket-tile {
   width: 100% !important;
-  min-height: clamp(34px, 2.4vw, 44px) !important;
-  max-height: clamp(34px, 2.4vw, 44px) !important;
-  padding: clamp(4px, 0.55vw, 7px) !important;
+  min-width: 0 !important;
+  min-height: clamp(28px, 1.85vw, 34px) !important;
+  max-height: clamp(28px, 1.85vw, 34px) !important;
+  height: clamp(28px, 1.85vw, 34px) !important;
+  aspect-ratio: auto !important;
+  padding: clamp(3px, 0.45vw, 6px) !important;
   box-sizing: border-box !important;
+  border-radius: var(--dx-entry-bucket-radius) !important;
+  font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
+  line-height: 1 !important;
+  letter-spacing: 0.02em !important;
+  overflow: hidden !important;
 }
 
 body.dx-entry-page .dex-collections > h3[data-dx-entry-heading="1"] {
   margin: 0 !important;
-  padding: 8px 0 0 8px !important;
+  padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
 }
 
 body.dx-entry-page .dex-collections .overview-item {
-  row-gap: 8px !important;
+  row-gap: clamp(4px, 0.45vw, 7px) !important;
 }
 
 body.dx-entry-page .dex-collections .overview-label {
   order: -1 !important;
   margin: 0 !important;
-  font-size: clamp(0.62rem, 0.82vw, 0.76rem) !important;
+  margin-bottom: 1px !important;
+  font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
   font-style: italic !important;
   letter-spacing: 0.02em !important;
   text-transform: none !important;
+  line-height: 1 !important;
 }
 
 body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
@@ -4011,7 +4009,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-buc
   width: clamp(72px, 15%, 92px) !important;
   min-height: clamp(34px, 2.4vw, 44px) !important;
   max-height: clamp(34px, 2.4vw, 44px) !important;
-  border-radius: var(--dx-header-glass-radius, 10px) !important;
+  border-radius: var(--dx-entry-bucket-radius) !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
   padding: clamp(4px, 0.55vw, 7px) !important;
   box-sizing: border-box !important;

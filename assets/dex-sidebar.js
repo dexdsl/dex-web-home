@@ -19,23 +19,9 @@
   let activeEntryTooltipTarget = null;
   let entryRailLayoutBound = false;
   const ENTRY_RAIL_BREAKPOINT = 980;
-  const COLLECTION_HEADING_CANONICAL = 'COLL\u200CECTION';
+  const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
-  const LEGACY_ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
-  const ENTRY_FETCH_STATE_LOADING = 'loading';
-  const ENTRY_FETCH_STATE_READY = 'ready';
-  const ENTRY_FETCH_STATE_ERROR = 'error';
-  const DX_MIN_SHEEN_MS = 120;
-  const ENTRY_FETCH_ROOT_SELECTOR = '.dex-entry-layout';
-  const ENTRY_FETCH_TARGET_SELECTORS = [
-    '.dex-entry-layout',
-    '.dex-entry-main',
-    '.dex-sidebar',
-    '.dex-overview',
-    '.dex-collections',
-    '.dex-license',
-  ];
-  const ENTRY_FETCH_SHELL_ATTR = 'data-dx-entry-fetch-shell';
+  const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -159,7 +145,7 @@
 
   const ensureProfileChromeRuntime = (origin) => {
     if (!(document.body instanceof HTMLElement)) return;
-    document.body.classList.add('dx-route-profile-protected', 'dx-route-show-mesh');
+    document.body.classList.add('dx-entry-page', 'dx-route-profile-protected', 'dx-route-show-mesh');
     document.body.classList.remove('dx-route-standard-chrome');
     document.body.classList.remove('announcement-bar-reserved-space');
     const scriptPath = '/assets/js/header-slot.js';
@@ -178,99 +164,275 @@
     document.head.appendChild(script);
   };
 
-  const cleanupLegacyEntryRuntimeStyles = () => {
-    const style = document.getElementById(LEGACY_ENTRY_RUNTIME_STYLE_ID);
-    if (style) style.remove();
-  };
+  const ensureEntryRuntimeLayoutOverrides = () => {
+    if (!(document.head instanceof HTMLElement)) return;
+    if (document.getElementById(ENTRY_RUNTIME_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = ENTRY_RUNTIME_STYLE_ID;
+    style.textContent = `
+      body.dx-entry-page .dex-entry-header {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
 
-  const delay = (ms) => new Promise((resolve) => {
-    window.setTimeout(resolve, Math.max(0, ms));
-  });
+      body.dx-entry-page .dex-entry-section .content-wrapper {
+        align-items: flex-start !important;
+      }
 
-  const setEntryFetchState = (target, state) => {
-    if (!(target instanceof HTMLElement)) return;
-    target.setAttribute('data-dx-fetch-state', state);
-    if (state === ENTRY_FETCH_STATE_LOADING) {
-      target.setAttribute('aria-busy', 'true');
-    } else {
-      target.removeAttribute('aria-busy');
-    }
-  };
+      body.dx-entry-page .dex-entry-host .dx-code-container {
+        padding-top: clamp(12px, 1.5vw, 20px) !important;
+        padding-bottom: clamp(12px, 1.5vw, 20px) !important;
+      }
 
-  const buildEntryFetchShellOverlay = (variant = 'card') => {
-    const overlay = document.createElement('div');
-    overlay.className = 'dx-fetch-shell-overlay';
-    overlay.setAttribute('aria-hidden', 'true');
-    overlay.setAttribute(ENTRY_FETCH_SHELL_ATTR, '1');
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header {
+        position: sticky !important;
+        top: var(--dx-entry-header-offset, 0px) !important;
+        z-index: 12 !important;
+        margin: 0 0 12px !important;
+        padding-bottom: 0 !important;
+      }
 
-    const shell = document.createElement('div');
-    shell.className = variant === 'rows' ? 'dx-fetch-shell dx-fetch-shell--rows' : 'dx-fetch-shell dx-fetch-shell--card';
-    overlay.appendChild(shell);
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #siteWrapper,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #page,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #sections,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-host,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-host .dx-code-container {
+        max-height: none !important;
+        min-height: 0 !important;
+      }
 
-    const pill = document.createElement('span');
-    pill.className = 'dx-fetch-shell-pill';
-    shell.appendChild(pill);
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
+        height: var(--dx-entry-rails-height, 62vh) !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+      }
 
-    const lineOne = document.createElement('span');
-    lineOne.className = 'dx-fetch-shell-line';
-    shell.appendChild(lineOne);
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+        height: var(--dx-entry-rails-height, 62vh) !important;
+        max-height: var(--dx-entry-rails-height, 62vh) !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        overscroll-behavior: contain !important;
+        scrollbar-gutter: stable !important;
+      }
 
-    const lineTwo = document.createElement('span');
-    lineTwo.className = 'dx-fetch-shell-line';
-    shell.appendChild(lineTwo);
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+        padding-right: clamp(18px, 1.8vw, 24px) !important;
+      }
 
-    const lineThree = document.createElement('span');
-    lineThree.className = 'dx-fetch-shell-line';
-    lineThree.style.width = '68%';
-    shell.appendChild(lineThree);
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
+        padding-left: clamp(16px, 1.5vw, 22px) !important;
+        padding-right: clamp(16px, 1.5vw, 22px) !important;
+      }
 
-    return overlay;
-  };
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
+        position: static !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+      }
 
-  const ensureEntryFetchShell = (target, variant = 'card') => {
-    if (!(target instanceof HTMLElement)) return;
-    if (!(target.firstElementChild instanceof HTMLElement)
-      || !target.firstElementChild.matches(`.dx-fetch-shell-overlay[${ENTRY_FETCH_SHELL_ATTR}]`)) {
-      target.prepend(buildEntryFetchShellOverlay(variant));
-    }
-    target.classList.add('dx-entry-fetch-target');
-    if (!target.style.position && window.getComputedStyle(target).position === 'static') {
-      target.style.position = 'relative';
-      target.dataset.dxFetchPositioned = '1';
-    }
-  };
+      body.dx-route-profile-protected.dx-entry-page #footer-sections {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+      }
 
-  const resolveEntryFetchTargets = () => {
-    const targets = [];
-    ENTRY_FETCH_TARGET_SELECTORS.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((node) => {
-        if (!(node instanceof HTMLElement)) return;
-        if (!targets.includes(node)) targets.push(node);
-      });
-    });
-    return targets;
-  };
+      body.dx-entry-page [data-dex-breadcrumb-path] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        fill: none !important;
+        stroke: currentColor !important;
+      }
 
-  const beginEntryFetchLifecycle = () => {
-    const targets = resolveEntryFetchTargets();
-    targets.forEach((target) => {
-      const variant = target.matches(ENTRY_FETCH_ROOT_SELECTOR) ? 'rows' : 'card';
-      ensureEntryFetchShell(target, variant);
-      setEntryFetchState(target, ENTRY_FETCH_STATE_LOADING);
-    });
-    return {
-      startTs: performance.now(),
-      targets,
-    };
-  };
+      body.dx-entry-page .dex-overview {
+        display: grid !important;
+        height: auto !important;
+        min-height: clamp(126px, 13.5vw, 188px) !important;
+        grid-template-columns: 65% 35% !important;
+        grid-auto-rows: max-content !important;
+        align-content: center !important;
+        align-items: stretch !important;
+        column-gap: clamp(8px, 1vw, 12px) !important;
+        padding-block: clamp(10px, 1vw, 14px) !important;
+        padding-inline: clamp(12px, 1.3vw, 18px) !important;
+        box-sizing: border-box !important;
+      }
 
-  const finalizeEntryFetchLifecycle = async (context, state = ENTRY_FETCH_STATE_READY) => {
-    if (!context || !Array.isArray(context.targets) || !context.targets.length) return;
-    const elapsed = performance.now() - Number(context.startTs || 0);
-    if (elapsed < DX_MIN_SHEEN_MS) {
-      await delay(DX_MIN_SHEEN_MS - elapsed);
-    }
-    context.targets.forEach((target) => setEntryFetchState(target, state));
+      body.dx-entry-page .dex-overview .overview-item {
+        position: relative !important;
+        min-height: 0 !important;
+        display: grid !important;
+        grid-template-rows: minmax(62px, 1fr) auto !important;
+        justify-items: center !important;
+        align-items: center !important;
+        row-gap: clamp(4px, 0.42vw, 6px) !important;
+        width: 100% !important;
+        padding-inline: clamp(6px, 0.7vw, 10px) !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-item--lookup,
+      body.dx-entry-page .dex-overview .overview-item--series {
+        align-items: center !important;
+        justify-items: center !important;
+        justify-content: center !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-lookup,
+      body.dx-entry-page .dex-overview .overview-series-img {
+        justify-self: center !important;
+        place-self: center !important;
+        margin: 0 auto !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-lookup {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        text-align: center !important;
+        font-size: clamp(1.02rem, 1.72vw, 1.58rem) !important;
+        font-weight: 800 !important;
+        line-height: 0.96 !important;
+        letter-spacing: 0.03em !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-series-img {
+        width: clamp(90px, 8.2vw, 126px) !important;
+        max-height: clamp(58px, 5.4vw, 78px) !important;
+        height: auto !important;
+        object-fit: contain !important;
+      }
+
+      body.dx-entry-page .dex-overview .overview-label {
+        min-height: 1.18em !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        align-self: end !important;
+        margin: 0 !important;
+        width: 100% !important;
+        font-size: clamp(0.58rem, 0.74vw, 0.7rem) !important;
+        line-height: 1 !important;
+      }
+
+      body.dx-entry-page .dex-sidebar section {
+        height: auto !important;
+        min-height: max-content !important;
+      }
+
+      body.dx-entry-page .dex-collections {
+        --dx-entry-bucket-radius: clamp(10px, 0.8vw, 12px);
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        row-gap: clamp(10px, 1vw, 14px) !important;
+        padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.2vw, 16px) !important;
+        box-sizing: border-box !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-buckets-grid {
+        display: grid !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        justify-content: stretch !important;
+        gap: clamp(6px, 0.6vw, 10px) !important;
+        padding: 0 clamp(4px, 0.5vw, 8px) !important;
+        align-items: stretch !important;
+      }
+
+      body.dx-entry-page .dex-collections .dx-bucket-tile {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: clamp(28px, 1.85vw, 34px) !important;
+        max-height: clamp(28px, 1.85vw, 34px) !important;
+        height: clamp(28px, 1.85vw, 34px) !important;
+        aspect-ratio: auto !important;
+        padding: clamp(3px, 0.45vw, 6px) !important;
+        box-sizing: border-box !important;
+        border-radius: var(--dx-entry-bucket-radius) !important;
+        font-size: clamp(0.72rem, 0.88vw, 0.9rem) !important;
+        line-height: 1 !important;
+        letter-spacing: 0.02em !important;
+        overflow: hidden !important;
+      }
+
+      body.dx-entry-page .dex-collections > h3[data-dx-entry-heading="1"] {
+        margin: 0 !important;
+        padding: clamp(8px, 0.9vw, 12px) 0 0 clamp(8px, 0.9vw, 12px) !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-item {
+        row-gap: clamp(4px, 0.45vw, 7px) !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-label {
+        order: -1 !important;
+        margin: 0 !important;
+        margin-bottom: 1px !important;
+        font-size: clamp(0.52rem, 0.66vw, 0.62rem) !important;
+        font-style: italic !important;
+        letter-spacing: 0.02em !important;
+        text-transform: none !important;
+        line-height: 1 !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .overview-badges {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn {
+        width: clamp(72px, 15%, 92px) !important;
+        min-height: clamp(34px, 2.4vw, 44px) !important;
+        max-height: clamp(34px, 2.4vw, 44px) !important;
+        border-radius: var(--dx-entry-bucket-radius) !important;
+        border: 1px solid rgba(0, 0, 0, 0.2) !important;
+        padding: clamp(4px, 0.55vw, 7px) !important;
+        box-sizing: border-box !important;
+        background: rgba(255, 255, 255, 0.55) !important;
+        box-shadow: none !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn.is-active {
+        border-color: rgba(255, 25, 16, 0.5) !important;
+        color: #fff !important;
+        background: linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92)) !important;
+        box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
+      }
+
+      body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle.dx-fav-heart-btn .dx-fav-heart-icon {
+        display: none !important;
+      }
+
+      @media (max-width: 979px) {
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout,
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
+        html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
+          height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+
+        body.dx-entry-page .dex-collections .overview-buckets-grid {
+          grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+          justify-content: stretch !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   };
 
   const parseCssPx = (value) => {
@@ -319,12 +481,13 @@
   const renderStretchHeading = (value, { seedKey = '', uppercase = true } = {}) => {
     const input = uppercase ? String(value || '').toUpperCase() : String(value || '');
     const runtime = window.__dxHeadingFx;
+    const stripHeadingSeparators = (text) => String(text == null ? '' : text).replace(/[\u200C\u200D]/g, '');
     if (runtime && typeof runtime.renderHeadingText === 'function') {
       try {
-        return String(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
+        return stripHeadingSeparators(runtime.renderHeadingText(input, { uppercase: false, seedKey: seedKey || input }) || input);
       } catch {}
     }
-    return input;
+    return stripHeadingSeparators(input);
   };
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
@@ -563,8 +726,6 @@
       document.body.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
       document.body.classList.remove('dx-entry-desktop-fixed');
       root.style.removeProperty('--dx-entry-rails-height');
-      root.style.setProperty('--dx-entry-rail-inline-pad', '0px');
-      root.style.setProperty('--dx-entry-footer-inline-pad', '0px');
       document.body.style.removeProperty('overflow');
       main.style.height = '';
       main.style.maxHeight = '';
@@ -590,10 +751,7 @@
     const layoutRect = layout.getBoundingClientRect();
     const topInset = Math.max(0, Math.ceil(layoutRect.top));
     const available = Math.max(280, Math.floor(window.innerHeight - topInset - bottomInset));
-    const inlinePad = Math.max(16, Math.min(26, Math.round(window.innerWidth * 0.018)));
     root.style.setProperty('--dx-entry-rails-height', `${available}px`);
-    root.style.setProperty('--dx-entry-rail-inline-pad', `${inlinePad}px`);
-    root.style.setProperty('--dx-entry-footer-inline-pad', `${inlinePad}px`);
     root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.classList.add('dx-entry-desktop-fixed');
@@ -630,6 +788,32 @@
     schedule();
     window.setTimeout(schedule, 60);
     window.setTimeout(schedule, 240);
+  };
+
+  const bindBreadcrumbSpinFallback = () => {
+    const delimiter = document.querySelector('[data-dex-breadcrumb-delimiter]');
+    if (!(delimiter instanceof HTMLElement) || delimiter.dataset.dxSpinBound === '1') return;
+    delimiter.dataset.dxSpinBound = '1';
+    const triggerSpin = () => {
+      const shouldSpin = Math.random() < 0.82;
+      if (!shouldSpin) return;
+      const path = delimiter.querySelector('[data-dex-breadcrumb-path]');
+      if (path instanceof SVGElement) {
+        path.style.opacity = '1';
+        path.style.visibility = 'visible';
+      }
+      delimiter.classList.remove('dx-spin-once');
+      void delimiter.offsetWidth;
+      delimiter.classList.add('dx-spin-once');
+      window.setTimeout(() => delimiter.classList.remove('dx-spin-once'), 780);
+    };
+    document.addEventListener('click', (event) => {
+      const target = event && event.target && event.target.closest
+        ? event.target.closest('[data-dex-breadcrumb-back], [data-dex-breadcrumb-delimiter], .dex-breadcrumb-current')
+        : null;
+      if (!target) return;
+      triggerSpin();
+    }, true);
   };
 
   const setDownloadState = (row, state, message) => {
@@ -1741,21 +1925,16 @@
 
   const boot = async () => {
     if (document.documentElement.dataset.dexSidebarRendered === '1') return;
-    const fetchLifecycle = beginEntryFetchLifecycle();
-    cleanupLegacyEntryRuntimeStyles();
 
-    try {
+    const pageJson = parseJsonScript('dex-sidebar-page-config');
+    const page = pageJson || window.dexSidebarPageConfig;
+    if (!page) {
+      console.error('Missing per-page sidebar config');
+      return;
+    }
 
-      const pageJson = parseJsonScript('dex-sidebar-page-config');
-      const page = pageJson || window.dexSidebarPageConfig;
-      if (!page) {
-        const message = 'Missing per-page sidebar config';
-        console.error(message);
-        throw new Error(message);
-      }
-
-      const globalCfg = parseJsonScript('dex-sidebar-config') || {};
-      const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
+    const globalCfg = parseJsonScript('dex-sidebar-config') || {};
+    const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
 
     const credits = page.credits || {};
     const cfg = {
@@ -1810,15 +1989,16 @@
     const badgesHtml = buildBucketsHtml(page.buckets, cfg, lookup);
     const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
 
-      const origin = getSidebarAssetOrigin();
-      ensureProfileChromeRuntime(origin);
-      const favoritesApi = await ensureFavoritesApi(origin);
-      if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
-        try {
-          favoritesApi.migrateLegacy();
-        } catch {}
-        bindFavoritesSignals(favoritesApi);
-      }
+    const origin = getSidebarAssetOrigin();
+    ensureProfileChromeRuntime(origin);
+    ensureEntryRuntimeLayoutOverrides();
+    const favoritesApi = await ensureFavoritesApi(origin);
+    if (favoritesApi && typeof favoritesApi.migrateLegacy === 'function') {
+      try {
+        favoritesApi.migrateLegacy();
+      } catch {}
+      bindFavoritesSignals(favoritesApi);
+    }
 
     const SERIES_PATHS = {
       dex: '/assets/series/dex.png',
@@ -1995,15 +2175,11 @@
     initPersonPins();
     installSidebarRevealMotion();
     installSidebarInteractiveMotion();
-      bindEntryRailLayout();
-      refreshFavoriteButtons(favoritesApi, document);
+    bindEntryRailLayout();
+    bindBreadcrumbSpinFallback();
+    refreshFavoriteButtons(favoritesApi, document);
 
-      document.documentElement.dataset.dexSidebarRendered = '1';
-      await finalizeEntryFetchLifecycle(fetchLifecycle, ENTRY_FETCH_STATE_READY);
-    } catch (error) {
-      await finalizeEntryFetchLifecycle(fetchLifecycle, ENTRY_FETCH_STATE_ERROR);
-      throw error;
-    }
+    document.documentElement.dataset.dexSidebarRendered = '1';
   };
 
   if (document.readyState === 'loading') {

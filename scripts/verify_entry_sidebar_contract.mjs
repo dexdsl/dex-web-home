@@ -51,7 +51,7 @@ function ensureRuntimeMarkers(runtimeJs) {
     'Download selected',
     'data-person-linkable="true"',
     'bindEntryTooltips',
-    'COLL\\u200CECTION',
+    'COLLECTION',
     '.dex-collections',
     'data-dx-download-kind="recording-index-pdf"',
     'data-dx-entry-rail-mode',
