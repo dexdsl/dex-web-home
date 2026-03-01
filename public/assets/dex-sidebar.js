@@ -225,11 +225,11 @@
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
-        padding-right: 10px !important;
+        padding-right: clamp(18px, 1.8vw, 24px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar section {
-        padding-right: clamp(14px, 1.4vw, 18px) !important;
+        padding-right: clamp(16px, 1.5vw, 22px) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-section {
@@ -256,23 +256,36 @@
       }
 
       body.dx-entry-page .dex-overview {
+        height: auto !important;
+        min-height: max-content !important;
         grid-template-columns: minmax(0, 2fr) minmax(84px, 0.8fr) !important;
+        grid-auto-rows: max-content !important;
+        align-content: start !important;
         align-items: start !important;
       }
 
       body.dx-entry-page .dex-overview .overview-item {
-        min-height: 0 !important;
+        position: relative !important;
+        min-height: max-content !important;
+      }
+
+      body.dx-entry-page .dex-sidebar section {
+        height: auto !important;
+        min-height: max-content !important;
       }
 
       body.dx-entry-page .dex-collections .overview-buckets-grid {
+        grid-template-columns: repeat(6, minmax(36px, 44px)) !important;
+        justify-content: space-between !important;
         gap: 8px !important;
         padding: 4px 0 !important;
       }
 
       body.dx-entry-page .dex-collections .dx-bucket-tile {
-        min-height: clamp(32px, 2.8vw, 40px) !important;
-        max-height: clamp(32px, 2.8vw, 40px) !important;
-        padding: clamp(4px, 0.6vw, 8px) !important;
+        width: 100% !important;
+        min-height: clamp(34px, 2.4vw, 44px) !important;
+        max-height: clamp(34px, 2.4vw, 44px) !important;
+        padding: clamp(4px, 0.55vw, 7px) !important;
         border-radius: var(--dx-header-glass-radius, 10px) !important;
       }
 
@@ -283,6 +296,11 @@
           height: auto !important;
           max-height: none !important;
           overflow: visible !important;
+        }
+
+        body.dx-entry-page .dex-collections .overview-buckets-grid {
+          grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+          justify-content: stretch !important;
         }
       }
     `;

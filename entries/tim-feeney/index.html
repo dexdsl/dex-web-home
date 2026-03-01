@@ -3816,7 +3816,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   box-shadow: 0 8px 18px rgba(0,0,0,.16); pointer-events: none; white-space: normal;
 }
 #dx-entry-tooltip-layer[hidden] { display: none; }
-.dex-overview { display: grid !important; grid-template-columns: minmax(0,2fr) minmax(84px,.8fr); gap: 12px; align-items: start !important; }
+.dex-overview {
+  display: grid !important;
+  grid-template-columns: minmax(0,2fr) minmax(84px,.8fr);
+  gap: 12px;
+  align-items: start !important;
+  align-content: start !important;
+  grid-auto-rows: max-content !important;
+  height: auto !important;
+  min-height: max-content !important;
+}
+.dex-overview .overview-item { position: relative !important; min-height: max-content !important; }
 .dex-overview .overview-item--lookup { align-items: flex-start !important; }
 .dex-overview .overview-item--lookup .overview-label { justify-content: flex-start !important; text-align: left !important; }
 .dex-overview .overview-label--lookup { justify-content: flex-start !important; text-align: left !important; }
@@ -3827,11 +3837,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   font-size: clamp(.72rem, 1vw, .9rem) !important; letter-spacing: .02em !important; line-height: 1.12 !important;
 }
 .dex-collections > h3[data-dx-entry-heading] { font-variant-ligatures: none !important; font-feature-settings: "liga" 0, "calt" 0 !important; }
-.dex-collections .overview-buckets-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; width: 100%; padding: 4px 0; align-items: stretch !important; }
+.dex-collections .overview-buckets-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(36px,44px));
+  justify-content: space-between !important;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  align-items: stretch !important;
+}
 .dex-collections .dx-bucket-tile {
-  display: grid; place-items: center; width: 100%; min-height: clamp(30px, 2.4vw, 38px) !important; max-height: clamp(30px, 2.4vw, 38px) !important; aspect-ratio: 1/1 !important;
+  display: grid; place-items: center; width: 100%; min-height: clamp(34px, 2.4vw, 44px) !important; max-height: clamp(34px, 2.4vw, 44px) !important; aspect-ratio: 1/1 !important;
   border-radius: var(--dx-header-glass-radius, 10px) !important; border: 1px solid rgba(0,0,0,.2) !important;
-  padding: clamp(5px, .7vw, 8px) !important;
+  padding: clamp(4px, .55vw, 7px) !important;
   background: rgba(255,255,255,.68) !important; color: rgba(26,26,26,.8) !important; font: 800 clamp(.82rem,1.02vw,.98rem)/1 "Typefesse", sans-serif;
   text-transform: uppercase !important; letter-spacing: .03em; align-self: stretch !important;
 }
@@ -3861,7 +3879,8 @@ html[data-dx-entry-rail-mode="desktop-fixed"] .dex-entry-desc-scroll {
 html[data-dx-entry-rail-mode="desktop-fixed"] .dex-footer-section {
   position: static !important; left: auto !important; right: auto !important; bottom: auto !important; margin: 0 !important; padding: 0 !important; min-height: 0 !important;
 }
-html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar section { margin-right: 0 !important; padding-right: clamp(14px, 1.4vw, 18px) !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar { padding-right: clamp(18px, 1.8vw, 24px) !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] .dex-sidebar section { margin-right: 0 !important; padding-right: clamp(16px, 1.5vw, 22px) !important; height: auto !important; min-height: max-content !important; }
 .dex-entry-page-title { text-transform: uppercase !important; }
 @media (max-width: 979px) {
   html[data-dx-entry-rail-mode="desktop-fixed"], body[data-dx-entry-rail-mode="desktop-fixed"] { overflow: auto !important; }
