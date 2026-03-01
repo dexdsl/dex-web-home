@@ -738,7 +738,70 @@
     const name = person.name || '';
     const links = Array.isArray(person.links) ? person.links : [];
     if (!links.length) return `<span class="person-text" data-person-linkable="false">${escapeHtml(name)}</span>`;
-    return `<span class="person-link" data-person="${escapeHtml(name)}" data-links='${escapeHtml(JSON.stringify(links))}' data-person-linkable="true" style="position:relative; cursor:pointer;">${escapeHtml(name)}<span class="person-pin"></span></span>`;
+    return `<span class="person-link" data-person="${escapeHtml(name)}" data-links='${escapeHtml(JSON.stringify(links))}' data-person-linkable="true" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">${escapeHtml(name)}<span class="person-pin" aria-hidden="true"></span></span>`;
+  };
+
+  const normalizePersonKey = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  const normalizeLinksByPersonMap = (raw) => {
+    const map = new Map();
+    if (!raw || typeof raw !== 'object') return map;
+    Object.entries(raw).forEach(([nameRaw, linksRaw]) => {
+      const key = normalizePersonKey(nameRaw);
+      if (!key) return;
+      const links = Array.isArray(linksRaw) ? linksRaw : [];
+      const next = links
+        .map((link) => ({
+          label: String(link?.label || '').trim(),
+          href: String(link?.href || '').trim(),
+        }))
+        .filter((link) => link.label && link.href);
+      if (next.length) map.set(key, next);
+    });
+    return map;
+  };
+
+  const pinWithLinks = (name, linksByPerson = new Map()) => {
+    const clean = String(name || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return '';
+    const links = linksByPerson.get(normalizePersonKey(clean)) || [];
+    return pin({ name: clean, links });
+  };
+
+  const pinValue = (value, linksByPerson = new Map()) => {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => pinValue(item, linksByPerson))
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (value && typeof value === 'object') {
+      if (typeof value.name === 'string') {
+        const cleanName = String(value.name || '').replace(/\s+/g, ' ').trim();
+        if (!cleanName) return '';
+        const ownLinks = Array.isArray(value.links)
+          ? value.links
+            .map((link) => ({
+              label: String(link?.label || '').trim(),
+              href: String(link?.href || '').trim(),
+            }))
+            .filter((link) => link.label && link.href)
+          : [];
+        const fallbackLinks = linksByPerson.get(normalizePersonKey(cleanName)) || [];
+        return pin({ name: cleanName, links: ownLinks.length ? ownLinks : fallbackLinks });
+      }
+      return '';
+    }
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (/<[^>]+>/.test(text) || /data-person-linkable\s*=/.test(text)) return text;
+    return text
+      .split(',')
+      .map((part) => pinWithLinks(part, linksByPerson))
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .join(', ');
   };
 
   const renderStretchHeading = (value, { seedKey = '', uppercase = true } = {}) => {
@@ -2324,38 +2387,165 @@
   };
 
   const initPersonPins = () => {
+    let activePopup = null;
+    let activeHolder = null;
+    const POPUP_MARGIN = 8;
+
+    const parseLinks = (holder) => {
+      let links = [];
+      try {
+        const parsed = JSON.parse(holder.getAttribute('data-links') || '[]');
+        links = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        links = [];
+      }
+      return links
+        .map((link) => ({
+          label: String(link?.label || '').trim(),
+          href: String(link?.href || '').trim(),
+        }))
+        .filter((link) => link.label && link.href);
+    };
+
+    const setExpanded = (holder, expanded) => {
+      if (!(holder instanceof HTMLElement)) return;
+      holder.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
+
+    const closePopup = ({ restoreFocus = false } = {}) => {
+      if (activePopup instanceof HTMLElement) {
+        activePopup.remove();
+      }
+      activePopup = null;
+      if (activeHolder instanceof HTMLElement) {
+        const target = activeHolder;
+        setExpanded(target, false);
+        activeHolder = null;
+        if (restoreFocus) {
+          try {
+            target.focus({ preventScroll: true });
+          } catch {
+            target.focus();
+          }
+        }
+      }
+    };
+
+    const positionPopup = (popup, holder) => {
+      if (!(popup instanceof HTMLElement) || !(holder instanceof HTMLElement)) return;
+      const rect = holder.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset || 0;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      popup.style.left = `${Math.max(POPUP_MARGIN, scrollX + rect.left)}px`;
+      popup.style.top = `${Math.max(POPUP_MARGIN, scrollY + rect.bottom + POPUP_MARGIN)}px`;
+
+      const popupRect = popup.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const maxLeft = scrollX + viewportWidth - popupRect.width - POPUP_MARGIN;
+      const clampedLeft = Math.min(Math.max(scrollX + rect.left, POPUP_MARGIN), Math.max(POPUP_MARGIN, maxLeft));
+
+      let top = scrollY + rect.bottom + POPUP_MARGIN;
+      const maxTop = scrollY + viewportHeight - popupRect.height - POPUP_MARGIN;
+      if (top > maxTop) {
+        top = scrollY + rect.top - popupRect.height - POPUP_MARGIN;
+      }
+      const clampedTop = Math.max(POPUP_MARGIN, Math.min(top, Math.max(POPUP_MARGIN, maxTop)));
+      popup.style.left = `${clampedLeft}px`;
+      popup.style.top = `${clampedTop}px`;
+    };
+
+    const openPopup = (holder) => {
+      if (!(holder instanceof HTMLElement)) return;
+      const links = parseLinks(holder);
+      if (!links.length) return;
+
+      closePopup();
+      const popup = document.createElement('div');
+      const personLabel = String(holder.getAttribute('data-person') || 'Credit links').trim();
+      popup.className = 'person-popup person-popup--dx';
+      popup.setAttribute('role', 'dialog');
+      popup.setAttribute('aria-label', `${personLabel} links`);
+      popup.style.position = 'absolute';
+      popup.style.zIndex = '2147483000';
+      popup.style.minWidth = '196px';
+      popup.style.maxWidth = 'min(312px, calc(100vw - 16px))';
+      popup.style.padding = '10px 12px';
+      popup.style.borderRadius = '10px';
+      popup.style.border = '1px solid rgba(15, 19, 28, 0.18)';
+      popup.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.95))';
+      popup.style.boxShadow = '0 14px 28px rgba(9, 14, 24, 0.2)';
+      popup.style.backdropFilter = 'blur(10px)';
+      popup.style.webkitBackdropFilter = 'blur(10px)';
+      popup.style.display = 'grid';
+      popup.style.gap = '4px';
+      popup.innerHTML = links
+        .map((link) => `<a class="person-popup-link" href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`)
+        .join('');
+      document.body.append(popup);
+      positionPopup(popup, holder);
+      activePopup = popup;
+      activeHolder = holder;
+      setExpanded(holder, true);
+    };
+
+    const togglePopup = (holder) => {
+      if (holder === activeHolder && activePopup instanceof HTMLElement) {
+        closePopup();
+        return;
+      }
+      openPopup(holder);
+    };
+
+    document.addEventListener('click', (event) => {
+      if (!(activePopup instanceof HTMLElement)) return;
+      const target = event.target;
+      if (activePopup.contains(target)) return;
+      if (activeHolder instanceof HTMLElement && activeHolder.contains(target)) return;
+      closePopup();
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (!(activePopup instanceof HTMLElement)) return;
+      event.preventDefault();
+      closePopup({ restoreFocus: true });
+    }, true);
+
+    window.addEventListener('resize', () => {
+      if (!(activePopup instanceof HTMLElement) || !(activeHolder instanceof HTMLElement)) return;
+      positionPopup(activePopup, activeHolder);
+    }, { passive: true });
+
+    window.addEventListener('scroll', () => {
+      if (!(activePopup instanceof HTMLElement) || !(activeHolder instanceof HTMLElement)) return;
+      positionPopup(activePopup, activeHolder);
+    }, { passive: true, capture: true });
+
     document.querySelectorAll('[data-person-linkable="true"][data-person]').forEach((holder) => {
+      if (!(holder instanceof HTMLElement)) return;
       if (holder.dataset.dexPinBound === '1') return;
       holder.dataset.dexPinBound = '1';
       holder.classList.add('person-link');
       holder.style.cursor = 'pointer';
-      holder.addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.person-popup').forEach((p) => p.remove());
-        let links = [];
-        try {
-          const parsed = JSON.parse(holder.getAttribute('data-links') || '[]');
-          links = Array.isArray(parsed) ? parsed : [];
-        } catch {
-          links = [];
-        }
-        if (!links.length) return;
-        const pop = document.createElement('div');
-        pop.className = 'person-popup';
-        pop.innerHTML = links.map((l) => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener">${escapeHtml(l.label)}</a>`).join('');
-        document.body.append(pop);
-        pop.style.position = 'absolute';
-        pop.style.left = `${e.pageX + 4}px`;
-        pop.style.top = `${e.pageY + 4}px`;
-        pop.style.zIndex = '2147483000';
-        setTimeout(() => {
-          document.addEventListener('click', function handler(evt) {
-            if (!pop.contains(evt.target)) {
-              pop.remove();
-              document.removeEventListener('click', handler);
-            }
-          });
-        }, 0);
+      holder.style.textDecoration = holder.style.textDecoration || 'underline';
+      holder.style.textUnderlineOffset = holder.style.textUnderlineOffset || '0.12em';
+      holder.setAttribute('role', holder.getAttribute('role') || 'button');
+      holder.setAttribute('tabindex', holder.getAttribute('tabindex') || '0');
+      holder.setAttribute('aria-haspopup', holder.getAttribute('aria-haspopup') || 'dialog');
+      setExpanded(holder, false);
+
+      holder.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        togglePopup(holder);
+      });
+
+      holder.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        togglePopup(holder);
       });
     });
   };
@@ -2466,23 +2656,30 @@
       const manifest = parseJsonScript('dex-manifest') || { audio: {}, video: {} };
 
       const credits = page.credits || {};
+      const linksByPerson = normalizeLinksByPersonMap(credits.linksByPerson);
+      const instrumentValues = Array.isArray(credits.instruments)
+        ? credits.instruments
+        : [credits.instruments];
       const cfg = {
         license: globalCfg.license || {},
         attributionSentence: page.attributionSentence,
         credits: {
           ...credits,
-          artist: pin(credits.artist),
+          artist: pinValue(credits.artist, linksByPerson),
           artistAlt: credits.artistAlt,
-          instruments: (credits.instruments || []).map(pin),
+          instruments: instrumentValues
+            .map((value) => pinValue(value, linksByPerson))
+            .map((value) => String(value || '').trim())
+            .filter(Boolean),
           video: {
-            director: pin(credits.video?.director),
-            cinematography: pin(credits.video?.cinematography),
-            editing: pin(credits.video?.editing),
+            director: pinValue(credits.video?.director, linksByPerson),
+            cinematography: pinValue(credits.video?.cinematography, linksByPerson),
+            editing: pinValue(credits.video?.editing, linksByPerson),
           },
           audio: {
-            recording: pin(credits.audio?.recording),
-            mix: pin(credits.audio?.mix),
-            master: pin(credits.audio?.master),
+            recording: pinValue(credits.audio?.recording, linksByPerson),
+            mix: pinValue(credits.audio?.mix, linksByPerson),
+            master: pinValue(credits.audio?.master, linksByPerson),
           },
         },
         downloads: {
@@ -2647,11 +2844,36 @@
       }
       await markTargetReady(fetchTargets, 'license');
 
-      const instrumentsLine = (cfg.credits.instruments || []).join(', ');
+      const blankCredit = '<span class="person-text" data-person-linkable="false">—</span>';
+      const creditValue = (value) => {
+        const text = String(value || '').trim();
+        return text || blankCredit;
+      };
+      const creditRow = (label, value, { role = false } = {}) => `
+        <div class="${role ? 'dex-credits-role' : 'dex-credits-row'}">
+          <span class="dex-credits-key">${label}</span>
+          <span class="dex-credits-value">${creditValue(value)}</span>
+        </div>
+      `;
+      const instrumentsLine = Array.isArray(cfg.credits.instruments) ? cfg.credits.instruments.join(', ') : String(cfg.credits.instruments || '');
       render('.dex-credits', 'Credits', `
-        <p><strong>${cfg.credits.artist}</strong>${instrumentsLine ? `, ${instrumentsLine}` : ''}${cfg.credits.artistAlt ? `<br>${cfg.credits.artistAlt}` : ''}</p>
-        <p><em>Video:</em> Dir:${cfg.credits.video.director}, Cin:${cfg.credits.video.cinematography}, Edit:${cfg.credits.video.editing}</p>
-        <p><em>Audio:</em> Rec:${cfg.credits.audio.recording}, Mix:${cfg.credits.audio.mix}, Master:${cfg.credits.audio.master}</p>
+        <div class="dex-credits-grid">
+          ${creditRow('Artist', cfg.credits.artist)}
+          ${cfg.credits.artistAlt ? creditRow('Alias', cfg.credits.artistAlt) : ''}
+          ${creditRow('Instrument', instrumentsLine)}
+          <div class="dex-credits-group">
+            <div class="dex-credits-group-title">Video</div>
+            ${creditRow('Dir', cfg.credits.video.director, { role: true })}
+            ${creditRow('Cin', cfg.credits.video.cinematography, { role: true })}
+            ${creditRow('Edit', cfg.credits.video.editing, { role: true })}
+          </div>
+          <div class="dex-credits-group">
+            <div class="dex-credits-group-title">Audio</div>
+            ${creditRow('Rec', cfg.credits.audio.recording, { role: true })}
+            ${creditRow('Mix', cfg.credits.audio.mix, { role: true })}
+            ${creditRow('Master', cfg.credits.audio.master, { role: true })}
+          </div>
+        </div>
         <div class="dex-badges">
           <span class="badge">${cfg.credits.season || ''} ${cfg.credits.year || ''}</span>
           <span class="badge">${cfg.credits.location || ''}</span>

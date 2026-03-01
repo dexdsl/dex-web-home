@@ -183,7 +183,7 @@ function pinFor(name, linksByPerson = new Map()) {
     return `<span class="person-text" data-person-linkable="false">${safeName}</span>`;
   }
   const linksJson = encodeAttrEntities(JSON.stringify(links));
-  return `<span class="person-link" data-person="${safeName}" data-links='${linksJson}' data-person-linkable="true" style="position:relative; cursor:pointer;">${safeName}<span class="person-pin"></span></span>`;
+  return `<span class="person-link" data-person="${safeName}" data-links='${linksJson}' data-person-linkable="true" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">${safeName}<span class="person-pin" aria-hidden="true"></span></span>`;
 }
 
 function pinsString(names, linksByPerson = new Map()) {
