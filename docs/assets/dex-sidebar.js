@@ -18,7 +18,10 @@
   let favoritesToastTimer = 0;
   let activeEntryTooltipTarget = null;
   let entryRailLayoutBound = false;
-  const ENTRY_RAIL_BREAKPOINT = 980;
+  let entryRailFooterResizeObserver = null;
+  let entryRailFooterMutationObserver = null;
+  let entryRailObservedFooter = null;
+  const ENTRY_RAIL_BREAKPOINT = 960;
   const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
@@ -226,6 +229,19 @@
         align-items: stretch !important;
       }
 
+      body.dx-entry-page .dex-entry-section {
+        margin-bottom: var(--dx-entry-footer-gap, clamp(18px, 2.2vh, 30px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
+        margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+      }
+
+      body.dx-entry-page .dex-entry-main,
+      body.dx-entry-page .dex-sidebar {
+        padding-bottom: var(--dx-entry-footer-gap, clamp(18px, 2.2vh, 30px)) !important;
+      }
+
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
         height: var(--dx-entry-rails-height, 62vh) !important;
@@ -235,6 +251,15 @@
         overflow-x: hidden !important;
         overscroll-behavior: contain !important;
         scrollbar-gutter: stable !important;
+        padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main > :last-child {
+        margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
+        margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
       }
 
       html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
@@ -286,6 +311,14 @@
   const parseCssPx = (value) => {
     const num = Number.parseFloat(String(value || '').trim().replace(/px$/i, ''));
     return Number.isFinite(num) ? num : 0;
+  };
+
+  const parseFirstCssPx = (...values) => {
+    for (const value of values) {
+      const parsed = parseCssPx(value);
+      if (parsed > 0) return parsed;
+    }
+    return 0;
   };
 
   const setFetchState = (root, state) => {
@@ -979,6 +1012,29 @@
     return target;
   };
 
+  const resolveActiveEntryFooter = () => {
+    const candidates = Array.from(document.querySelectorAll('.dx-slot-profile-footer .dex-footer-section, #footer-sections .dex-footer-section, .dex-footer.dx-profile-footer-portaled, #footer-sections .dex-footer, .dex-footer'));
+    let best = null;
+    let bestScore = -1;
+    candidates.forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const style = window.getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number.parseFloat(style.opacity || '1') <= 0) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.height <= 1 || rect.width <= 1) return;
+      const bottomDistance = Math.abs(window.innerHeight - rect.bottom);
+      const bottomProximity = Math.max(0, 420 - bottomDistance);
+      const bottomOcclusion = Math.max(0, window.innerHeight - Math.max(0, rect.top));
+      const footerExtent = Math.max(rect.height, bottomOcclusion);
+      const score = (footerExtent * 6) + (bottomProximity * 5);
+      if (score > bestScore) {
+        bestScore = score;
+        best = node;
+      }
+    });
+    return best;
+  };
+
   const bindEntryTooltips = (scope) => {
     if (!(scope instanceof HTMLElement)) return;
     if (scope.__dxEntryTooltipAbortController instanceof AbortController) {
@@ -1079,7 +1135,7 @@
     const main = layout?.querySelector('.dex-entry-main');
     const sidebar = layout?.querySelector('.dex-sidebar');
     const header = document.querySelector('.dex-entry-header');
-    const footer = document.querySelector('.dex-footer.dx-profile-footer-portaled, #footer-sections .dex-footer, .dex-footer');
+    const footer = resolveActiveEntryFooter();
     if (!(layout instanceof HTMLElement) || !(main instanceof HTMLElement) || !(sidebar instanceof HTMLElement) || !(header instanceof HTMLElement)) return;
 
     const desktop = window.innerWidth >= ENTRY_RAIL_BREAKPOINT;
@@ -1115,24 +1171,35 @@
     }
 
     let bottomInset = 20;
-    const footerBottomVar = parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-bottom'));
-    const footerHeightVar = parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-height-effective'))
-      || parseCssPx(bodyStyle.getPropertyValue('--dx-profile-footer-height'));
+    const footerBottomVar = parseFirstCssPx(
+      docStyle.getPropertyValue('--dx-profile-footer-bottom'),
+      bodyStyle.getPropertyValue('--dx-profile-footer-bottom')
+    );
+    const footerHeightVar = parseFirstCssPx(
+      docStyle.getPropertyValue('--dx-profile-footer-height'),
+      docStyle.getPropertyValue('--dx-profile-footer-height-effective'),
+      bodyStyle.getPropertyValue('--dx-profile-footer-height'),
+      bodyStyle.getPropertyValue('--dx-profile-footer-height-effective')
+    );
     if (footerHeightVar > 0) {
-      bottomInset = Math.max(bottomInset, Math.ceil(footerBottomVar + footerHeightVar + 6));
+      bottomInset = Math.max(bottomInset, Math.ceil(footerBottomVar + footerHeightVar + 12));
     }
     if (footer instanceof HTMLElement) {
       const footerRect = footer.getBoundingClientRect();
-      if (footerRect.height > 0) bottomInset = Math.max(bottomInset, Math.ceil(footerRect.height + 10));
+      const bottomOcclusion = Math.max(0, window.innerHeight - Math.max(0, footerRect.top));
+      const footerExtent = Math.max(footerRect.height, bottomOcclusion);
+      if (footerExtent > 0) bottomInset = Math.max(bottomInset, Math.ceil(footerExtent + 12));
     }
 
     const layoutRect = layout.getBoundingClientRect();
     const topInset = Math.max(0, Math.ceil(layoutRect.top));
     const available = Math.max(280, Math.floor(window.innerHeight - topInset - bottomInset));
     const railInlinePad = Math.max(14, Math.min(24, Math.round(window.innerWidth * 0.016)));
+    const footerGap = Math.max(16, Math.min(42, Math.round(Math.max(railInlinePad * 1.1, bottomInset * 0.16))));
     root.style.setProperty('--dx-entry-rails-height', `${available}px`);
     root.style.setProperty('--dx-entry-rail-inline-pad', `${railInlinePad}px`);
     root.style.setProperty('--dx-entry-footer-inline-pad', `${railInlinePad}px`);
+    root.style.setProperty('--dx-entry-footer-gap', `${footerGap}px`);
     root.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
     document.body.classList.add('dx-entry-desktop-fixed');
@@ -1163,12 +1230,51 @@
       return;
     }
     entryRailLayoutBound = true;
-    const schedule = () => window.requestAnimationFrame(() => applyEntryRailLayout());
+    let bindFooterObservers = () => {};
+    const schedule = () => window.requestAnimationFrame(() => {
+      bindFooterObservers();
+      applyEntryRailLayout();
+    });
+    const scheduleBurst = () => {
+      schedule();
+      window.setTimeout(schedule, 80);
+      window.setTimeout(schedule, 220);
+      window.setTimeout(schedule, 420);
+      window.setTimeout(() => bindFooterObservers(), 50);
+      window.setTimeout(() => bindFooterObservers(), 180);
+    };
+    bindFooterObservers = () => {
+      const footer = resolveActiveEntryFooter();
+      if (!(footer instanceof HTMLElement)) return;
+      if (entryRailObservedFooter === footer) return;
+      if (entryRailFooterResizeObserver instanceof ResizeObserver) {
+        try { entryRailFooterResizeObserver.disconnect(); } catch {}
+      }
+      if (entryRailFooterMutationObserver instanceof MutationObserver) {
+        try { entryRailFooterMutationObserver.disconnect(); } catch {}
+      }
+      entryRailObservedFooter = footer;
+      if (typeof window.ResizeObserver === 'function') {
+        entryRailFooterResizeObserver = new ResizeObserver(() => schedule());
+        entryRailFooterResizeObserver.observe(footer);
+      }
+      if (typeof window.MutationObserver === 'function') {
+        entryRailFooterMutationObserver = new MutationObserver(() => schedule());
+        entryRailFooterMutationObserver.observe(footer, { attributes: true, childList: true, subtree: true });
+      }
+    };
     window.addEventListener('resize', schedule, { passive: true });
     window.addEventListener('load', schedule, { once: true });
+    window.addEventListener('load', () => bindFooterObservers(), { once: true });
+    window.addEventListener('dx:slotready', scheduleBurst);
+    window.addEventListener('dx:route-transition-in:end', scheduleBurst);
+    window.addEventListener('dx:route-transition-out:end', scheduleBurst);
     schedule();
+    window.setTimeout(bindFooterObservers, 40);
     window.setTimeout(schedule, 60);
+    window.setTimeout(bindFooterObservers, 120);
     window.setTimeout(schedule, 240);
+    window.setTimeout(bindFooterObservers, 420);
   };
 
   const bindBreadcrumbSpinFallback = () => {

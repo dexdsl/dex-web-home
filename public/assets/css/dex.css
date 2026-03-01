@@ -3846,7 +3846,7 @@ body.dx-entry-page .dex-entry-section .content-wrapper {
   align-items: flex-start !important;
 }
 
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-header {
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header {
   position: sticky;
   top: var(--dx-entry-header-offset, 0px);
   z-index: 12;
@@ -3859,15 +3859,19 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-hea
   -webkit-backdrop-filter: none !important;
 }
 
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-layout {
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
   height: var(--dx-entry-rails-height, 62vh);
   min-height: 0;
   align-items: stretch !important;
   overflow: hidden !important;
 }
 
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-entry-main,
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-sidebar {
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
   height: var(--dx-entry-rails-height, 62vh);
   min-height: 0;
   max-height: var(--dx-entry-rails-height, 62vh);
@@ -3876,6 +3880,15 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dex-entry-page .dex-sidebar {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding-right: var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px)) !important;
+  padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main > :last-child {
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
+
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll {

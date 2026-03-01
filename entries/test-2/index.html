@@ -586,6 +586,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
 
+
+
+
+
+
 <style id="dex-layout-patch" data-managed="1">
 #dex-layout-patch[data-managed="1"] { display: block; }
 .dex-entry-host .dx-code-container,
@@ -612,6 +617,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 .dex-entry-fluid-engine { grid-template-rows: auto !important; }
 #footer-sections.sections { margin-top: 0 !important; padding-top: 0 !important; }
 #footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
 .dex-entry-layout {
   --dex-entry-frame-radius: var(--radius-md, 8px);
   display: grid !important;
@@ -2914,6 +2922,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-
   }
 }
 </script><script id="dex-sidebar-page-config-bridge">window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');</script>
+
 
 
 

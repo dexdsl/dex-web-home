@@ -717,6 +717,9 @@ function ensureDexLayoutPatchStyle($, head) {
 .dex-entry-fluid-engine { grid-template-rows: auto !important; }
 #footer-sections.sections { margin-top: 0 !important; padding-top: 0 !important; }
 #footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+}
 .dex-entry-layout {
   --dex-entry-frame-radius: var(--radius-md, 8px);
   display: grid !important;
