@@ -1116,6 +1116,15 @@ body.dx-entry-page .dex-collections .dx-bucket-tile {
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
   position: relative !important;
   cursor: help !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+body.dx-entry-page .dex-collections .overview-buckets-grid {
+  overflow: visible !important;
+}
+body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover,
+body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:focus-visible {
+  z-index: 20 !important;
 }
 @media (hover: hover) {
   body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip]:hover::after,
@@ -1123,7 +1132,7 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
     content: attr(data-dx-tooltip);
     position: absolute;
     left: 50%;
-    bottom: calc(100% + 8px);
+    top: calc(100% + 8px);
     transform: translateX(-50%);
     z-index: 1300;
     width: max-content;
