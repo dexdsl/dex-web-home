@@ -11,6 +11,8 @@
   const DEFAULT_API_BASE = 'https://dex-api.spring-fog-8edd.workers.dev';
   const FETCH_TIMEOUT_MS = 9000;
   const RESUME_KEY = 'dex:bag:resume:v1';
+  const BACK_CRUMB_MEMORY_KEY = 'dex:bag:back-crumb:v1';
+  const BREADCRUMB_FALLBACK_HREF = '/catalog/';
   const RECEIPT_VISIBLE_LIMIT = 8;
   const MESH_RUNTIME_KEY = '__dxBagMeshRuntime';
 
@@ -77,6 +79,156 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function toAbsoluteUrl(value, baseHref = window.location.origin) {
+    const raw = toText(value).trim();
+    if (!raw) return '';
+    let base = toText(baseHref).trim();
+    if (!base) base = window.location.origin;
+    if (!/^https?:\/\//i.test(base)) {
+      try {
+        base = new URL(base, window.location.origin).href;
+      } catch {
+        base = window.location.origin;
+      }
+    }
+    try {
+      const parsed = new URL(raw, base);
+      if (!/^https?:$/i.test(parsed.protocol)) return '';
+      return parsed.href;
+    } catch {
+      return '';
+    }
+  }
+
+  function decodeBase64UrlUtf8(value) {
+    const raw = toText(value).trim();
+    if (!raw) return '';
+    try {
+      const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+      const binary = window.atob(padded);
+      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch {
+      return '';
+    }
+  }
+
+  function pathLabelFromSegments(pathname = '') {
+    const normalized = normalizePath(pathname);
+    if (!normalized || normalized === '/') return 'home';
+    if (normalized === '/catalog/') return 'catalog';
+    const segments = normalized.split('/').filter(Boolean);
+    const last = toText(segments[segments.length - 1] || '').trim();
+    if (!last) return 'back';
+    return last.replace(/[-_]+/g, ' ');
+  }
+
+  function deriveBackLabelFromPath(pathname = '') {
+    const normalized = normalizePath(pathname);
+    if (!normalized) return 'back';
+    if (normalized.startsWith('/entries/') || normalized.startsWith('/entry/')) {
+      const parts = normalized.split('/').filter(Boolean);
+      const slug = toText(parts[1] || '').trim();
+      if (!slug || slug.toLowerCase() === 'bag') return pathLabelFromSegments(normalized);
+      return slug.replace(/[-_]+/g, ' ');
+    }
+    if (normalized.startsWith('/view/')) {
+      const parts = normalized.split('/').filter(Boolean);
+      const encodedId = toText(parts[1] || '').trim();
+      const decodedPath = decodeBase64UrlUtf8(encodedId);
+      const entryMatch = decodedPath.match(/\/entries\/([^/]+)\/index\.html$/i);
+      if (entryMatch && entryMatch[1]) return toText(entryMatch[1]).replace(/[-_]+/g, ' ');
+      const bagMatch = decodedPath.match(/\/entry\/bag\/index\.html$/i);
+      if (bagMatch) return 'catalog';
+      return 'back';
+    }
+    return pathLabelFromSegments(normalized);
+  }
+
+  function readBackCrumbMemory() {
+    try {
+      const raw = window.sessionStorage.getItem(BACK_CRUMB_MEMORY_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const href = toText(parsed?.href).trim();
+      const label = toText(parsed?.label).trim();
+      if (!href || !label) return null;
+      return { href, label };
+    } catch {
+      return null;
+    }
+  }
+
+  function writeBackCrumbMemory(crumb) {
+    const href = toText(crumb?.href).trim();
+    const label = toText(crumb?.label).trim();
+    if (!href || !label) return;
+    try {
+      window.sessionStorage.setItem(BACK_CRUMB_MEMORY_KEY, JSON.stringify({ href, label }));
+    } catch {}
+  }
+
+  function resolveBackCrumb() {
+    const fallback = readBackCrumbMemory() || { href: BREADCRUMB_FALLBACK_HREF, label: 'catalog' };
+    const referrerRaw = toText(document.referrer).trim();
+    if (!referrerRaw) return fallback;
+    try {
+      const refUrl = new URL(referrerRaw, window.location.origin);
+      if (refUrl.origin !== window.location.origin) return fallback;
+      const refPath = normalizePath(refUrl.pathname || '/');
+      const currentPath = normalizePath(window.location.pathname || '/');
+      if (!refPath || refPath === currentPath) return fallback;
+      const href = `${refPath}${toText(refUrl.search || '')}${toText(refUrl.hash || '')}`;
+      const label = deriveBackLabelFromPath(refPath);
+      const next = { href, label: label || fallback.label };
+      writeBackCrumbMemory(next);
+      return next;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function ensureBreadcrumbMotionRuntime() {
+    if (window.__dexBreadcrumbMotionRuntimeRequested) return;
+    window.__dexBreadcrumbMotionRuntimeRequested = true;
+    const fallbackSrc = 'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js';
+    const localSrc = '/assets/js/dex-breadcrumb-motion.js';
+    const loadScript = (src, onError) => {
+      const script = document.createElement('script');
+      script.defer = true;
+      script.src = src;
+      if (typeof onError === 'function') script.onerror = onError;
+      document.head.appendChild(script);
+    };
+    if (localSrc === fallbackSrc) {
+      loadScript(fallbackSrc);
+      return;
+    }
+    loadScript(localSrc, () => {
+      loadScript(fallbackSrc);
+    });
+  }
+
+  function mountBreadcrumbMotion() {
+    if (typeof window.dexBreadcrumbMotionMount === 'function') {
+      window.dexBreadcrumbMotionMount();
+    }
+  }
+
+  function parseJsonScriptById(doc, id) {
+    if (!doc || !id) return null;
+    const script = doc.getElementById(id);
+    if (!(script instanceof HTMLScriptElement)) return null;
+    const text = toText(script.textContent).trim();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
   }
 
   function getApiBase() {
@@ -498,17 +650,173 @@
     return out;
   }
 
-  function resolveCardTitle(rows = [], lookup) {
+  function isSameNormalizedText(a, b) {
+    const textA = toText(a).replace(/\s+/g, ' ').trim().toLowerCase();
+    const textB = toText(b).replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!textA || !textB) return false;
+    return textA === textB;
+  }
+
+  function resolveCardTitle(rows = [], lookup, entryMeta = null) {
+    const metaTitle = toText(entryMeta?.title).trim();
+    if (metaTitle && !isSameNormalizedText(metaTitle, lookup)) {
+      return metaTitle;
+    }
+
     const normalizedRows = Array.isArray(rows) ? rows.slice() : [];
     normalizedRows.sort((a, b) => parseDateMs(b?.updatedAt || b?.addedAt) - parseDateMs(a?.updatedAt || a?.addedAt));
     for (const row of normalizedRows) {
       const title = toText(row?.title).trim();
       if (!title) continue;
-      const normalizedTitle = title.replace(/\s+/g, ' ').toLowerCase();
-      const normalizedLookup = toText(lookup).replace(/\s+/g, ' ').trim().toLowerCase();
-      if (!normalizedLookup || normalizedTitle !== normalizedLookup) return title;
+      if (!isSameNormalizedText(title, lookup)) return title;
     }
     return lookup;
+  }
+
+  function toCountInt(value) {
+    const count = Number(value);
+    if (!Number.isFinite(count) || count < 0) return 0;
+    return Math.round(count);
+  }
+
+  function normalizeBucketFileStats(input) {
+    if (!input || typeof input !== 'object') return null;
+    const out = {};
+    Object.entries(input).forEach(([bucketKey, bucketValue]) => {
+      const bucket = normalizeBucket(bucketKey);
+      if (!bucket) return;
+      const audioIn = bucketValue && typeof bucketValue === 'object' ? bucketValue.audio : null;
+      const videoIn = bucketValue && typeof bucketValue === 'object' ? bucketValue.video : null;
+      const audio = {
+        mp3: toCountInt(audioIn?.mp3),
+        wav: toCountInt(audioIn?.wav),
+      };
+      const video = {
+        '1080p': toCountInt(videoIn?.['1080p']),
+        '4K': toCountInt(videoIn?.['4K'] ?? videoIn?.['4k']),
+      };
+      out[bucket] = { audio, video };
+    });
+    return Object.keys(out).length ? out : null;
+  }
+
+  function sumBucketStats(statsByBucket, bucket, mediaType = '') {
+    if (!statsByBucket || typeof statsByBucket !== 'object') return 0;
+    const safeBucket = normalizeBucket(bucket);
+    if (!safeBucket) return 0;
+    const row = statsByBucket[safeBucket];
+    if (!row || typeof row !== 'object') return 0;
+    const sumAudio = toCountInt(row?.audio?.mp3) + toCountInt(row?.audio?.wav);
+    const sumVideo = toCountInt(row?.video?.['1080p']) + toCountInt(row?.video?.['4K']);
+    const media = normalizeMediaType(mediaType);
+    if (media === 'audio') return sumAudio;
+    if (media === 'video') return sumVideo;
+    return sumAudio + sumVideo;
+  }
+
+  function sumAllBucketStats(statsByBucket) {
+    if (!statsByBucket || typeof statsByBucket !== 'object') return 0;
+    return Object.keys(statsByBucket).reduce((sum, bucket) => sum + sumBucketStats(statsByBucket, bucket), 0);
+  }
+
+  function countFilesFromBucketStats(rows = [], bucketFileStats = null) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    if (!safeRows.length || !bucketFileStats) return 0;
+    if (safeRows.some((row) => toText(row?.kind).trim().toLowerCase() === 'collection')) {
+      return sumAllBucketStats(bucketFileStats);
+    }
+
+    let total = 0;
+    safeRows.forEach((row) => {
+      const kind = toText(row?.kind).trim().toLowerCase();
+      const bucket = normalizeBucket(row?.bucket);
+      if (kind === 'bucket') {
+        total += sumBucketStats(bucketFileStats, bucket);
+        return;
+      }
+      if (kind === 'type') {
+        total += sumBucketStats(bucketFileStats, bucket, row?.mediaType);
+        return;
+      }
+      if (kind === 'file') {
+        const mediaTypes = normalizeAvailableTypes(row?.mediaTypes, row?.mediaType);
+        total += Math.max(1, mediaTypes.length || 0);
+      }
+    });
+
+    return total;
+  }
+
+  function sanitizeEntryTitle(rawTitle, lookup) {
+    const raw = toText(rawTitle).trim();
+    if (!raw) return '';
+    const stripped = raw.replace(/\s+[—-]\s+dex digital sample library\s*$/i, '').trim();
+    if (!stripped) return '';
+    if (isSameNormalizedText(stripped, lookup)) return '';
+    return stripped;
+  }
+
+  function parseEntryMetaFromHtml(htmlText = '', sourceHref = '') {
+    const text = toText(htmlText);
+    if (!text) return null;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/html');
+    if (!doc) return null;
+
+    const cfg = parseJsonScriptById(doc, 'dex-sidebar-page-config') || {};
+    const lookup = toText(cfg?.lookupNumber).trim();
+    const titleFromConfig = sanitizeEntryTitle(cfg?.title, lookup);
+    const titleFromHeader = sanitizeEntryTitle(doc.querySelector('.dex-entry-page-title')?.textContent, lookup);
+    const titleFromMeta = sanitizeEntryTitle(doc.querySelector('meta[property="og:title"]')?.getAttribute('content'), lookup);
+    const title = titleFromConfig || titleFromHeader || titleFromMeta || '';
+
+    const thumbnailRaw = toText(
+      doc.querySelector('meta[itemprop="thumbnailUrl"]')?.getAttribute('content')
+      || doc.querySelector('meta[property="og:image"]')?.getAttribute('content')
+      || doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content')
+      || doc.querySelector('meta[itemprop="image"]')?.getAttribute('content')
+    ).trim();
+    const thumbnailSrc = toAbsoluteUrl(thumbnailRaw, sourceHref || window.location.origin);
+
+    const canonicalHref = toAbsoluteUrl(doc.querySelector('link[rel="canonical"]')?.getAttribute('href'), sourceHref || window.location.origin);
+    const bucketFileStats = normalizeBucketFileStats(cfg?.bucketFileStats);
+
+    return {
+      lookup,
+      title,
+      thumbnailSrc,
+      canonicalHref,
+      bucketFileStats,
+    };
+  }
+
+  async function requestEntryHtml(entryHref) {
+    const absolute = toAbsoluteUrl(entryHref, window.location.origin);
+    if (!absolute) return '';
+    let parsed = null;
+    try {
+      parsed = new URL(absolute);
+    } catch {
+      return '';
+    }
+    if (!parsed || parsed.origin !== window.location.origin) return '';
+
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(parsed.href, {
+        method: 'GET',
+        headers: { accept: 'text/html,*/*;q=0.9' },
+        credentials: 'same-origin',
+        signal: ctrl.signal,
+      });
+      if (!response.ok) return '';
+      return toText(await response.text());
+    } catch {
+      return '';
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   function formatBytes(bytes) {
@@ -674,7 +982,6 @@
     if (!(gradient instanceof HTMLElement)) {
       gradient = document.createElement('div');
       gradient.id = 'scroll-gradient-bg';
-      gradient.setAttribute('data-dx-bag-bg', '1');
       document.body.prepend(gradient);
     }
 
@@ -682,7 +989,6 @@
     if (!(mesh instanceof HTMLElement)) {
       mesh = document.createElement('div');
       mesh.id = 'gooey-mesh-wrapper';
-      mesh.setAttribute('data-dx-bag-bg', '1');
 
       const stage = document.createElement('div');
       stage.className = 'gooey-stage';
@@ -809,6 +1115,8 @@
   function mount() {
     ensureBagRouteClasses();
     ensureBagMeshMotion();
+    ensureBreadcrumbMotionRuntime();
+    window.addEventListener('dex:breadcrumb-motion-ready', mountBreadcrumbMotion);
 
     const root = document.getElementById(ROOT_ID);
     if (!(root instanceof HTMLElement)) return;
@@ -822,11 +1130,13 @@
       auth: { auth: null, authenticated: false, token: '', user: null },
       rows: bagApi.list(),
       filesByLookup: new Map(),
+      entryMetaByLookup: new Map(),
       error: '',
       busy: '',
       status: '',
       expandedReceipts: new Set(),
       localViewerMode: isLocalViewerRoute(),
+      backCrumb: resolveBackCrumb(),
     };
 
     const setFetchState = (value) => {
@@ -873,22 +1183,63 @@
       state.expandedReceipts.delete(lookup);
     };
 
+    const getLatestRow = (rows = []) => rows
+      .slice()
+      .sort((a, b) => parseDateMs(b?.updatedAt || b?.addedAt) - parseDateMs(a?.updatedAt || a?.addedAt))[0] || null;
+
+    const resolveLookupEntryMeta = async () => {
+      const groups = groupedRows();
+      await Promise.all(groups.map(async ([lookup, rows]) => {
+        if (state.entryMetaByLookup.has(lookup)) return;
+        const latestRow = getLatestRow(rows);
+        const entryHref = normalizePath(latestRow?.entryHref || '');
+        if (!entryHref) {
+          state.entryMetaByLookup.set(lookup, null);
+          return;
+        }
+        const html = await requestEntryHtml(entryHref);
+        if (!html) {
+          state.entryMetaByLookup.set(lookup, null);
+          return;
+        }
+        const parsed = parseEntryMetaFromHtml(html, entryHref);
+        if (!parsed) {
+          state.entryMetaByLookup.set(lookup, null);
+          return;
+        }
+        state.entryMetaByLookup.set(lookup, {
+          title: toText(parsed.title).trim(),
+          lookup: normalizeLookup(parsed.lookup),
+          thumbnailSrc: toAbsoluteUrl(parsed.thumbnailSrc, entryHref),
+          canonicalHref: normalizePath(parsed.canonicalHref || ''),
+          bucketFileStats: parsed.bucketFileStats || null,
+        });
+      }));
+    };
+
     const computeGroupModel = (lookup, rows) => {
       const files = state.filesByLookup.get(lookup) || [];
+      const entryMeta = state.entryMetaByLookup.get(lookup) || null;
       const expandedFiles = expandSelectionsForLookup(rows, files);
       const estimatedBytes = expandedFiles.reduce((sum, file) => sum + parseFiniteSizeBytes(file?.sizeBytes), 0);
       const receiptLines = buildReceiptLines(lookup, rows, files);
-      const latestRow = rows
-        .slice()
-        .sort((a, b) => parseDateMs(b?.updatedAt || b?.addedAt) - parseDateMs(a?.updatedAt || a?.addedAt))[0] || null;
+      const latestRow = getLatestRow(rows);
+      const bucketStatsCount = countFilesFromBucketStats(rows, entryMeta?.bucketFileStats || null);
+      const resolvedCount = Math.max(expandedFiles.length, bucketStatsCount);
+      const entryHref = normalizePath(
+        latestRow?.entryHref
+        || entryMeta?.canonicalHref
+        || ''
+      );
       return {
         lookup,
-        title: resolveCardTitle(rows, lookup),
+        title: resolveCardTitle(rows, lookup, entryMeta),
         scopeSummary: summarizeSelection(rows),
-        resolvedCount: expandedFiles.length,
+        resolvedCount,
         estimatedBytes,
         receiptLines,
-        entryHref: normalizePath(latestRow?.entryHref || ''),
+        entryHref,
+        thumbnailSrc: toAbsoluteUrl(entryMeta?.thumbnailSrc || '', window.location.origin),
       };
     };
 
@@ -899,6 +1250,8 @@
       const selectedFileCount = models.reduce((sum, model) => sum + model.resolvedCount, 0);
       const selectedUnitCount = models.reduce((sum, model) => sum + (model.receiptLines.length || 0), 0);
       const estimatedBytes = models.reduce((sum, model) => sum + model.estimatedBytes, 0);
+      const backHref = toText(state.backCrumb?.href || BREADCRUMB_FALLBACK_HREF).trim() || BREADCRUMB_FALLBACK_HREF;
+      const backLabel = toText(state.backCrumb?.label || 'catalog').trim() || 'catalog';
       const signedLabel = state.auth.authenticated
         ? `Signed in as ${htmlEscape(toText(state.auth.user?.name || state.auth.user?.email || state.auth.user?.nickname || 'member'))}`
         : (state.localViewerMode
@@ -915,6 +1268,19 @@
         const showMore = hiddenCount > 0
           ? `<button type="button" class="dx-bag-receipt-toggle" data-bag-toggle-receipt="${htmlEscape(model.lookup)}">${expanded ? 'Show Less' : `Show All (${hiddenCount} more)`}</button>`
           : '';
+        const thumbnailMarkup = model.thumbnailSrc
+          ? `<a class="dx-bag-card-thumb" href="${htmlEscape(model.entryHref || '#')}" ${model.entryHref ? '' : 'aria-disabled="true" tabindex="-1"'}><img src="${htmlEscape(model.thumbnailSrc)}" alt="${htmlEscape(`${model.title} preview`)}" loading="lazy" decoding="async"></a>`
+          : '';
+        const editIcon = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+          </svg>
+        `;
+        const removeIcon = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+          </svg>
+        `;
 
         return `
           <article class="dx-bag-card" data-bag-lookup="${htmlEscape(model.lookup)}">
@@ -924,12 +1290,15 @@
                 <p>${htmlEscape(model.lookup)}</p>
               </div>
               <div class="dx-bag-card-controls">
-                <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary" data-bag-edit="${htmlEscape(model.lookup)}" ${model.entryHref ? '' : 'disabled'}>EDIT SELECTION</button>
-                <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary" data-bag-remove-lookup="${htmlEscape(model.lookup)}">REMOVE</button>
+                <div class="dx-bag-card-actions">
+                  <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-edit="${htmlEscape(model.lookup)}" aria-label="Edit selection" ${model.entryHref ? '' : 'disabled'}>${editIcon}</button>
+                  <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-remove-lookup="${htmlEscape(model.lookup)}" aria-label="Remove selection">${removeIcon}</button>
+                </div>
+                ${thumbnailMarkup}
               </div>
             </header>
             <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
-            <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} resolved file selection${model.resolvedCount === 1 ? '' : 's'}`)}</p>
+            <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
             <ol class="dx-bag-receipt">${receiptItems || '<li>No receipt lines.</li>'}</ol>
             ${showMore}
           </article>
@@ -939,7 +1308,17 @@
       root.innerHTML = `
         <section class="dx-bag-shell">
           <header class="dx-bag-head">
-            <p class="dx-bag-breadcrumb"><a href="/catalog">catalog</a> <span>✧</span> <span>bag</span></p>
+            <div class="dex-breadcrumb-overlay" data-dex-breadcrumb-overlay="">
+              <div class="dex-breadcrumb" data-dex-breadcrumb="">
+                <a class="dex-breadcrumb-back" href="${htmlEscape(backHref)}" data-dex-breadcrumb-back="">${htmlEscape(backLabel)}</a>
+                <span class="dex-breadcrumb-delimiter" data-dex-breadcrumb-delimiter="" aria-hidden="true">
+                  <svg class="dex-breadcrumb-icon" viewBox="0 0 24 24" width="24" height="24" focusable="false" aria-hidden="true">
+                    <path data-dex-breadcrumb-path="" d="M12 1.75L19.85 12L12 22.25L4.15 12Z"></path>
+                  </svg>
+                </span>
+                <span class="dex-breadcrumb-current">bag</span>
+              </div>
+            </div>
             <h1>DOWNLOAD BAG</h1>
             <p class="dx-bag-note">${signedLabel}</p>
           </header>
@@ -969,6 +1348,7 @@
           ${statusText ? `<p class="dx-bag-status">${statusText}</p>` : ''}
         </section>
       `;
+      mountBreadcrumbMotion();
     };
 
     const refreshRows = () => {
@@ -1020,6 +1400,23 @@
           state.filesByLookup.set(lookup, []);
         }
       }));
+    };
+
+    const pruneLookupCaches = () => {
+      const activeLookups = new Set(groupedRows().map(([lookup]) => lookup));
+      Array.from(state.filesByLookup.keys()).forEach((lookup) => {
+        if (!activeLookups.has(lookup)) state.filesByLookup.delete(lookup);
+      });
+      Array.from(state.entryMetaByLookup.keys()).forEach((lookup) => {
+        if (!activeLookups.has(lookup)) state.entryMetaByLookup.delete(lookup);
+      });
+    };
+
+    const hydrateLookupData = async () => {
+      await Promise.all([
+        resolveLookupFiles(),
+        resolveLookupEntryMeta(),
+      ]);
     };
 
     const executeDownload = async () => {
@@ -1087,15 +1484,43 @@
       }
     };
 
+    const resolveBreadcrumbBackStrategy = () => {
+      const fallbackHref = normalizePath(state.backCrumb?.href || BREADCRUMB_FALLBACK_HREF) || BREADCRUMB_FALLBACK_HREF;
+      try {
+        if (!document.referrer || !window.location || !window.location.origin || window.history.length < 2) {
+          return { useHistoryBack: false, fallbackHref };
+        }
+        const ref = new URL(document.referrer, window.location.origin);
+        if (ref.origin !== window.location.origin) return { useHistoryBack: false, fallbackHref };
+        const previousPath = normalizePath(ref.pathname || '/');
+        const currentPath = normalizePath(window.location.pathname || '/');
+        if (!previousPath || previousPath === currentPath) return { useHistoryBack: false, fallbackHref };
+        return { useHistoryBack: true, fallbackHref };
+      } catch {
+        return { useHistoryBack: false, fallbackHref };
+      }
+    };
+
     root.addEventListener('click', (event) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) return;
+
+      const breadcrumbBack = target.closest('[data-dex-breadcrumb-back]');
+      if (breadcrumbBack) {
+        const strategy = resolveBreadcrumbBackStrategy();
+        if (strategy.useHistoryBack) {
+          event.preventDefault();
+          window.history.back();
+        }
+        return;
+      }
 
       const removeLookup = target.closest('[data-bag-remove-lookup]')?.getAttribute('data-bag-remove-lookup');
       if (removeLookup) {
         removeLookupSelections(removeLookup);
         refreshRows();
         state.filesByLookup.delete(removeLookup);
+        state.entryMetaByLookup.delete(removeLookup);
         state.error = '';
         state.status = '';
         render();
@@ -1122,6 +1547,7 @@
       if (target.closest('[data-bag-clear]')) {
         bagApi.clear();
         state.filesByLookup.clear();
+        state.entryMetaByLookup.clear();
         state.expandedReceipts.clear();
         refreshRows();
         state.error = '';
@@ -1137,9 +1563,14 @@
 
     const onBagChanged = () => {
       refreshRows();
+      pruneLookupCaches();
       state.error = '';
       state.status = '';
       render();
+      void hydrateLookupData().then(() => {
+        pruneLookupCaches();
+        render();
+      });
     };
     bagApi.subscribe(onBagChanged);
 
@@ -1159,7 +1590,8 @@
       }
 
       refreshRows();
-      await resolveLookupFiles();
+      pruneLookupCaches();
+      await hydrateLookupData();
       render();
       setFetchState('ready');
 
