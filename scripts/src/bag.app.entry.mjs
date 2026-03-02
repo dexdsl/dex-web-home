@@ -14,18 +14,12 @@
   const BACK_CRUMB_MEMORY_KEY = 'dex:bag:back-crumb:v1';
   const BREADCRUMB_FALLBACK_HREF = '/catalog/';
   const RECEIPT_VISIBLE_LIMIT = 8;
-  const MESH_RUNTIME_KEY = '__dxBagMeshRuntime';
+  const SHARED_MESH_TEMPLATE_PATHS = ['/__dx/chrome-template', '/', '/index.html', '/docs/', '/docs/index.html'];
+  const SHARED_MESH_BOOTSTRAP_ATTR = 'data-dx-shared-mesh-bootstrap';
+  const SHARED_MESH_STYLE_ATTR = 'data-dx-shared-mesh-style';
   const CATALOG_ENTRIES_ENDPOINTS = ['/assets/data/catalog.entries.json', '/data/catalog.entries.json'];
   const BAG_DESCRIPTION_COPY = 'Review queued selections across entries, adjust scope, and export one merged download bundle.';
   const BAG_SIGNED_IN_PREFIX = 'Signed in as';
-
-  const MESH_BLOBS = [
-    '--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7',
-    '--d:32vmax;--g1a:#7f00ff;--g1b:#e100ff;--g2a:#00dbde;--g2b:#fc00ff',
-    '--d:33vmax;--g1a:#ffd452;--g1b:#ffb347;--g2a:#ff8456;--g2b:#ff5e62',
-    '--d:37vmax;--g1a:#13f1fc;--g1b:#0470dc;--g2a:#a1ffce;--g2b:#faffd1',
-    '--d:27vmax;--g1a:#f9516d;--g1b:#ff9a44;--g2a:#fa8bff;--g2b:#6f7bf7',
-  ];
 
   function toText(value) {
     return String(value ?? '');
@@ -1056,146 +1050,100 @@
     document.body.classList.add('dx-entry-page', BAG_ROUTE_CLASS, PROFILE_PROTECTED_ROUTE_CLASS, PROFILE_SHOW_MESH_ROUTE_CLASS);
   }
 
-  function ensureMeshBackdropElements() {
+  function installBagRouteClassGuard() {
     if (!(document.body instanceof HTMLElement)) return;
-
-    let gradient = document.getElementById('scroll-gradient-bg');
-    if (!(gradient instanceof HTMLElement)) {
-      gradient = document.createElement('div');
-      gradient.id = 'scroll-gradient-bg';
-      document.body.prepend(gradient);
-    }
-
-    let mesh = document.getElementById('gooey-mesh-wrapper');
-    if (!(mesh instanceof HTMLElement)) {
-      mesh = document.createElement('div');
-      mesh.id = 'gooey-mesh-wrapper';
-
-      const stage = document.createElement('div');
-      stage.className = 'gooey-stage';
-      MESH_BLOBS.forEach((styleText) => {
-        const blob = document.createElement('div');
-        blob.className = 'gooey-blob';
-        blob.setAttribute('style', styleText);
-        stage.appendChild(blob);
-      });
-      mesh.appendChild(stage);
-
-      const ns = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(ns, 'svg');
-      svg.setAttribute('id', 'goo-filter');
-      svg.setAttribute('aria-hidden', 'true');
-      const defs = document.createElementNS(ns, 'defs');
-      const filter = document.createElementNS(ns, 'filter');
-      filter.setAttribute('id', 'goo');
-      const blur = document.createElementNS(ns, 'feGaussianBlur');
-      blur.setAttribute('in', 'SourceGraphic');
-      blur.setAttribute('stdDeviation', '15');
-      blur.setAttribute('result', 'blur');
-      const matrix = document.createElementNS(ns, 'feColorMatrix');
-      matrix.setAttribute('in', 'blur');
-      matrix.setAttribute('mode', 'matrix');
-      matrix.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8');
-      matrix.setAttribute('result', 'goo');
-      const blend = document.createElementNS(ns, 'feBlend');
-      blend.setAttribute('in', 'SourceGraphic');
-      blend.setAttribute('in2', 'goo');
-      blend.setAttribute('mode', 'normal');
-      filter.appendChild(blur);
-      filter.appendChild(matrix);
-      filter.appendChild(blend);
-      defs.appendChild(filter);
-      svg.appendChild(defs);
-      mesh.appendChild(svg);
-
-      document.body.prepend(mesh);
-    }
+    if (window.__dxBagRouteClassGuardInstalled) return;
+    window.__dxBagRouteClassGuardInstalled = true;
+    const required = ['dx-entry-page', BAG_ROUTE_CLASS, PROFILE_PROTECTED_ROUTE_CLASS, PROFILE_SHOW_MESH_ROUTE_CLASS];
+    const enforce = () => {
+      document.body.classList.add(...required);
+    };
+    enforce();
+    const observer = new MutationObserver(() => {
+      const missing = required.some((className) => !document.body.classList.contains(className));
+      if (missing) enforce();
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('beforeunload', () => observer.disconnect(), { once: true });
   }
 
-  function ensureBagMeshMotion(attempt = 0) {
-    ensureMeshBackdropElements();
+  async function ensureSharedMeshBackdropElements() {
+    if (!(document.body instanceof HTMLElement)) return;
+    const hasGradient = document.getElementById('scroll-gradient-bg') instanceof HTMLElement;
+    const hasMesh = document.getElementById('gooey-mesh-wrapper') instanceof HTMLElement;
+    const hasMeshStyle = document.querySelector(`style[${SHARED_MESH_STYLE_ATTR}]`) instanceof HTMLStyleElement;
+    const hasMeshBootstrap = document.querySelector(`script[${SHARED_MESH_BOOTSTRAP_ATTR}]`) instanceof HTMLScriptElement;
+    if (hasGradient && hasMesh && hasMeshStyle && hasMeshBootstrap) return;
 
-    const mesh = document.getElementById('gooey-mesh-wrapper');
-    if (!(mesh instanceof HTMLElement)) {
-      if (attempt < 30) window.requestAnimationFrame(() => ensureBagMeshMotion(attempt + 1));
-      return;
-    }
-    const blobs = Array.from(mesh.querySelectorAll('.gooey-blob'));
-    if (!blobs.length) {
-      if (attempt < 30) window.requestAnimationFrame(() => ensureBagMeshMotion(attempt + 1));
-      return;
-    }
-
-    const previous = window[MESH_RUNTIME_KEY];
-    if (previous && previous.mesh === mesh && previous.blobCount === blobs.length) return;
-    if (previous && typeof previous.stop === 'function') {
+    for (const path of SHARED_MESH_TEMPLATE_PATHS) {
+      const templatePath = toText(path).trim();
+      if (!templatePath) continue;
       try {
-        previous.stop();
+        const response = await fetch(templatePath, {
+          credentials: 'same-origin',
+          headers: { accept: 'text/html,*/*;q=0.9' },
+        });
+        const contentType = toText(response.headers.get('content-type')).toLowerCase();
+        if (!response.ok || !contentType.includes('text/html')) continue;
+        const html = await response.text();
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+        if (!(parsed?.body instanceof HTMLElement)) continue;
+
+        for (const backdropId of ['scroll-gradient-bg', 'gooey-mesh-wrapper']) {
+          if (document.getElementById(backdropId)) continue;
+          const sourceNode = parsed.getElementById(backdropId);
+          if (!(sourceNode instanceof HTMLElement)) continue;
+          const clone = document.importNode(sourceNode, true);
+          if (document.body.firstChild) document.body.insertBefore(clone, document.body.firstChild);
+          else document.body.appendChild(clone);
+        }
+
+        if (!(document.querySelector(`style[${SHARED_MESH_STYLE_ATTR}]`) instanceof HTMLStyleElement)) {
+          const meshStyles = Array.from(parsed.querySelectorAll('style')).filter((styleNode) => {
+            if (!(styleNode instanceof HTMLStyleElement)) return false;
+            const content = toText(styleNode.textContent);
+            return content.includes('#scroll-gradient-bg')
+              && content.includes('#gooey-mesh-wrapper')
+              && content.includes('.gooey-blob');
+          });
+          if (meshStyles.length) {
+            const merged = meshStyles.map((styleNode) => toText(styleNode.textContent)).join('\n\n');
+            const runtimeStyle = document.createElement('style');
+            runtimeStyle.setAttribute(SHARED_MESH_STYLE_ATTR, 'bag');
+            runtimeStyle.textContent = merged;
+            document.head.appendChild(runtimeStyle);
+          }
+        }
+
+        if (!document.querySelector(`script[${SHARED_MESH_BOOTSTRAP_ATTR}]`)) {
+          const meshBootstrap = Array.from(parsed.querySelectorAll('script')).find((script) => {
+            if (!(script instanceof HTMLScriptElement)) return false;
+            const content = toText(script.textContent);
+            return content.includes('#gooey-mesh-wrapper .gooey-blob')
+              && content.includes("document.getElementById('scroll-gradient-bg')")
+              && content.includes('requestAnimationFrame');
+          });
+          if (meshBootstrap instanceof HTMLScriptElement) {
+            const runtime = document.createElement('script');
+            runtime.setAttribute(SHARED_MESH_BOOTSTRAP_ATTR, 'bag');
+            runtime.textContent = toText(meshBootstrap.textContent);
+            document.body.appendChild(runtime);
+          }
+        }
+
+        const ready = document.getElementById('scroll-gradient-bg') instanceof HTMLElement
+          && document.getElementById('gooey-mesh-wrapper') instanceof HTMLElement
+          && (document.querySelector(`style[${SHARED_MESH_STYLE_ATTR}]`) instanceof HTMLStyleElement)
+          && (document.querySelector(`script[${SHARED_MESH_BOOTSTRAP_ATTR}]`) instanceof HTMLScriptElement);
+        if (ready) return;
       } catch {}
     }
-
-    const viewportWidth = () => Math.max(window.innerWidth || 0, 1);
-    const viewportHeight = () => Math.max(window.innerHeight || 0, 1);
-
-    blobs.forEach((blob) => {
-      blob._r = Math.max(blob.offsetWidth / 2, 1);
-      const speed = 60 + Math.random() * 60;
-      const angle = Math.random() * Math.PI * 2;
-      blob._x = blob._r + Math.random() * Math.max(viewportWidth() - blob._r * 2, 1);
-      blob._y = blob._r + Math.random() * Math.max(viewportHeight() - blob._r * 2, 1);
-      blob._vx = Math.cos(angle) * speed * 0.25;
-      blob._vy = Math.sin(angle) * speed * 0.25;
-      blob.style.transform = `translate(${blob._x}px, ${blob._y}px) translate(-50%, -50%)`;
-    });
-
-    let raf = 0;
-    let stopped = false;
-    let last = performance.now();
-
-    const clampToViewport = () => {
-      const vw = viewportWidth();
-      const vh = viewportHeight();
-      blobs.forEach((blob) => {
-        blob._x = Math.min(Math.max(blob._r, blob._x), vw - blob._r);
-        blob._y = Math.min(Math.max(blob._r, blob._y), vh - blob._r);
-      });
-    };
-
-    const step = (now) => {
-      const dt = Math.min(Math.max((now - last) / 1000, 0), 0.05);
-      last = now;
-      const vw = viewportWidth();
-      const vh = viewportHeight();
-      blobs.forEach((blob) => {
-        blob._x += blob._vx * dt;
-        blob._y += blob._vy * dt;
-        if ((blob._x - blob._r <= 0 && blob._vx < 0) || (blob._x + blob._r >= vw && blob._vx > 0)) blob._vx *= -1;
-        if ((blob._y - blob._r <= 0 && blob._vy < 0) || (blob._y + blob._r >= vh && blob._vy > 0)) blob._vy *= -1;
-        blob.style.transform = `translate(${blob._x}px, ${blob._y}px) translate(-50%, -50%)`;
-      });
-      raf = window.requestAnimationFrame(step);
-    };
-
-    const onResize = () => {
-      clampToViewport();
-    };
-
-    const stop = () => {
-      if (stopped) return;
-      stopped = true;
-      if (raf) window.cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-    };
-
-    window.addEventListener('resize', onResize, { passive: true });
-    raf = window.requestAnimationFrame(step);
-    window.addEventListener('pagehide', stop, { once: true });
-    window[MESH_RUNTIME_KEY] = { stop, mesh, blobCount: blobs.length };
   }
 
   function mount() {
     ensureBagRouteClasses();
-    ensureBagMeshMotion();
+    installBagRouteClassGuard();
+    void ensureSharedMeshBackdropElements();
     ensureBreadcrumbMotionRuntime();
     window.addEventListener('dex:breadcrumb-motion-ready', mountBreadcrumbMotion);
 

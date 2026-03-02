@@ -1,3 +1,95 @@
+@media (min-width: 981px) {
+  html,
+  html body.dx-bag-page,
+  body.dx-bag-page {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  body.dx-bag-page #siteWrapper,
+  body.dx-bag-page .site-wrapper {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    background: transparent !important;
+  }
+
+  body.dx-bag-page :is(
+    #dx-slot-scroll-root,
+    #dx-slot-foreground-root
+  ) {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  body.dx-bag-page :is(
+    #scroll-gradient-bg,
+    #gooey-mesh-wrapper
+  ) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  body.dx-bag-page :is(
+    main#page.container,
+    main#page,
+    #dx-slot-foreground-root > main#page
+  ) {
+    height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
+    min-height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
+    max-height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
+    overflow: hidden !important;
+  }
+
+  body.dx-bag-page #dex-bag {
+    width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))));
+    margin: 0 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: grid;
+  }
+
+  body.dx-bag-page #dex-bag .dx-bag-shell {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  body.dx-bag-page #dex-bag .dx-bag-layout {
+    min-height: 0;
+    height: 100%;
+  }
+
+  body.dx-bag-page #dex-bag .dx-bag-list {
+    min-height: 0;
+    overflow: auto;
+    padding-right: clamp(2px, 0.4vw, 8px);
+  }
+
+  body.dx-bag-page #dex-bag .dx-bag-summary {
+    max-height: 100%;
+    overflow: auto;
+  }
+}
+
+body.dx-bag-page,
+body.dx-bag-page #siteWrapper,
+body.dx-bag-page .site-wrapper,
+body.dx-bag-page #page,
+body.dx-bag-page #sections,
+body.dx-bag-page .page-section,
+body.dx-bag-page .content-wrapper,
+body.dx-bag-page .content {
+  background: transparent !important;
+}
+
 #dex-bag {
   width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)));
   margin: clamp(14px, 2.2vw, 26px) auto;

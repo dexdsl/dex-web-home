@@ -316,8 +316,34 @@
     return raw.endsWith('/') ? raw.slice(0, -1) : raw;
   }
 
+  function decodeViewRoutePath(pathname) {
+    const normalized = normalizePathname(pathname);
+    if (!normalized.startsWith('/view/')) return '';
+    const parts = normalized.split('/').filter(Boolean);
+    const encoded = String(parts[1] || '').trim();
+    if (!encoded) return '';
+    try {
+      const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const binary = window.atob(padded);
+      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      const decoded = new TextDecoder().decode(bytes);
+      if (!decoded) return '';
+      const entryMatch = decoded.match(/\/(entries|entry)\/([^/]+)\/index\.html$/i);
+      if (entryMatch) {
+        return `/${String(entryMatch[1] || '').toLowerCase()}/${String(entryMatch[2] || '')}`;
+      }
+      const pathOnly = String(decoded).match(/(\/(?:entries|entry)\/[^?#\s]+)/i);
+      return pathOnly ? pathOnly[1] : '';
+    } catch {
+      return '';
+    }
+  }
+
   function normalizeProfileRoutePath(pathname) {
     let normalized = normalizePathname(pathname);
+    const decodedViewPath = decodeViewRoutePath(normalized);
+    if (decodedViewPath) normalized = normalizePathname(decodedViewPath);
     if (normalized !== '/' && normalized.toLowerCase().endsWith('/index.html')) {
       normalized = normalized.slice(0, -'/index.html'.length) || '/';
     } else if (normalized !== '/' && normalized.toLowerCase().endsWith('.html')) {
