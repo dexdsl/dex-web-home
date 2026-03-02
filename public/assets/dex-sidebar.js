@@ -44,11 +44,15 @@
   const ENTRY_FETCH_WATCH_OPTIONS = { childList: true, subtree: true, characterData: true, attributes: true };
   const BUCKET_TOOLTIP_METRIC_ATTRS = [
     'data-dx-tooltip-status',
-    'data-dx-tooltip-audio',
-    'data-dx-tooltip-video',
-    'data-dx-tooltip-mapped',
-    'data-dx-tooltip-pdf',
-    'data-dx-tooltip-bundle',
+    'data-dx-tooltip-file-types',
+    'data-dx-tooltip-video-quality',
+    'data-dx-tooltip-audio-mp3',
+    'data-dx-tooltip-audio-wav',
+    'data-dx-tooltip-video-1080p',
+    'data-dx-tooltip-video-4k',
+    'data-dx-tooltip-video-1080p-available',
+    'data-dx-tooltip-video-4k-available',
+    'data-dx-tooltip-total-files',
   ];
   let overviewLookupFitBound = false;
   let overviewLookupResizeObserver = null;
@@ -76,35 +80,121 @@
 
   const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
 
-  const readManifestToken = (cfg, type, bucket, formatKey) => {
+  const readCaseInsensitiveProp = (source, key) => {
+    if (!source || typeof source !== 'object') return undefined;
+    const normalized = String(key || '').trim().toLowerCase();
+    if (!normalized) return undefined;
+    for (const [entryKey, entryValue] of Object.entries(source)) {
+      if (String(entryKey || '').trim().toLowerCase() === normalized) return entryValue;
+    }
+    return undefined;
+  };
+
+  const parseNonNegativeInt = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0) return null;
+    return parsed;
+  };
+
+  const listAvailableManifestFormats = (cfg, type, bucket) => {
     const source = type === 'audio'
       ? cfg?.downloads?.audioFileIds?.[bucket]
       : cfg?.downloads?.videoFileIds?.[bucket];
-    return String(source?.[formatKey] || '').trim();
+    if (!source || typeof source !== 'object') return [];
+    return Object.entries(source).reduce((result, [formatKey, tokenValue]) => {
+      const safeKey = String(formatKey || '').trim();
+      if (!safeKey) return result;
+      if (parseAssetRefToken(tokenValue)) result.push(safeKey);
+      return result;
+    }, []);
+  };
+
+  const hasFormatVariant = (availableFormatKeys, variants = []) => {
+    const keys = Array.isArray(availableFormatKeys) ? availableFormatKeys : [];
+    const probes = Array.isArray(variants)
+      ? variants.map((variant) => String(variant || '').trim().toLowerCase()).filter(Boolean)
+      : [];
+    if (!probes.length) return false;
+    return keys.some((key) => {
+      const normalized = String(key || '').trim().toLowerCase();
+      if (!normalized) return false;
+      return probes.some((probe) => normalized === probe || normalized.includes(probe));
+    });
+  };
+
+  const readBucketFileStatsValue = (cfg, bucket, type, formatKeys = []) => {
+    const bucketStats = readCaseInsensitiveProp(cfg?.bucketFileStats, bucket);
+    const typeStats = readCaseInsensitiveProp(bucketStats, type);
+    const probes = Array.isArray(formatKeys) ? formatKeys : [];
+    for (const probe of probes) {
+      const rawValue = readCaseInsensitiveProp(typeStats, probe);
+      if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+      return parseNonNegativeInt(rawValue);
+    }
+    return null;
+  };
+
+  const resolveCountDisplay = (isAvailable, count) => {
+    if (!isAvailable) return 'n/a';
+    if (Number.isInteger(count) && count >= 0) return String(count);
+    return '—';
   };
 
   const computeBucketStats = (cfg, bucket, selectedBuckets = []) => {
-    const audioFormats = Array.isArray(cfg?.downloads?.formats?.audio) ? cfg.downloads.formats.audio : [];
-    const videoFormats = Array.isArray(cfg?.downloads?.formats?.video) ? cfg.downloads.formats.video : [];
-    const audioCount = audioFormats.reduce((count, format) => {
-      const token = parseAssetRefToken(readManifestToken(cfg, 'audio', bucket, format?.key));
-      return count + (token ? 1 : 0);
-    }, 0);
-    const videoCount = videoFormats.reduce((count, format) => {
-      const token = parseAssetRefToken(readManifestToken(cfg, 'video', bucket, format?.key));
-      return count + (token ? 1 : 0);
-    }, 0);
+    const audioFormats = listAvailableManifestFormats(cfg, 'audio', bucket);
+    const videoFormats = listAvailableManifestFormats(cfg, 'video', bucket);
+    const audioCount = audioFormats.length;
+    const videoCount = videoFormats.length;
     const selected = selectedBuckets.includes(bucket);
-    const hasPdf = Boolean(parseRecordingIndexPdfToken(cfg?.downloads?.recordingIndexPdfRef));
-    const hasBundle = Boolean(parseRecordingIndexBundleToken(cfg?.downloads?.recordingIndexBundleRef));
+    const audioMp3Available = hasFormatVariant(audioFormats, ['mp3']);
+    const audioWavAvailable = hasFormatVariant(audioFormats, ['wav']);
+    const video1080Available = hasFormatVariant(videoFormats, ['1080p', '1080']);
+    const video4kAvailable = hasFormatVariant(videoFormats, ['4k', '2160', 'uhd']);
+
+    const audioMp3Count = readBucketFileStatsValue(cfg, bucket, 'audio', ['mp3']);
+    const audioWavCount = readBucketFileStatsValue(cfg, bucket, 'audio', ['wav']);
+    const video1080Count = readBucketFileStatsValue(cfg, bucket, 'video', ['1080p', '1080']);
+    const video4kCount = readBucketFileStatsValue(cfg, bucket, 'video', ['4K', '4k', '2160p', '2160', 'uhd']);
+
+    const fileTypes = [];
+    if (audioCount > 0) fileTypes.push('Audio');
+    if (videoCount > 0) fileTypes.push('Video');
+    const fileTypesLabel = fileTypes.length ? fileTypes.join(', ') : 'None';
+
+    const videoQuality = [];
+    if (video1080Available) videoQuality.push('1080p');
+    if (video4kAvailable) videoQuality.push('4K');
+    const videoQualityLabel = videoQuality.length ? videoQuality.join(', ') : 'None';
+
+    const audioMp3Display = resolveCountDisplay(audioMp3Available, audioMp3Count);
+    const audioWavDisplay = resolveCountDisplay(audioWavAvailable, audioWavCount);
+    const video1080Display = resolveCountDisplay(video1080Available, video1080Count);
+    const video4kDisplay = resolveCountDisplay(video4kAvailable, video4kCount);
+
+    const numericCounts = [];
+    if (audioMp3Available && Number.isInteger(audioMp3Count)) numericCounts.push(audioMp3Count);
+    if (audioWavAvailable && Number.isInteger(audioWavCount)) numericCounts.push(audioWavCount);
+    if (video1080Available && Number.isInteger(video1080Count)) numericCounts.push(video1080Count);
+    if (video4kAvailable && Number.isInteger(video4kCount)) numericCounts.push(video4kCount);
+    const totalFiles = numericCounts.reduce((sum, value) => sum + value, 0);
     return {
       bucket,
       selected,
       audioCount,
       videoCount,
-      hasPdf,
-      hasBundle,
       totalMapped: audioCount + videoCount,
+      fileTypesLabel,
+      videoQualityLabel,
+      audioMp3Available,
+      audioWavAvailable,
+      video1080Available,
+      video4kAvailable,
+      audioMp3Display,
+      audioWavDisplay,
+      video1080Display,
+      video4kDisplay,
+      totalFilesDisplay: String(totalFiles),
     };
   };
 
@@ -113,17 +203,18 @@
   const formatBucketTooltip = (stats) => {
     if (!stats) return '';
     const status = getBucketTooltipStatus(stats);
-    const recordingPdf = stats.hasPdf ? 'yes' : 'no';
-    const recordingBundle = stats.hasBundle ? 'yes' : 'no';
-    return [
-      `Bucket ${stats.bucket.toUpperCase()}`,
+    const rows = [
+      `${stats.bucket.toUpperCase()} BUCKET`,
       `Status: ${status}`,
-      `Audio formats: ${stats.audioCount}`,
-      `Video formats: ${stats.videoCount}`,
-      `Mapped rows: ${stats.totalMapped}`,
-      `Recording PDF: ${recordingPdf}`,
-      `Recording bundle: ${recordingBundle}`,
-    ].join(' • ');
+      `File types: ${stats.fileTypesLabel}`,
+      `Video quality: ${stats.videoQualityLabel}`,
+      `Audio MP3: ${stats.audioMp3Display}`,
+      `Audio WAV: ${stats.audioWavDisplay}`,
+    ];
+    if (stats.video1080Available) rows.push(`Video 1080p: ${stats.video1080Display}`);
+    if (stats.video4kAvailable) rows.push(`Video 4K: ${stats.video4kDisplay}`);
+    rows.push(`Total files: ${stats.totalFilesDisplay}`);
+    return rows.join(' • ');
   };
 
   const readBucketTooltipCache = (lookupNumber = '') => {
@@ -158,16 +249,20 @@
         const stats = computeBucketStats(cfg, bucket, selected);
         const liveTooltip = formatBucketTooltip(stats);
         const persistedTooltip = String(tooltipCache[bucket] || '').trim();
-        const tooltipText = String(liveTooltip || persistedTooltip || `Bucket ${bucket}`).trim();
+        const tooltipText = String(liveTooltip || persistedTooltip || `${bucket} BUCKET`).trim();
         nextTooltipCache[bucket] = tooltipText;
         const tooltip = escapeHtml(tooltipText);
         const status = escapeHtml(getBucketTooltipStatus(stats));
-        const audio = escapeHtml(String(stats?.audioCount ?? 0));
-        const video = escapeHtml(String(stats?.videoCount ?? 0));
-        const mapped = escapeHtml(String(stats?.totalMapped ?? 0));
-        const pdf = escapeHtml(stats?.hasPdf ? 'yes' : 'no');
-        const bundle = escapeHtml(stats?.hasBundle ? 'yes' : 'no');
-        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" data-dx-tooltip-status="${status}" data-dx-tooltip-audio="${audio}" data-dx-tooltip-video="${video}" data-dx-tooltip-mapped="${mapped}" data-dx-tooltip-pdf="${pdf}" data-dx-tooltip-bundle="${bundle}" title="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
+        const fileTypes = escapeHtml(String(stats?.fileTypesLabel || 'None'));
+        const videoQuality = escapeHtml(String(stats?.videoQualityLabel || 'None'));
+        const audioMp3 = escapeHtml(String(stats?.audioMp3Display || 'n/a'));
+        const audioWav = escapeHtml(String(stats?.audioWavDisplay || 'n/a'));
+        const video1080 = escapeHtml(String(stats?.video1080Display || 'n/a'));
+        const video4k = escapeHtml(String(stats?.video4kDisplay || 'n/a'));
+        const video1080Available = escapeHtml(stats?.video1080Available ? 'yes' : 'no');
+        const video4kAvailable = escapeHtml(stats?.video4kAvailable ? 'yes' : 'no');
+        const totalFiles = escapeHtml(String(stats?.totalFilesDisplay || '0'));
+        return `<span class="dx-bucket-tile ${cls}" data-dx-bucket-key="${bucket}" data-dx-bucket-tooltip="${tooltip}" data-dx-tooltip="${tooltip}" data-dx-tooltip-status="${status}" data-dx-tooltip-file-types="${fileTypes}" data-dx-tooltip-video-quality="${videoQuality}" data-dx-tooltip-audio-mp3="${audioMp3}" data-dx-tooltip-audio-wav="${audioWav}" data-dx-tooltip-video-1080p="${video1080}" data-dx-tooltip-video-4k="${video4k}" data-dx-tooltip-video-1080p-available="${video1080Available}" data-dx-tooltip-video-4k-available="${video4kAvailable}" data-dx-tooltip-total-files="${totalFiles}" title="${tooltip}" aria-label="${tooltip}" tabindex="0"><span class="dx-bucket-label">${bucket}</span></span>`;
       })
       .join('');
     writeBucketTooltipCache(lookupNumber, nextTooltipCache);
@@ -902,16 +997,27 @@
     if (!(target instanceof HTMLElement)) return '';
     const bucketKey = String(target.getAttribute('data-dx-bucket-key') || '').trim().toUpperCase();
     const statusRaw = String(target.getAttribute('data-dx-tooltip-status') || '').trim().toLowerCase();
-    const audio = String(target.getAttribute('data-dx-tooltip-audio') || '').trim();
-    const video = String(target.getAttribute('data-dx-tooltip-video') || '').trim();
-    const mapped = String(target.getAttribute('data-dx-tooltip-mapped') || '').trim();
-    const pdf = String(target.getAttribute('data-dx-tooltip-pdf') || '').trim().toLowerCase();
-    const bundle = String(target.getAttribute('data-dx-tooltip-bundle') || '').trim().toLowerCase();
+    const fileTypes = String(target.getAttribute('data-dx-tooltip-file-types') || '').trim();
+    const videoQuality = String(target.getAttribute('data-dx-tooltip-video-quality') || '').trim();
+    const audioMp3 = String(target.getAttribute('data-dx-tooltip-audio-mp3') || '').trim();
+    const audioWav = String(target.getAttribute('data-dx-tooltip-audio-wav') || '').trim();
+    const video1080 = String(target.getAttribute('data-dx-tooltip-video-1080p') || '').trim();
+    const video4k = String(target.getAttribute('data-dx-tooltip-video-4k') || '').trim();
+    const video1080Available = String(target.getAttribute('data-dx-tooltip-video-1080p-available') || '').trim().toLowerCase() === 'yes';
+    const video4kAvailable = String(target.getAttribute('data-dx-tooltip-video-4k-available') || '').trim().toLowerCase() === 'yes';
+    const totalFiles = String(target.getAttribute('data-dx-tooltip-total-files') || '').trim();
 
-    const hasStructuredMetrics = statusRaw || audio || video || mapped || pdf || bundle;
+    const hasStructuredMetrics = statusRaw
+      || fileTypes
+      || videoQuality
+      || audioMp3
+      || audioWav
+      || video1080
+      || video4k
+      || totalFiles;
     if (!hasStructuredMetrics) return '';
 
-    const title = escapeHtml(bucketKey ? `Bucket ${bucketKey}` : String(fallbackTooltip || '').trim());
+    const title = escapeHtml(bucketKey ? `${bucketKey} BUCKET` : String(fallbackTooltip || '').trim());
     const bucketDescriptorMap = {
       A: 'Full edited cut',
       B: 'Files split by Part',
@@ -923,18 +1029,19 @@
     const descriptor = escapeHtml(bucketDescriptorMap[bucketKey] || '');
     const status = statusRaw === 'available' ? 'available' : 'unavailable';
     const statusLabel = status === 'available' ? 'Available' : 'Unavailable';
-    const normalizeCount = (value) => {
-      const parsed = Number.parseInt(value, 10);
-      return Number.isFinite(parsed) ? String(parsed) : '0';
+    const normalizeLabel = (value, fallback = '—') => {
+      const safe = String(value || '').trim();
+      return safe || fallback;
     };
-    const normalizeBinary = (value) => (String(value || '').trim().toLowerCase() === 'yes' ? 'Yes' : 'No');
     const metrics = [
-      ['Audio Formats', normalizeCount(audio)],
-      ['Video Formats', normalizeCount(video)],
-      ['Mapped Rows', normalizeCount(mapped)],
-      ['Recording PDF', normalizeBinary(pdf)],
-      ['Recording Bundle', normalizeBinary(bundle)],
+      ['File Types', normalizeLabel(fileTypes, 'None')],
+      ['Video Quality', normalizeLabel(videoQuality, 'None')],
+      ['Audio MP3', normalizeLabel(audioMp3, 'n/a')],
+      ['Audio WAV', normalizeLabel(audioWav, 'n/a')],
     ];
+    if (video1080Available) metrics.push(['Video 1080p', normalizeLabel(video1080, '—')]);
+    if (video4kAvailable) metrics.push(['Video 4K', normalizeLabel(video4k, '—')]);
+    metrics.push(['Total Files', normalizeLabel(totalFiles, '0')]);
     const metricRows = metrics
       .map(([label, value]) => `
         <div class="dx-submit-tooltip-metric" style="display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:baseline;">
@@ -2722,6 +2829,9 @@
           audioFileIds: manifest.audio || {},
           videoFileIds: manifest.video || {},
         },
+        bucketFileStats: page?.bucketFileStats && typeof page.bucketFileStats === 'object'
+          ? page.bucketFileStats
+          : {},
         fileSpecs: page.fileSpecs || {},
         metadata: page.metadata || {},
       };

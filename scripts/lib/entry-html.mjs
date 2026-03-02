@@ -17,6 +17,9 @@ const BREADCRUMB_MOTION_RUNTIME_SRC = 'https://dexdsl.github.io/assets/js/dex-br
 const BREADCRUMB_MOTION_RUNTIME_LOCAL_PATH = '/assets/js/dex-breadcrumb-motion.js';
 const BREADCRUMB_ICON_INITIAL_PATH = 'M12 1.75L19.85 12L12 22.25L4.15 12Z';
 const DESC_SYNC_SCRIPT_ID = 'dex-entry-desc-sync';
+const BUCKET_FILE_STATS_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
+const BUCKET_FILE_STATS_AUDIO_KEYS = ['mp3', 'wav'];
+const BUCKET_FILE_STATS_VIDEO_KEYS = ['1080p', '4K'];
 const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -715,6 +718,54 @@ ${videoMarkup}
 </div>`;
 }
 
+function normalizeBucketFileStats(bucketFileStats) {
+  if (!bucketFileStats || typeof bucketFileStats !== 'object' || Array.isArray(bucketFileStats)) {
+    return undefined;
+  }
+  const source = bucketFileStats;
+  const unknownBuckets = Object.keys(source).filter((bucket) => !BUCKET_FILE_STATS_BUCKETS.includes(bucket));
+  if (unknownBuckets.length) {
+    throw new Error(`sidebarPageConfig.bucketFileStats contains unsupported bucket keys: ${unknownBuckets.join(', ')}`);
+  }
+
+  const normalized = {};
+  for (const bucket of BUCKET_FILE_STATS_BUCKETS) {
+    const bucketSource = source[bucket];
+    if (!bucketSource || typeof bucketSource !== 'object' || Array.isArray(bucketSource)) continue;
+
+    const unknownTypes = Object.keys(bucketSource).filter((typeKey) => typeKey !== 'audio' && typeKey !== 'video');
+    if (unknownTypes.length) {
+      throw new Error(`sidebarPageConfig.bucketFileStats.${bucket} supports only "audio" and "video" keys`);
+    }
+
+    const bucketOut = {};
+    const readType = (typeKey, allowedFormats) => {
+      const typeSource = bucketSource[typeKey];
+      if (!typeSource || typeof typeSource !== 'object' || Array.isArray(typeSource)) return;
+      const unknownFormats = Object.keys(typeSource).filter((formatKey) => !allowedFormats.includes(formatKey));
+      if (unknownFormats.length) {
+        throw new Error(`sidebarPageConfig.bucketFileStats.${bucket}.${typeKey} contains unsupported format keys: ${unknownFormats.join(', ')}`);
+      }
+      const typeOut = {};
+      for (const formatKey of allowedFormats) {
+        if (!(formatKey in typeSource)) continue;
+        const parsed = Number(typeSource[formatKey]);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          throw new Error(`sidebarPageConfig.bucketFileStats.${bucket}.${typeKey}.${formatKey} must be a non-negative integer`);
+        }
+        typeOut[formatKey] = parsed;
+      }
+      if (Object.keys(typeOut).length) bucketOut[typeKey] = typeOut;
+    };
+
+    readType('audio', BUCKET_FILE_STATS_AUDIO_KEYS);
+    readType('video', BUCKET_FILE_STATS_VIDEO_KEYS);
+    if (Object.keys(bucketOut).length) normalized[bucket] = bucketOut;
+  }
+
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
 function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
   const globalConfig = JSON.parse(JSON.stringify(globalSidebarConfig || {}));
   if (globalConfig && typeof globalConfig === 'object') {
@@ -788,6 +839,12 @@ function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
     compiled.downloads.recordingIndexSourceUrl = parsedSource.toString();
   } else if ('recordingIndexSourceUrl' in compiled.downloads) {
     delete compiled.downloads.recordingIndexSourceUrl;
+  }
+  const normalizedBucketFileStats = normalizeBucketFileStats(compiled.bucketFileStats);
+  if (normalizedBucketFileStats) {
+    compiled.bucketFileStats = normalizedBucketFileStats;
+  } else if ('bucketFileStats' in compiled) {
+    delete compiled.bucketFileStats;
   }
   const globalJson = JSON.stringify(globalConfig, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);

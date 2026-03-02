@@ -51,6 +51,26 @@ export const downloadDataSchema = z.object({
   metadata: z.object({ sampleLength: z.string().optional(), tags: z.array(z.string()).optional() }).optional(),
 }).optional();
 
+const bucketFileStatsFormatCountSchema = z.number().int().nonnegative();
+const bucketFileStatsBucketSchema = z.object({
+  audio: z.object({
+    mp3: bucketFileStatsFormatCountSchema.optional(),
+    wav: bucketFileStatsFormatCountSchema.optional(),
+  }).strict().optional(),
+  video: z.object({
+    '1080p': bucketFileStatsFormatCountSchema.optional(),
+    '4K': bucketFileStatsFormatCountSchema.optional(),
+  }).strict().optional(),
+}).strict();
+const bucketFileStatsSchema = z.object({
+  A: bucketFileStatsBucketSchema.optional(),
+  B: bucketFileStatsBucketSchema.optional(),
+  C: bucketFileStatsBucketSchema.optional(),
+  D: bucketFileStatsBucketSchema.optional(),
+  E: bucketFileStatsBucketSchema.optional(),
+  X: bucketFileStatsBucketSchema.optional(),
+}).strict();
+
 export const sidebarConfigSchema = z.object({
   lookupNumber: z.string().min(1),
   buckets: z.array(z.enum(BUCKETS)).min(1),
@@ -64,6 +84,7 @@ export const sidebarConfigSchema = z.object({
     staticSizes: z.object({ A: z.string().default(''), B: z.string().default(''), C: z.string().default(''), D: z.string().default(''), E: z.string().default(''), X: z.string().default('') }),
   }),
   metadata: z.object({ sampleLength: z.string().default(''), tags: z.array(z.string()).default([]) }),
+  bucketFileStats: bucketFileStatsSchema.optional(),
   downloads: z.object({
     recordingIndexPdfRef: z.string().trim().min(1).refine((value) => {
       try {
