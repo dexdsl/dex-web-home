@@ -4081,13 +4081,17 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layo
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
   display: flex !important;
   flex-direction: column !important;
+  align-self: flex-start !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
   background: var(--liquid-bg, rgba(255, 255, 255, 0.14)) !important;
   border: 1px solid var(--liquid-border, rgba(255, 255, 255, 0.32)) !important;
   border-radius: 10px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
   padding-top: clamp(24px, 2.2vw, 36px) !important;
   padding-right: clamp(18px, 1.6vw, 24px) !important;
-  padding-bottom: clamp(28px, 2.4vw, 42px) !important;
+  padding-bottom: clamp(24px, 2.2vw, 36px) !important;
   padding-left: clamp(24px, 2.2vw, 36px) !important;
   backdrop-filter: blur(var(--liquid-blur, 28px)) saturate(180%) contrast(1.12) brightness(1.06) !important;
   -webkit-backdrop-filter: blur(var(--liquid-blur, 28px)) saturate(180%) contrast(1.12) brightness(1.06) !important;
@@ -4105,6 +4109,10 @@ body.dx-entry-page .dex-sidebar > section {
 body.dx-entry-page .dex-entry-layout .dex-sidebar > section + section,
 body.dx-entry-page .dex-sidebar > section + section {
   margin-top: clamp(14px, 1.1vw, 18px) !important;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout .dex-sidebar > section:last-of-type,
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
+  margin-bottom: 0 !important;
 }
 body.dx-entry-page .dex-sidebar .dex-license {
   display: flex !important;

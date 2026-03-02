@@ -3893,7 +3893,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
+  padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main > :last-child {
@@ -3901,7 +3901,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar > section:last-of-type {
-  margin-bottom: calc(var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) + 10px) !important;
+  margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
 }
 
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-desc-scroll {
