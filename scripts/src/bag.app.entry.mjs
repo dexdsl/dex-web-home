@@ -547,6 +547,54 @@
     return `${joinNatural(buckets)} Buckets`;
   }
 
+  function renderRandomizedHeadingText(value, options = {}) {
+    const canonical = toText(value);
+    if (!canonical) return '';
+    try {
+      const headingFx = window.__dxHeadingFx;
+      if (headingFx && typeof headingFx.renderHeadingText === 'function') {
+        const rendered = headingFx.renderHeadingText(canonical, options);
+        return toText(rendered) || canonical;
+      }
+    } catch {}
+    try {
+      if (typeof window.randomizeTitle === 'function') {
+        const rendered = window.randomizeTitle(canonical, options);
+        return toText(rendered) || canonical;
+      }
+    } catch {}
+    return canonical;
+  }
+
+  function joinRandomizedDuplicateRuns(value) {
+    const text = toText(value);
+    if (!text) return '';
+    let out = '';
+    for (let index = 0; index < text.length; index += 1) {
+      const current = text[index];
+      const next = text[index + 1] || '';
+      out += current;
+      if (!next) continue;
+      if (current === '\u200C' || current === '\u200D') continue;
+      if (next === '\u200C' || next === '\u200D') continue;
+      if (current === next) {
+        out += '\u200D';
+      }
+    }
+    return out;
+  }
+
+  function enforceSummarySeparator(value) {
+    const text = toText(value);
+    if (!text) return '';
+    // Preserve explicit non-joining between the two M's in SUMMARY.
+    return text.replace(/MM/g, 'M\u200CM');
+  }
+
+  function renderJoinedRandomizedHeading(value, options = {}) {
+    return joinRandomizedDuplicateRuns(renderRandomizedHeadingText(value, options));
+  }
+
   function summarizeSelection(rows = []) {
     const normalizedRows = Array.isArray(rows) ? rows : [];
     if (!normalizedRows.length) return 'No selection';
@@ -665,17 +713,19 @@
       }).length;
     };
 
-    const pushLine = (line, count = 0) => {
+    const pushLine = (line, count = 0, rowKey = '') => {
       const text = toText(line).trim();
       const safeCount = toCountInt(count);
+      const key = toText(rowKey).trim();
       if (!text) return;
       if (byText.has(text)) {
         const index = byText.get(text);
         out[index].count = Math.max(out[index].count || 0, safeCount);
+        if (key && !out[index].keys.includes(key)) out[index].keys.push(key);
         return;
       }
       byText.set(text, out.length);
-      out.push({ text, count: safeCount });
+      out.push({ text, count: safeCount, keys: key ? [key] : [] });
     };
 
     normalizedRows.sort((a, b) => {
@@ -694,20 +744,21 @@
     normalizedRows.forEach((row) => {
       const kind = toText(row?.kind).trim().toLowerCase();
       const bucket = normalizeBucket(row?.bucket);
+      const rowKey = toText(row?.key).trim();
       if (kind === 'collection') {
         const count = sumAllBucketStats(bucketFileStats) || safeFiles.length;
-        pushLine(`${safeLookup} ALL BUCKETS`, count);
+        pushLine(`${safeLookup} ALL BUCKETS`, count, rowKey);
         return;
       }
       if (kind === 'bucket') {
         const count = sumBucketStats(bucketFileStats, bucket) || countFilesBy({ bucket });
-        pushLine(`${safeLookup} ${bucket}`, count);
+        pushLine(`${safeLookup} ${bucket}`, count, rowKey);
         return;
       }
       if (kind === 'type') {
         const mediaType = normalizeMediaType(row?.mediaType);
         const count = sumBucketStats(bucketFileStats, bucket, mediaType) || countFilesBy({ bucket, mediaType });
-        pushLine(`${safeLookup} ${bucket} [${mediaType.toUpperCase()}]`, count);
+        pushLine(`${safeLookup} ${bucket} [${mediaType.toUpperCase()}]`, count, rowKey);
         return;
       }
       if (kind === 'file') {
@@ -715,10 +766,10 @@
         const base = `${safeLookup} ${bucket}.${fileId}`;
         const formats = resolveFileFormatsForNode(row, safeFiles);
         if (!formats.length) {
-          pushLine(base, 1);
+          pushLine(base, 1, rowKey);
           return;
         }
-        formats.forEach((format) => pushLine(`${base} [${format}]`, 1));
+        formats.forEach((format) => pushLine(`${base} [${format}]`, 1, rowKey));
       }
     });
 
@@ -1372,24 +1423,14 @@
       const backLabel = toText(state.backCrumb?.label || 'catalog').trim() || 'catalog';
       const signedLabel = BAG_DESCRIPTION_COPY;
       const statusText = htmlEscape(state.error || state.status || '');
+      const downloadHeading = 'DOWNLOAD BAG';
+      const summaryHeading = 'BAG SUM\u200CMARY';
 
       const cardMarkup = models.map((model) => {
         const expanded = state.expandedReceipts.has(model.lookup);
         const totalLines = model.receiptLines.length;
         const hiddenCount = Math.max(0, totalLines - RECEIPT_VISIBLE_LIMIT);
         const visibleLines = expanded ? model.receiptLines : model.receiptLines.slice(0, RECEIPT_VISIBLE_LIMIT);
-        const receiptItems = visibleLines.map((line) => {
-          const text = htmlEscape(line?.text || '');
-          const count = toCountInt(line?.count);
-          const countSuffix = count > 0 ? `<span class="dx-bag-receipt-count">\u2022 ${count} file${count === 1 ? '' : 's'}</span>` : '';
-          return `<li><span class="dx-bag-receipt-line">${text}</span>${countSuffix}</li>`;
-        }).join('');
-        const showMore = hiddenCount > 0
-          ? `<button type="button" class="dx-bag-receipt-toggle" data-bag-toggle-receipt="${htmlEscape(model.lookup)}">${expanded ? 'Show Less' : `Show All (${hiddenCount} more)`}</button>`
-          : '';
-        const thumbnailMarkup = model.thumbnailSrc
-          ? `<a class="dx-bag-card-thumb" href="${htmlEscape(model.entryHref || '#')}" ${model.entryHref ? '' : 'aria-disabled="true" tabindex="-1"'}><img src="${htmlEscape(model.thumbnailSrc)}" alt="${htmlEscape(`${model.title} preview`)}" loading="lazy" decoding="async"></a>`
-          : '';
         const editIcon = `
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -1400,12 +1441,29 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
           </svg>
         `;
+        const receiptItems = visibleLines.map((line) => {
+          const text = htmlEscape(line?.text || '');
+          const count = toCountInt(line?.count);
+          const keys = Array.isArray(line?.keys) ? line.keys.map((key) => toText(key).trim()).filter(Boolean) : [];
+          const encodedKeys = htmlEscape(JSON.stringify(keys));
+          const countSuffix = count > 0 ? `<span class="dx-bag-receipt-count">\u2022 ${count} file${count === 1 ? '' : 's'}</span>` : '';
+          const removeLineBtn = keys.length
+            ? `<button type="button" class="dx-bag-receipt-remove" data-bag-remove-line="${encodedKeys}" aria-label="Remove receipt item">${removeIcon}</button>`
+            : '';
+          return `<li><span class="dx-bag-receipt-line-wrap"><span class="dx-bag-receipt-line">${text}</span>${countSuffix}</span>${removeLineBtn}</li>`;
+        }).join('');
+        const showMore = hiddenCount > 0
+          ? `<button type="button" class="dx-bag-receipt-toggle" data-bag-toggle-receipt="${htmlEscape(model.lookup)}">${expanded ? 'Show Less' : `Show All (${hiddenCount} more)`}</button>`
+          : '';
+        const thumbnailMarkup = model.thumbnailSrc
+          ? `<a class="dx-bag-card-thumb" href="${htmlEscape(model.entryHref || '#')}" ${model.entryHref ? '' : 'aria-disabled="true" tabindex="-1"'}><img src="${htmlEscape(model.thumbnailSrc)}" alt="${htmlEscape(`${model.title} preview`)}" loading="lazy" decoding="async"></a>`
+          : '';
 
         return `
           <article class="dx-bag-card" data-bag-lookup="${htmlEscape(model.lookup)}">
             <header class="dx-bag-card-head">
               <div class="dx-bag-card-ident">
-                <h3>${htmlEscape(model.title)}</h3>
+                <h3 data-bag-heading="card-title" data-bag-heading-seed="${htmlEscape(`bag:card-title:${model.lookup}`)}" data-bag-heading-canonical="${htmlEscape(model.title)}">${htmlEscape(model.title)}</h3>
                 <p>${htmlEscape(model.lookup)}</p>
               </div>
               <div class="dx-bag-card-controls">
@@ -1415,14 +1473,14 @@
                 </div>
               </div>
             </header>
-            <div class="dx-bag-card-row">
-              <div class="dx-bag-card-main">
-                <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
-                <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
+            <div class="dx-bag-card-main">
+              <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
+              <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
+              <div class="dx-bag-card-receipt-row">
                 <ol class="dx-bag-receipt">${receiptItems || '<li><span class="dx-bag-receipt-line">No receipt lines.</span></li>'}</ol>
-                ${showMore}
+                ${thumbnailMarkup}
               </div>
-              ${thumbnailMarkup}
+              ${showMore}
             </div>
           </article>
         `;
@@ -1442,7 +1500,7 @@
                 <span class="dex-breadcrumb-current">bag</span>
               </div>
             </div>
-            <h1>DOWNLOAD BAG</h1>
+            <h1 data-bag-heading="download" data-bag-heading-seed="bag:h1:download" data-bag-heading-canonical="${htmlEscape(downloadHeading)}">${htmlEscape(downloadHeading)}</h1>
             <p class="dx-bag-note">${signedLabel}</p>
           </header>
 
@@ -1453,7 +1511,7 @@
 
             <aside class="dx-bag-summary">
               <div class="dx-bag-summary-block">
-                <h2>BAG SUMMARY</h2>
+                <h2 data-bag-heading="summary" data-bag-heading-seed="bag:h2:summary" data-bag-heading-canonical="${htmlEscape(summaryHeading)}">${htmlEscape(summaryHeading)}</h2>
                 <div class="dx-bag-stats">
                   <span><strong>${selectedLookupCount}</strong> entries</span>
                   <span><strong>${selectedUnitCount}</strong> units</span>
@@ -1471,6 +1529,28 @@
           ${statusText ? `<p class="dx-bag-status">${statusText}</p>` : ''}
         </section>
       `;
+
+      const applyBagHeadingRandomization = () => {
+        root.querySelectorAll('[data-bag-heading]').forEach((heading) => {
+          if (!(heading instanceof HTMLElement)) return;
+          const canonical = toText(heading.getAttribute('data-bag-heading-canonical') || heading.textContent || '');
+          if (!canonical) return;
+          const seedKey = toText(heading.getAttribute('data-bag-heading-seed') || '').trim();
+          let rendered = renderJoinedRandomizedHeading(canonical, { seedKey });
+          if (toText(heading.getAttribute('data-bag-heading')) === 'summary') {
+            rendered = enforceSummarySeparator(rendered);
+          }
+          heading.textContent = rendered;
+          heading.setAttribute('data-dx-heading-rendered', rendered);
+        });
+      };
+
+      applyBagHeadingRandomization();
+      window.requestAnimationFrame(() => {
+        applyBagHeadingRandomization();
+        window.requestAnimationFrame(() => applyBagHeadingRandomization());
+      });
+
       mountBreadcrumbMotion();
     };
 
@@ -1656,6 +1736,21 @@
         if (state.expandedReceipts.has(toggleLookup)) state.expandedReceipts.delete(toggleLookup);
         else state.expandedReceipts.add(toggleLookup);
         render();
+        return;
+      }
+      const removeLineRaw = target.closest('[data-bag-remove-line]')?.getAttribute('data-bag-remove-line');
+      if (removeLineRaw) {
+        let keys = [];
+        try {
+          const parsed = JSON.parse(removeLineRaw);
+          if (Array.isArray(parsed)) {
+            keys = parsed.map((value) => toText(value).trim()).filter(Boolean);
+          }
+        } catch {}
+        if (!keys.length) return;
+        keys.forEach((key) => bagApi.removeSelection(key));
+        state.error = '';
+        state.status = '';
         return;
       }
 

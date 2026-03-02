@@ -66,14 +66,14 @@
   }
 
   body.dx-bag-page #dex-bag {
-    width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))) !important;
-    max-width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))) !important;
+    width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)))) !important;
+    max-width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)))) !important;
     margin: 0 auto !important;
     height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
     display: grid;
-    padding-inline: clamp(10px, 1.1vw, 18px);
+    padding-inline: 0;
     padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px));
     box-sizing: border-box;
     overflow: visible;
@@ -94,6 +94,7 @@
   }
 
   body.dx-bag-page #dex-bag .dx-bag-list {
+    height: 100%;
     min-height: 0;
     max-height: 100%;
     overflow-y: auto;
@@ -120,7 +121,7 @@ body.dx-bag-page .content {
 }
 
 #dex-bag {
-  width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)));
+  width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))));
   margin: clamp(14px, 2.2vw, 26px) auto;
   min-height: min(72vh, 920px);
   position: relative;
@@ -243,6 +244,8 @@ body.dx-bag-page .content {
 
 #dex-bag .dx-bag-list {
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: clamp(10px, 1.5vw, 14px);
 }
 
@@ -253,6 +256,7 @@ body.dx-bag-page .content {
   padding: clamp(12px, 1.4vw, 16px);
   display: grid;
   gap: 0.66rem;
+  align-self: start;
 }
 
 #dex-bag .dx-bag-card-head {
@@ -328,7 +332,7 @@ body.dx-bag-page .content {
   object-fit: cover;
 }
 
-#dex-bag .dx-bag-card-row {
+#dex-bag .dx-bag-card-receipt-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(10px, 1.3vw, 14px);
@@ -357,6 +361,13 @@ body.dx-bag-page .content {
   color: rgba(18, 24, 35, 0.72);
 }
 
+#dex-bag :is(h1, h2, h3)[data-dx-heading-rendered] {
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures discretionary-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "dlig" 1, "calt" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
 #dex-bag .dx-bag-receipt {
   margin: 0;
   list-style: decimal;
@@ -369,10 +380,33 @@ body.dx-bag-page .content {
   font-size: 0.85rem;
   line-height: 1.45;
   color: rgba(17, 22, 31, 0.92);
+  max-height: clamp(124px, 22vh, 240px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#dex-bag .dx-bag-receipt li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.42rem;
 }
 
 #dex-bag .dx-bag-receipt li + li {
   margin-top: 0.12rem;
+}
+
+#dex-bag .dx-bag-receipt-line-wrap {
+  min-width: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  align-items: baseline;
+}
+
+#dex-bag .dx-bag-receipt-line {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 #dex-bag .dx-bag-receipt-count {
@@ -380,6 +414,40 @@ body.dx-bag-page .content {
   font-size: 0.74rem;
   line-height: 1.2;
   color: rgba(14, 20, 30, 0.56);
+}
+
+#dex-bag .dx-bag-receipt-remove {
+  width: 0.95rem;
+  min-width: 0.95rem;
+  height: 0.95rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  flex: 0 0 auto;
+  color: rgba(18, 24, 34, 0.68);
+  opacity: 0;
+  transition: opacity 160ms ease, color 160ms ease;
+}
+
+#dex-bag .dx-bag-receipt-remove svg {
+  width: 0.78rem;
+  height: 0.78rem;
+  display: block;
+}
+
+#dex-bag .dx-bag-receipt li:hover .dx-bag-receipt-remove,
+#dex-bag .dx-bag-receipt li:focus-within .dx-bag-receipt-remove,
+#dex-bag .dx-bag-receipt-remove:focus-visible {
+  opacity: 1;
+}
+
+#dex-bag .dx-bag-receipt-remove:hover,
+#dex-bag .dx-bag-receipt-remove:focus-visible {
+  color: rgba(18, 24, 34, 0.95);
+  outline: none;
 }
 
 #dex-bag .dx-bag-receipt-toggle {
@@ -469,7 +537,7 @@ body.dx-bag-page .content {
     justify-items: start;
   }
 
-  #dex-bag .dx-bag-card-row {
+  #dex-bag .dx-bag-card-receipt-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
