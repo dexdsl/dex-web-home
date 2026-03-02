@@ -4206,6 +4206,13 @@ body.dx-entry-page .dex-video-card .sqs-embed-content,
 body.dx-entry-page .dex-video-aspect iframe {
   border-radius: var(--dx-test5-header-radius) !important;
 }
+body.dx-entry-page .dex-collections .overview-buckets-grid .dx-bucket-tile,
+body.dx-entry-page .dex-collections .overview-buckets-grid .dx-bucket-tile[data-dx-tooltip],
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-bucket-toggle,
+body.dx-entry-page .dex-collections .overview-item .dx-fav-heart-btn {
+  border-radius: var(--dx-test5-header-radius) !important;
+}
 
 /* test-5: restore credits/file-specs/metadata badge pills */
 body.dx-entry-page .dex-sidebar .dex-credits .dex-badges .badge,
@@ -4262,6 +4269,55 @@ body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-buc
   font-weight: 400 !important;
   line-height: 1 !important;
   color: currentColor !important;
+}
+
+/* test-5: favorite-this-collection should be white text/icon */
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:hover,
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:focus-visible {
+  background: linear-gradient(130deg, var(--dex-accent, #ff1910), orange) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle.dx-fav-heart-btn.is-active {
+  background: linear-gradient(130deg, var(--dex-accent, #ff1910), orange) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 8px 22px rgba(255, 25, 16, 0.22) !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle .dx-fav-heart-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle .dx-fav-heart-svg {
+  display: block !important;
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  stroke: currentColor !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle .dx-fav-heart-svg path {
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  fill: transparent !important;
+}
+body.dx-entry-page .dex-collections .overview-item--favorite-collection .dx-fav-entry-toggle:not(.dx-fav-heart-btn):empty::before {
+  content: "♡" !important;
+  color: #fff !important;
+  font-size: 1.08rem !important;
+  line-height: 1 !important;
+}
+
+/* test-5: align collection heading + bucket row inset with other sidebar rows */
+body.dx-entry-page .dex-collections > h3[data-dx-entry-heading] {
+  padding: 0 !important;
+}
+body.dx-entry-page .dex-collections .overview-buckets-grid {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 </style>
 </body></html>
