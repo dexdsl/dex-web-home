@@ -34,24 +34,49 @@
     opacity: 1 !important;
   }
 
+  body.dx-bag-page #scroll-gradient-bg {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: var(--dx-layer-gooey) !important;
+  }
+
+  body.dx-bag-page #gooey-mesh-wrapper {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: calc(var(--dx-layer-gooey) + 1) !important;
+  }
+
+  body.dx-bag-page #gooey-mesh-wrapper .gooey-stage {
+    filter: url(#goo) !important;
+  }
+
   body.dx-bag-page :is(
     main#page.container,
     main#page,
     #dx-slot-foreground-root > main#page
   ) {
-    height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
-    min-height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
-    max-height: var(--dx-profile-shell-height, calc(100dvh - 240px)) !important;
-    overflow: hidden !important;
+    height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
+    min-height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
+    max-height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
+    overflow: visible !important;
   }
 
   body.dx-bag-page #dex-bag {
-    width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))));
+    width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))) !important;
+    max-width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))) !important;
     margin: 0 auto !important;
     height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
     display: grid;
+    padding-inline: clamp(10px, 1.1vw, 18px);
+    padding-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px));
+    box-sizing: border-box;
+    overflow: visible;
   }
 
   body.dx-bag-page #dex-bag .dx-bag-shell {
@@ -65,17 +90,21 @@
   body.dx-bag-page #dex-bag .dx-bag-layout {
     min-height: 0;
     height: 100%;
+    overflow: hidden;
   }
 
   body.dx-bag-page #dex-bag .dx-bag-list {
     min-height: 0;
-    overflow: auto;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-right: clamp(2px, 0.4vw, 8px);
+    padding-bottom: clamp(6px, 0.8vw, 12px);
   }
 
   body.dx-bag-page #dex-bag .dx-bag-summary {
-    max-height: 100%;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -108,6 +137,7 @@ body.dx-bag-page .content {
   box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32));
   backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
   -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+  overflow: hidden;
 }
 
 #dex-bag .dx-bag-head {

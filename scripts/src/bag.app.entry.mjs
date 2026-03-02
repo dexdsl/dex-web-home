@@ -908,6 +908,86 @@
     return `${text} ${units[unit]}`;
   }
 
+  const ESTIMATED_BYTES_PER_FORMAT = Object.freeze({
+    mp3: 9 * 1024 * 1024,
+    wav: 42 * 1024 * 1024,
+    '1080p': 180 * 1024 * 1024,
+    '4K': 420 * 1024 * 1024,
+  });
+
+  const ESTIMATED_BYTES_PER_MEDIA = Object.freeze({
+    audio: 26 * 1024 * 1024,
+    video: 300 * 1024 * 1024,
+  });
+
+  function estimateBucketBytes(statsByBucket, bucket, mediaType = '') {
+    if (!statsByBucket || typeof statsByBucket !== 'object') return 0;
+    const safeBucket = normalizeBucket(bucket);
+    if (!safeBucket) return 0;
+    const row = statsByBucket[safeBucket];
+    if (!row || typeof row !== 'object') return 0;
+
+    const audioBytes = (toCountInt(row?.audio?.mp3) * ESTIMATED_BYTES_PER_FORMAT.mp3)
+      + (toCountInt(row?.audio?.wav) * ESTIMATED_BYTES_PER_FORMAT.wav);
+    const videoBytes = (toCountInt(row?.video?.['1080p']) * ESTIMATED_BYTES_PER_FORMAT['1080p'])
+      + (toCountInt(row?.video?.['4K']) * ESTIMATED_BYTES_PER_FORMAT['4K']);
+
+    const media = normalizeMediaType(mediaType);
+    if (media === 'audio') return audioBytes;
+    if (media === 'video') return videoBytes;
+    return audioBytes + videoBytes;
+  }
+
+  function estimateAllBucketBytes(statsByBucket) {
+    if (!statsByBucket || typeof statsByBucket !== 'object') return 0;
+    return Object.keys(statsByBucket).reduce((sum, bucket) => sum + estimateBucketBytes(statsByBucket, bucket), 0);
+  }
+
+  function estimateBytesFromBucketStats(rows = [], bucketFileStats = null) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    if (!safeRows.length || !bucketFileStats) return 0;
+
+    if (safeRows.some((row) => toText(row?.kind).trim().toLowerCase() === 'collection')) {
+      return estimateAllBucketBytes(bucketFileStats);
+    }
+
+    let total = 0;
+    safeRows.forEach((row) => {
+      const kind = toText(row?.kind).trim().toLowerCase();
+      const bucket = normalizeBucket(row?.bucket);
+      if (kind === 'bucket') {
+        total += estimateBucketBytes(bucketFileStats, bucket);
+        return;
+      }
+      if (kind === 'type') {
+        total += estimateBucketBytes(bucketFileStats, bucket, row?.mediaType);
+        return;
+      }
+      if (kind === 'file') {
+        const mediaTypes = normalizeAvailableTypes(row?.mediaTypes, row?.mediaType);
+        if (!mediaTypes.length) {
+          total += ESTIMATED_BYTES_PER_MEDIA.audio;
+          return;
+        }
+        mediaTypes.forEach((mediaType) => {
+          total += mediaType === 'video'
+            ? ESTIMATED_BYTES_PER_MEDIA.video
+            : ESTIMATED_BYTES_PER_MEDIA.audio;
+        });
+      }
+    });
+
+    return total;
+  }
+
+  function formatEstimatedSize(bytes, fallbackFileCount = 0) {
+    const formatted = formatBytes(bytes);
+    if (formatted !== '\u2014') return formatted;
+    const fileCount = toCountInt(fallbackFileCount);
+    if (fileCount <= 0) return '\u2014';
+    return `~${fileCount} files`;
+  }
+
   function expandSelectionsForLookup(rows, files) {
     const normalizedRows = Array.isArray(rows) ? rows : [];
     const fileRows = Array.isArray(files) ? files : [];
@@ -1256,7 +1336,9 @@
       const files = state.filesByLookup.get(lookup) || [];
       const entryMeta = state.entryMetaByLookup.get(lookup) || null;
       const expandedFiles = expandSelectionsForLookup(rows, files);
-      const estimatedBytes = expandedFiles.reduce((sum, file) => sum + parseFiniteSizeBytes(file?.sizeBytes), 0);
+      const estimatedBytesFromFiles = expandedFiles.reduce((sum, file) => sum + parseFiniteSizeBytes(file?.sizeBytes), 0);
+      const estimatedBytesFromStats = estimateBytesFromBucketStats(rows, entryMeta?.bucketFileStats || null);
+      const estimatedBytes = estimatedBytesFromFiles > 0 ? estimatedBytesFromFiles : estimatedBytesFromStats;
       const receiptLines = buildReceiptLines(lookup, rows, files, entryMeta?.bucketFileStats || null);
       const latestRow = getLatestRow(rows);
       const bucketStatsCount = countFilesFromBucketStats(rows, entryMeta?.bucketFileStats || null);
@@ -1376,7 +1458,7 @@
                   <span><strong>${selectedLookupCount}</strong> entries</span>
                   <span><strong>${selectedUnitCount}</strong> units</span>
                   <span><strong>${selectedFileCount}</strong> files</span>
-                  <span><strong>${htmlEscape(formatBytes(estimatedBytes))}</strong> estimated size</span>
+                  <span><strong>${htmlEscape(formatEstimatedSize(estimatedBytes, selectedFileCount))}</strong> estimated size</span>
                 </div>
               </div>
               <div class="dx-bag-actions">
