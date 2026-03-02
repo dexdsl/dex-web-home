@@ -27,6 +27,75 @@
   margin-bottom: 0.1rem;
 }
 
+#dex-bag .dx-bag-head .dex-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  font-family: "Courier Prime", monospace;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  line-height: 1.1;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#dex-bag .dx-bag-head .dex-breadcrumb-back {
+  color: rgba(25, 25, 25, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(25, 25, 25, 0.24);
+  transition: color 0.24s ease, border-color 0.24s ease;
+  padding-bottom: 1px;
+  font-weight: 400;
+}
+
+#dex-bag .dx-bag-head .dex-breadcrumb-back:hover,
+#dex-bag .dx-bag-head .dex-breadcrumb-back:focus-visible {
+  color: var(--dx-accent-solid);
+  border-bottom-color: var(--dx-accent-solid);
+  outline: none;
+}
+
+#dex-bag .dx-bag-head .dex-breadcrumb-delimiter {
+  color: var(--dx-accent-solid);
+  opacity: 0.92;
+  display: inline-grid;
+  place-items: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  line-height: 0;
+  flex: 0 0 auto;
+}
+
+#dex-bag .dx-bag-head .dex-breadcrumb-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+#dex-bag .dx-bag-head [data-dex-breadcrumb-path] {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+#dex-bag .dx-bag-head .dex-breadcrumb-current {
+  color: rgba(40, 40, 40, 0.72);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #dex-bag .dx-bag-head h1 {
   margin: 0;
   font-family: var(--dx-font-heading, var(--heading-font-family, "BC Alphapipe"));
@@ -83,6 +152,7 @@
   font-size: clamp(1.08rem, 1.8vw, 1.36rem);
   line-height: 0.98;
   letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 #dex-bag .dx-bag-card-ident p {
@@ -93,8 +163,7 @@
 }
 
 #dex-bag .dx-bag-card-controls {
-  display: grid;
-  gap: 0.48rem;
+  display: inline-grid;
   justify-items: end;
 }
 
@@ -120,20 +189,34 @@
 
 #dex-bag .dx-bag-card-thumb {
   display: block;
-  width: clamp(138px, 16vw, 208px);
+  width: clamp(162px, 20vw, 232px);
+  aspect-ratio: 16 / 9;
   border-radius: var(--dx-radius-sm, 8px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.44);
   background: rgba(255, 255, 255, 0.58);
   box-shadow: 0 8px 22px rgba(16, 22, 34, 0.16);
+  align-self: start;
 }
 
 #dex-bag .dx-bag-card-thumb img {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   object-fit: cover;
+}
+
+#dex-bag .dx-bag-card-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(10px, 1.3vw, 14px);
+  align-items: start;
+}
+
+#dex-bag .dx-bag-card-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
 }
 
 #dex-bag .dx-bag-scope {
@@ -168,6 +251,13 @@
 
 #dex-bag .dx-bag-receipt li + li {
   margin-top: 0.12rem;
+}
+
+#dex-bag .dx-bag-receipt-count {
+  margin-left: 0.34rem;
+  font-size: 0.74rem;
+  line-height: 1.2;
+  color: rgba(14, 20, 30, 0.56);
 }
 
 #dex-bag .dx-bag-receipt-toggle {
@@ -253,16 +343,15 @@
 }
 
 @media (max-width: 720px) {
-  #dex-bag .dx-bag-card-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   #dex-bag .dx-bag-card-controls {
     justify-items: start;
   }
 
+  #dex-bag .dx-bag-card-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   #dex-bag .dx-bag-card-thumb {
-    width: min(100%, 260px);
+    width: min(100%, 300px);
   }
 }

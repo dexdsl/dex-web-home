@@ -15,6 +15,9 @@
   const BREADCRUMB_FALLBACK_HREF = '/catalog/';
   const RECEIPT_VISIBLE_LIMIT = 8;
   const MESH_RUNTIME_KEY = '__dxBagMeshRuntime';
+  const CATALOG_ENTRIES_ENDPOINT = '/data/catalog.entries.json';
+  const BAG_DESCRIPTION_COPY = 'Review queued selections across entries, adjust scope, and export one merged download bundle.';
+  const BAG_SIGNED_IN_PREFIX = 'Signed in as';
 
   const MESH_BLOBS = [
     '--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7',
@@ -26,6 +29,15 @@
 
   function toText(value) {
     return String(value ?? '');
+  }
+
+  function normalizeLookupKey(value) {
+    return toText(value)
+      .normalize('NFKD')
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
   }
 
   function parseDateMs(value) {
@@ -229,6 +241,48 @@
     } catch {
       return null;
     }
+  }
+
+  async function requestCatalogEntriesIndex() {
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(CATALOG_ENTRIES_ENDPOINT, {
+        method: 'GET',
+        headers: { accept: 'application/json,*/*;q=0.9' },
+        credentials: 'same-origin',
+        signal: ctrl.signal,
+      });
+      if (!response.ok) return { byLookup: new Map(), byEntryHref: new Map() };
+      const payload = await response.json().catch(() => null);
+      const rows = Array.isArray(payload?.entries) ? payload.entries : (Array.isArray(payload) ? payload : []);
+      const byLookup = new Map();
+      const byEntryHref = new Map();
+
+      rows.forEach((row) => {
+        const lookupKey = normalizeLookupKey(row?.lookup_raw || row?.lookup || '');
+        const entryHref = normalizePath(row?.entry_href || row?.entryHref || row?.href || '');
+        const imageSrc = toAbsoluteUrl(row?.image_src || row?.imageSrc || '', window.location.origin);
+        if (lookupKey && imageSrc && !byLookup.has(lookupKey)) byLookup.set(lookupKey, imageSrc);
+        if (entryHref && imageSrc && !byEntryHref.has(entryHref)) byEntryHref.set(entryHref, imageSrc);
+      });
+
+      return { byLookup, byEntryHref };
+    } catch {
+      return { byLookup: new Map(), byEntryHref: new Map() };
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  function resolveCatalogThumbnail(index, lookup = '', entryHref = '') {
+    const byLookup = index?.byLookup instanceof Map ? index.byLookup : null;
+    const byEntryHref = index?.byEntryHref instanceof Map ? index.byEntryHref : null;
+    const hrefKey = normalizePath(entryHref || '');
+    if (byEntryHref && hrefKey && byEntryHref.has(hrefKey)) return toText(byEntryHref.get(hrefKey)).trim();
+    const lookupKey = normalizeLookupKey(lookup);
+    if (byLookup && lookupKey && byLookup.has(lookupKey)) return toText(byLookup.get(lookupKey)).trim();
+    return '';
   }
 
   function getApiBase() {
@@ -594,16 +648,35 @@
     return out;
   }
 
-  function buildReceiptLines(lookup, rows = [], files = []) {
+  function buildReceiptLines(lookup, rows = [], files = [], bucketFileStats = null) {
     const safeLookup = normalizeLookup(lookup);
     const normalizedRows = Array.isArray(rows) ? rows.slice() : [];
+    const safeFiles = Array.isArray(files) ? files : [];
     const out = [];
-    const seen = new Set();
-    const pushLine = (line) => {
+    const byText = new Map();
+
+    const countFilesBy = ({ bucket = '', mediaType = '' } = {}) => {
+      const safeBucket = normalizeBucket(bucket);
+      const safeMediaType = normalizeMediaType(mediaType);
+      return safeFiles.filter((file) => {
+        if (safeBucket && normalizeBucket(file?.bucket) !== safeBucket) return false;
+        if (!safeMediaType) return true;
+        const availableTypes = normalizeAvailableTypes(file?.availableTypes, file?.type);
+        return availableTypes.includes(safeMediaType);
+      }).length;
+    };
+
+    const pushLine = (line, count = 0) => {
       const text = toText(line).trim();
-      if (!text || seen.has(text)) return;
-      seen.add(text);
-      out.push(text);
+      const safeCount = toCountInt(count);
+      if (!text) return;
+      if (byText.has(text)) {
+        const index = byText.get(text);
+        out[index].count = Math.max(out[index].count || 0, safeCount);
+        return;
+      }
+      byText.set(text, out.length);
+      out.push({ text, count: safeCount });
     };
 
     normalizedRows.sort((a, b) => {
@@ -623,27 +696,30 @@
       const kind = toText(row?.kind).trim().toLowerCase();
       const bucket = normalizeBucket(row?.bucket);
       if (kind === 'collection') {
-        pushLine(`${safeLookup} ALL BUCKETS`);
+        const count = sumAllBucketStats(bucketFileStats) || safeFiles.length;
+        pushLine(`${safeLookup} ALL BUCKETS`, count);
         return;
       }
       if (kind === 'bucket') {
-        pushLine(`${safeLookup} ${bucket}`);
+        const count = sumBucketStats(bucketFileStats, bucket) || countFilesBy({ bucket });
+        pushLine(`${safeLookup} ${bucket}`, count);
         return;
       }
       if (kind === 'type') {
         const mediaType = normalizeMediaType(row?.mediaType);
-        pushLine(`${safeLookup} ${bucket} [${mediaType.toUpperCase()}]`);
+        const count = sumBucketStats(bucketFileStats, bucket, mediaType) || countFilesBy({ bucket, mediaType });
+        pushLine(`${safeLookup} ${bucket} [${mediaType.toUpperCase()}]`, count);
         return;
       }
       if (kind === 'file') {
         const fileId = toText(row?.fileId).trim();
         const base = `${safeLookup} ${bucket}.${fileId}`;
-        const formats = resolveFileFormatsForNode(row, files);
+        const formats = resolveFileFormatsForNode(row, safeFiles);
         if (!formats.length) {
-          pushLine(base);
+          pushLine(base, 1);
           return;
         }
-        formats.forEach((format) => pushLine(`${base} [${format}]`));
+        formats.forEach((format) => pushLine(`${base} [${format}]`, 1));
       }
     });
 
@@ -1131,6 +1207,7 @@
       rows: bagApi.list(),
       filesByLookup: new Map(),
       entryMetaByLookup: new Map(),
+      catalogIndex: { byLookup: new Map(), byEntryHref: new Map() },
       error: '',
       busy: '',
       status: '',
@@ -1217,12 +1294,17 @@
       }));
     };
 
+    const resolveCatalogIndex = async () => {
+      if (state.catalogIndex.byLookup.size || state.catalogIndex.byEntryHref.size) return;
+      state.catalogIndex = await requestCatalogEntriesIndex();
+    };
+
     const computeGroupModel = (lookup, rows) => {
       const files = state.filesByLookup.get(lookup) || [];
       const entryMeta = state.entryMetaByLookup.get(lookup) || null;
       const expandedFiles = expandSelectionsForLookup(rows, files);
       const estimatedBytes = expandedFiles.reduce((sum, file) => sum + parseFiniteSizeBytes(file?.sizeBytes), 0);
-      const receiptLines = buildReceiptLines(lookup, rows, files);
+      const receiptLines = buildReceiptLines(lookup, rows, files, entryMeta?.bucketFileStats || null);
       const latestRow = getLatestRow(rows);
       const bucketStatsCount = countFilesFromBucketStats(rows, entryMeta?.bucketFileStats || null);
       const resolvedCount = Math.max(expandedFiles.length, bucketStatsCount);
@@ -1231,6 +1313,7 @@
         || entryMeta?.canonicalHref
         || ''
       );
+      const thumbnailFromCatalog = resolveCatalogThumbnail(state.catalogIndex, lookup, entryHref);
       return {
         lookup,
         title: resolveCardTitle(rows, lookup, entryMeta),
@@ -1239,7 +1322,7 @@
         estimatedBytes,
         receiptLines,
         entryHref,
-        thumbnailSrc: toAbsoluteUrl(entryMeta?.thumbnailSrc || '', window.location.origin),
+        thumbnailSrc: toAbsoluteUrl(thumbnailFromCatalog || entryMeta?.thumbnailSrc || '', window.location.origin),
       };
     };
 
@@ -1252,11 +1335,7 @@
       const estimatedBytes = models.reduce((sum, model) => sum + model.estimatedBytes, 0);
       const backHref = toText(state.backCrumb?.href || BREADCRUMB_FALLBACK_HREF).trim() || BREADCRUMB_FALLBACK_HREF;
       const backLabel = toText(state.backCrumb?.label || 'catalog').trim() || 'catalog';
-      const signedLabel = state.auth.authenticated
-        ? `Signed in as ${htmlEscape(toText(state.auth.user?.name || state.auth.user?.email || state.auth.user?.nickname || 'member'))}`
-        : (state.localViewerMode
-          ? 'Local viewer mode on /view/. Bag preview is available without auth.'
-          : 'Sign in required.');
+      const signedLabel = BAG_DESCRIPTION_COPY;
       const statusText = htmlEscape(state.error || state.status || '');
 
       const cardMarkup = models.map((model) => {
@@ -1264,7 +1343,12 @@
         const totalLines = model.receiptLines.length;
         const hiddenCount = Math.max(0, totalLines - RECEIPT_VISIBLE_LIMIT);
         const visibleLines = expanded ? model.receiptLines : model.receiptLines.slice(0, RECEIPT_VISIBLE_LIMIT);
-        const receiptItems = visibleLines.map((line) => `<li>${htmlEscape(line)}</li>`).join('');
+        const receiptItems = visibleLines.map((line) => {
+          const text = htmlEscape(line?.text || '');
+          const count = toCountInt(line?.count);
+          const countSuffix = count > 0 ? `<span class="dx-bag-receipt-count">\u2022 ${count} file${count === 1 ? '' : 's'}</span>` : '';
+          return `<li><span class="dx-bag-receipt-line">${text}</span>${countSuffix}</li>`;
+        }).join('');
         const showMore = hiddenCount > 0
           ? `<button type="button" class="dx-bag-receipt-toggle" data-bag-toggle-receipt="${htmlEscape(model.lookup)}">${expanded ? 'Show Less' : `Show All (${hiddenCount} more)`}</button>`
           : '';
@@ -1294,13 +1378,17 @@
                   <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-edit="${htmlEscape(model.lookup)}" aria-label="Edit selection" ${model.entryHref ? '' : 'disabled'}>${editIcon}</button>
                   <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-remove-lookup="${htmlEscape(model.lookup)}" aria-label="Remove selection">${removeIcon}</button>
                 </div>
-                ${thumbnailMarkup}
               </div>
             </header>
-            <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
-            <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
-            <ol class="dx-bag-receipt">${receiptItems || '<li>No receipt lines.</li>'}</ol>
-            ${showMore}
+            <div class="dx-bag-card-row">
+              <div class="dx-bag-card-main">
+                <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
+                <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
+                <ol class="dx-bag-receipt">${receiptItems || '<li><span class="dx-bag-receipt-line">No receipt lines.</span></li>'}</ol>
+                ${showMore}
+              </div>
+              ${thumbnailMarkup}
+            </div>
           </article>
         `;
       }).join('');
@@ -1414,6 +1502,7 @@
 
     const hydrateLookupData = async () => {
       await Promise.all([
+        resolveCatalogIndex(),
         resolveLookupFiles(),
         resolveLookupEntryMeta(),
       ]);
