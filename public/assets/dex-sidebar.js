@@ -912,6 +912,15 @@
     if (!hasStructuredMetrics) return '';
 
     const title = escapeHtml(bucketKey ? `Bucket ${bucketKey}` : String(fallbackTooltip || '').trim());
+    const bucketDescriptorMap = {
+      A: 'Full edited cut',
+      B: 'Files split by Part',
+      C: 'Files split by Section',
+      D: 'Files split by Phrase',
+      E: 'Files per by Moment',
+      X: 'Extras',
+    };
+    const descriptor = escapeHtml(bucketDescriptorMap[bucketKey] || '');
     const status = statusRaw === 'available' ? 'available' : 'unavailable';
     const statusLabel = status === 'available' ? 'Available' : 'Unavailable';
     const normalizeCount = (value) => {
@@ -941,6 +950,7 @@
           <span class="dx-submit-tooltip-title" style="margin:0;font:800 0.78rem/1 var(--font-heading, 'Typefesse', sans-serif);letter-spacing:0.05em;text-transform:uppercase;">${title}</span>
           <span class="dx-submit-tooltip-status is-${status}" style="display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;border:1px solid ${status === 'available' ? 'rgba(255,25,16,0.55)' : 'rgba(20,22,29,0.24)'};font:700 0.56rem/1 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.03em;text-transform:uppercase;white-space:nowrap;color:${status === 'available' ? '#fff' : 'rgba(20,22,29,0.82)'};background:${status === 'available' ? 'linear-gradient(130deg, rgba(255, 25, 16, 0.92), rgba(255, 140, 16, 0.92))' : 'rgba(255,255,255,0.76)'};">${statusLabel}</span>
         </div>
+        ${descriptor ? `<p class="dx-submit-tooltip-descriptor" style="margin:0;font:500 0.61rem/1.25 var(--font-body, 'Courier Prime', monospace);letter-spacing:0.01em;opacity:0.8;">${descriptor}</p>` : ''}
         <dl class="dx-submit-tooltip-metrics" style="margin:0;display:grid;gap:3px;">${metricRows}</dl>
       </div>
     `;
