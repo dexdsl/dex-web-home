@@ -5,6 +5,8 @@
   const ALL_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
   const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
   const FAVORITES_RUNTIME_PATH = '/assets/js/dx-favorites.js';
+  const BAG_RUNTIME_PATH = '/assets/js/dx-bag.js';
+  const BAG_ROUTE_PATH = '/entry/bag/';
   const FAVORITES_UI_STYLE_ID = 'dx-favorites-ui-style';
   const FAVORITES_TOAST_ROOT_ID = 'dx-favorites-toast-root';
   const FAVORITES_TOAST_ID = 'dx-favorites-toast';
@@ -14,6 +16,7 @@
     </svg>
   `.trim();
   let favoritesRuntimePromise = null;
+  let bagRuntimePromise = null;
   let favoritesSignalsBound = false;
   let favoritesToastTimer = 0;
   let activeEntryTooltipTarget = null;
@@ -80,6 +83,60 @@
   };
 
   const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
+
+  const encodeBase64UrlUtf8 = (value) => {
+    const input = String(value || '');
+    if (!input) return '';
+    try {
+      const bytes = new TextEncoder().encode(input);
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    } catch {
+      try {
+        return btoa(unescape(encodeURIComponent(input))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      } catch {
+        return '';
+      }
+    }
+  };
+
+  const decodeBase64UrlUtf8 = (value) => {
+    const input = String(value || '').trim();
+    if (!input) return '';
+    const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+    try {
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch {
+      try {
+        return decodeURIComponent(escape(atob(padded)));
+      } catch {
+        return '';
+      }
+    }
+  };
+
+  const resolveBagRoutePath = () => {
+    const pathname = String(window.location.pathname || '');
+    if (!pathname.startsWith('/view/')) return BAG_ROUTE_PATH;
+    const match = pathname.match(/^\/view\/([^/]+)/);
+    if (!match) return BAG_ROUTE_PATH;
+    const currentFilePath = decodeBase64UrlUtf8(match[1]).replace(/\?+$/g, '');
+    const marker = '/entries/';
+    const markerIndex = currentFilePath.indexOf(marker);
+    if (markerIndex < 0) return BAG_ROUTE_PATH;
+    const root = currentFilePath.slice(0, markerIndex);
+    const bagFilePath = `${root}${marker}bag/index.html`;
+    const bagId = encodeBase64UrlUtf8(bagFilePath);
+    if (!bagId) return BAG_ROUTE_PATH;
+    return `/view/${bagId}/`;
+  };
 
   const readCaseInsensitiveProp = (source, key) => {
     if (!source || typeof source !== 'object') return undefined;
@@ -1502,12 +1559,12 @@
       root.style.removeProperty('--dx-entry-rail-inline-pad');
       root.style.removeProperty('--dx-entry-footer-inline-pad');
       document.body.style.removeProperty('overflow');
-      main.style.height = '';
-      main.style.maxHeight = '';
-      sidebar.style.height = '';
-      sidebar.style.maxHeight = '';
-      main.style.overflowY = '';
-      sidebar.style.overflowY = '';
+      main.style.removeProperty('height');
+      main.style.removeProperty('max-height');
+      sidebar.style.removeProperty('height');
+      sidebar.style.removeProperty('max-height');
+      main.style.removeProperty('overflow-y');
+      sidebar.style.removeProperty('overflow-y');
       return;
     }
 
@@ -1546,12 +1603,12 @@
     document.body.classList.add('dx-entry-desktop-fixed');
     document.body.style.overflow = 'hidden';
 
-    main.style.height = `${available}px`;
-    main.style.maxHeight = `${available}px`;
-    sidebar.style.height = `${available}px`;
-    sidebar.style.maxHeight = `${available}px`;
-    main.style.overflowY = 'hidden';
-    sidebar.style.overflowY = 'auto';
+    main.style.setProperty('height', `${available}px`, 'important');
+    main.style.setProperty('max-height', `${available}px`, 'important');
+    sidebar.style.setProperty('height', `${available}px`, 'important');
+    sidebar.style.setProperty('max-height', `${available}px`, 'important');
+    main.style.setProperty('overflow-y', 'hidden', 'important');
+    sidebar.style.setProperty('overflow-y', 'auto', 'important');
 
     layout.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
 
@@ -1846,6 +1903,54 @@
     });
 
     return favoritesRuntimePromise;
+  };
+
+  const getBagApi = () => {
+    const api = window.__dxBag;
+    if (!api || typeof api.list !== 'function' || typeof api.upsertSelection !== 'function' || typeof api.removeSelection !== 'function') {
+      return null;
+    }
+    return api;
+  };
+
+  const ensureBagApi = (origin) => {
+    const existing = getBagApi();
+    if (existing) return Promise.resolve(existing);
+    if (bagRuntimePromise) return bagRuntimePromise;
+
+    bagRuntimePromise = new Promise((resolve) => {
+      const done = () => resolve(getBagApi());
+      const src = new URL(BAG_RUNTIME_PATH, origin || window.location.origin).toString();
+      const found = Array.from(document.querySelectorAll('script[src]')).find((script) => {
+        try {
+          const parsed = new URL(script.src, window.location.href);
+          return parsed.pathname === BAG_RUNTIME_PATH;
+        } catch {
+          return false;
+        }
+      });
+
+      if (found) {
+        if (getBagApi()) {
+          done();
+          return;
+        }
+        found.addEventListener('load', done, { once: true });
+        found.addEventListener('error', done, { once: true });
+        window.setTimeout(done, 3000);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      script.onload = done;
+      script.onerror = done;
+      document.head.appendChild(script);
+      window.setTimeout(done, 3000);
+    });
+
+    return bagRuntimePromise;
   };
 
   const ensureFavoritesUiStyles = () => {
@@ -2266,6 +2371,163 @@
     return nextRows;
   };
 
+  const normalizeAvailableMediaTypes = (value, fallback = '') => {
+    const out = [];
+    const seen = new Set();
+    const append = (entry) => {
+      const mediaType = String(entry || '').trim().toLowerCase();
+      if (mediaType !== 'audio' && mediaType !== 'video') return;
+      if (seen.has(mediaType)) return;
+      seen.add(mediaType);
+      out.push(mediaType);
+    };
+    if (Array.isArray(value)) {
+      value.forEach(append);
+    } else {
+      const raw = String(value || '').trim();
+      if (raw) raw.split(',').forEach(append);
+    }
+    append(fallback);
+    out.sort();
+    return out;
+  };
+
+  const normalizeLookupFiles = (payload = {}, lookup) => {
+    const files = Array.isArray(payload?.files)
+      ? payload.files
+      : (Array.isArray(payload?.lookup?.files)
+        ? payload.lookup.files
+        : (Array.isArray(payload?.items) ? payload.items : []));
+    return files
+      .map((file) => {
+        const bucketFromNumber = String(file?.bucketNumber || '').split('.')[0];
+        const bucket = String(file?.bucket || bucketFromNumber || '').trim().toUpperCase();
+        const fileId = String(file?.fileId || file?.assetId || file?.id || file?.bucketNumber || '').trim();
+        const type = String(file?.type || file?.media_type || '').trim().toLowerCase();
+        const mediaTypes = normalizeAvailableMediaTypes(file?.availableTypes || file?.available_types, type);
+        if (!bucket || !fileId) return null;
+        return {
+          lookup,
+          bucket,
+          fileId,
+          label: String(file?.label || file?.sourceLabel || file?.bucketNumber || fileId).trim(),
+          mediaTypes,
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const collectTypeTokens = (cfg, bucket, type) => {
+    const source = type === 'audio'
+      ? cfg?.downloads?.audioFileIds?.[bucket]
+      : cfg?.downloads?.videoFileIds?.[bucket];
+    if (!source || typeof source !== 'object') return [];
+    const tokens = [];
+    Object.values(source).forEach((rawToken) => {
+      const parsed = parseAssetRefToken(rawToken);
+      if (!parsed?.normalized) return;
+      if (!tokens.includes(parsed.normalized)) tokens.push(parsed.normalized);
+    });
+    return tokens;
+  };
+
+  const buildFallbackDownloadTree = (cfg, lookup) => {
+    const buckets = ALL_BUCKETS.map((bucket) => {
+      const audioTokens = collectTypeTokens(cfg, bucket, 'audio');
+      const videoTokens = collectTypeTokens(cfg, bucket, 'video');
+      return {
+        bucket,
+        hasAudio: audioTokens.length > 0,
+        hasVideo: videoTokens.length > 0,
+        files: [],
+      };
+    }).filter((row) => row.hasAudio || row.hasVideo);
+    return { lookup, buckets, source: 'manifest' };
+  };
+
+  const buildInventoryDownloadTree = (cfg, lookup, payload = {}) => {
+    const files = normalizeLookupFiles(payload, lookup);
+    const buckets = ALL_BUCKETS.map((bucket) => {
+      const byBucket = files.filter((file) => file.bucket === bucket);
+      const hasAudio = byBucket.some((file) => file.mediaTypes.includes('audio'));
+      const hasVideo = byBucket.some((file) => file.mediaTypes.includes('video'));
+      return {
+        bucket,
+        hasAudio,
+        hasVideo,
+        files: byBucket,
+      };
+    }).filter((row) => row.hasAudio || row.hasVideo || row.files.length > 0);
+    return { lookup, buckets, source: 'inventory' };
+  };
+
+  const buildNodeKey = (node) => {
+    const kind = String(node?.kind || '').trim().toLowerCase();
+    const lookup = String(node?.lookup || '').trim();
+    const bucket = String(node?.bucket || '').trim().toUpperCase();
+    const mediaType = String(node?.mediaType || '').trim().toLowerCase();
+    const fileId = String(node?.fileId || '').trim();
+    const mediaTypes = normalizeAvailableMediaTypes(node?.mediaTypes, mediaType).join(',');
+    if (kind === 'collection') return `collection|${lookup}`;
+    if (kind === 'bucket') return `bucket|${lookup}|${bucket}`;
+    if (kind === 'type') return `type|${lookup}|${bucket}|${mediaType}`;
+    return `file|${lookup}|${bucket}|${fileId}|${mediaTypes}`;
+  };
+
+  const normalizeNodeForBag = (node, context) => ({
+    kind: String(node?.kind || '').trim().toLowerCase(),
+    lookup: String(node?.lookup || context?.lookup || '').trim(),
+    bucket: String(node?.bucket || '').trim().toUpperCase(),
+    mediaType: String(node?.mediaType || '').trim().toLowerCase(),
+    mediaTypes: normalizeAvailableMediaTypes(node?.mediaTypes, node?.mediaType),
+    fileId: String(node?.fileId || '').trim(),
+    source: 'entry-sidebar',
+    entryHref: normalizeLocationPath(context?.entryHref || window.location.pathname || '/'),
+    title: String(context?.lookup || '').trim(),
+  });
+
+  const expandNodesToLegacyTokens = (cfg, nodes = []) => {
+    const tokens = [];
+    const addToken = (token) => {
+      if (!token) return;
+      if (!tokens.includes(token)) tokens.push(token);
+    };
+    const addBucketType = (bucket, type) => {
+      collectTypeTokens(cfg, bucket, type).forEach(addToken);
+    };
+    nodes.forEach((node) => {
+      const kind = String(node?.kind || '').trim().toLowerCase();
+      const bucket = String(node?.bucket || '').trim().toUpperCase();
+      const mediaTypes = normalizeAvailableMediaTypes(node?.mediaTypes, node?.mediaType);
+      if (kind === 'collection') {
+        ALL_BUCKETS.forEach((bucketKey) => {
+          addBucketType(bucketKey, 'audio');
+          addBucketType(bucketKey, 'video');
+        });
+        return;
+      }
+      if (kind === 'bucket') {
+        addBucketType(bucket, 'audio');
+        addBucketType(bucket, 'video');
+        return;
+      }
+      if (kind === 'type') {
+        const mediaType = String(node?.mediaType || '').trim().toLowerCase();
+        if (mediaType === 'audio' || mediaType === 'video') addBucketType(bucket, mediaType);
+        return;
+      }
+      if (kind === 'file') {
+        if (!mediaTypes.length) {
+          addBucketType(bucket, 'audio');
+          addBucketType(bucket, 'video');
+          return;
+        }
+        mediaTypes.forEach((mediaType) => addBucketType(bucket, mediaType));
+      }
+    });
+    return tokens;
+  };
+
   const attach = (cfg, type, btnSel, context) => {
     const btn = document.querySelector(btnSel);
     if (!btn || btn.dataset.dexBound === '1') return;
@@ -2288,13 +2550,48 @@
 
       const modal = document.createElement('div');
       modal.className = 'dex-download-modal';
+      modal.style.setProperty('position', 'fixed', 'important');
+      modal.style.setProperty('inset', '0', 'important');
+      modal.style.setProperty('z-index', '2147483000', 'important');
+      modal.style.setProperty('background', 'rgba(7, 8, 12, 0.62)', 'important');
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.setProperty('align-items', 'center', 'important');
+      modal.style.setProperty('justify-content', 'center', 'important');
+      modal.style.setProperty('padding', 'clamp(10px, 2vw, 18px)', 'important');
+      modal.style.setProperty('box-sizing', 'border-box', 'important');
+      modal.style.setProperty('pointer-events', 'auto', 'important');
+      modal.style.setProperty('opacity', '1', 'important');
+      modal.style.setProperty('visibility', 'visible', 'important');
+      modal.style.setProperty('filter', 'none', 'important');
+
       const inner = document.createElement('div');
       inner.className = 'dex-download-modal-inner';
+      inner.style.setProperty('position', 'relative', 'important');
+      inner.style.setProperty('display', 'grid', 'important');
+      inner.style.setProperty('gap', '0.62rem', 'important');
+      inner.style.setProperty('width', 'min(760px, 100%)', 'important');
+      inner.style.setProperty('max-height', 'min(86vh, 920px)', 'important');
+      inner.style.setProperty('overflow', 'auto', 'important');
+      inner.style.setProperty('padding', '0.9rem', 'important');
+      inner.style.setProperty('border-radius', 'var(--dx-header-glass-radius, var(--dx-entry-card-radius, 10px))', 'important');
+      inner.style.setProperty('border', '1px solid rgba(228, 232, 242, 0.92)', 'important');
+      inner.style.setProperty('background', 'linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(245, 248, 255, 0.972))', 'important');
+      inner.style.setProperty('box-shadow', '0 18px 42px rgba(0, 0, 0, 0.28)', 'important');
+      inner.style.setProperty('backdrop-filter', 'none', 'important');
+      inner.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      inner.style.setProperty('filter', 'none', 'important');
       const close = document.createElement('button');
       close.className = 'close';
       close.setAttribute('aria-label', 'Close');
       close.type = 'button';
       close.textContent = '×';
+      close.style.justifySelf = 'end';
+      close.style.width = '2rem';
+      close.style.height = '2rem';
+      close.style.borderRadius = '999px';
+      close.style.border = '1px solid rgba(0, 0, 0, 0.22)';
+      close.style.background = 'rgba(255, 255, 255, 0.8)';
+      close.style.cursor = 'pointer';
 
       const heading = document.createElement('h4');
       heading.textContent = `${type === 'audio' ? 'Audio' : 'Video'} downloads`;
@@ -2572,62 +2869,515 @@
     });
   };
 
-  const attachRecordingIndex = (cfg, btnSel, context) => {
-    const btn = document.querySelector(btnSel);
-    if (!btn || btn.dataset.dexBound === '1') return;
-    btn.dataset.dexBound = '1';
+  const attachUnifiedDownload = (cfg, btnSel, context) => {
+    const buttons = Array.from(document.querySelectorAll(btnSel));
+    if (!buttons.length) return;
+    buttons.forEach((btn) => {
+      if (!(btn instanceof HTMLElement) || btn.dataset.dexBound === '1') return;
+      btn.dataset.dexBound = '1';
+      btn.addEventListener('click', async () => {
+      const lookup = String(context?.lookup || '').trim();
+      if (!lookup) return;
+      const fallbackTree = buildFallbackDownloadTree(cfg, lookup);
+      let downloadTree = fallbackTree;
+      const selectedNodes = new Map();
 
-    const row = btn.closest('[data-dx-recording-index-row]');
-    const pdfTokenRaw = String(cfg?.downloads?.recordingIndexPdfRef || '').trim();
-    const bundleTokenRaw = String(cfg?.downloads?.recordingIndexBundleRef || '').trim();
-    const parsedPdfToken = parseRecordingIndexPdfToken(pdfTokenRaw);
-    const parsedBundleToken = parseRecordingIndexBundleToken(bundleTokenRaw);
+      const modal = document.createElement('div');
+      modal.className = 'dex-download-modal';
+      modal.style.setProperty('position', 'fixed', 'important');
+      modal.style.setProperty('inset', '0', 'important');
+      modal.style.setProperty('z-index', '2147483000', 'important');
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.setProperty('align-items', 'center', 'important');
+      modal.style.setProperty('justify-content', 'center', 'important');
+      modal.style.setProperty('padding', 'clamp(12px, 2.4vw, 24px)', 'important');
+      modal.style.setProperty('box-sizing', 'border-box', 'important');
+      modal.style.setProperty('background', 'rgba(7, 9, 14, 0.62)', 'important');
+      modal.style.setProperty('backdrop-filter', 'blur(2px)', 'important');
+      modal.style.setProperty('-webkit-backdrop-filter', 'blur(2px)', 'important');
+      modal.style.setProperty('filter', 'none', 'important');
+      modal.style.setProperty('opacity', '1', 'important');
+      modal.style.setProperty('visibility', 'visible', 'important');
+      modal.style.setProperty('pointer-events', 'auto', 'important');
+      modal.style.setProperty('isolation', 'isolate', 'important');
+      const inner = document.createElement('div');
+      inner.className = 'dex-download-modal-inner';
+      inner.style.setProperty('position', 'relative', 'important');
+      inner.style.setProperty('display', 'grid', 'important');
+      inner.style.setProperty('gap', '0.62rem', 'important');
+      inner.style.setProperty('width', 'min(760px, calc(100vw - clamp(28px, 8vw, 120px)))', 'important');
+      inner.style.setProperty('max-height', 'min(78vh, 760px)', 'important');
+      inner.style.setProperty('overflow', 'hidden', 'important');
+      inner.style.setProperty('padding', 'clamp(12px, 1.8vw, 18px)', 'important');
+      inner.style.setProperty('border-radius', 'var(--dx-header-glass-radius, var(--dx-entry-card-radius, 10px))', 'important');
+      inner.style.setProperty('border', '1px solid rgba(214, 220, 232, 0.96)', 'important');
+      inner.style.setProperty('background', 'linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(248, 250, 255, 0.985))', 'important');
+      inner.style.setProperty('box-shadow', '0 20px 50px rgba(0, 0, 0, 0.32)', 'important');
+      inner.style.setProperty('backdrop-filter', 'none', 'important');
+      inner.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      inner.style.setProperty('filter', 'none', 'important');
+      const close = document.createElement('button');
+      close.className = 'close';
+      close.setAttribute('aria-label', 'Close');
+      close.type = 'button';
+      close.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      `;
+      close.style.setProperty('display', 'grid', 'important');
+      close.style.setProperty('place-items', 'center', 'important');
+      close.style.setProperty('width', '1.4rem', 'important');
+      close.style.setProperty('height', '1.4rem', 'important');
+      close.style.setProperty('border', '0', 'important');
+      close.style.setProperty('background', 'transparent', 'important');
+      close.style.setProperty('padding', '0', 'important');
+      close.style.setProperty('color', 'rgba(20, 22, 28, 0.94)', 'important');
+      close.style.setProperty('cursor', 'pointer', 'important');
+      close.style.setProperty('line-height', '0', 'important');
+      const closeIcon = close.querySelector('svg');
+      if (closeIcon instanceof SVGElement) {
+        closeIcon.style.width = '100%';
+        closeIcon.style.height = '100%';
+      }
 
-    if (!row) return;
-    row.setAttribute('data-dx-download-kind', 'recording-index-pdf');
-    row.setAttribute('data-dx-download-state', 'idle');
+      const heading = document.createElement('h4');
+      heading.textContent = randomizeTitle('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
+      heading.style.margin = '0';
+      heading.style.fontFamily = '"Typefesse", sans-serif';
+      heading.style.letterSpacing = '0.02em';
+      heading.style.textTransform = 'uppercase';
+      heading.style.fontSize = 'clamp(1.06rem, 1.48vw, 1.3rem)';
+      heading.style.lineHeight = '1';
 
-    if (!parsedPdfToken || !parsedBundleToken) {
-      btn.disabled = true;
-      btn.setAttribute('aria-disabled', 'true');
-      setDownloadState(row, 'not-found', 'Recording index bundle unavailable.');
-      return;
-    }
+      const titleRow = document.createElement('div');
+      titleRow.style.display = 'flex';
+      titleRow.style.alignItems = 'center';
+      titleRow.style.justifyContent = 'space-between';
+      titleRow.style.gap = '0.62rem';
+      titleRow.style.margin = '0 0 0.28rem';
+      titleRow.appendChild(heading);
+      titleRow.appendChild(close);
 
-    btn.disabled = false;
-    btn.removeAttribute('aria-disabled');
-    setDownloadState(row, 'idle', '');
-    btn.addEventListener('click', async () => {
-      setDownloadState(row, 'resolving', 'Resolving secure download…');
-      btn.disabled = true;
-      try {
-        const tokens = [];
-        if (parsedPdfToken?.normalized) tokens.push(parsedPdfToken.normalized);
-        if (parsedBundleToken?.normalized && !tokens.includes(parsedBundleToken.normalized)) {
-          tokens.push(parsedBundleToken.normalized);
+      const statusBanner = document.createElement('p');
+      statusBanner.style.margin = '0';
+      statusBanner.style.fontSize = '0.75rem';
+      statusBanner.style.lineHeight = '1.35';
+      statusBanner.style.opacity = '0.84';
+      statusBanner.hidden = true;
+
+      const setModalStatus = (state, message) => {
+        const text = String(message || '').trim();
+        if (!text) {
+          statusBanner.hidden = true;
+          statusBanner.textContent = '';
+          statusBanner.removeAttribute('data-dx-download-state');
+          return;
         }
-        const result = await requestBundleDownload({
-          lookup: context?.lookup,
-          tokens,
-          onQueuedTick: () => {
-            setDownloadState(row, 'queued', 'Preparing bundle…');
+        statusBanner.hidden = false;
+        statusBanner.setAttribute('data-dx-download-state', String(state || 'idle'));
+        statusBanner.textContent = text;
+      };
+
+      const treeWrap = document.createElement('div');
+      treeWrap.style.display = 'grid';
+      treeWrap.style.gap = '0.52rem';
+      treeWrap.style.maxHeight = 'min(52vh, 520px)';
+      treeWrap.style.overflowY = 'auto';
+      treeWrap.style.paddingRight = '0.12rem';
+
+      const controls = document.createElement('div');
+      controls.style.display = 'flex';
+      controls.style.flexWrap = 'wrap';
+      controls.style.gap = '0.42rem';
+      controls.style.alignItems = 'center';
+
+      const addToBagButton = document.createElement('button');
+      addToBagButton.type = 'button';
+      addToBagButton.className = 'dx-button-element--primary';
+      addToBagButton.textContent = 'Add to Bag';
+
+      const downloadNowButton = document.createElement('button');
+      downloadNowButton.type = 'button';
+      downloadNowButton.className = 'dx-button-element--secondary';
+      downloadNowButton.textContent = 'Download Now';
+
+      const updateActionState = () => {
+        const count = selectedNodes.size;
+        addToBagButton.disabled = count === 0;
+        downloadNowButton.disabled = count === 0;
+        addToBagButton.textContent = count > 0 ? `Add to Bag (${count})` : 'Add to Bag';
+      };
+
+      const resolveNormalizedSelection = async () => {
+        const raw = Array.from(selectedNodes.values()).map((node) => normalizeNodeForBag(node, context));
+        if (!raw.length) return [];
+        const bagApi = await ensureBagApi(window.location.origin);
+        if (bagApi && typeof bagApi.normalizeSelections === 'function') {
+          const normalized = bagApi.normalizeSelections(raw);
+          return Array.isArray(normalized) ? normalized : raw;
+        }
+        return raw;
+      };
+
+      const removeModal = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+      };
+      const onKeyDown = (event) => {
+        if (event.key === 'Escape') removeModal();
+      };
+
+      const addSelectionRow = (parent, node, label, meta = '') => {
+        const key = buildNodeKey(node);
+        const row = document.createElement('label');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = 'auto minmax(0,1fr)';
+        row.style.gap = '0.45rem';
+        row.style.alignItems = 'start';
+        row.style.padding = '0.36rem 0.45rem';
+        row.style.border = '1px solid rgba(0,0,0,0.12)';
+        row.style.borderRadius = '10px';
+        row.style.background = 'rgba(255,255,255,0.34)';
+
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = selectedNodes.has(key);
+        check.addEventListener('change', () => {
+          if (check.checked) selectedNodes.set(key, { ...node });
+          else selectedNodes.delete(key);
+          updateActionState();
+        });
+
+        const copy = document.createElement('div');
+        copy.style.display = 'grid';
+        copy.style.gap = '0.16rem';
+
+        const title = document.createElement('span');
+        title.textContent = label;
+        title.style.fontFamily = '"Typefesse", sans-serif';
+        title.style.fontSize = '0.82rem';
+        title.style.letterSpacing = '0.01em';
+        copy.appendChild(title);
+
+        if (meta) {
+          const note = document.createElement('span');
+          note.textContent = meta;
+          note.style.fontSize = '0.72rem';
+          note.style.opacity = '0.76';
+          copy.appendChild(note);
+        }
+
+        row.appendChild(check);
+        row.appendChild(copy);
+        parent.appendChild(row);
+      };
+
+      const renderTree = () => {
+        treeWrap.replaceChildren();
+
+        const collectionNode = {
+          kind: 'collection',
+          lookup,
+        };
+        addSelectionRow(treeWrap, collectionNode, 'Whole Collection', 'All buckets, file types, and files for this lookup');
+
+        downloadTree.buckets.forEach((bucketRow) => {
+          const bucketBlock = document.createElement('section');
+          bucketBlock.style.display = 'grid';
+          bucketBlock.style.gap = '0.35rem';
+          bucketBlock.style.padding = '0.44rem';
+          bucketBlock.style.border = '1px solid rgba(0,0,0,0.12)';
+          bucketBlock.style.borderRadius = '10px';
+
+          const headingEl = document.createElement('h5');
+          headingEl.textContent = `${bucketRow.bucket} Bucket`;
+          headingEl.style.margin = '0';
+          headingEl.style.fontFamily = '"Typefesse", sans-serif';
+          headingEl.style.fontSize = '0.92rem';
+          headingEl.style.letterSpacing = '0.01em';
+          bucketBlock.appendChild(headingEl);
+
+          addSelectionRow(bucketBlock, {
+            kind: 'bucket',
+            lookup,
+            bucket: bucketRow.bucket,
+          }, `Whole ${bucketRow.bucket} Bucket`, 'All file types and files in this bucket');
+
+          if (bucketRow.hasAudio) {
+            addSelectionRow(bucketBlock, {
+              kind: 'type',
+              lookup,
+              bucket: bucketRow.bucket,
+              mediaType: 'audio',
+            }, `${bucketRow.bucket} Audio`, 'All audio files in this bucket');
+          }
+          if (bucketRow.hasVideo) {
+            addSelectionRow(bucketBlock, {
+              kind: 'type',
+              lookup,
+              bucket: bucketRow.bucket,
+              mediaType: 'video',
+            }, `${bucketRow.bucket} Video`, 'All video files in this bucket');
+          }
+
+          if (Array.isArray(bucketRow.files) && bucketRow.files.length) {
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = `Files (${bucketRow.files.length})`;
+            summary.style.cursor = 'pointer';
+            summary.style.fontSize = '0.74rem';
+            summary.style.opacity = '0.82';
+            details.appendChild(summary);
+
+            const list = document.createElement('div');
+            list.style.display = 'grid';
+            list.style.gap = '0.25rem';
+            list.style.marginTop = '0.34rem';
+            bucketRow.files.forEach((file) => {
+              const mediaLabel = file.mediaTypes.map((mediaType) => mediaType.toUpperCase()).join(' + ') || 'FILE';
+              addSelectionRow(list, {
+                kind: 'file',
+                lookup,
+                bucket: file.bucket,
+                fileId: file.fileId,
+                mediaTypes: file.mediaTypes.slice(),
+              }, file.label || file.fileId, mediaLabel);
+	            });
+	            details.appendChild(list);
+	            bucketBlock.appendChild(details);
+	          }
+	          treeWrap.appendChild(bucketBlock);
+	        });
+
+        updateActionState();
+      };
+
+      const requestBagBundleFromSidebar = async (nodes) => {
+        const payload = await requestAssetsJson({
+          path: '/me/assets/bag/bundle',
+          method: 'POST',
+          body: {
+            source: 'entry-sidebar',
+            dedupe: true,
+            selections: [{
+              lookup,
+              nodes: nodes.map((node) => ({
+                kind: node.kind,
+                lookup,
+                bucket: node.bucket || '',
+                mediaType: node.mediaType || '',
+                mediaTypes: normalizeAvailableMediaTypes(node.mediaTypes, node.mediaType),
+                fileId: node.fileId || '',
+              })),
+            }],
           },
         });
-        setDownloadState(row, 'ready', 'Ready. Opening download…');
-        openSignedUrl(result?.signedUrl);
-        window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
+        return payload;
+      };
+
+      const executeDownloadNow = async () => {
+        const nodes = await resolveNormalizedSelection();
+        if (!nodes.length) return;
+        downloadNowButton.disabled = true;
+        setModalStatus('resolving', 'Resolving secure bundle…');
+        try {
+          const token = await getAccessToken();
+          if (!token) {
+            const auth = window.DEX_AUTH || window.dexAuth || null;
+            if (auth && typeof auth.signIn === 'function') {
+              setModalStatus('resolving', 'Sign in required for download.');
+              const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              try {
+                await auth.signIn(returnTo);
+              } catch {
+                setModalStatus('forbidden', 'Unable to start sign-in flow.');
+              }
+              return;
+            }
+            setModalStatus('forbidden', 'Sign in required for download.');
+            return;
+          }
+
+          try {
+            const payload = await requestBagBundleFromSidebar(nodes);
+            const delivery = String(payload?.delivery || '').toLowerCase();
+            if (delivery === 'sync') {
+              const signedUrl = String(payload?.signedUrl || payload?.url || '').trim();
+              if (!signedUrl) throw new Error('missing signed url');
+              setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+              openSignedUrl(signedUrl);
+              return;
+            }
+            if (delivery === 'async') {
+              const jobId = String(payload?.jobId || '').trim();
+              const result = await pollBundleReady(jobId, () => {
+                setModalStatus('queued', 'Preparing secure bundle…');
+              });
+              setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+              openSignedUrl(result?.signedUrl);
+              return;
+            }
+            const fallback = resolveBundleReadyPayload(payload);
+            if (fallback) {
+              setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+              openSignedUrl(fallback?.signedUrl);
+              return;
+            }
+            throw new Error('unsupported bag bundle response');
+          } catch (bagError) {
+            if (String(bagError?.code || '').toLowerCase() !== 'not-found') throw bagError;
+            const legacyTokens = expandNodesToLegacyTokens(cfg, nodes);
+            if (!legacyTokens.length) {
+              setModalStatus('not-found', 'No bundle tokens found for this selection.');
+              return;
+            }
+            const result = await requestBundleDownload({
+              lookup,
+              tokens: legacyTokens,
+              onQueuedTick: () => {
+                setModalStatus('queued', 'Preparing secure bundle…');
+              },
+            });
+            setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+            openSignedUrl(result?.signedUrl);
+          }
+        } catch (error) {
+          const code = String(error?.code || '').toLowerCase();
+          if (code === 'forbidden') {
+            setModalStatus('forbidden', 'Access denied for one or more selected files.');
+          } else if (code === 'not-found') {
+            setModalStatus('not-found', 'Bundle source not found (DX-DL-404).');
+          } else {
+            setModalStatus('error', 'Bundle request failed. Retry or refresh (DX-DL-500).');
+          }
+        } finally {
+          downloadNowButton.disabled = false;
+          updateActionState();
+        }
+      };
+
+      addToBagButton.addEventListener('click', async () => {
+        const nodes = await resolveNormalizedSelection();
+        if (!nodes.length) return;
+        const bagApi = await ensureBagApi(window.location.origin);
+        if (!bagApi) {
+          setModalStatus('error', 'Bag runtime unavailable.');
+          return;
+        }
+        nodes.forEach((node) => {
+          bagApi.upsertSelection(normalizeNodeForBag(node, context));
+        });
+        setModalStatus('ready', `Added ${nodes.length} selection${nodes.length === 1 ? '' : 's'} to bag.`);
+        window.location.assign(resolveBagRoutePath());
+      });
+
+      downloadNowButton.addEventListener('click', () => {
+        void executeDownloadNow();
+      });
+
+      controls.appendChild(addToBagButton);
+      controls.appendChild(downloadNowButton);
+
+      inner.appendChild(titleRow);
+      inner.appendChild(statusBanner);
+      inner.appendChild(treeWrap);
+      inner.appendChild(controls);
+      modal.appendChild(inner);
+      document.body.appendChild(modal);
+      close.addEventListener('click', removeModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) removeModal();
+      });
+      document.addEventListener('keydown', onKeyDown);
+
+      renderTree();
+      setModalStatus('idle', 'Select scopes, add to bag, or download now.');
+
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          setModalStatus('idle', 'Per-file selection unavailable. Using bucket-level selection.');
+          return;
+        }
+        const payload = await requestAssetsJson({
+          path: `/me/assets/${encodeURIComponent(lookup)}`,
+          method: 'GET',
+        });
+        downloadTree = buildInventoryDownloadTree(cfg, lookup, payload);
+        renderTree();
+        setModalStatus('ready', 'Per-file selection ready.');
       } catch (error) {
         const code = String(error?.code || '').toLowerCase();
         if (code === 'forbidden') {
-          setDownloadState(row, 'forbidden', 'Access denied (403).');
-        } else if (code === 'not-found') {
-          setDownloadState(row, 'not-found', 'Download not found (404).');
+          setModalStatus('idle', 'Per-file selection unavailable. Using bucket-level selection.');
         } else {
-          setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+          setModalStatus('error', 'Unable to load file tree. Using bucket-level fallback.');
         }
-      } finally {
-        btn.disabled = false;
       }
+      });
+    });
+  };
+
+  const attachRecordingIndex = (cfg, btnSel, context) => {
+    const buttons = Array.from(document.querySelectorAll(btnSel));
+    if (!buttons.length) return;
+    buttons.forEach((btn) => {
+      if (!(btn instanceof HTMLElement) || btn.dataset.dexBound === '1') return;
+      btn.dataset.dexBound = '1';
+
+      const row = btn.closest('[data-dx-recording-index-row]');
+      const pdfTokenRaw = String(cfg?.downloads?.recordingIndexPdfRef || '').trim();
+      const bundleTokenRaw = String(cfg?.downloads?.recordingIndexBundleRef || '').trim();
+      const parsedPdfToken = parseRecordingIndexPdfToken(pdfTokenRaw);
+      const parsedBundleToken = parseRecordingIndexBundleToken(bundleTokenRaw);
+
+      if (!row) return;
+      row.setAttribute('data-dx-download-kind', 'recording-index-pdf');
+      row.setAttribute('data-dx-download-state', 'idle');
+
+      if (!parsedPdfToken || !parsedBundleToken) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        setDownloadState(row, 'not-found', 'Recording index bundle unavailable.');
+        return;
+      }
+
+      btn.disabled = false;
+      btn.removeAttribute('aria-disabled');
+      setDownloadState(row, 'idle', '');
+      btn.addEventListener('click', async () => {
+        setDownloadState(row, 'resolving', 'Resolving secure download…');
+        btn.disabled = true;
+        try {
+          const tokens = [];
+          if (parsedPdfToken?.normalized) tokens.push(parsedPdfToken.normalized);
+          if (parsedBundleToken?.normalized && !tokens.includes(parsedBundleToken.normalized)) {
+            tokens.push(parsedBundleToken.normalized);
+          }
+          const result = await requestBundleDownload({
+            lookup: context?.lookup,
+            tokens,
+            onQueuedTick: () => {
+              setDownloadState(row, 'queued', 'Preparing bundle…');
+            },
+          });
+          setDownloadState(row, 'ready', 'Ready. Opening download…');
+          openSignedUrl(result?.signedUrl);
+          window.setTimeout(() => setDownloadState(row, 'idle', ''), 2200);
+        } catch (error) {
+          const code = String(error?.code || '').toLowerCase();
+          if (code === 'forbidden') {
+            setDownloadState(row, 'forbidden', 'Access denied (403).');
+          } else if (code === 'not-found') {
+            setDownloadState(row, 'not-found', 'Download not found (404).');
+          } else {
+            setDownloadState(row, 'error', 'Download failed (DX-DL-500).');
+          }
+        } finally {
+          btn.disabled = false;
+        }
+      });
     });
   };
 
@@ -2847,7 +3597,7 @@
   const installSidebarInteractiveMotion = () => {
     if (prefersReducedMotion()) return;
     const nodes = Array.from(
-      document.querySelectorAll('.dex-sidebar section, .dex-sidebar .license-btn, .dex-sidebar #downloads .btn-audio, .dex-sidebar #downloads .btn-video, .dex-sidebar #downloads .btn-recording-index'),
+      document.querySelectorAll('.dex-sidebar section, .dex-sidebar .license-btn, .dex-sidebar #downloads .btn-audio, .dex-sidebar #downloads .btn-video, .dex-sidebar #downloads .btn-download, .dex-sidebar #downloads .btn-recording-index'),
     );
     nodes.forEach((node) => {
       if (node.dataset.dexMotionBound === '1') return;
@@ -3072,9 +3822,8 @@
       const labelSeedBase = `${window.location.pathname || '/'}|sidebar-label`;
       const copyLabel = randomizeTitleWithJoiners('Copy', { seedKey: `${labelSeedBase}|copy` });
       const usageNotesLabel = randomizeTitleWithJoiners('Usage Notes', { seedKey: `${labelSeedBase}|usage-notes` });
-      const audioFilesLabel = randomizeTitleWithJoiners('Audio Files', { seedKey: `${labelSeedBase}|audio-files` });
-      const videoFilesLabel = randomizeTitleWithJoiners('Video Files', { seedKey: `${labelSeedBase}|video-files` });
-      const recordingIndexPdfLabel = randomizeTitleWithJoiners('Recording Index PDF', { seedKey: `${labelSeedBase}|recording-index-pdf` });
+      const filesLabel = randomizeTitleWithJoiners('Files', { seedKey: `${labelSeedBase}|files` });
+      const recordingIndexLabel = randomizeTitleWithJoiners('Recording Index', { seedKey: `${labelSeedBase}|recording-index` });
       ensureDownloadOnlyFileInfoCard(`${labelSeedBase}|download-card`);
 
       render('.dex-license', 'License', `
@@ -3140,10 +3889,13 @@
         </div>
       `);
 
-      render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${audioFilesLabel}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${videoFilesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexPdfLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
+      render('#downloads', 'Download', `<p>Choose files to download:</p><button type="button" class="btn-download dx-button-element--primary" aria-label="Files"><span>${filesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Recording Index" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
+      const downloadsEl = document.querySelector('#downloads');
+      if (downloadsEl instanceof HTMLElement) {
+        downloadsEl.setAttribute('data-dx-download-mode', 'unified');
+      }
 
-      attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
-      attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });
+      attachUnifiedDownload(cfg, '#downloads .btn-download', { lookup, entryHref, favoritesApi });
       attachRecordingIndex(cfg, '#downloads .btn-recording-index', { lookup, entryHref, favoritesApi });
       initPersonPins();
       installSidebarRevealMotion();

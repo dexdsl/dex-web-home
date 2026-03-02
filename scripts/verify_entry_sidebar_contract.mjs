@@ -67,6 +67,8 @@ function ensureRuntimeMarkers(runtimeJs) {
     'data-dx-tooltip-total-files=',
     'buildEntryTooltipMarkup',
     'dx-submit-tooltip-status',
+    'class="btn-download dx-button-element--primary"',
+    'attachUnifiedDownload(cfg, \'#downloads .btn-download\'',
     'data-dx-download-kind="recording-index-pdf"',
     'data-dx-entry-rail-mode',
     'DX_ENTRY_TARGET_TIMEOUT_MS = 15000',

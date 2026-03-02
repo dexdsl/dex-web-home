@@ -2445,7 +2445,8 @@ border: 0;
 
 /* 2) Style the two buttons inside #downloads */
 #downloads .btn-audio,
-#downloads .btn-video {
+#downloads .btn-video,
+#downloads .btn-download {
   flex: 1;
   display: inline-flex;
   align-items: center;
@@ -2464,7 +2465,8 @@ border: 0;
 
 /* 3) Make their SVGs pick up the button’s current text color */
 #downloads .btn-audio svg,
-#downloads .btn-video svg {
+#downloads .btn-video svg,
+#downloads .btn-download svg {
   flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
@@ -2474,8 +2476,10 @@ border: 0;
 /* 4) Hover & focus “pop” effect */
 #downloads .btn-audio:hover,
 #downloads .btn-video:hover,
+#downloads .btn-download:hover,
 #downloads .btn-audio:focus,
-#downloads .btn-video:focus {
+#downloads .btn-video:focus,
+#downloads .btn-download:focus {
   background: var(--dex-accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
@@ -2843,6 +2847,7 @@ border: 0;
 /* Apply the shared Dex accent gradient */
 #downloads .btn-audio,
 #downloads .btn-video,
+#downloads .btn-download,
 .license-btn.copy-btn,
 .license-btn.usage-btn {
   background: linear-gradient(45deg, var(--dx-accent-grad-start) 0%, var(--dx-accent-grad-end) 100%) !important;
@@ -2857,6 +2862,7 @@ border: 0;
 /* Hover/focus “pop” effect */
 #downloads .btn-audio:hover,
 #downloads .btn-video:hover,
+#downloads .btn-download:hover,
 .license-btn.copy-btn:hover,
 .license-btn.usage-btn:hover {
   transform: translateY(-2px) !important;
@@ -3262,7 +3268,8 @@ border: 0;
 .dex-sidebar .dex-license-controls .copy-btn,
 .dex-sidebar .dex-license-controls .usage-btn,
 .dex-sidebar #downloads .btn-audio,
-.dex-sidebar #downloads .btn-video {
+.dex-sidebar #downloads .btn-video,
+.dex-sidebar #downloads .btn-download {
   position: relative;
   overflow: hidden;
   display: inline-flex !important;
@@ -3287,7 +3294,8 @@ border: 0;
 }
 
 .dex-sidebar #downloads .btn-audio,
-.dex-sidebar #downloads .btn-video {
+.dex-sidebar #downloads .btn-video,
+.dex-sidebar #downloads .btn-download {
   flex: 1 1 0;
 }
 
@@ -3299,45 +3307,32 @@ border: 0;
   align-items: stretch;
 }
 
+.dex-sidebar #downloads[data-dx-download-mode="unified"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 .dex-sidebar #downloads > p {
   grid-column: 1 / -1;
   margin: 0 !important;
 }
 
 .dex-sidebar #downloads .btn-audio,
-.dex-sidebar #downloads .btn-video {
+.dex-sidebar #downloads .btn-video,
+.dex-sidebar #downloads .btn-download {
   width: 100% !important;
   min-width: 0;
   margin: 0 !important;
 }
 
+.dex-sidebar #downloads .dx-download-inline {
+  grid-column: 1 / -1;
+}
+
 .dex-sidebar #downloads .btn-recording-index {
-  position: relative;
-  overflow: hidden;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2, 0.5rem);
   width: 100% !important;
   min-width: 0;
-  padding: 0.56rem 0.75rem !important;
-  border-radius: 4px !important;
-  border: 1px solid rgba(0, 0, 0, 0.22) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(245, 245, 245, 0.92)) !important;
-  color: rgba(30, 30, 30, 0.88) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
-  font: 800 clamp(14px, 1.1vw, 20px) var(--font-heading, "Stretch Pro", sans-serif) !important;
-  line-height: 1 !important;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.34) inset, 0 8px 20px rgba(0,0,0,0.09) !important;
-}
-.dex-sidebar #downloads .btn-recording-index:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(0,0,0,0.14) !important;
-}
-.dex-sidebar #downloads .btn-recording-index:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.35) inset, 0 0 0 4px rgba(90, 90, 90, 0.25), 0 10px 20px rgba(0,0,0,0.12) !important;
+  margin: 0 !important;
+  justify-self: stretch !important;
 }
 
 @media (max-width: 570px) {
@@ -3350,7 +3345,8 @@ border: 0;
   .dex-sidebar .dex-license-controls .copy-btn,
   .dex-sidebar .dex-license-controls .usage-btn,
   .dex-sidebar #downloads .btn-audio,
-  .dex-sidebar #downloads .btn-video {
+  .dex-sidebar #downloads .btn-video,
+  .dex-sidebar #downloads .btn-download {
     transition: transform 0.16s var(--dex-ease-smooth, cubic-bezier(0.2, 0.7, 0.2, 1)), box-shadow 0.22s var(--dex-ease-smooth, cubic-bezier(0.2, 0.7, 0.2, 1));
   }
 }
@@ -3358,7 +3354,8 @@ border: 0;
 .dex-sidebar .dex-license-controls .copy-btn:hover,
 .dex-sidebar .dex-license-controls .usage-btn:hover,
 .dex-sidebar #downloads .btn-audio:hover,
-.dex-sidebar #downloads .btn-video:hover {
+.dex-sidebar #downloads .btn-video:hover,
+.dex-sidebar #downloads .btn-download:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 36px rgba(255, 0, 80, 0.28) !important;
 }
@@ -3367,7 +3364,8 @@ border: 0;
   .dex-sidebar .dex-license-controls .copy-btn::after,
   .dex-sidebar .dex-license-controls .usage-btn::after,
   .dex-sidebar #downloads .btn-audio::after,
-  .dex-sidebar #downloads .btn-video::after {
+  .dex-sidebar #downloads .btn-video::after,
+  .dex-sidebar #downloads .btn-download::after {
     content: "";
     position: absolute;
     inset: -2px;
@@ -3380,10 +3378,12 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn:hover::after,
   .dex-sidebar #downloads .btn-audio:hover::after,
   .dex-sidebar #downloads .btn-video:hover::after,
+  .dex-sidebar #downloads .btn-download:hover::after,
   .dex-sidebar .dex-license-controls .copy-btn:focus-visible::after,
   .dex-sidebar .dex-license-controls .usage-btn:focus-visible::after,
   .dex-sidebar #downloads .btn-audio:focus-visible::after,
-  .dex-sidebar #downloads .btn-video:focus-visible::after {
+  .dex-sidebar #downloads .btn-video:focus-visible::after,
+  .dex-sidebar #downloads .btn-download:focus-visible::after {
     animation: dex-sidebar-primary-glint 1.1s var(--dex-ease-smooth, cubic-bezier(0.2, 0.7, 0.2, 1)) both;
   }
 }
@@ -3391,7 +3391,8 @@ border: 0;
 .dex-sidebar .dex-license-controls .copy-btn:focus-visible,
 .dex-sidebar .dex-license-controls .usage-btn:focus-visible,
 .dex-sidebar #downloads .btn-audio:focus-visible,
-.dex-sidebar #downloads .btn-video:focus-visible {
+.dex-sidebar #downloads .btn-video:focus-visible,
+.dex-sidebar #downloads .btn-download:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) inset, 0 0 0 4px rgba(255, 25, 16, 0.25), 0 10px 30px rgba(255, 0, 80, 0.25) !important;
 }
@@ -3407,6 +3408,7 @@ border: 0;
 .dex-sidebar .dex-license-controls .usage-btn,
 .dex-sidebar #downloads .btn-audio,
 .dex-sidebar #downloads .btn-video,
+.dex-sidebar #downloads .btn-download,
 #dex-submit .cta-btn,
 #dex-msg .cta-btn,
 #dex-favorites .cta-btn,
@@ -3474,6 +3476,7 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn,
   .dex-sidebar #downloads .btn-audio,
   .dex-sidebar #downloads .btn-video,
+  .dex-sidebar #downloads .btn-download,
   #dex-submit .cta-btn,
   #dex-msg .cta-btn,
   #dex-favorites .cta-btn,
@@ -3487,6 +3490,7 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn:hover,
   .dex-sidebar #downloads .btn-audio:hover,
   .dex-sidebar #downloads .btn-video:hover,
+  .dex-sidebar #downloads .btn-download:hover,
   #dex-submit .cta-btn:hover,
   #dex-msg .cta-btn:hover,
   #dex-favorites .cta-btn:hover,
@@ -3500,6 +3504,7 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn:hover,
   .dex-sidebar #downloads .btn-audio:hover,
   .dex-sidebar #downloads .btn-video:hover,
+  .dex-sidebar #downloads .btn-download:hover,
   #dex-submit .cta-btn:hover,
   #dex-msg .cta-btn:hover,
   #dex-favorites .cta-btn:hover,
@@ -3514,6 +3519,7 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn::after,
   .dex-sidebar #downloads .btn-audio::after,
   .dex-sidebar #downloads .btn-video::after,
+  .dex-sidebar #downloads .btn-download::after,
   #dex-submit .cta-btn::after,
   #dex-msg .cta-btn::after,
   #dex-favorites .cta-btn::after,
@@ -3531,10 +3537,12 @@ border: 0;
   .dex-sidebar .dex-license-controls .usage-btn:hover::after,
   .dex-sidebar #downloads .btn-audio:hover::after,
   .dex-sidebar #downloads .btn-video:hover::after,
+  .dex-sidebar #downloads .btn-download:hover::after,
   .dex-sidebar .dex-license-controls .copy-btn:focus-visible::after,
   .dex-sidebar .dex-license-controls .usage-btn:focus-visible::after,
   .dex-sidebar #downloads .btn-audio:focus-visible::after,
   .dex-sidebar #downloads .btn-video:focus-visible::after,
+  .dex-sidebar #downloads .btn-download:focus-visible::after,
   #dex-submit .cta-btn:hover::after,
   #dex-submit .cta-btn:focus-visible::after,
   #dex-msg .cta-btn:hover::after,
@@ -3553,6 +3561,7 @@ border: 0;
 .dex-sidebar .dex-license-controls .usage-btn:focus-visible,
 .dex-sidebar #downloads .btn-audio:focus-visible,
 .dex-sidebar #downloads .btn-video:focus-visible,
+.dex-sidebar #downloads .btn-download:focus-visible,
 #dex-submit .cta-btn:focus-visible,
 #dex-msg .cta-btn:focus-visible,
 #dex-favorites .cta-btn:focus-visible,
@@ -4398,5 +4407,142 @@ body.dx-entry-page .person-popup.person-popup--dx .person-popup-link:focus-visib
   body.dx-entry-page .person-popup.person-popup--dx::after {
     animation: none !important;
     transform: none !important;
+  }
+}
+/* Bag route */
+#dex-bag {
+  width: min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)));
+  margin: clamp(14px, 2.2vw, 26px) auto;
+  min-height: min(72vh, 920px);
+}
+#dex-bag .dx-bag-shell {
+  display: grid;
+  gap: clamp(12px, 1.6vw, 18px);
+  padding: clamp(14px, 2.1vw, 24px);
+  border-radius: var(--dx-radius-lg, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: var(--dx-header-glass-bg, linear-gradient(120deg, rgba(221, 230, 240, 0.34) 0%, rgba(191, 208, 224, 0.24) 55%, rgba(232, 210, 203, 0.24) 100%));
+  box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32));
+  backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+}
+#dex-bag .dx-bag-head {
+  display: grid;
+  gap: 0.35rem;
+}
+#dex-bag .dx-bag-head h1 {
+  margin: 0;
+  font-family: var(--dx-font-heading, var(--heading-font-family, "BC Alphapipe"));
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+}
+#dex-bag .dx-bag-note {
+  margin: 0;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: clamp(0.88rem, 1.5vw, 1.02rem);
+  line-height: 1.45;
+  color: rgba(13, 20, 32, 0.82);
+}
+#dex-bag .dx-bag-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: var(--dx-radius-md, 10px);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.42);
+}
+#dex-bag .dx-bag-stats {
+  display: inline-flex;
+  gap: 0.62rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.92rem;
+}
+#dex-bag .dx-bag-stats strong {
+  font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
+}
+#dex-bag .dx-bag-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.46rem;
+  flex-wrap: wrap;
+}
+#dex-bag .dx-bag-list {
+  display: grid;
+  gap: 0.7rem;
+}
+#dex-bag .dx-bag-card {
+  border-radius: var(--dx-radius-md, 10px);
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.48);
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.56rem;
+}
+#dex-bag .dx-bag-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+#dex-bag .dx-bag-card-head h3 {
+  margin: 0;
+  font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
+  font-size: clamp(1.12rem, 2vw, 1.5rem);
+  line-height: 0.96;
+  letter-spacing: 0.01em;
+}
+#dex-bag .dx-bag-card-head p {
+  margin: 0;
+  font-size: 0.82rem;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  color: rgba(14, 24, 40, 0.68);
+}
+#dex-bag .dx-bag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+}
+#dex-bag .dx-bag-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(20, 26, 36, 0.18);
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(16, 22, 30, 0.88);
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.8rem;
+  line-height: 1.25;
+  padding: 0.33rem 0.56rem;
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.18s ease;
+}
+#dex-bag .dx-bag-chip:hover,
+#dex-bag .dx-bag-chip:focus-visible {
+  background: rgba(255, 255, 255, 0.93);
+  transform: translateY(-1px);
+}
+#dex-bag .dx-bag-chip:focus-visible {
+  outline: 2px solid rgba(14, 21, 32, 0.4);
+  outline-offset: 2px;
+}
+#dex-bag .dx-bag-status {
+  margin: 0;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.82rem;
+  color: rgba(14, 20, 32, 0.75);
+}
+@media (max-width: 720px) {
+  #dex-bag .dx-bag-summary {
+    align-items: flex-start;
+  }
+  #dex-bag .dx-bag-actions {
+    width: 100%;
   }
 }

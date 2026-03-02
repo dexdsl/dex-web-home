@@ -142,6 +142,14 @@ const SYNC_MAP = [
     targets: ['assets/js/dx-favorites.js', 'docs/assets/js/dx-favorites.js'],
   },
   {
+    source: 'public/assets/js/dx-bag.js',
+    targets: ['assets/js/dx-bag.js', 'docs/assets/js/dx-bag.js'],
+  },
+  {
+    source: 'public/assets/js/bag.app.js',
+    targets: ['assets/js/bag.app.js', 'docs/assets/js/bag.app.js'],
+  },
+  {
     source: 'public/assets/js/call.editorial.js',
     targets: ['assets/js/call.editorial.js', 'docs/assets/js/call.editorial.js'],
   },
