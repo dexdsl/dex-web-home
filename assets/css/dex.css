@@ -4155,6 +4155,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-collection
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
   position: relative !important;
   cursor: help !important;
+  pointer-events: auto !important;
   overflow: visible !important;
   isolation: isolate !important;
   transform: translate3d(0, 0, 0) scale(1) !important;
@@ -4165,6 +4166,10 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
     opacity 180ms ease,
     filter 200ms ease,
     box-shadow 220ms ease !important;
+}
+
+body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] .dx-bucket-label {
+  pointer-events: none !important;
 }
 
 body.dx-entry-page .dex-collections .overview-buckets-grid {

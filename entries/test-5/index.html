@@ -976,6 +976,7 @@ body.dx-entry-page .dex-collections .dx-bucket-tile {
 body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
   position: relative !important;
   cursor: help !important;
+  pointer-events: auto !important;
   overflow: visible !important;
   isolation: isolate !important;
   transform: translate3d(0, 0, 0) scale(1) !important;
@@ -986,6 +987,9 @@ body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] {
     opacity 180ms ease,
     filter 200ms ease,
     box-shadow 220ms ease !important;
+}
+body.dx-entry-page .dex-collections .dx-bucket-tile[data-dx-tooltip] .dx-bucket-label {
+  pointer-events: none !important;
 }
 body.dx-entry-page .dex-collections .overview-buckets-grid {
   overflow: visible !important;
@@ -2919,6 +2923,68 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
     "recordingIndexPdfRef": "asset:tim-feeney-recording-index-pdf",
     "recordingIndexBundleRef": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
     "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0"
+  },
+  "bucketFileStats": {
+    "A": {
+      "audio": {
+        "mp3": 1,
+        "wav": 1
+      },
+      "video": {
+        "1080p": 1,
+        "4K": 1
+      }
+    },
+    "B": {
+      "audio": {
+        "mp3": 7,
+        "wav": 7
+      },
+      "video": {
+        "1080p": 7,
+        "4K": 7
+      }
+    },
+    "C": {
+      "audio": {
+        "mp3": 36,
+        "wav": 36
+      },
+      "video": {
+        "1080p": 36,
+        "4K": 36
+      }
+    },
+    "D": {
+      "audio": {
+        "mp3": 0,
+        "wav": 0
+      },
+      "video": {
+        "1080p": 0,
+        "4K": 0
+      }
+    },
+    "E": {
+      "audio": {
+        "mp3": 0,
+        "wav": 0
+      },
+      "video": {
+        "1080p": 0,
+        "4K": 0
+      }
+    },
+    "X": {
+      "audio": {
+        "mp3": 0,
+        "wav": 0
+      },
+      "video": {
+        "1080p": 0,
+        "4K": 0
+      }
+    }
   }
 }
 </script><script id="dex-sidebar-page-config-bridge">window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');</script>

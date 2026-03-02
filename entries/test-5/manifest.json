@@ -1,20 +1,20 @@
 {
   "audio": {
     "A": {
-      "mp3": "example.com",
-      "wav": ""
+      "mp3": "bundle:lookup:P.Pto. Fe AV2024 S2:A:audio",
+      "wav": "bundle:lookup:P.Pto. Fe AV2024 S2:A:audio"
     },
     "B": {
-      "mp3": "",
-      "wav": ""
+      "mp3": "bundle:lookup:P.Pto. Fe AV2024 S2:B:audio",
+      "wav": "bundle:lookup:P.Pto. Fe AV2024 S2:B:audio"
     },
     "C": {
-      "mp3": "",
-      "wav": ""
+      "mp3": "bundle:lookup:P.Pto. Fe AV2024 S2:C:audio",
+      "wav": "bundle:lookup:P.Pto. Fe AV2024 S2:C:audio"
     },
     "D": {
       "mp3": "",
-      "wav": "example.com"
+      "wav": ""
     },
     "E": {
       "mp3": "",
@@ -27,16 +27,16 @@
   },
   "video": {
     "A": {
-      "1080p": "",
-      "4K": ""
+      "1080p": "bundle:lookup:P.Pto. Fe AV2024 S2:A:video",
+      "4K": "bundle:lookup:P.Pto. Fe AV2024 S2:A:video"
     },
     "B": {
-      "1080p": "",
-      "4K": ""
+      "1080p": "bundle:lookup:P.Pto. Fe AV2024 S2:B:video",
+      "4K": "bundle:lookup:P.Pto. Fe AV2024 S2:B:video"
     },
     "C": {
-      "1080p": "",
-      "4K": ""
+      "1080p": "bundle:lookup:P.Pto. Fe AV2024 S2:C:video",
+      "4K": "bundle:lookup:P.Pto. Fe AV2024 S2:C:video"
     },
     "D": {
       "1080p": "",

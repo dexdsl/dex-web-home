@@ -128,6 +128,73 @@
       "tags": [
         "ambient"
       ]
+    },
+    "downloads": {
+      "recordingIndexPdfRef": "asset:tim-feeney-recording-index-pdf",
+      "recordingIndexBundleRef": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
+      "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0"
+    },
+    "bucketFileStats": {
+      "A": {
+        "audio": {
+          "mp3": 1,
+          "wav": 1
+        },
+        "video": {
+          "1080p": 1,
+          "4K": 1
+        }
+      },
+      "B": {
+        "audio": {
+          "mp3": 7,
+          "wav": 7
+        },
+        "video": {
+          "1080p": 7,
+          "4K": 7
+        }
+      },
+      "C": {
+        "audio": {
+          "mp3": 36,
+          "wav": 36
+        },
+        "video": {
+          "1080p": 36,
+          "4K": 36
+        }
+      },
+      "D": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      },
+      "E": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      },
+      "X": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      }
     }
   }
 }
