@@ -15,7 +15,7 @@
   const BREADCRUMB_FALLBACK_HREF = '/catalog/';
   const RECEIPT_VISIBLE_LIMIT = 8;
   const MESH_RUNTIME_KEY = '__dxBagMeshRuntime';
-  const CATALOG_ENTRIES_ENDPOINT = '/data/catalog.entries.json';
+  const CATALOG_ENTRIES_ENDPOINTS = ['/assets/data/catalog.entries.json', '/data/catalog.entries.json'];
   const BAG_DESCRIPTION_COPY = 'Review queued selections across entries, adjust scope, and export one merged download bundle.';
   const BAG_SIGNED_IN_PREFIX = 'Signed in as';
 
@@ -244,35 +244,40 @@
   }
 
   async function requestCatalogEntriesIndex() {
-    const ctrl = new AbortController();
-    const timer = window.setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const response = await fetch(CATALOG_ENTRIES_ENDPOINT, {
-        method: 'GET',
-        headers: { accept: 'application/json,*/*;q=0.9' },
-        credentials: 'same-origin',
-        signal: ctrl.signal,
-      });
-      if (!response.ok) return { byLookup: new Map(), byEntryHref: new Map() };
-      const payload = await response.json().catch(() => null);
-      const rows = Array.isArray(payload?.entries) ? payload.entries : (Array.isArray(payload) ? payload : []);
-      const byLookup = new Map();
-      const byEntryHref = new Map();
+    const byLookup = new Map();
+    const byEntryHref = new Map();
+    const endpoints = Array.isArray(CATALOG_ENTRIES_ENDPOINTS) ? CATALOG_ENTRIES_ENDPOINTS : [];
 
-      rows.forEach((row) => {
-        const lookupKey = normalizeLookupKey(row?.lookup_raw || row?.lookup || '');
-        const entryHref = normalizePath(row?.entry_href || row?.entryHref || row?.href || '');
-        const imageSrc = toAbsoluteUrl(row?.image_src || row?.imageSrc || '', window.location.origin);
-        if (lookupKey && imageSrc && !byLookup.has(lookupKey)) byLookup.set(lookupKey, imageSrc);
-        if (entryHref && imageSrc && !byEntryHref.has(entryHref)) byEntryHref.set(entryHref, imageSrc);
-      });
-
-      return { byLookup, byEntryHref };
-    } catch {
-      return { byLookup: new Map(), byEntryHref: new Map() };
-    } finally {
-      window.clearTimeout(timer);
+    for (const endpoint of endpoints) {
+      const safeEndpoint = toText(endpoint).trim();
+      if (!safeEndpoint) continue;
+      const ctrl = new AbortController();
+      const timer = window.setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const response = await fetch(safeEndpoint, {
+          method: 'GET',
+          headers: { accept: 'application/json,*/*;q=0.9' },
+          credentials: 'same-origin',
+          signal: ctrl.signal,
+        });
+        if (!response.ok) continue;
+        const payload = await response.json().catch(() => null);
+        const rows = Array.isArray(payload?.entries) ? payload.entries : (Array.isArray(payload) ? payload : []);
+        rows.forEach((row) => {
+          const lookupKey = normalizeLookupKey(row?.lookup_raw || row?.lookup || '');
+          const entryHref = normalizePath(row?.entry_href || row?.entryHref || row?.href || '');
+          const imageSrc = toAbsoluteUrl(row?.image_src || row?.imageSrc || '', window.location.origin);
+          if (lookupKey && imageSrc && !byLookup.has(lookupKey)) byLookup.set(lookupKey, imageSrc);
+          if (entryHref && imageSrc && !byEntryHref.has(entryHref)) byEntryHref.set(entryHref, imageSrc);
+        });
+        if (byLookup.size || byEntryHref.size) return { byLookup, byEntryHref };
+      } catch {
+      } finally {
+        window.clearTimeout(timer);
+      }
     }
+
+    return { byLookup, byEntryHref };
   }
 
   function resolveCatalogThumbnail(index, lookup = '', entryHref = '') {

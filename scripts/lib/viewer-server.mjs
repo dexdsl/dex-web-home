@@ -45,6 +45,7 @@ const KNOWN_OUTPUT_DIRS = ['entries'];
 const LOCAL_ASSET_ROOTS = [path.join('public', 'assets'), 'assets', path.join('docs', 'assets')];
 const LOCAL_CSS_ROOTS = [path.join('public', 'css'), 'css', path.join('docs', 'css')];
 const LOCAL_STATIC_ROOTS = [path.join('public', 'static'), 'static', path.join('docs', 'static')];
+const LOCAL_DATA_ROOTS = [path.join('public', 'data'), 'data', path.join('docs', 'data')];
 const BREADCRUMB_RUNTIME_PATH = '/assets/js/dex-breadcrumb-motion.js';
 const BREADCRUMB_RUNTIME_URLS = [
   'https://dexdsl.github.io/assets/js/dex-breadcrumb-motion.js',
@@ -546,6 +547,26 @@ export async function startViewer({
           return;
         }
         send(res, 200, body, contentTypeFor(staticPath));
+        return;
+      }
+
+      if (method === 'GET' && pathname.startsWith('/data/')) {
+        const dataPath = await resolveViewerStaticPath(cwd, pathname, {
+          prefix: '/data/',
+          roots: LOCAL_DATA_ROOTS,
+        });
+        if (!dataPath) {
+          send(res, 404, 'Not found');
+          return;
+        }
+        let body;
+        try {
+          body = await fs.readFile(dataPath);
+        } catch {
+          send(res, 404, 'Not found');
+          return;
+        }
+        send(res, 200, body, contentTypeFor(dataPath));
         return;
       }
 
