@@ -57,6 +57,7 @@
   let overviewLookupFitBound = false;
   let overviewLookupResizeObserver = null;
   let activeEntryTooltipMetricsObserver = null;
+  let entryPageTitleSeparatorObserver = null;
 
   const normalizeBuckets = (pageBuckets) => (Array.isArray(pageBuckets) ? pageBuckets : []);
 
@@ -913,6 +914,77 @@
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
   const injectCollectionZwnj = (value) => String(value == null ? '' : value).replace(/(L)(L)/i, '$1\u200C$2');
+  const addNaturalDuplicateSeparators = (value) => {
+    const source = String(value == null ? '' : value);
+    let output = '';
+    for (let i = 0; i < source.length; i += 1) {
+      const current = source.charAt(i);
+      const next = source.charAt(i + 1);
+      output += current;
+      if (!next) continue;
+      if (current === '\u200C' || current === '\u200D' || next === '\u200C' || next === '\u200D') continue;
+      const isAlphaPair = current.toLowerCase() !== current.toUpperCase()
+        && next.toLowerCase() !== next.toUpperCase();
+      if (!isAlphaPair) continue;
+      if (current.toLowerCase() !== next.toLowerCase()) continue;
+      output += '\u200C';
+    }
+    return output;
+  };
+  const clearEntryPageTitleSeparatorWatcher = () => {
+    if (!(entryPageTitleSeparatorObserver instanceof MutationObserver)) return;
+    try {
+      entryPageTitleSeparatorObserver.disconnect();
+    } catch {}
+    entryPageTitleSeparatorObserver = null;
+  };
+  const normalizeEntryPageTitleSeparators = (scope = document) => {
+    if (!(scope instanceof Document || scope instanceof HTMLElement)) return;
+    const titles = scope.querySelectorAll('[data-dex-entry-page-title], .dex-entry-page-title');
+    titles.forEach((titleNode) => {
+      if (!(titleNode instanceof HTMLElement)) return;
+      const raw = String(titleNode.textContent || '');
+      if (!raw) return;
+      const normalized = addNaturalDuplicateSeparators(raw);
+      if (normalized !== raw) titleNode.textContent = normalized;
+    });
+  };
+  const bindEntryPageTitleSeparatorWatcher = (scope = document) => {
+    if (!(scope instanceof Document || scope instanceof HTMLElement)) return;
+    clearEntryPageTitleSeparatorWatcher();
+
+    const applyNow = () => normalizeEntryPageTitleSeparators(scope instanceof Document ? scope : document);
+    applyNow();
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(applyNow);
+    } else {
+      window.setTimeout(applyNow, 0);
+    }
+    window.setTimeout(applyNow, 60);
+
+    if (typeof MutationObserver !== 'function') return;
+    const observer = new MutationObserver(() => {
+      applyNow();
+    });
+
+    const titleTargets = Array.from(
+      (scope instanceof Document ? scope : document).querySelectorAll('[data-dex-entry-page-title], .dex-entry-page-title'),
+    ).filter((node) => node instanceof HTMLElement);
+
+    if (titleTargets.length) {
+      titleTargets.forEach((node) => {
+        observer.observe(node, { childList: true, characterData: true, subtree: true });
+      });
+    }
+
+    const header = (scope instanceof Document ? scope : document).querySelector('.dex-entry-header');
+    if (header instanceof HTMLElement) {
+      observer.observe(header, { childList: true, subtree: true });
+    } else if ((scope instanceof Document ? scope.body : scope) instanceof HTMLElement) {
+      observer.observe((scope instanceof Document ? scope.body : scope), { childList: true, subtree: true });
+    }
+    entryPageTitleSeparatorObserver = observer;
+  };
   const addZeroWidthJoiners = (value) => {
     const cleaned = String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
     let output = '';
@@ -2763,6 +2835,7 @@
 
   const boot = async () => {
     if (document.documentElement.dataset.dexSidebarRendered === '1') return;
+    bindEntryPageTitleSeparatorWatcher(document);
     const fetchTargets = collectEntryFetchTargets();
     ensureEntryFetchShells(fetchTargets);
     bindHeaderFetchLifecycle(fetchTargets);
