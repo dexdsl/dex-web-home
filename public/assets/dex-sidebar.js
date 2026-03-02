@@ -9,8 +9,8 @@
   const FAVORITES_TOAST_ROOT_ID = 'dx-favorites-toast-root';
   const FAVORITES_TOAST_ID = 'dx-favorites-toast';
   const HEART_SVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 dx-fav-heart-svg" aria-hidden="true">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="dx-fav-heart-svg" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
     </svg>
   `.trim();
   let favoritesRuntimePromise = null;
@@ -22,7 +22,7 @@
   let entryRailFooterMutationObserver = null;
   let entryRailObservedFooter = null;
   const ENTRY_RAIL_BREAKPOINT = 960;
-  const COLLECTION_HEADING_CANONICAL = 'COLLECTION';
+  const COLLECTION_HEADING_CANONICAL = 'COL\u200CLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
   const DX_MIN_SHEEN_MS = 120;
@@ -817,6 +817,7 @@
   };
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
+  const injectCollectionZwnj = (value) => String(value == null ? '' : value).replace(/(L)(L)/i, '$1\u200C$2');
   const addZeroWidthJoiners = (value) => {
     const cleaned = String(value == null ? '' : value).replace(/[\u200C\u200D]/g, '');
     let output = '';
@@ -1655,27 +1656,30 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 1rem;
-        height: 1rem;
+        width: 1.1rem;
+        height: 1.1rem;
         pointer-events: none;
       }
 
       .dx-fav-heart-btn .dx-fav-heart-svg {
-        width: 1rem;
-        height: 1rem;
+        width: 1.1rem;
+        height: 1.1rem;
         stroke: currentColor;
+        filter: drop-shadow(0 0 0.25px rgba(0, 0, 0, 0.25));
       }
 
       .dx-fav-heart-btn .dx-fav-heart-svg path {
+        stroke-width: 1.8;
         fill: transparent;
         transition: fill 160ms ease, stroke 160ms ease;
       }
 
       .dx-fav-heart-btn .dx-fav-heart-chip {
-        font-family: "Courier Prime", monospace;
-        font-size: 0.66rem;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
+        font-family: var(--font-heading, "Typefesse", sans-serif);
+        font-size: 0.76rem;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        line-height: 1;
         font-weight: 700;
       }
 
@@ -1843,7 +1847,9 @@
     if (button.dataset.dxFavUiReady === '1') return;
     button.dataset.dxFavUiReady = '1';
     button.classList.add('dx-fav-heart-btn');
-    const chip = String(button.getAttribute('data-dx-fav-chip') || '').trim().toUpperCase();
+    const chipRaw = String(button.getAttribute('data-dx-fav-chip') || '').trim();
+    const chipCase = String(button.getAttribute('data-dx-fav-chip-case') || '').trim().toLowerCase();
+    const chip = chipCase === 'upper' ? chipRaw.toUpperCase() : chipRaw;
     button.innerHTML = `
       <span class="dx-fav-heart-icon">${HEART_SVG}</span>
       ${chip ? `<span class="dx-fav-heart-chip">${chip}</span>` : ''}
@@ -2761,13 +2767,15 @@
               class="dx-button-element--secondary dx-fav-toggle dx-fav-bucket-toggle"
               data-bucket="${bucket}"
               data-dx-fav-chip="${bucket}"
+              data-dx-fav-chip-case="upper"
               aria-label="Add bucket ${bucket} to favorites"
               title="Add bucket ${bucket} to favorites"
             ></button>
           `)
           .join('');
+        const lookupChip = escapeHtml(lookup);
         collectionsEl.innerHTML = `
-          <h3 data-dx-entry-heading="1">${randomizeTitle(COLLECTION_HEADING_CANONICAL, { uppercase: false, seedKey: `${window.location.pathname || '/'}|collection` })}</h3>
+          <h3 data-dx-entry-heading="1">${injectCollectionZwnj(randomizeTitle(COLLECTION_HEADING_CANONICAL, { uppercase: false, seedKey: `${window.location.pathname || '/'}|collection` }))}</h3>
           <div class="overview-item overview-item--buckets">
             <p class="p3 overview-label">Available Buckets</p>
             <div class="overview-buckets-grid">${badgesHtml}</div>
@@ -2777,6 +2785,7 @@
             <button
               type="button"
               class="dx-button-element--primary dx-fav-toggle dx-fav-entry-toggle"
+              data-dx-fav-chip="${lookupChip}"
               aria-label="Add entry to favorites"
               title="Add entry to favorites"
             ></button>
@@ -2805,6 +2814,12 @@
               active: `Favorited ${bucket}`,
               inactive: `Favorite ${bucket}`,
             });
+          });
+        } else {
+          const entryFavButton = collectionsEl.querySelector('.dx-fav-entry-toggle');
+          if (entryFavButton) ensureFavoriteButtonContent(entryFavButton);
+          collectionsEl.querySelectorAll('.dx-fav-bucket-toggle').forEach((bucketButton) => {
+            ensureFavoriteButtonContent(bucketButton);
           });
         }
         await markTargetReady(fetchTargets, 'collections');
