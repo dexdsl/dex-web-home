@@ -42,6 +42,7 @@
     '/entry/pressroom',
     '/entry/settings',
     '/entry/achievements',
+    '/entry/bag',
   ]);
   const PROFILE_STANDARD_CHROME_ROUTES = new Set([
     '/entry/messages/submission',
@@ -53,6 +54,7 @@
     '/entry/messages',
     '/entry/messages/submission',
     '/entry/pressroom',
+    '/entry/bag',
   ]);
 
   const PRESERVED_IDS = new Set(['gooey-mesh-wrapper', 'scroll-gradient-bg', SLOT_SCROLL_ID, SLOT_FOREGROUND_ID]);

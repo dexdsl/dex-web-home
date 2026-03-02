@@ -2942,7 +2942,7 @@
       }
 
       const heading = document.createElement('h4');
-      heading.textContent = randomizeTitle('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
+      heading.textContent = randomizeTitleWithJoiners('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
       heading.style.margin = '0';
       heading.style.fontFamily = '"Typefesse", sans-serif';
       heading.style.letterSpacing = '0.02em';
@@ -3292,25 +3292,22 @@
       document.addEventListener('keydown', onKeyDown);
 
       renderTree();
-      setModalStatus('idle', 'Select scopes, add to bag, or download now.');
+      setModalStatus('idle', '');
 
       try {
         const token = await getAccessToken();
-        if (!token) {
-          setModalStatus('idle', 'Per-file selection unavailable. Using bucket-level selection.');
-          return;
-        }
+        if (!token) return;
         const payload = await requestAssetsJson({
           path: `/me/assets/${encodeURIComponent(lookup)}`,
           method: 'GET',
         });
         downloadTree = buildInventoryDownloadTree(cfg, lookup, payload);
         renderTree();
-        setModalStatus('ready', 'Per-file selection ready.');
+        setModalStatus('idle', '');
       } catch (error) {
         const code = String(error?.code || '').toLowerCase();
         if (code === 'forbidden') {
-          setModalStatus('idle', 'Per-file selection unavailable. Using bucket-level selection.');
+          setModalStatus('idle', '');
         } else {
           setModalStatus('error', 'Unable to load file tree. Using bucket-level fallback.');
         }

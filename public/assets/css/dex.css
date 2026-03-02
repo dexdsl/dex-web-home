@@ -4415,9 +4415,10 @@ body.dx-entry-page .person-popup.person-popup--dx .person-popup-link:focus-visib
   margin: clamp(14px, 2.2vw, 26px) auto;
   min-height: min(72vh, 920px);
 }
+
 #dex-bag .dx-bag-shell {
   display: grid;
-  gap: clamp(12px, 1.6vw, 18px);
+  gap: clamp(14px, 1.8vw, 22px);
   padding: clamp(14px, 2.1vw, 24px);
   border-radius: var(--dx-radius-lg, 12px);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -4426,123 +4427,225 @@ body.dx-entry-page .person-popup.person-popup--dx .person-popup-link:focus-visib
   backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
   -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
 }
+
 #dex-bag .dx-bag-head {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.44rem;
 }
+
+#dex-bag .dx-bag-breadcrumb {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: clamp(0.88rem, 1.3vw, 1rem);
+  letter-spacing: 0.015em;
+  color: rgba(16, 20, 28, 0.76);
+}
+
+#dex-bag .dx-bag-breadcrumb a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+}
+
 #dex-bag .dx-bag-head h1 {
   margin: 0;
   font-family: var(--dx-font-heading, var(--heading-font-family, "BC Alphapipe"));
-  font-size: clamp(2rem, 4.4vw, 3.4rem);
+  font-size: clamp(2rem, 4.2vw, 3.36rem);
   line-height: 0.92;
   letter-spacing: 0.01em;
 }
+
 #dex-bag .dx-bag-note {
   margin: 0;
   font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
-  font-size: clamp(0.88rem, 1.5vw, 1.02rem);
+  font-size: clamp(0.9rem, 1.4vw, 1.02rem);
   line-height: 1.45;
   color: rgba(13, 20, 32, 0.82);
 }
-#dex-bag .dx-bag-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  padding: 0.72rem 0.8rem;
-  border-radius: var(--dx-radius-md, 10px);
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.42);
+
+#dex-bag .dx-bag-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: clamp(12px, 1.8vw, 20px);
+  align-items: start;
 }
-#dex-bag .dx-bag-stats {
-  display: inline-flex;
-  gap: 0.62rem;
-  align-items: center;
-  flex-wrap: wrap;
-  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
-  font-size: 0.92rem;
-}
-#dex-bag .dx-bag-stats strong {
-  font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
-}
-#dex-bag .dx-bag-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.46rem;
-  flex-wrap: wrap;
-}
+
 #dex-bag .dx-bag-list {
   display: grid;
-  gap: 0.7rem;
+  gap: clamp(10px, 1.5vw, 14px);
 }
+
 #dex-bag .dx-bag-card {
   border-radius: var(--dx-radius-md, 10px);
   border: 1px solid rgba(255, 255, 255, 0.44);
-  background: rgba(255, 255, 255, 0.48);
-  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  padding: clamp(12px, 1.4vw, 16px);
   display: grid;
-  gap: 0.56rem;
+  gap: 0.66rem;
 }
+
 #dex-bag .dx-bag-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 0.55rem;
+  align-items: flex-start;
+  gap: 0.7rem;
 }
-#dex-bag .dx-bag-card-head h3 {
+
+#dex-bag .dx-bag-card-ident {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+#dex-bag .dx-bag-card-ident h3 {
   margin: 0;
   font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
-  font-size: clamp(1.12rem, 2vw, 1.5rem);
-  line-height: 0.96;
+  font-size: clamp(1.08rem, 1.8vw, 1.36rem);
+  line-height: 0.98;
   letter-spacing: 0.01em;
 }
-#dex-bag .dx-bag-card-head p {
+
+#dex-bag .dx-bag-card-ident p {
   margin: 0;
-  font-size: 0.82rem;
   font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.82rem;
   color: rgba(14, 24, 40, 0.68);
 }
-#dex-bag .dx-bag-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.46rem;
-}
-#dex-bag .dx-bag-chip {
-  border-radius: 999px;
-  border: 1px solid rgba(20, 26, 36, 0.18);
-  background: rgba(255, 255, 255, 0.76);
-  color: rgba(16, 22, 30, 0.88);
-  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
-  font-size: 0.8rem;
-  line-height: 1.25;
-  padding: 0.33rem 0.56rem;
+
+#dex-bag .dx-bag-card-controls {
   display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.44rem;
+  justify-content: flex-end;
+}
+
+#dex-bag .dx-bag-scope {
+  margin: 0;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 1rem;
+  line-height: 1.42;
+  color: rgba(18, 22, 30, 0.93);
+}
+
+#dex-bag .dx-bag-count {
+  margin: 0;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.84rem;
+  line-height: 1.32;
+  color: rgba(18, 24, 35, 0.72);
+}
+
+#dex-bag .dx-bag-receipt {
+  margin: 0;
+  padding: 0.66rem 0.8rem;
+  list-style: decimal;
+  list-style-position: outside;
+  padding-left: 1.7rem;
+  border-radius: var(--dx-radius-sm, 8px);
+  border: 1px solid rgba(18, 23, 34, 0.16);
+  background: rgba(255, 255, 255, 0.74);
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(17, 22, 31, 0.92);
+}
+
+#dex-bag .dx-bag-receipt li + li {
+  margin-top: 0.12rem;
+}
+
+#dex-bag .dx-bag-receipt-toggle {
+  justify-self: start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: rgba(16, 23, 33, 0.78);
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.14em;
   cursor: pointer;
-  transition: transform 0.12s ease, background-color 0.18s ease;
 }
-#dex-bag .dx-bag-chip:hover,
-#dex-bag .dx-bag-chip:focus-visible {
-  background: rgba(255, 255, 255, 0.93);
-  transform: translateY(-1px);
+
+#dex-bag .dx-bag-receipt-toggle:hover,
+#dex-bag .dx-bag-receipt-toggle:focus-visible {
+  color: rgba(16, 23, 33, 0.98);
 }
-#dex-bag .dx-bag-chip:focus-visible {
-  outline: 2px solid rgba(14, 21, 32, 0.4);
-  outline-offset: 2px;
+
+#dex-bag .dx-bag-summary {
+  position: sticky;
+  top: clamp(10px, 1.8vw, 20px);
+  display: grid;
+  gap: 0.72rem;
+  padding: clamp(12px, 1.3vw, 16px);
+  border-radius: var(--dx-radius-md, 10px);
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 14px 26px rgba(14, 20, 30, 0.14);
 }
+
+#dex-bag .dx-bag-summary-block {
+  display: grid;
+  gap: 0.48rem;
+}
+
+#dex-bag .dx-bag-summary h2 {
+  margin: 0;
+  font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
+  font-size: clamp(1.08rem, 1.6vw, 1.34rem);
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+}
+
+#dex-bag .dx-bag-stats {
+  display: grid;
+  gap: 0.18rem;
+  font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
+  font-size: 0.92rem;
+  color: rgba(17, 23, 33, 0.88);
+}
+
+#dex-bag .dx-bag-stats strong {
+  font-family: var(--font-heading, var(--dx-font-heading, "BC Alphapipe"));
+}
+
+#dex-bag .dx-bag-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+#dex-bag .dx-bag-actions > * {
+  width: 100%;
+}
+
 #dex-bag .dx-bag-status {
   margin: 0;
   font-family: var(--font-body, "Courier Prime", "Courier New", monospace);
   font-size: 0.82rem;
   color: rgba(14, 20, 32, 0.75);
 }
-@media (max-width: 720px) {
-  #dex-bag .dx-bag-summary {
-    align-items: flex-start;
+
+@media (max-width: 980px) {
+  #dex-bag .dx-bag-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
-  #dex-bag .dx-bag-actions {
-    width: 100%;
+
+  #dex-bag .dx-bag-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  #dex-bag .dx-bag-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #dex-bag .dx-bag-card-controls {
+    justify-content: flex-start;
   }
 }

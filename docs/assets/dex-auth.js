@@ -53,6 +53,7 @@
     "/entry/pressroom": true,
     "/entry/sebastian-suarez-solis": true,
     "/entry/settings": true,
+    "/entry/bag": true,
     "/entry/splinterings-jakob-heinemann": true,
     "/entry/submit": true,
     "/entry/this-is-a-tangible-space": true,

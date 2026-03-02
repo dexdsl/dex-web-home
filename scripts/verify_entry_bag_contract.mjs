@@ -47,11 +47,23 @@ function ensureBagAppSource(appSource) {
     '/me/assets/bag/bundle',
     '/me/assets/bundle/',
     'dex:bag:resume:v1',
-    'Public fallback mode. Sign in to resolve protected files and download.',
+    'Signed in as',
+    'Redirecting to sign in…',
+    'dx-bag-layout',
+    'dx-bag-receipt-toggle',
   ];
   for (const marker of required) {
     if (!appSource.includes(marker)) {
       fail(`bag app source missing marker: ${marker}`);
+    }
+  }
+  const forbidden = [
+    'Public fallback mode. Sign in to resolve protected files and download.',
+    'Local preview mode: bag is viewable without auth; secure downloads stay protected.',
+  ];
+  for (const marker of forbidden) {
+    if (appSource.includes(marker)) {
+      fail(`bag app source contains forbidden fallback marker: ${marker}`);
     }
   }
 }
@@ -63,23 +75,32 @@ function ensureSidebarUnifiedDownload(runtimeJs) {
     '/me/assets/bag/bundle',
     'Add to Bag',
     'Download Now',
-    'Go to Bag',
-    'Keep Browsing',
     "const BAG_ROUTE_PATH = '/entry/bag/'",
+    "randomizeTitleWithJoiners('Files'",
   ];
   for (const marker of required) {
     if (!runtimeJs.includes(marker)) {
       fail(`sidebar runtime missing bag marker: ${marker}`);
     }
   }
+  const forbidden = [
+    'Go to Bag',
+    'Keep Browsing',
+    'Per-file selection unavailable. Using bucket-level selection.',
+  ];
+  for (const marker of forbidden) {
+    if (runtimeJs.includes(marker)) {
+      fail(`sidebar runtime contains removed marker: ${marker}`);
+    }
+  }
 }
 
-function ensureSoftGuardAuthContract(authJs, headerSlotJs) {
-  if (authJs.includes('"/entry/bag": true')) {
-    fail('dex-auth protected paths must not hard-protect /entry/bag');
+function ensureProtectedAuthContract(authJs, headerSlotJs) {
+  if (!authJs.includes('"/entry/bag": true')) {
+    fail('dex-auth protected paths must include /entry/bag');
   }
-  if (headerSlotJs.includes("'/entry/bag'")) {
-    fail('header-slot protected route set must not include /entry/bag');
+  if (!headerSlotJs.includes("'/entry/bag'")) {
+    fail('header-slot route sets must include /entry/bag');
   }
 }
 
@@ -104,7 +125,7 @@ async function main() {
   ensureBagRuntimeSource(bagRuntimeSource);
   ensureBagAppSource(bagAppSource);
   ensureSidebarUnifiedDownload(sidebarRuntime);
-  ensureSoftGuardAuthContract(authJs, headerSlotJs);
+  ensureProtectedAuthContract(authJs, headerSlotJs);
   console.log('verify:entry-bag-contract passed');
 }
 
