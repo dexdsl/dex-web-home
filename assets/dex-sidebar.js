@@ -949,6 +949,56 @@
       if (normalized !== raw) titleNode.textContent = normalized;
     });
   };
+  const buildSubtitleTagsText = (cfg = {}) => {
+    const tags = Array.isArray(cfg?.metadata?.tags)
+      ? cfg.metadata.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
+      : [];
+    if (!tags.length) return '';
+    return `🏷 Tags: ${tags.join(', ')}`;
+  };
+  const buildSubtitleSpecsText = (cfg = {}) => {
+    const parts = [];
+    const bitDepth = String(cfg?.fileSpecs?.bitDepth ?? '').trim();
+    const sampleRate = String(cfg?.fileSpecs?.sampleRate ?? '').trim();
+    const channels = String(cfg?.fileSpecs?.channels ?? '').trim();
+    if (bitDepth) parts.push(`🎚 ${bitDepth}-bit`);
+    if (sampleRate) parts.push(`🔊 ${sampleRate} Hz`);
+    if (channels) parts.push(`🎧 ${channels}`);
+    return parts.join(' ');
+  };
+  const applySubtitleMetaItems = (cfg = {}) => {
+    const subtitle = document.querySelector('[data-dex-entry-subtitle], .dex-entry-subtitle');
+    if (!(subtitle instanceof HTMLElement)) return;
+
+    Array.from(subtitle.querySelectorAll('[data-dx-subtitle-extra]')).forEach((node) => node.remove());
+
+    const appendItem = (kind, value) => {
+      const text = String(value || '').trim();
+      if (!text) return;
+      const item = document.createElement('span');
+      item.className = 'dex-entry-subtitle-item dex-entry-subtitle-item--meta';
+      item.setAttribute('data-dx-subtitle-extra', kind);
+      const content = document.createElement('span');
+      content.className = 'dex-entry-subtitle-value';
+      content.textContent = text;
+      item.appendChild(content);
+      subtitle.appendChild(item);
+    };
+
+    appendItem('tags', buildSubtitleTagsText(cfg));
+    appendItem('specs', buildSubtitleSpecsText(cfg));
+  };
+  const ensureDownloadOnlyFileInfoCard = (seedBase = '') => {
+    const fileInfo = document.querySelector('.dex-file-info');
+    if (!(fileInfo instanceof HTMLElement)) return;
+    const headingSeed = seedBase || `${window.location.pathname || '/'}|file-info|download`;
+    fileInfo.innerHTML = `
+      <h3 data-dx-entry-heading="1">${randomizeTitle('Download', { seedKey: headingSeed })}</h3>
+      <div class="file-info-panels">
+        <div id="downloads" role="tabpanel"></div>
+      </div>
+    `;
+  };
   const bindEntryPageTitleSeparatorWatcher = (scope = document) => {
     if (!(scope instanceof Document || scope instanceof HTMLElement)) return;
     clearEntryPageTitleSeparatorWatcher();
@@ -2913,6 +2963,7 @@
       const selected = normalizeBuckets(page.buckets);
       const badgesHtml = buildBucketsHtml(page.buckets, cfg, lookup);
       const favoriteBuckets = (selected.length ? selected : ALL_BUCKETS.filter((bucket) => bucketHasAnyAsset(cfg, bucket)));
+      applySubtitleMetaItems(cfg);
 
       const origin = getSidebarAssetOrigin();
       ensureProfileChromeRuntime(origin);
@@ -3024,6 +3075,7 @@
       const audioFilesLabel = randomizeTitleWithJoiners('Audio Files', { seedKey: `${labelSeedBase}|audio-files` });
       const videoFilesLabel = randomizeTitleWithJoiners('Video Files', { seedKey: `${labelSeedBase}|video-files` });
       const recordingIndexPdfLabel = randomizeTitleWithJoiners('Recording Index PDF', { seedKey: `${labelSeedBase}|recording-index-pdf` });
+      ensureDownloadOnlyFileInfoCard(`${labelSeedBase}|download-card`);
 
       render('.dex-license', 'License', `
         <a class="dex-license-badge" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by.svg" alt="Creative Commons Attribution 4.0" class="badge-by"/></a>
@@ -3089,69 +3141,6 @@
       `);
 
       render('#downloads', 'Download', `<p>Please choose the asset you'd like to download:</p><button type="button" class="btn-audio dx-button-element--primary" aria-label="Download Audio"><span>${audioFilesLabel}</span></button><button type="button" class="btn-video dx-button-element--primary" aria-label="Download Video"><span>${videoFilesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Download Recording Index PDF" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexPdfLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
-      render('#file-specs', 'File Specs', `<p>All files are provided with the following specs:</p><div class="dex-badges"><span class="badge">🎚 ${cfg.fileSpecs.bitDepth || ''}-bit</span><span class="badge">🔊 ${cfg.fileSpecs.sampleRate || ''} Hz</span><span class="badge">🎧 ${cfg.fileSpecs.channels || ''}</span></div><div class="dex-badges">${Object.entries(cfg.fileSpecs.staticSizes || {}).map(([b, s]) => `<span class="badge">📁 ${b}: ${s}</span>`).join('')}</div>`, true);
-      render('#metadata', 'Metadata', `<p>This sample contains the following metadata:</p><div class="dex-badges"><span class="badge">⏱ Length: ${cfg.metadata.sampleLength || ''}</span><span class="badge">🏷 Tags: ${(cfg.metadata.tags || []).join(', ')}</span></div>`, true);
-
-      const fileInfoTabLabels = {
-        downloads: 'Download',
-        'file-specs': 'File Specs',
-        metadata: 'Metadata',
-      };
-      document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
-        const tabKey = String(btn.dataset.tab || '').trim();
-        const canonical = fileInfoTabLabels[tabKey] || String(btn.textContent || '').trim() || tabKey;
-        if (canonical) {
-          btn.textContent = randomizeTitleWithJoiners(canonical, { seedKey: `${labelSeedBase}|tab|${tabKey || canonical}` });
-        }
-      });
-
-      document.querySelectorAll('.file-info-tabs button').forEach((btn) => {
-        if (btn.dataset.dexBound === '1') return;
-        btn.dataset.dexBound = '1';
-        btn.addEventListener('click', () => {
-          const owner = btn.closest('.dex-file-info') || btn.closest('.dex-sidebar') || document;
-          const panels = Array.from(owner.querySelectorAll('.file-info-panels > div'));
-          const previous = panels.find((panel) => !panel.hidden) || null;
-          document.querySelectorAll('.file-info-tabs button').forEach((b) => b.setAttribute('aria-selected', 'false'));
-          btn.setAttribute('aria-selected', 'true');
-          const target = btn.dataset.tab;
-          document.querySelectorAll('.file-info-panels > div').forEach((panel) => {
-            panel.hidden = panel.id !== target;
-          });
-
-          requestAnimationFrame(() => {
-            const next = panels.find((panel) => !panel.hidden) || null;
-            if (previous && previous !== next) {
-              animateNode(
-                previous,
-                [
-                  { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-                  { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
-                ],
-                {
-                  duration: 160,
-                  easing: 'cubic-bezier(.4,0,.2,1)',
-                  fill: 'forwards',
-                },
-              );
-            }
-            if (next) {
-              animateNode(
-                next,
-                [
-                  { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
-                  { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-                ],
-                {
-                  duration: 200,
-                  easing: 'cubic-bezier(.22,.8,.24,1)',
-                  fill: 'both',
-                },
-              );
-            }
-          });
-        });
-      });
 
       attach(cfg, 'audio', '#downloads .btn-audio', { lookup, entryHref, favoritesApi });
       attach(cfg, 'video', '#downloads .btn-video', { lookup, entryHref, favoritesApi });

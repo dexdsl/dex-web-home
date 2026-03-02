@@ -679,6 +679,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   text-transform: lowercase;
   color: rgba(30, 30, 30, 0.78);
 }
+.dex-entry-subtitle-item--meta .dex-entry-subtitle-value {
+  text-transform: none;
+}
 @media (max-width: 960px) {
   .dex-entry-header {
     margin-bottom: 14px;
@@ -3022,25 +3025,11 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
     <section class="dex-license"></section>
     <section class="dex-credits"></section>
 
-    <!-- → REPLACED: Downloads / File Specs / Metadata merge into one dynamic card -->
+    <!-- Download card -->
     <section class="dex-file-info">
-        <!-- tabs -->
-        <div class="file-info-tabs" role="tablist">
-            <button role="tab" data-tab="downloads" aria-selected="true">
-                Download
-            </button>
-            <button role="tab" data-tab="file-specs" aria-selected="false">
-                File Specs
-            </button>
-            <button role="tab" data-tab="metadata" aria-selected="false">
-                Metadata
-            </button>
-        </div>
-        <!-- panels -->
+        <h3 data-dx-entry-heading="1">download</h3>
         <div class="file-info-panels">
             <div id="downloads" role="tabpanel"></div>
-            <div id="file-specs" role="tabpanel" hidden=""></div>
-            <div id="metadata" role="tabpanel" hidden=""></div>
         </div>
     </section>
 </aside>

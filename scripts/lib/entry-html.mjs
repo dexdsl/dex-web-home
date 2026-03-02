@@ -619,14 +619,45 @@ function buildSubtitleItemMarkup({ label, value, iso = '' }) {
   return `<span class="dex-entry-subtitle-item"><span class="dex-entry-subtitle-label">${safeLabel}</span><span class="dex-entry-subtitle-value">${safeValue}</span></span>`;
 }
 
+function buildSubtitleMetaItemMarkup({ kind, value }) {
+  const safeKind = escapeHtml(kind);
+  const safeValue = escapeHtml(value);
+  return `<span class="dex-entry-subtitle-item dex-entry-subtitle-item--meta" data-dx-subtitle-extra="${safeKind}"><span class="dex-entry-subtitle-value">${safeValue}</span></span>`;
+}
+
+function subtitleTagsTextFromSidebar(sidebarConfig = {}) {
+  const tags = Array.isArray(sidebarConfig?.metadata?.tags)
+    ? sidebarConfig.metadata.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
+    : [];
+  if (!tags.length) return '';
+  return `🏷 Tags: ${tags.join(', ')}`;
+}
+
+function subtitleSpecsTextFromSidebar(sidebarConfig = {}) {
+  const parts = [];
+  const bitDepth = String(sidebarConfig?.fileSpecs?.bitDepth ?? '').trim();
+  const sampleRate = String(sidebarConfig?.fileSpecs?.sampleRate ?? '').trim();
+  const channels = String(sidebarConfig?.fileSpecs?.channels ?? '').trim();
+  if (bitDepth) parts.push(`🎚 ${bitDepth}-bit`);
+  if (sampleRate) parts.push(`🔊 ${sampleRate} Hz`);
+  if (channels) parts.push(`🎧 ${channels}`);
+  return parts.join(' ');
+}
+
 function buildEntrySubtitleMarkup({ lifecycle, creditsData, sidebarConfig }) {
   const published = formatLifecycleDateLabel(lifecycle?.publishedAt);
   const updated = formatLifecycleDateLabel(lifecycle?.updatedAt);
   const location = resolveSubtitleLocation({ creditsData, sidebarConfig });
+  const tagsText = subtitleTagsTextFromSidebar(sidebarConfig);
+  const specsText = subtitleSpecsTextFromSidebar(sidebarConfig);
+  const extras = [];
+  if (tagsText) extras.push(buildSubtitleMetaItemMarkup({ kind: 'tags', value: tagsText }));
+  if (specsText) extras.push(buildSubtitleMetaItemMarkup({ kind: 'specs', value: specsText }));
   return `<div class="dex-entry-subtitle" data-dex-entry-subtitle>
   ${buildSubtitleItemMarkup({ label: 'published', value: published.label, iso: published.iso })}
   ${buildSubtitleItemMarkup({ label: 'updated', value: updated.label, iso: updated.iso })}
   ${buildSubtitleItemMarkup({ label: 'location', value: location })}
+  ${extras.join('\n  ')}
 </div>`;
 }
 

@@ -2054,6 +2054,10 @@ text-transform: lowercase;
 color: rgba(30, 30, 30, 0.78);
 }
 
+.dex-entry-subtitle-item--meta .dex-entry-subtitle-value {
+text-transform: none;
+}
+
 @media (max-width: 960px) {
 .dex-entry-header {
 margin-bottom: 14px;
