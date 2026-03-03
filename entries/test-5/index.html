@@ -5561,5 +5561,40 @@ body.dx-entry-page .dex-collections .overview-buckets-grid {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
+
+/* test-5: mobile-only body/header/footer inset alignment (<900px) */
+@media (max-width: 900px) {
+  :root {
+    --dx-test5-mobile-body-inset: var(--dx-test5-header-inset-px, clamp(14px, 4.2vw, 24px));
+  }
+  body.dx-entry-page .dex-entry-header,
+  body.dx-entry-page .dex-entry-layout {
+    padding-left: var(--dx-test5-mobile-body-inset) !important;
+    padding-right: var(--dx-test5-mobile-body-inset) !important;
+    box-sizing: border-box !important;
+  }
+}
 </style>
+<script id="dx-test5-shell-inset-sync">
+(function(){
+  if (window.__dxTest5ShellInsetSyncBound) return;
+  window.__dxTest5ShellInsetSyncBound = true;
+  var apply = function(){
+    try {
+      var source = document.querySelector('#header .header-inner') || document.querySelector('#header');
+      if (!source) return;
+      var rect = source.getBoundingClientRect();
+      var inset = Math.max(0, Math.round(rect.left));
+      if (!Number.isFinite(inset) || inset <= 0) return;
+      document.documentElement.style.setProperty('--dx-test5-header-inset-px', inset + 'px');
+    } catch (error) {}
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply, { once: true });
+  } else {
+    apply();
+  }
+  window.addEventListener('resize', apply, { passive: true });
+})();
+</script>
 </body></html>
