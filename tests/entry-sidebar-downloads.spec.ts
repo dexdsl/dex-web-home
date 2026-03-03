@@ -31,7 +31,7 @@ test('sidebar runtime and css expose download + credits contracts', async ({ pag
   expect(runtime).toContain('data-dx-entry-rail-mode');
   expect(runtime).toContain('attachUnifiedDownload');
   expect(runtime).toContain('btn-download');
-  expect(runtime).toContain('Add to Bag');
+  expect(runtime).toContain('ADD\\u200C TO BAG');
   expect(runtime).toContain("const BAG_ROUTE_PATH = '/entry/bag/'");
   expect(runtime).toContain('data-dx-download-kind="recording-index-pdf"');
   expect(runtime).toContain('[data-person-linkable="true"][data-person]');

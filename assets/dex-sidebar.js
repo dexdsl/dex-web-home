@@ -2436,6 +2436,8 @@
           bucket,
           fileId,
           label: String(file?.label || file?.sourceLabel || file?.bucketNumber || fileId).trim(),
+          filename: String(file?.filename || file?.name || file?.path || '').trim(),
+          extension: String(file?.extension || file?.ext || file?.fileExt || '').trim(),
           mediaTypes,
         };
       })
@@ -2509,6 +2511,8 @@
                   bucket,
                   fileId,
                   label,
+                  filename: String(fileRow?.filename || fileRow?.name || fileRow?.path || '').trim(),
+                  extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
                   mediaType,
                   mediaTypes: [mediaType],
                 };
@@ -2552,6 +2556,8 @@
             bucket,
             fileId: file.fileId,
             label: file.label || file.fileId,
+            filename: file.filename || '',
+            extension: file.extension || '',
             mediaType,
             mediaTypes: [mediaType],
           });
@@ -3057,13 +3063,15 @@
         }
 
         const heading = document.createElement('h4');
-        heading.textContent = randomizeTitleWithJoiners('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
+        const headingSeedKey = `${window.location.pathname || '/'}|download-modal-heading`;
+        const headingRaw = randomizeTitle('FILES', { seedKey: headingSeedKey });
+        heading.textContent = addZeroWidthJoiners(headingRaw);
         heading.style.margin = '0';
         heading.style.fontFamily = '"Typefesse", sans-serif';
         heading.style.letterSpacing = '0.02em';
-        heading.style.textTransform = 'uppercase';
         heading.style.fontSize = 'clamp(1.06rem, 1.48vw, 1.3rem)';
         heading.style.lineHeight = '1';
+        heading.style.textTransform = 'none';
 
         const titleRow = document.createElement('div');
         titleRow.style.display = 'flex';
@@ -3118,20 +3126,36 @@
         quickControls.style.flexWrap = 'wrap';
         quickControls.style.gap = '0.35rem';
 
+        const enforceDarkButtonText = (button) => {
+          if (!(button instanceof HTMLElement)) return;
+          button.style.setProperty('color', 'rgba(18, 20, 26, 0.95)', 'important');
+          button.style.setProperty('-webkit-text-fill-color', 'rgba(18, 20, 26, 0.95)', 'important');
+        };
+
         const makeSecondaryControl = (label) => {
           const control = document.createElement('button');
           control.type = 'button';
           control.className = 'dx-button-element--secondary';
-          control.textContent = label;
+          control.textContent = String(label || '').toUpperCase();
           control.style.padding = '0.34rem 0.55rem';
           control.style.fontSize = '0.7rem';
+          control.style.fontFamily = '"Typefesse", sans-serif';
+          control.style.letterSpacing = '0.015em';
+          control.style.textTransform = 'uppercase';
+          enforceDarkButtonText(control);
+          control.addEventListener('mouseenter', () => {
+            enforceDarkButtonText(control);
+          });
+          control.addEventListener('mouseleave', () => {
+            enforceDarkButtonText(control);
+          });
           return control;
         };
 
-        const selectAllButton = makeSecondaryControl('Select all');
+        const selectAllButton = makeSecondaryControl('SELECT AL\u200CL');
         const clearButton = makeSecondaryControl('Clear');
-        const expandAllButton = makeSecondaryControl('Expand all');
-        const collapseAllButton = makeSecondaryControl('Collapse all');
+        const expandAllButton = makeSecondaryControl('EXPAND AL\u200CL');
+        const collapseAllButton = makeSecondaryControl('COL\u200CLAPSE AL\u200CL');
         quickControls.appendChild(selectAllButton);
         quickControls.appendChild(clearButton);
         quickControls.appendChild(expandAllButton);
@@ -3157,12 +3181,24 @@
         const addToBagButton = document.createElement('button');
         addToBagButton.type = 'button';
         addToBagButton.className = 'dx-button-element--primary';
-        addToBagButton.textContent = 'Add to Bag';
+        const addToBagBaseLabel = `ADD\u200C TO BAG`;
+        addToBagButton.textContent = addToBagBaseLabel;
+        addToBagButton.style.textTransform = 'uppercase';
 
         const downloadNowButton = document.createElement('button');
         downloadNowButton.type = 'button';
         downloadNowButton.className = 'dx-button-element--secondary';
-        downloadNowButton.textContent = 'Download Now';
+        downloadNowButton.textContent = 'DOWNLOAD NOW';
+        downloadNowButton.style.textTransform = 'uppercase';
+        downloadNowButton.style.fontFamily = '"Typefesse", sans-serif';
+        downloadNowButton.style.letterSpacing = '0.015em';
+        enforceDarkButtonText(downloadNowButton);
+        downloadNowButton.addEventListener('mouseenter', () => {
+          enforceDarkButtonText(downloadNowButton);
+        });
+        downloadNowButton.addEventListener('mouseleave', () => {
+          enforceDarkButtonText(downloadNowButton);
+        });
 
         const removeModal = () => {
           document.removeEventListener('keydown', onKeyDown);
@@ -3205,6 +3241,8 @@
                           mediaTypes: [mediaType],
                           fileId,
                           label,
+                          filename: String(fileRow?.filename || fileRow?.name || '').trim(),
+                          extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
                         };
                       })
                       .filter(Boolean);
@@ -3231,6 +3269,8 @@
           leafByKey: new Map(),
           leafKeysByBucket: new Map(),
           leafKeysByType: new Map(),
+          nodeLeafCounts: new Map(),
+          leafAncestorNodeIds: new Map(),
         };
 
         const setLeaves = () => {
@@ -3238,14 +3278,23 @@
           treeState.leafByKey = new Map();
           treeState.leafKeysByBucket = new Map();
           treeState.leafKeysByType = new Map();
+          treeState.nodeLeafCounts = new Map();
+          treeState.leafAncestorNodeIds = new Map();
+          const collectionNodeId = `collection|${lookup}`;
+          const countNodeLeaf = (nodeId) => {
+            treeState.nodeLeafCounts.set(nodeId, (treeState.nodeLeafCounts.get(nodeId) || 0) + 1);
+          };
           treeState.tree.buckets.forEach((bucketRow) => {
             const bucketKeys = [];
+            const bucketNodeId = `bucket|${lookup}|${bucketRow.bucket}`;
             bucketRow.types.forEach((typeRow) => {
               const typeKey = `${bucketRow.bucket}|${typeRow.mediaType}`;
+              const typeNodeId = `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`;
               const typeLeafKeys = [];
               if (Array.isArray(typeRow.files) && typeRow.files.length) {
                 typeRow.files.forEach((fileRow) => {
                   const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
+                  const fileNodeId = `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
                   const leaf = {
                     kind: 'file',
                     lookup,
@@ -3254,12 +3303,17 @@
                     mediaTypes: [typeRow.mediaType],
                     fileId: fileRow.fileId,
                     label: fileRow.label || fileRow.fileId,
+                    filename: fileRow.filename || '',
+                    extension: fileRow.extension || '',
                     leafKey,
                   };
                   treeState.leaves.push(leaf);
                   treeState.leafByKey.set(leafKey, leaf);
                   typeLeafKeys.push(leafKey);
                   bucketKeys.push(leafKey);
+                  const ancestorIds = [collectionNodeId, bucketNodeId, typeNodeId, fileNodeId];
+                  treeState.leafAncestorNodeIds.set(leafKey, ancestorIds);
+                  ancestorIds.forEach(countNodeLeaf);
                 });
               } else {
                 const leafKey = `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`;
@@ -3277,6 +3331,9 @@
                 treeState.leafByKey.set(leafKey, leaf);
                 typeLeafKeys.push(leafKey);
                 bucketKeys.push(leafKey);
+                const ancestorIds = [collectionNodeId, bucketNodeId, typeNodeId];
+                treeState.leafAncestorNodeIds.set(leafKey, ancestorIds);
+                ancestorIds.forEach(countNodeLeaf);
               }
               treeState.leafKeysByType.set(typeKey, typeLeafKeys);
             });
@@ -3293,7 +3350,7 @@
                 id: `bucket|${lookup}|${bucketRow.bucket}`,
                 children: bucketRow.types.map((typeRow) => ({
                   id: `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`,
-                  children: [],
+                  children: Array.isArray(typeRow.files) && typeRow.files.length ? [{}] : [],
                 })),
               })),
             };
@@ -3409,7 +3466,42 @@
           const selectedCount = selectedLeafKeys.size;
           addToBagButton.disabled = selectedCount === 0;
           downloadNowButton.disabled = selectedCount === 0;
-          addToBagButton.textContent = selectedCount > 0 ? `Add to Bag (${selectedCount})` : 'Add to Bag';
+          addToBagButton.textContent = selectedCount > 0 ? `${addToBagBaseLabel} (${selectedCount})` : addToBagBaseLabel;
+        };
+
+        const extractBucketOrdinal = (bucket, fileRow = {}) => {
+          const label = String(fileRow?.label || '').trim();
+          const fromLabel = label.match(/\b([A-Z]\.\d+)\b/i);
+          if (fromLabel?.[1]) return fromLabel[1].toUpperCase();
+          const fileId = String(fileRow?.fileId || '').trim();
+          const fromFileId = fileId.match(/-([a-z])-0*([0-9]+)$/i);
+          if (fromFileId?.[1] && fromFileId?.[2]) {
+            return `${String(fromFileId[1] || bucket).toUpperCase()}.${String(Number(fromFileId[2]))}`;
+          }
+          return `${String(bucket || '').toUpperCase()}.1`;
+        };
+
+        const fileExtensionForMediaType = (mediaType, fileRow = {}) => {
+          const normalized = String(fileRow?.extension || fileRow?.ext || fileRow?.format || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^\./, '');
+          if (normalized) return normalized;
+          const fileId = String(fileRow?.fileId || '').trim();
+          const idMatch = fileId.match(/\.([a-z0-9]{2,6})$/i);
+          if (idMatch?.[1]) return String(idMatch[1]).toLowerCase();
+          const label = String(fileRow?.label || '').trim();
+          const labelMatch = label.match(/\.([a-z0-9]{2,6})(?:\s|$)/i);
+          if (labelMatch?.[1]) return String(labelMatch[1]).toLowerCase();
+          return mediaType === 'video' ? 'mov' : 'wav';
+        };
+
+        const buildDisplayFilename = (bucket, mediaType, fileRow = {}) => {
+          const explicitName = String(fileRow?.filename || '').trim();
+          if (explicitName) return explicitName;
+          const ordinal = extractBucketOrdinal(bucket, fileRow);
+          const extension = fileExtensionForMediaType(mediaType, fileRow);
+          return `${lookup} ${ordinal}.${extension}`;
         };
 
         const buildTreeModel = () => {
@@ -3442,11 +3534,12 @@
               if (Array.isArray(typeRow.files) && typeRow.files.length) {
                 typeRow.files.forEach((fileRow) => {
                   const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
+                  const displayName = buildDisplayFilename(bucketRow.bucket, typeRow.mediaType, fileRow);
                   typeNode.children.push({
                     id: `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`,
                     kind: 'file',
-                    label: fileRow.label || fileRow.fileId,
-                    meta: `${fileRow.fileId} [${typeRow.mediaType}]`,
+                    label: displayName,
+                    meta: `${extractBucketOrdinal(bucketRow.bucket, fileRow)} [${typeRow.mediaType}]`,
                     leafKeys: [leafKey],
                     children: [],
                   });
@@ -3481,10 +3574,44 @@
           };
         };
 
+        const checkboxBindings = [];
+        const expandBindings = [];
+        const refreshCheckboxStates = () => {
+          const selectedCountByNode = new Map();
+          selectedLeafKeys.forEach((leafKey) => {
+            const ancestorIds = treeState.leafAncestorNodeIds.get(leafKey) || [];
+            ancestorIds.forEach((nodeId) => {
+              selectedCountByNode.set(nodeId, (selectedCountByNode.get(nodeId) || 0) + 1);
+            });
+          });
+          checkboxBindings.forEach(({ checkbox, nodeId }) => {
+            const total = Number(treeState.nodeLeafCounts.get(nodeId) || 0);
+            const selected = Number(selectedCountByNode.get(nodeId) || 0);
+            checkbox.checked = total > 0 && selected >= total;
+            checkbox.indeterminate = selected > 0 && selected < total;
+          });
+          updateActionState();
+        };
+        const refreshExpandedStates = () => {
+          expandBindings.forEach(({ nodeId, toggle, childrenWrap }) => {
+            const isExpanded = expandedNodeKeys.has(nodeId);
+            if (toggle instanceof HTMLElement) {
+              toggle.textContent = isExpanded ? '−' : '+';
+            }
+            if (childrenWrap instanceof HTMLElement) {
+              childrenWrap.style.display = isExpanded ? 'grid' : 'none';
+            }
+          });
+        };
+
         const renderTreeNode = (node, parent, depth = 0) => {
           if (!node || !Array.isArray(node.leafKeys) || !node.leafKeys.length) return;
           const hasChildren = Array.isArray(node.children) && node.children.length > 0;
           const isExpanded = hasChildren && expandedNodeKeys.has(node.id);
+
+          const shell = document.createElement('div');
+          shell.style.display = 'grid';
+          shell.style.gap = '0.22rem';
 
           const row = document.createElement('div');
           row.style.display = 'grid';
@@ -3492,8 +3619,19 @@
           row.style.gap = '0.45rem';
           row.style.alignItems = 'center';
           row.style.padding = '0.18rem 0.14rem';
-          row.style.paddingLeft = `${depth * 16 + 4}px`;
           row.style.borderRadius = '8px';
+          row.style.position = 'relative';
+          if (depth > 0) {
+            const elbow = document.createElement('span');
+            elbow.setAttribute('aria-hidden', 'true');
+            elbow.style.position = 'absolute';
+            elbow.style.left = '-0.68rem';
+            elbow.style.top = '50%';
+            elbow.style.width = '0.68rem';
+            elbow.style.transform = 'translateY(-50%)';
+            elbow.style.borderTop = '1px solid rgba(18, 20, 26, 0.16)';
+            row.appendChild(elbow);
+          }
 
           const toggle = document.createElement('button');
           toggle.type = 'button';
@@ -3507,15 +3645,10 @@
           toggle.style.color = 'rgba(18,20,26,0.86)';
           toggle.style.fontSize = '0.74rem';
           toggle.style.cursor = hasChildren ? 'pointer' : 'default';
-          toggle.textContent = hasChildren ? (isExpanded ? '▾' : '▸') : '';
-          if (hasChildren) {
-            toggle.addEventListener('click', (event) => {
-              event.preventDefault();
-              if (expandedNodeKeys.has(node.id)) expandedNodeKeys.delete(node.id);
-              else expandedNodeKeys.add(node.id);
-              renderTree();
-            });
-          } else {
+          toggle.style.lineHeight = '1';
+          toggle.textContent = hasChildren ? (isExpanded ? '−' : '+') : '';
+          let childrenWrap = null;
+          if (!hasChildren) {
             toggle.setAttribute('aria-hidden', 'true');
           }
 
@@ -3526,8 +3659,9 @@
           checkbox.indeterminate = state.indeterminate;
           checkbox.addEventListener('change', () => {
             setLeafSet(node.leafKeys, Boolean(checkbox.checked));
-            renderTree();
+            refreshCheckboxStates();
           });
+          checkboxBindings.push({ checkbox, nodeId: node.id });
 
           const copy = document.createElement('div');
           copy.style.display = 'grid';
@@ -3554,15 +3688,41 @@
           row.appendChild(toggle);
           row.appendChild(checkbox);
           row.appendChild(copy);
-          parent.appendChild(row);
+          shell.appendChild(row);
 
-          if (hasChildren && isExpanded) {
-            node.children.forEach((child) => renderTreeNode(child, parent, depth + 1));
+          if (hasChildren) {
+            childrenWrap = document.createElement('div');
+            childrenWrap.style.display = isExpanded ? 'grid' : 'none';
+            childrenWrap.style.gap = '0.22rem';
+            childrenWrap.style.marginLeft = '0.62rem';
+            childrenWrap.style.paddingLeft = '0.72rem';
+            childrenWrap.style.borderLeft = '1px solid rgba(18, 20, 26, 0.16)';
+            expandBindings.push({ nodeId: node.id, toggle, childrenWrap });
+            shell.appendChild(childrenWrap);
+            if (isExpanded) {
+              node.children.forEach((child) => renderTreeNode(child, childrenWrap, depth + 1));
+            }
+            if (toggle instanceof HTMLButtonElement) {
+              toggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                const nextExpanded = !expandedNodeKeys.has(node.id);
+                if (nextExpanded) expandedNodeKeys.add(node.id);
+                else expandedNodeKeys.delete(node.id);
+                if (nextExpanded && childrenWrap instanceof HTMLElement && childrenWrap.childElementCount === 0) {
+                  node.children.forEach((child) => renderTreeNode(child, childrenWrap, depth + 1));
+                }
+                refreshExpandedStates();
+                refreshCheckboxStates();
+              });
+            }
           }
+          parent.appendChild(shell);
         };
 
         const renderTree = () => {
           treeWrap.replaceChildren();
+          checkboxBindings.length = 0;
+          expandBindings.length = 0;
           const treeRoot = buildTreeModel();
           const filteredRoot = pruneTreeByFilter(treeRoot);
           if (!filteredRoot) {
@@ -3575,7 +3735,8 @@
             return;
           }
           renderTreeNode(filteredRoot, treeWrap, 0);
-          updateActionState();
+          refreshExpandedStates();
+          refreshCheckboxStates();
         };
 
         const requestBagBundleFromSidebar = async (nodes) => {
@@ -3707,11 +3868,11 @@
         });
         selectAllButton.addEventListener('click', () => {
           setLeafSet(treeState.allLeafKeys, true);
-          renderTree();
+          refreshCheckboxStates();
         });
         clearButton.addEventListener('click', () => {
           selectedLeafKeys.clear();
-          renderTree();
+          refreshCheckboxStates();
         });
         expandAllButton.addEventListener('click', () => {
           const allExpandableIds = collectExpandableNodeIds(buildTreeModel(), []);
@@ -3721,7 +3882,7 @@
         collapseAllButton.addEventListener('click', () => {
           expandedNodeKeys.clear();
           expandedNodeKeys.add(`collection|${lookup}`);
-          renderTree();
+          refreshExpandedStates();
         });
 
         controls.appendChild(addToBagButton);
@@ -3743,6 +3904,10 @@
         setLeaves();
         renderTree();
         setModalStatus('idle', '');
+
+        const skipRemoteInventoryFetch = treeState.tree?.source === 'embedded'
+          && treeState.leaves.some((leaf) => leaf?.kind === 'file');
+        if (skipRemoteInventoryFetch) return;
 
         try {
           const token = await getAccessToken();
