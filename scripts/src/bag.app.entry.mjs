@@ -566,10 +566,12 @@
     return canonical;
   }
 
-  function joinRandomizedDuplicateRuns(value) {
-    const text = toText(value);
+  function applyHeadingDuplicateSeparators(renderedValue, canonicalValue = '') {
+    const text = toText(renderedValue);
+    const canonical = toText(canonicalValue).replace(/\u200C/g, '').replace(/\u200D/g, '');
     if (!text) return '';
     let out = '';
+    let canonicalIndex = 0;
     for (let index = 0; index < text.length; index += 1) {
       const current = text[index];
       const next = text[index + 1] || '';
@@ -577,9 +579,19 @@
       if (!next) continue;
       if (current === '\u200C' || current === '\u200D') continue;
       if (next === '\u200C' || next === '\u200D') continue;
-      if (current === next) {
-        out += '\u200D';
+      const isAlphaPair = current.toLowerCase() !== current.toUpperCase()
+        && next.toLowerCase() !== next.toUpperCase();
+      if (!isAlphaPair) {
+        const canonicalChar = canonical.charAt(canonicalIndex);
+        if (canonicalChar && canonicalChar.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
+        continue;
       }
+      const canonicalChar = canonical.charAt(canonicalIndex);
+      if (canonicalChar && canonicalChar.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
+      if (current.toLowerCase() !== next.toLowerCase()) continue;
+      const canonicalNext = canonical.charAt(canonicalIndex);
+      const isNaturalPair = canonicalNext && canonicalNext.toLowerCase() === current.toLowerCase();
+      out += isNaturalPair ? '\u200C' : '\u200D';
     }
     return out;
   }
@@ -592,7 +604,9 @@
   }
 
   function renderJoinedRandomizedHeading(value, options = {}) {
-    return joinRandomizedDuplicateRuns(renderRandomizedHeadingText(value, options));
+    const canonical = toText(value);
+    const rendered = renderRandomizedHeadingText(canonical, options);
+    return applyHeadingDuplicateSeparators(rendered, canonical);
   }
 
   function prefersReducedMotion() {
@@ -1663,6 +1677,31 @@
       state.summaryDisplay = next;
     };
 
+    const syncSummaryCardHeight = () => {
+      const summaryCard = root.querySelector('.dx-bag-summary');
+      if (!(summaryCard instanceof HTMLElement)) return;
+      summaryCard.style.removeProperty('height');
+      summaryCard.style.removeProperty('min-height');
+      summaryCard.style.removeProperty('max-height');
+
+      const isDesktop = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(min-width: 981px)').matches
+        : true;
+      if (!isDesktop) return;
+
+      const firstCardShell = root.querySelector('.dx-bag-card-shell');
+      if (!(firstCardShell instanceof HTMLElement)) return;
+      const firstCard = firstCardShell.querySelector('.dx-bag-card');
+      const measureNode = firstCard instanceof HTMLElement ? firstCard : firstCardShell;
+      const measuredHeight = Math.ceil(measureNode.getBoundingClientRect().height);
+      if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
+
+      const pixelHeight = `${measuredHeight}px`;
+      summaryCard.style.height = pixelHeight;
+      summaryCard.style.minHeight = pixelHeight;
+      summaryCard.style.maxHeight = pixelHeight;
+    };
+
     const render = () => {
       const lookupGroups = groupedRows();
       const models = lookupGroups.map(([lookup, rows]) => computeGroupModel(lookup, rows));
@@ -1812,6 +1851,7 @@
       });
 
       mountBreadcrumbMotion();
+      syncSummaryCardHeight();
     };
 
     const refreshRows = () => {
@@ -2109,6 +2149,11 @@
     };
     bagApi.subscribe(onBagChanged);
 
+    const onResize = () => {
+      syncSummaryCardHeight();
+    };
+    window.addEventListener('resize', onResize);
+
     const boot = async () => {
       setFetchState('loading');
       state.auth = await resolveAuthSnapshot();
@@ -2142,6 +2187,10 @@
       render();
       setFetchState('error');
     });
+
+    window.addEventListener('beforeunload', () => {
+      window.removeEventListener('resize', onResize);
+    }, { once: true });
   }
 
   if (document.readyState === 'loading') {

@@ -59,6 +59,10 @@
     main#page,
     #dx-slot-foreground-root > main#page
   ) {
+    width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
+    max-width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
     min-height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
     max-height: max(240px, calc(var(--dx-profile-shell-height, calc(100dvh - 240px)) - var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)))) !important;
@@ -66,8 +70,8 @@
   }
 
   body.dx-bag-page #dex-bag {
-    width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
-    max-width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
     height: 100% !important;
     min-height: 0 !important;
@@ -121,7 +125,8 @@ body.dx-bag-page .content {
 }
 
 #dex-bag {
-  width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px)));
+  width: 100%;
+  max-width: 100%;
   --dx-bag-motion-visual-ms: 320ms;
   --dx-bag-motion-size-swap-ms: 300ms;
   --dx-bag-motion-visual-ease: cubic-bezier(0.22, 0.8, 0.2, 1);
@@ -141,7 +146,7 @@ body.dx-bag-page .content {
   box-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32));
   backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
   -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
-  overflow: hidden;
+  overflow: visible;
 }
 
 #dex-bag .dx-bag-head {
