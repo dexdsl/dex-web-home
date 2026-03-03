@@ -588,11 +588,38 @@
     const text = toText(value);
     if (!text) return '';
     // Preserve explicit non-joining between the two M's in SUMMARY.
-    return text.replace(/MM/g, 'M\u200CM');
+    return text.replace(/M(?:[\u200C\u200D])*M/g, 'M\u200CM');
   }
 
   function renderJoinedRandomizedHeading(value, options = {}) {
     return joinRandomizedDuplicateRuns(renderRandomizedHeadingText(value, options));
+  }
+
+  function animateRemoval(node, { className = 'is-removing', durationMs = 240 } = {}) {
+    if (!(node instanceof HTMLElement)) return Promise.resolve();
+    if (!className) return Promise.resolve();
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        node.removeEventListener('animationend', onFinish);
+        node.removeEventListener('transitionend', onFinish);
+        window.clearTimeout(timer);
+        resolve();
+      };
+      const onFinish = (event) => {
+        if (event && event.target !== node) return;
+        done();
+      };
+      const timer = window.setTimeout(done, Math.max(140, Number(durationMs) || 240) + 110);
+      node.addEventListener('animationend', onFinish);
+      node.addEventListener('transitionend', onFinish);
+      node.classList.add(className);
+    });
   }
 
   function summarizeSelection(rows = []) {
@@ -1299,6 +1326,7 @@
       localViewerMode: isLocalViewerRoute(),
       backCrumb: resolveBackCrumb(),
     };
+    let suppressBagUpdates = false;
 
     const setFetchState = (value) => {
       root.setAttribute('data-dx-fetch-state', value);
@@ -1705,8 +1733,8 @@
       }
     };
 
-    root.addEventListener('click', (event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
+    root.addEventListener('click', async (event) => {
+      const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
 
       const breadcrumbBack = target.closest('[data-dex-breadcrumb-back]');
@@ -1719,12 +1747,19 @@
         return;
       }
 
-      const removeLookup = target.closest('[data-bag-remove-lookup]')?.getAttribute('data-bag-remove-lookup');
+      const removeLookupButton = target.closest('[data-bag-remove-lookup]');
+      const removeLookup = removeLookupButton?.getAttribute('data-bag-remove-lookup');
       if (removeLookup) {
-        removeLookupSelections(removeLookup);
+        const card = removeLookupButton?.closest('.dx-bag-card');
+        await animateRemoval(card, { className: 'is-removing', durationMs: 280 });
+        suppressBagUpdates = true;
+        try {
+          removeLookupSelections(removeLookup);
+        } finally {
+          suppressBagUpdates = false;
+        }
         refreshRows();
-        state.filesByLookup.delete(removeLookup);
-        state.entryMetaByLookup.delete(removeLookup);
+        pruneLookupCaches();
         state.error = '';
         state.status = '';
         render();
@@ -1738,7 +1773,8 @@
         render();
         return;
       }
-      const removeLineRaw = target.closest('[data-bag-remove-line]')?.getAttribute('data-bag-remove-line');
+      const removeLineButton = target.closest('[data-bag-remove-line]');
+      const removeLineRaw = removeLineButton?.getAttribute('data-bag-remove-line');
       if (removeLineRaw) {
         let keys = [];
         try {
@@ -1748,9 +1784,19 @@
           }
         } catch {}
         if (!keys.length) return;
-        keys.forEach((key) => bagApi.removeSelection(key));
+        const receiptLine = removeLineButton?.closest('li');
+        await animateRemoval(receiptLine, { className: 'is-removing', durationMs: 220 });
+        suppressBagUpdates = true;
+        try {
+          keys.forEach((key) => bagApi.removeSelection(key));
+        } finally {
+          suppressBagUpdates = false;
+        }
+        refreshRows();
+        pruneLookupCaches();
         state.error = '';
         state.status = '';
+        render();
         return;
       }
 
@@ -1764,7 +1810,12 @@
       }
 
       if (target.closest('[data-bag-clear]')) {
-        bagApi.clear();
+        suppressBagUpdates = true;
+        try {
+          bagApi.clear();
+        } finally {
+          suppressBagUpdates = false;
+        }
         state.filesByLookup.clear();
         state.entryMetaByLookup.clear();
         state.expandedReceipts.clear();
@@ -1781,6 +1832,7 @@
     });
 
     const onBagChanged = () => {
+      if (suppressBagUpdates) return;
       refreshRows();
       pruneLookupCaches();
       state.error = '';
