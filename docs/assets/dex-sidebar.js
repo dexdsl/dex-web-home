@@ -971,9 +971,19 @@
 
   const randomizeTitle = (txt, options = {}) => renderStretchHeading(txt, options);
   const injectCollectionZwnj = (value) => String(value == null ? '' : value).replace(/(L)(L)/i, '$1\u200C$2');
-  const addNaturalDuplicateSeparators = (value) => {
+  let entryPageTitleCanonicalCache;
+  const resolveEntryPageTitleCanonical = () => {
+    if (entryPageTitleCanonicalCache !== undefined) return entryPageTitleCanonicalCache;
+    const pageCfg = parseJsonScript('dex-sidebar-page-config') || window.dexSidebarPageConfig || {};
+    const canonical = String(pageCfg?.title || '').trim();
+    entryPageTitleCanonicalCache = canonical;
+    return entryPageTitleCanonicalCache;
+  };
+  const addNaturalDuplicateSeparators = (value, canonicalValue = '') => {
     const source = String(value == null ? '' : value);
+    const canonical = String(canonicalValue == null ? '' : canonicalValue).replace(/\u200C/g, '').replace(/\u200D/g, '');
     let output = '';
+    let canonicalIndex = 0;
     for (let i = 0; i < source.length; i += 1) {
       const current = source.charAt(i);
       const next = source.charAt(i + 1);
@@ -982,9 +992,19 @@
       if (current === '\u200C' || current === '\u200D' || next === '\u200C' || next === '\u200D') continue;
       const isAlphaPair = current.toLowerCase() !== current.toUpperCase()
         && next.toLowerCase() !== next.toUpperCase();
-      if (!isAlphaPair) continue;
+      if (!isAlphaPair) {
+        const canonicalChar = canonical.charAt(canonicalIndex);
+        if (canonicalChar && canonicalChar.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
+        continue;
+      }
+
+      const canonicalChar = canonical.charAt(canonicalIndex);
+      if (canonicalChar && canonicalChar.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
       if (current.toLowerCase() !== next.toLowerCase()) continue;
-      output += '\u200C';
+
+      const canonicalNext = canonical.charAt(canonicalIndex);
+      const isNaturalPair = canonicalNext && canonicalNext.toLowerCase() === current.toLowerCase();
+      output += isNaturalPair ? '\u200C' : '\u200D';
     }
     return output;
   };
@@ -1002,7 +1022,12 @@
       if (!(titleNode instanceof HTMLElement)) return;
       const raw = String(titleNode.textContent || '');
       if (!raw) return;
-      const normalized = addNaturalDuplicateSeparators(raw);
+      const canonicalFromNode = String(titleNode.getAttribute('data-dx-title-canonical') || '').trim();
+      const canonicalTitle = canonicalFromNode || resolveEntryPageTitleCanonical() || raw;
+      if (!canonicalFromNode && canonicalTitle) {
+        titleNode.setAttribute('data-dx-title-canonical', canonicalTitle);
+      }
+      const normalized = addNaturalDuplicateSeparators(raw, canonicalTitle);
       if (normalized !== raw) titleNode.textContent = normalized;
     });
   };

@@ -66,8 +66,8 @@
   }
 
   body.dx-bag-page #dex-bag {
-    width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)))) !important;
-    max-width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2)))) !important;
+    width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
+    max-width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px))) !important;
     margin: 0 auto !important;
     height: 100% !important;
     min-height: 0 !important;
@@ -121,7 +121,7 @@ body.dx-bag-page .content {
 }
 
 #dex-bag {
-  width: var(--dx-header-frame-width, min(calc(var(--dx-content-max-width, 1360px) + (var(--dx-site-gutter, 24px) * 2)), calc(100% - (var(--dx-site-gutter, 24px) * 2))));
+  width: var(--dx-header-frame-width, var(--dx-header-frame-width-vw, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px)));
   --dx-bag-motion-visual-ms: 320ms;
   --dx-bag-motion-size-swap-ms: 300ms;
   --dx-bag-motion-visual-ease: cubic-bezier(0.22, 0.8, 0.2, 1);
