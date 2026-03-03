@@ -74,10 +74,19 @@ const bucketFileStatsSchema = z.object({
 const downloadTreeFileSchema = z.object({
   fileId: z.string().trim().min(1),
   label: z.string().trim().min(1).optional(),
+  filename: z.string().trim().min(1).optional(),
+  extension: z.string().trim().min(1).optional(),
+  variantKey: z.string().trim().min(1).optional(),
+}).strict();
+const downloadTreeVariantSchema = z.object({
+  variantKey: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+  files: z.array(downloadTreeFileSchema).default([]),
 }).strict();
 const downloadTreeTypeSchema = z.object({
   mediaType: z.enum(['audio', 'video']),
-  files: z.array(downloadTreeFileSchema).default([]),
+  files: z.array(downloadTreeFileSchema).default([]).optional(),
+  variants: z.array(downloadTreeVariantSchema).default([]).optional(),
 }).strict();
 const downloadTreeBucketSchema = z.object({
   bucket: z.enum(BUCKETS),

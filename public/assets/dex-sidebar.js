@@ -2438,6 +2438,8 @@
           label: String(file?.label || file?.sourceLabel || file?.bucketNumber || fileId).trim(),
           filename: String(file?.filename || file?.name || file?.path || '').trim(),
           extension: String(file?.extension || file?.ext || file?.fileExt || '').trim(),
+          variantKey: String(file?.variantKey || file?.quality || file?.resolution || file?.formatKey || '').trim(),
+          variantLabel: String(file?.variantLabel || file?.qualityLabel || '').trim(),
           mediaTypes,
         };
       })
@@ -2498,29 +2500,71 @@
           .map((typeRow) => {
             const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
             if (mediaType !== 'audio' && mediaType !== 'video') return null;
-            const files = Array.isArray(typeRow?.files)
-              ? typeRow.files
-              : [];
-            const normalizedFiles = files
-              .map((fileRow) => {
-                const fileId = String(fileRow?.fileId || '').trim();
-                if (!fileId) return null;
-                const label = String(fileRow?.label || fileId).trim();
-                return {
-                  lookup,
-                  bucket,
-                  fileId,
-                  label,
-                  filename: String(fileRow?.filename || fileRow?.name || fileRow?.path || '').trim(),
-                  extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
-                  mediaType,
-                  mediaTypes: [mediaType],
-                };
-              })
-              .filter(Boolean);
+            const normalizeVariantKey = (rawValue = '', fallbackValue = '') => {
+              const direct = String(rawValue || '').trim();
+              if (direct) return direct;
+              const fallback = String(fallbackValue || '').trim();
+              if (fallback) return fallback;
+              return `default-${mediaType}`;
+            };
+            const normalizeFile = (fileRow, variantKey = '') => {
+              const fileId = String(fileRow?.fileId || '').trim();
+              if (!fileId) return null;
+              const label = String(fileRow?.label || fileId).trim();
+              const resolvedVariantKey = normalizeVariantKey(fileRow?.variantKey, variantKey);
+              return {
+                lookup,
+                bucket,
+                fileId,
+                label,
+                filename: String(fileRow?.filename || fileRow?.name || fileRow?.path || '').trim(),
+                extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
+                variantKey: resolvedVariantKey,
+                variantLabel: String(fileRow?.variantLabel || '').trim(),
+                mediaType,
+                mediaTypes: [mediaType],
+              };
+            };
+
+            const variantRows = Array.isArray(typeRow?.variants) ? typeRow.variants : [];
+            const legacyFiles = Array.isArray(typeRow?.files) ? typeRow.files : [];
+            const normalizedVariants = [];
+
+            if (variantRows.length) {
+              variantRows.forEach((variantRow) => {
+                const variantKey = normalizeVariantKey(variantRow?.variantKey);
+                const variantLabel = String(variantRow?.label || variantKey).trim();
+                const variantFiles = Array.isArray(variantRow?.files) ? variantRow.files : [];
+                const normalizedVariantFiles = variantFiles
+                  .map((fileRow) => {
+                    const normalizedFile = normalizeFile(fileRow, variantKey);
+                    if (!normalizedFile) return null;
+                    if (!normalizedFile.variantLabel) normalizedFile.variantLabel = variantLabel;
+                    return normalizedFile;
+                  })
+                  .filter(Boolean);
+                normalizedVariants.push({
+                  variantKey,
+                  label: variantLabel,
+                  files: normalizedVariantFiles,
+                });
+              });
+            } else if (legacyFiles.length) {
+              const syntheticVariantKey = `default-${mediaType}`;
+              normalizedVariants.push({
+                variantKey: syntheticVariantKey,
+                label: mediaType === 'video' ? 'Default Video' : 'Default Audio',
+                files: legacyFiles
+                  .map((fileRow) => normalizeFile(fileRow, syntheticVariantKey))
+                  .filter(Boolean),
+              });
+            }
+
+            const normalizedFiles = normalizedVariants.flatMap((variant) => (Array.isArray(variant.files) ? variant.files : []));
             return {
               mediaType,
               files: normalizedFiles,
+              variants: normalizedVariants,
             };
           })
           .filter(Boolean);
@@ -2542,33 +2586,66 @@
 
   const buildInventoryDownloadTree = (cfg, lookup, payload = {}) => {
     const files = normalizeLookupFiles(payload, lookup);
+    const inferVariantKey = (mediaType, file = {}) => {
+      const direct = String(file?.variantKey || file?.quality || file?.resolution || file?.formatKey || '').trim();
+      if (direct) return direct;
+      const extension = String(file?.extension || '').trim().toLowerCase();
+      if (mediaType === 'audio') {
+        if (extension === 'wav') return 'wav';
+        if (extension === 'mp3') return 'mp3';
+      }
+      if (mediaType === 'video') {
+        const haystack = `${String(file?.label || '')} ${String(file?.filename || '')}`.toLowerCase();
+        if (/\b4k\b|\b2160p?\b|\buhd\b/.test(haystack)) return '4K';
+        if (/\b1080p?\b/.test(haystack)) return '1080p';
+      }
+      return `default-${mediaType}`;
+    };
     const buckets = ALL_BUCKETS.map((bucket) => {
       const byBucket = files.filter((file) => file.bucket === bucket);
       const byType = {
-        audio: [],
-        video: [],
+        audio: new Map(),
+        video: new Map(),
       };
       byBucket.forEach((file) => {
         file.mediaTypes.forEach((mediaType) => {
           if (mediaType !== 'audio' && mediaType !== 'video') return;
-          byType[mediaType].push({
+          const variantKey = inferVariantKey(mediaType, file);
+          const variantMap = byType[mediaType];
+          if (!(variantMap instanceof Map)) return;
+          if (!variantMap.has(variantKey)) variantMap.set(variantKey, []);
+          variantMap.get(variantKey).push({
             lookup,
             bucket,
             fileId: file.fileId,
             label: file.label || file.fileId,
             filename: file.filename || '',
             extension: file.extension || '',
+            variantKey,
+            variantLabel: String(file.variantLabel || variantKey).trim(),
             mediaType,
             mediaTypes: [mediaType],
           });
         });
       });
       const types = ['audio', 'video']
-        .map((mediaType) => ({
-          mediaType,
-          files: byType[mediaType],
-        }))
-        .filter((row) => row.files.length > 0);
+        .map((mediaType) => {
+          const variantMap = byType[mediaType];
+          const variants = variantMap instanceof Map
+            ? Array.from(variantMap.entries()).map(([variantKey, variantFiles]) => ({
+              variantKey,
+              label: variantKey,
+              files: Array.isArray(variantFiles) ? variantFiles : [],
+            }))
+            : [];
+          const filesFlat = variants.flatMap((variant) => variant.files);
+          return {
+            mediaType,
+            files: filesFlat,
+            variants,
+          };
+        })
+        .filter((row) => row.files.length > 0 || row.variants.length > 0);
       return {
         bucket,
         types,
@@ -2583,11 +2660,12 @@
     const bucket = String(node?.bucket || '').trim().toUpperCase();
     const mediaType = String(node?.mediaType || '').trim().toLowerCase();
     const fileId = String(node?.fileId || '').trim();
+    const variantKey = String(node?.variantKey || '').trim().toLowerCase();
     const mediaTypes = normalizeAvailableMediaTypes(node?.mediaTypes, mediaType).join(',');
     if (kind === 'collection') return `collection|${lookup}`;
     if (kind === 'bucket') return `bucket|${lookup}|${bucket}`;
     if (kind === 'type') return `type|${lookup}|${bucket}|${mediaType}`;
-    return `file|${lookup}|${bucket}|${fileId}|${mediaTypes}`;
+    return `file|${lookup}|${bucket}|${variantKey}|${fileId}|${mediaTypes}`;
   };
 
   const normalizeNodeForBag = (node, context) => ({
@@ -2597,6 +2675,7 @@
     mediaType: String(node?.mediaType || '').trim().toLowerCase(),
     mediaTypes: normalizeAvailableMediaTypes(node?.mediaTypes, node?.mediaType),
     fileId: String(node?.fileId || '').trim(),
+    variantKey: String(node?.variantKey || '').trim(),
     source: 'entry-sidebar',
     entryHref: normalizeLocationPath(context?.entryHref || window.location.pathname || '/'),
     title: String(context?.lookup || '').trim(),
@@ -3181,7 +3260,7 @@
         const addToBagButton = document.createElement('button');
         addToBagButton.type = 'button';
         addToBagButton.className = 'dx-button-element--primary';
-        const addToBagBaseLabel = `ADD\u200C TO BAG`;
+        const addToBagBaseLabel = `ADD\u200C TO BAG`.replace('ADD\u200C', 'AD\u200CD');
         addToBagButton.textContent = addToBagBaseLabel;
         addToBagButton.style.textTransform = 'uppercase';
 
@@ -3226,29 +3305,66 @@
                   .map((typeRow) => {
                     const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
                     if (mediaType !== 'audio' && mediaType !== 'video') return null;
-                    const files = Array.isArray(typeRow?.files)
-                      ? typeRow.files
-                      : [];
-                    const normalizedFiles = files
-                      .map((fileRow) => {
-                        const fileId = String(fileRow?.fileId || '').trim();
-                        if (!fileId) return null;
-                        const label = String(fileRow?.label || fileId).trim();
-                        return {
-                          lookup,
-                          bucket,
-                          mediaType,
-                          mediaTypes: [mediaType],
-                          fileId,
-                          label,
-                          filename: String(fileRow?.filename || fileRow?.name || '').trim(),
-                          extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
-                        };
-                      })
-                      .filter(Boolean);
+                    const normalizeVariantKey = (rawValue = '', fallbackValue = '') => {
+                      const direct = String(rawValue || '').trim();
+                      if (direct) return direct;
+                      const fallback = String(fallbackValue || '').trim();
+                      if (fallback) return fallback;
+                      return `default-${mediaType}`;
+                    };
+                    const normalizeFile = (fileRow, variantKey = '', variantLabel = '') => {
+                      const fileId = String(fileRow?.fileId || '').trim();
+                      if (!fileId) return null;
+                      const label = String(fileRow?.label || fileId).trim();
+                      const resolvedVariantKey = normalizeVariantKey(fileRow?.variantKey, variantKey);
+                      return {
+                        lookup,
+                        bucket,
+                        mediaType,
+                        mediaTypes: [mediaType],
+                        fileId,
+                        label,
+                        filename: String(fileRow?.filename || fileRow?.name || '').trim(),
+                        extension: String(fileRow?.extension || fileRow?.ext || '').trim(),
+                        variantKey: resolvedVariantKey,
+                        variantLabel: String(fileRow?.variantLabel || variantLabel || resolvedVariantKey).trim(),
+                      };
+                    };
+
+                    const variantRows = Array.isArray(typeRow?.variants) ? typeRow.variants : [];
+                    const legacyFiles = Array.isArray(typeRow?.files) ? typeRow.files : [];
+                    const normalizedVariants = [];
+
+                    if (variantRows.length) {
+                      variantRows.forEach((variantRow) => {
+                        const variantKey = normalizeVariantKey(variantRow?.variantKey);
+                        const variantLabel = String(variantRow?.label || variantKey).trim();
+                        const variantFiles = Array.isArray(variantRow?.files) ? variantRow.files : [];
+                        const normalizedVariantFiles = variantFiles
+                          .map((fileRow) => normalizeFile(fileRow, variantKey, variantLabel))
+                          .filter(Boolean);
+                        normalizedVariants.push({
+                          variantKey,
+                          label: variantLabel,
+                          files: normalizedVariantFiles,
+                        });
+                      });
+                    } else if (legacyFiles.length) {
+                      const syntheticVariantKey = `default-${mediaType}`;
+                      normalizedVariants.push({
+                        variantKey: syntheticVariantKey,
+                        label: mediaType === 'video' ? 'Default Video' : 'Default Audio',
+                        files: legacyFiles
+                          .map((fileRow) => normalizeFile(fileRow, syntheticVariantKey, syntheticVariantKey))
+                          .filter(Boolean),
+                      });
+                    }
+
+                    const normalizedFiles = normalizedVariants.flatMap((variant) => (Array.isArray(variant.files) ? variant.files : []));
                     return {
                       mediaType,
                       files: normalizedFiles,
+                      variants: normalizedVariants,
                     };
                   })
                   .filter(Boolean);
@@ -3269,6 +3385,7 @@
           leafByKey: new Map(),
           leafKeysByBucket: new Map(),
           leafKeysByType: new Map(),
+          leafKeysByVariant: new Map(),
           nodeLeafCounts: new Map(),
           leafAncestorNodeIds: new Map(),
         };
@@ -3278,6 +3395,7 @@
           treeState.leafByKey = new Map();
           treeState.leafKeysByBucket = new Map();
           treeState.leafKeysByType = new Map();
+          treeState.leafKeysByVariant = new Map();
           treeState.nodeLeafCounts = new Map();
           treeState.leafAncestorNodeIds = new Map();
           const collectionNodeId = `collection|${lookup}`;
@@ -3291,16 +3409,55 @@
               const typeKey = `${bucketRow.bucket}|${typeRow.mediaType}`;
               const typeNodeId = `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`;
               const typeLeafKeys = [];
-              if (Array.isArray(typeRow.files) && typeRow.files.length) {
+              const variantRows = Array.isArray(typeRow.variants) ? typeRow.variants : [];
+              if (variantRows.length) {
+                variantRows.forEach((variantRow) => {
+                  const variantKey = String(variantRow?.variantKey || '').trim() || `default-${typeRow.mediaType}`;
+                  const variantNodeId = `variant|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`;
+                  const variantLeafKeys = [];
+                  const variantFiles = Array.isArray(variantRow?.files) ? variantRow.files : [];
+                  variantFiles.forEach((fileRow) => {
+                    const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
+                    const fileNodeId = `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
+                    const leaf = {
+                      kind: 'file',
+                      lookup,
+                      bucket: bucketRow.bucket,
+                      mediaType: typeRow.mediaType,
+                      mediaTypes: [typeRow.mediaType],
+                      variantKey,
+                      variantLabel: String(fileRow?.variantLabel || variantRow?.label || variantKey).trim(),
+                      fileId: fileRow.fileId,
+                      label: fileRow.label || fileRow.fileId,
+                      filename: fileRow.filename || '',
+                      extension: fileRow.extension || '',
+                      leafKey,
+                    };
+                    treeState.leaves.push(leaf);
+                    treeState.leafByKey.set(leafKey, leaf);
+                    typeLeafKeys.push(leafKey);
+                    variantLeafKeys.push(leafKey);
+                    bucketKeys.push(leafKey);
+                    const ancestorIds = [collectionNodeId, bucketNodeId, typeNodeId, variantNodeId, fileNodeId];
+                    treeState.leafAncestorNodeIds.set(leafKey, ancestorIds);
+                    ancestorIds.forEach(countNodeLeaf);
+                  });
+                  treeState.leafKeysByVariant.set(`${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`, variantLeafKeys);
+                });
+              } else if (Array.isArray(typeRow.files) && typeRow.files.length) {
                 typeRow.files.forEach((fileRow) => {
-                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
-                  const fileNodeId = `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
+                  const variantKey = String(fileRow?.variantKey || '').trim() || `default-${typeRow.mediaType}`;
+                  const variantNodeId = `variant|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`;
+                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
+                  const fileNodeId = `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
                   const leaf = {
                     kind: 'file',
                     lookup,
                     bucket: bucketRow.bucket,
                     mediaType: typeRow.mediaType,
                     mediaTypes: [typeRow.mediaType],
+                    variantKey,
+                    variantLabel: String(fileRow?.variantLabel || variantKey).trim(),
                     fileId: fileRow.fileId,
                     label: fileRow.label || fileRow.fileId,
                     filename: fileRow.filename || '',
@@ -3311,7 +3468,11 @@
                   treeState.leafByKey.set(leafKey, leaf);
                   typeLeafKeys.push(leafKey);
                   bucketKeys.push(leafKey);
-                  const ancestorIds = [collectionNodeId, bucketNodeId, typeNodeId, fileNodeId];
+                  const variantMapKey = `${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`;
+                  const existingVariantLeafKeys = treeState.leafKeysByVariant.get(variantMapKey) || [];
+                  existingVariantLeafKeys.push(leafKey);
+                  treeState.leafKeysByVariant.set(variantMapKey, existingVariantLeafKeys);
+                  const ancestorIds = [collectionNodeId, bucketNodeId, typeNodeId, variantNodeId, fileNodeId];
                   treeState.leafAncestorNodeIds.set(leafKey, ancestorIds);
                   ancestorIds.forEach(countNodeLeaf);
                 });
@@ -3344,17 +3505,28 @@
             if (!treeState.leafByKey.has(leafKey)) selectedLeafKeys.delete(leafKey);
           });
           if (!expandedNodeKeys.size) {
-            const rootNode = {
-              id: `collection|${lookup}`,
-              children: treeState.tree.buckets.map((bucketRow) => ({
-                id: `bucket|${lookup}|${bucketRow.bucket}`,
-                children: bucketRow.types.map((typeRow) => ({
-                  id: `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`,
-                  children: Array.isArray(typeRow.files) && typeRow.files.length ? [{}] : [],
-                })),
-              })),
-            };
-            collectExpandableNodeIds(rootNode, []).forEach((nodeId) => expandedNodeKeys.add(nodeId));
+            expandedNodeKeys.add(`collection|${lookup}`);
+            const buckets = Array.isArray(treeState.tree?.buckets) ? treeState.tree.buckets : [];
+            if (buckets.length) {
+              const defaultBucket = buckets.find((bucketRow) => String(bucketRow?.bucket || '').toUpperCase() === 'A') || buckets[0];
+              if (defaultBucket?.bucket) {
+                expandedNodeKeys.add(`bucket|${lookup}|${defaultBucket.bucket}`);
+              }
+              buckets.forEach((bucketRow) => {
+                const bucketName = String(bucketRow?.bucket || '').trim();
+                const typeRows = Array.isArray(bucketRow?.types) ? bucketRow.types : [];
+                typeRows.forEach((typeRow) => {
+                  const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
+                  if (!bucketName || !mediaType) return;
+                  const variantRows = Array.isArray(typeRow?.variants) ? typeRow.variants : [];
+                  if (variantRows.length !== 1) return;
+                  expandedNodeKeys.add(`type|${lookup}|${bucketName}|${mediaType}`);
+                  const onlyVariant = variantRows[0];
+                  const variantKey = String(onlyVariant?.variantKey || '').trim() || `default-${mediaType}`;
+                  expandedNodeKeys.add(`variant|${lookup}|${bucketName}|${mediaType}|${variantKey}`);
+                });
+              });
+            }
           }
         };
 
@@ -3437,6 +3609,7 @@
               lookup,
               bucket: leaf.bucket,
               fileId: leaf.fileId,
+              variantKey: leaf.variantKey || '',
               mediaType: leaf.mediaType,
               mediaTypes: [leaf.mediaType],
             });
@@ -3496,11 +3669,15 @@
           return mediaType === 'video' ? 'mov' : 'wav';
         };
 
-        const buildDisplayFilename = (bucket, mediaType, fileRow = {}) => {
+        const buildDisplayFilename = (bucket, mediaType, variantKey = '', fileRow = {}) => {
           const explicitName = String(fileRow?.filename || '').trim();
           if (explicitName) return explicitName;
           const ordinal = extractBucketOrdinal(bucket, fileRow);
           const extension = fileExtensionForMediaType(mediaType, fileRow);
+          const variant = String(variantKey || fileRow?.variantKey || '').trim();
+          if (variant && !/^default-/i.test(variant)) {
+            return `${lookup} ${ordinal}.${String(variant).toLowerCase()}.${extension}`;
+          }
           return `${lookup} ${ordinal}.${extension}`;
         };
 
@@ -3523,20 +3700,55 @@
               children: [],
             };
             bucketRow.types.forEach((typeRow) => {
+              const typeFilesCount = Array.isArray(typeRow.files) && typeRow.files.length
+                ? typeRow.files.length
+                : (Array.isArray(typeRow.variants)
+                  ? typeRow.variants.reduce((sum, variant) => sum + (Array.isArray(variant?.files) ? variant.files.length : 0), 0)
+                  : 0);
               const typeNode = {
                 id: `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`,
                 kind: 'type',
                 label: typeRow.mediaType,
-                meta: `${typeRow.files.length || 0} files`,
+                meta: `${typeFilesCount || 0} files`,
                 leafKeys: (treeState.leafKeysByType.get(`${bucketRow.bucket}|${typeRow.mediaType}`) || []).slice(),
                 children: [],
               };
-              if (Array.isArray(typeRow.files) && typeRow.files.length) {
+              const variantRows = Array.isArray(typeRow.variants) ? typeRow.variants : [];
+              if (variantRows.length) {
+                variantRows.forEach((variantRow) => {
+                  const variantKey = String(variantRow?.variantKey || '').trim() || `default-${typeRow.mediaType}`;
+                  const variantLabel = String(variantRow?.label || variantKey).trim();
+                  const variantMapKey = `${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`;
+                  const variantNode = {
+                    id: `variant|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}`,
+                    kind: 'variant',
+                    label: variantLabel,
+                    meta: `${(treeState.leafKeysByVariant.get(variantMapKey) || []).length} files`,
+                    leafKeys: (treeState.leafKeysByVariant.get(variantMapKey) || []).slice(),
+                    children: [],
+                  };
+                  const variantFiles = Array.isArray(variantRow?.files) ? variantRow.files : [];
+                  variantFiles.forEach((fileRow) => {
+                    const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
+                    const displayName = buildDisplayFilename(bucketRow.bucket, typeRow.mediaType, variantKey, fileRow);
+                    variantNode.children.push({
+                      id: `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`,
+                      kind: 'file',
+                      label: displayName,
+                      meta: `${extractBucketOrdinal(bucketRow.bucket, fileRow)} [${typeRow.mediaType}${variantLabel ? ` ${String(variantLabel).toLowerCase()}` : ''}]`,
+                      leafKeys: [leafKey],
+                      children: [],
+                    });
+                  });
+                  typeNode.children.push(variantNode);
+                });
+              } else if (Array.isArray(typeRow.files) && typeRow.files.length) {
                 typeRow.files.forEach((fileRow) => {
-                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
-                  const displayName = buildDisplayFilename(bucketRow.bucket, typeRow.mediaType, fileRow);
+                  const variantKey = String(fileRow?.variantKey || '').trim() || `default-${typeRow.mediaType}`;
+                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`;
+                  const displayName = buildDisplayFilename(bucketRow.bucket, typeRow.mediaType, variantKey, fileRow);
                   typeNode.children.push({
-                    id: `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`,
+                    id: `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${variantKey}|${fileRow.fileId}`,
                     kind: 'file',
                     label: displayName,
                     meta: `${extractBucketOrdinal(bucketRow.bucket, fileRow)} [${typeRow.mediaType}]`,

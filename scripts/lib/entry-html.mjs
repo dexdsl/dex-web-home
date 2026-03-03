@@ -803,6 +803,14 @@ function normalizeDownloadFileTree(fileTree) {
     return undefined;
   }
 
+  const normalizeVariantKey = (mediaType, rawValue, fallbackValue = '') => {
+    const direct = String(rawValue || '').trim();
+    if (direct) return direct;
+    const fallback = String(fallbackValue || '').trim();
+    if (fallback) return fallback;
+    return `default-${mediaType}`;
+  };
+
   const normalizeLookupTree = (lookupKey, lookupTree) => {
     if (!lookupTree || typeof lookupTree !== 'object' || Array.isArray(lookupTree)) {
       throw new Error('sidebarPageConfig.downloads.fileTree lookup tree must be an object');
@@ -825,22 +833,54 @@ function normalizeDownloadFileTree(fileTree) {
             if (!DOWNLOAD_FILE_TREE_MEDIA_TYPES.includes(mediaType)) {
               throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucket}].types[${typeIndex}] has unsupported mediaType "${mediaType}"`);
             }
+            const normalizeFileRow = (fileRow, fileIndex, variantKey = '') => {
+              const fileId = String(fileRow?.fileId || '').trim();
+              if (!fileId) {
+                throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucket}].types[${mediaType}].files[${fileIndex}] missing fileId`);
+              }
+              const label = String(fileRow?.label || fileId).trim();
+              const filename = String(fileRow?.filename || fileRow?.name || fileRow?.path || '').trim();
+              const extension = String(fileRow?.extension || fileRow?.ext || fileRow?.format || '').trim();
+              const resolvedVariantKey = normalizeVariantKey(mediaType, fileRow?.variantKey, variantKey);
+              return {
+                fileId,
+                label,
+                filename,
+                extension,
+                variantKey: resolvedVariantKey,
+              };
+            };
+
+            const variants = Array.isArray(typeRow?.variants) ? typeRow.variants : [];
             const files = Array.isArray(typeRow?.files) ? typeRow.files : [];
-            const normalizedFiles = files
-              .map((fileRow, fileIndex) => {
-                const fileId = String(fileRow?.fileId || '').trim();
-                if (!fileId) {
-                  throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucket}].types[${mediaType}].files[${fileIndex}] missing fileId`);
-                }
-                const label = String(fileRow?.label || fileId).trim();
-                return {
-                  fileId,
-                  label,
-                };
+            const normalizedVariants = [];
+
+            if (variants.length) {
+              variants.forEach((variantRow, variantIndex) => {
+                const variantKey = normalizeVariantKey(mediaType, variantRow?.variantKey);
+                const variantLabel = String(variantRow?.label || variantKey).trim();
+                const variantFiles = Array.isArray(variantRow?.files) ? variantRow.files : [];
+                const normalizedVariantFiles = variantFiles.map((fileRow, fileIndex) => normalizeFileRow(fileRow, fileIndex, variantKey));
+                normalizedVariants.push({
+                  variantKey,
+                  label: variantLabel,
+                  files: normalizedVariantFiles,
+                });
               });
+            } else if (files.length) {
+              const syntheticVariantKey = `default-${mediaType}`;
+              normalizedVariants.push({
+                variantKey: syntheticVariantKey,
+                label: mediaType === 'video' ? 'Default Video' : 'Default Audio',
+                files: files.map((fileRow, fileIndex) => normalizeFileRow(fileRow, fileIndex, syntheticVariantKey)),
+              });
+            }
+
+            const normalizedFiles = normalizedVariants.flatMap((variant) => Array.isArray(variant.files) ? variant.files : []);
             return {
               mediaType,
               files: normalizedFiles,
+              variants: normalizedVariants,
             };
           });
         return {
