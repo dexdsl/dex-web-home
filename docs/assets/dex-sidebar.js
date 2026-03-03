@@ -4651,7 +4651,7 @@
       const labelSeedBase = `${window.location.pathname || '/'}|sidebar-label`;
       const copyLabel = randomizeTitleWithJoiners('Copy', { seedKey: `${labelSeedBase}|copy` });
       const usageNotesLabel = randomizeTitleWithJoiners('Usage Notes', { seedKey: `${labelSeedBase}|usage-notes` });
-      const filesLabel = randomizeTitleWithJoiners('Files', { seedKey: `${labelSeedBase}|files` });
+      const filesLabel = randomizeTitleWithJoiners('Get Files', { seedKey: `${labelSeedBase}|get-files` });
       const recordingIndexLabel = randomizeTitleWithJoiners('Recording Index', { seedKey: `${labelSeedBase}|recording-index` });
       ensureDownloadOnlyFileInfoCard(`${labelSeedBase}|download-card`);
 
@@ -4718,10 +4718,33 @@
         </div>
       `);
 
-      render('#downloads', 'Download', `<p>Choose files to download:</p><button type="button" class="btn-download dx-button-element--primary" aria-label="Files"><span>${filesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Recording Index" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
+      render('#downloads', 'Download', `<button type="button" class="btn-download dx-button-element--primary" aria-label="Get Files"><span>${filesLabel}</span></button><div class="dx-download-inline" data-dx-recording-index-row="1" data-dx-download-kind="recording-index-pdf" data-dx-download-state="idle"><button type="button" class="btn-recording-index dx-button-element--secondary" aria-label="Recording Index" data-dx-download-kind="recording-index-pdf"><span>${recordingIndexLabel}</span></button><span data-dx-download-status="1" hidden></span></div>`, true);
       const downloadsEl = document.querySelector('#downloads');
       if (downloadsEl instanceof HTMLElement) {
         downloadsEl.setAttribute('data-dx-download-mode', 'unified');
+        downloadsEl.style.setProperty('display', 'grid', 'important');
+        downloadsEl.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
+        downloadsEl.style.setProperty('grid-auto-flow', 'row', 'important');
+        downloadsEl.style.setProperty('align-items', 'stretch', 'important');
+        downloadsEl.style.setProperty('gap', 'var(--space-2, 0.5rem)', 'important');
+        const primaryDownloadBtn = downloadsEl.querySelector('.btn-download');
+        const recordingRow = downloadsEl.querySelector('.dx-download-inline');
+        const recordingBtn = downloadsEl.querySelector('.btn-recording-index');
+        if (primaryDownloadBtn instanceof HTMLElement) {
+          primaryDownloadBtn.style.setProperty('width', '100%', 'important');
+          primaryDownloadBtn.style.setProperty('justify-self', 'stretch', 'important');
+        }
+        if (recordingRow instanceof HTMLElement) {
+          recordingRow.style.setProperty('display', 'grid', 'important');
+          recordingRow.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
+          recordingRow.style.setProperty('grid-column', '1 / -1', 'important');
+          recordingRow.style.setProperty('width', '100%', 'important');
+        }
+        if (recordingBtn instanceof HTMLElement) {
+          recordingBtn.style.setProperty('width', '100%', 'important');
+          recordingBtn.style.setProperty('justify-self', 'stretch', 'important');
+          recordingBtn.style.setProperty('margin', '0', 'important');
+        }
       }
 
       attachUnifiedDownload(cfg, '#downloads .btn-download', { lookup, entryHref, favoritesApi });

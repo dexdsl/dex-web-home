@@ -3309,6 +3309,7 @@ border: 0;
 
 .dex-sidebar #downloads[data-dx-download-mode="unified"] {
   grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
 }
 
 .dex-sidebar #downloads > p {
@@ -3326,6 +3327,9 @@ border: 0;
 
 .dex-sidebar #downloads .dx-download-inline {
   grid-column: 1 / -1;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  width: 100% !important;
 }
 
 .dex-sidebar #downloads .btn-recording-index {
@@ -4353,7 +4357,7 @@ body.dx-entry-page .dex-sidebar .dex-credits .person-link[data-person-linkable="
 body.dx-entry-page .person-popup.person-popup--dx {
   position: absolute !important;
   z-index: 2147483000 !important;
-  min-width: 196px !important;
+  min-width: 0 !important;
   width: max-content !important;
   max-width: min(312px, calc(100vw - 16px)) !important;
   padding: 10px 12px !important;
