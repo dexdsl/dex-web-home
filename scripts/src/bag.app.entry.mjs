@@ -587,38 +587,179 @@
   function enforceSummarySeparator(value) {
     const text = toText(value);
     if (!text) return '';
-    // Preserve explicit non-joining between the two M's in SUMMARY.
-    return text.replace(/M(?:[\u200C\u200D])*M/g, 'M\u200CM');
+    // Preserve explicit non-joining between the two M's in SUMMARY only.
+    return text.replace(/SUM(?:[\u200C\u200D])*MARY/g, 'SUM\u200CMARY');
   }
 
   function renderJoinedRandomizedHeading(value, options = {}) {
     return joinRandomizedDuplicateRuns(renderRandomizedHeadingText(value, options));
   }
 
-  function animateRemoval(node, { className = 'is-removing', durationMs = 240 } = {}) {
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function waitForTransition(node, timeoutMs = 220) {
     if (!(node instanceof HTMLElement)) return Promise.resolve();
-    if (!className) return Promise.resolve();
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return Promise.resolve();
-    }
     return new Promise((resolve) => {
       let settled = false;
+      const safeDuration = Math.max(140, Number(timeoutMs) || 220);
       const done = () => {
         if (settled) return;
         settled = true;
-        node.removeEventListener('animationend', onFinish);
-        node.removeEventListener('transitionend', onFinish);
+        node.removeEventListener('transitionend', onEnd);
         window.clearTimeout(timer);
         resolve();
       };
-      const onFinish = (event) => {
+      const onEnd = (event) => {
         if (event && event.target !== node) return;
         done();
       };
-      const timer = window.setTimeout(done, Math.max(140, Number(durationMs) || 240) + 110);
-      node.addEventListener('animationend', onFinish);
-      node.addEventListener('transitionend', onFinish);
-      node.classList.add(className);
+      const timer = window.setTimeout(done, safeDuration + 180);
+      node.addEventListener('transitionend', onEnd);
+    });
+  }
+
+  async function animateAndCollapse(node, {
+    visualTarget = null,
+    visualDurationMs = 240,
+    collapseDurationMs = 320,
+    settleDurationMs = 60,
+    easing = 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+  } = {}) {
+    if (!(node instanceof HTMLElement)) return false;
+    if (node.getAttribute('data-removing') === '1') return false;
+    node.setAttribute('data-removing', '1');
+
+    const reduced = prefersReducedMotion();
+    const visualNode = visualTarget instanceof HTMLElement ? visualTarget : node;
+    visualNode.classList.add('is-removing-visual');
+    if (!reduced) {
+      await waitForTransition(visualNode, visualDurationMs);
+    }
+
+    const styles = window.getComputedStyle(node);
+    const startHeight = Math.max(node.offsetHeight, node.getBoundingClientRect().height, 0);
+    const startMargins = {
+      top: styles.marginTop,
+      bottom: styles.marginBottom,
+    };
+    const startPadding = {
+      top: styles.paddingTop,
+      bottom: styles.paddingBottom,
+    };
+    const startBorder = {
+      top: styles.borderTopWidth,
+      bottom: styles.borderBottomWidth,
+    };
+
+    node.classList.add('is-collapsing');
+    node.style.overflow = 'hidden';
+    node.style.height = `${startHeight}px`;
+    node.style.marginTop = startMargins.top;
+    node.style.marginBottom = startMargins.bottom;
+    node.style.paddingTop = startPadding.top;
+    node.style.paddingBottom = startPadding.bottom;
+    node.style.borderTopWidth = startBorder.top;
+    node.style.borderBottomWidth = startBorder.bottom;
+
+    if (!reduced) {
+      node.style.transition = [
+        `height ${collapseDurationMs}ms ${easing}`,
+        `margin-top ${collapseDurationMs}ms ${easing}`,
+        `margin-bottom ${collapseDurationMs}ms ${easing}`,
+        `padding-top ${collapseDurationMs}ms ${easing}`,
+        `padding-bottom ${collapseDurationMs}ms ${easing}`,
+        `border-top-width ${collapseDurationMs}ms ${easing}`,
+        `border-bottom-width ${collapseDurationMs}ms ${easing}`,
+      ].join(', ');
+      void node.offsetHeight;
+      node.style.height = '0px';
+      node.style.marginTop = '0px';
+      node.style.marginBottom = '0px';
+      node.style.paddingTop = '0px';
+      node.style.paddingBottom = '0px';
+      node.style.borderTopWidth = '0px';
+      node.style.borderBottomWidth = '0px';
+      await waitForTransition(node, collapseDurationMs);
+      const settleMs = Math.max(0, Number(settleDurationMs) || 0);
+      if (settleMs) {
+        await new Promise((resolve) => window.setTimeout(resolve, settleMs));
+      }
+    }
+
+    return true;
+  }
+
+  function captureFlipRects(rootNode, selector, keyAttr, excludeSet = null) {
+    const map = new Map();
+    if (!(rootNode instanceof HTMLElement)) return map;
+    rootNode.querySelectorAll(selector).forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const key = toText(node.getAttribute(keyAttr)).trim();
+      if (!key) return;
+      if (excludeSet instanceof Set && excludeSet.has(key)) return;
+      const rect = node.getBoundingClientRect();
+      map.set(key, rect);
+    });
+    return map;
+  }
+
+  function playFlipForRects(rootNode, selector, keyAttr, previousRects, {
+    durationMs = 240,
+    easing = 'cubic-bezier(0.16, 1, 0.3, 1)',
+  } = {}) {
+    if (!(rootNode instanceof HTMLElement)) return;
+    if (!(previousRects instanceof Map) || !previousRects.size) return;
+    if (prefersReducedMotion()) return;
+    rootNode.querySelectorAll(selector).forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const key = toText(node.getAttribute(keyAttr)).trim();
+      if (!key || !previousRects.has(key)) return;
+      const prev = previousRects.get(key);
+      const next = node.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      node.classList.add('is-flip-moving');
+      const animation = node.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: 'translate(0px, 0px)' },
+        ],
+        {
+          duration: Math.max(180, Number(durationMs) || 240),
+          easing,
+        },
+      );
+      const cleanup = () => node.classList.remove('is-flip-moving');
+      if (animation && typeof animation.addEventListener === 'function') {
+        animation.addEventListener('finish', cleanup, { once: true });
+        animation.addEventListener('cancel', cleanup, { once: true });
+      } else {
+        window.setTimeout(cleanup, Math.max(180, Number(durationMs) || 240) + 24);
+      }
+    });
+  }
+
+  function captureFlipState(rootNode, { excludeLookups = null, excludeLineIds = null } = {}) {
+    return {
+      cards: captureFlipRects(rootNode, '.dx-bag-card-shell[data-bag-lookup]', 'data-bag-lookup', excludeLookups),
+      lines: captureFlipRects(rootNode, '.dx-bag-receipt > li[data-bag-line-id]', 'data-bag-line-id', excludeLineIds),
+    };
+  }
+
+  function playFlipState(rootNode, flipState, options = {}) {
+    if (!flipState || !(rootNode instanceof HTMLElement)) return;
+    const durationMs = Math.max(180, Number(options?.durationMs) || 240);
+    const easing = toText(options?.easing).trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+    playFlipForRects(rootNode, '.dx-bag-card-shell[data-bag-lookup]', 'data-bag-lookup', flipState.cards, {
+      durationMs,
+      easing,
+    });
+    playFlipForRects(rootNode, '.dx-bag-receipt > li[data-bag-line-id]', 'data-bag-line-id', flipState.lines, {
+      durationMs,
+      easing,
     });
   }
 
@@ -1325,7 +1466,17 @@
       expandedReceipts: new Set(),
       localViewerMode: isLocalViewerRoute(),
       backCrumb: resolveBackCrumb(),
+      summaryDisplay: null,
+      summaryTweenToken: 0,
     };
+    const BAG_MOTION = Object.freeze({
+      visualDurationMs: 320,
+      collapseDurationMs: 420,
+      collapseSettleMs: 90,
+      flipDurationMs: 460,
+      summaryCountDurationMs: 640,
+      summarySizeSwapDurationMs: 300,
+    });
     let suppressBagUpdates = false;
 
     const setFetchState = (value) => {
@@ -1440,6 +1591,78 @@
       };
     };
 
+    const animateSummaryCounters = (nextSummary) => {
+      const entriesNode = root.querySelector('[data-bag-stat="entries"]');
+      const unitsNode = root.querySelector('[data-bag-stat="units"]');
+      const filesNode = root.querySelector('[data-bag-stat="files"]');
+      const sizeNode = root.querySelector('[data-bag-estimated-size]');
+      if (!(entriesNode instanceof HTMLElement) || !(unitsNode instanceof HTMLElement) || !(filesNode instanceof HTMLElement)) return;
+      if (!(sizeNode instanceof HTMLElement)) return;
+
+      const reduced = prefersReducedMotion();
+      const prev = state.summaryDisplay;
+      const next = {
+        entries: toCountInt(nextSummary?.entries),
+        units: toCountInt(nextSummary?.units),
+        files: toCountInt(nextSummary?.files),
+        estimatedSize: toText(nextSummary?.estimatedSize).trim() || '\u2014',
+      };
+
+      if (!prev || reduced) {
+        entriesNode.textContent = String(next.entries);
+        unitsNode.textContent = String(next.units);
+        filesNode.textContent = String(next.files);
+        sizeNode.textContent = next.estimatedSize;
+        state.summaryDisplay = next;
+        state.summaryTweenToken += 1;
+        return;
+      }
+
+      state.summaryTweenToken += 1;
+      const tweenToken = state.summaryTweenToken;
+      const durationMs = Math.max(200, Number(BAG_MOTION.summaryCountDurationMs) || 640);
+      const start = performance.now();
+      const easeInOutCubic = (t) => (t < 0.5
+        ? 4 * t * t * t
+        : 1 - ((-2 * t + 2) ** 3) / 2);
+
+      const from = {
+        entries: toCountInt(prev.entries),
+        units: toCountInt(prev.units),
+        files: toCountInt(prev.files),
+      };
+
+      const tick = (now) => {
+        if (tweenToken !== state.summaryTweenToken) return;
+        const progress = Math.max(0, Math.min((now - start) / durationMs, 1));
+        const eased = easeInOutCubic(progress);
+        const currentEntries = Math.round(from.entries + ((next.entries - from.entries) * eased));
+        const currentUnits = Math.round(from.units + ((next.units - from.units) * eased));
+        const currentFiles = Math.round(from.files + ((next.files - from.files) * eased));
+        entriesNode.textContent = String(currentEntries);
+        unitsNode.textContent = String(currentUnits);
+        filesNode.textContent = String(currentFiles);
+        if (progress < 1) {
+          window.requestAnimationFrame(tick);
+          return;
+        }
+        entriesNode.textContent = String(next.entries);
+        unitsNode.textContent = String(next.units);
+        filesNode.textContent = String(next.files);
+      };
+      window.requestAnimationFrame(tick);
+
+      if (toText(prev.estimatedSize) !== next.estimatedSize) {
+        sizeNode.textContent = next.estimatedSize;
+        sizeNode.style.setProperty('--dx-bag-size-swap-ms', `${Math.max(160, Number(BAG_MOTION.summarySizeSwapDurationMs) || 300)}ms`);
+        sizeNode.classList.remove('is-swapping');
+        void sizeNode.offsetWidth;
+        sizeNode.classList.add('is-swapping');
+      }
+
+      state.summaryDisplay = next;
+    };
+
     const render = () => {
       const lookupGroups = groupedRows();
       const models = lookupGroups.map(([lookup, rows]) => computeGroupModel(lookup, rows));
@@ -1469,16 +1692,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
           </svg>
         `;
-        const receiptItems = visibleLines.map((line) => {
+        const receiptItems = visibleLines.map((line, lineIndex) => {
           const text = htmlEscape(line?.text || '');
           const count = toCountInt(line?.count);
           const keys = Array.isArray(line?.keys) ? line.keys.map((key) => toText(key).trim()).filter(Boolean) : [];
           const encodedKeys = htmlEscape(JSON.stringify(keys));
+          const lineId = htmlEscape(`${model.lookup}::${keys.join('|') || toText(line?.text).trim() || lineIndex}`);
           const countSuffix = count > 0 ? `<span class="dx-bag-receipt-count">\u2022 ${count} file${count === 1 ? '' : 's'}</span>` : '';
           const removeLineBtn = keys.length
             ? `<button type="button" class="dx-bag-receipt-remove" data-bag-remove-line="${encodedKeys}" aria-label="Remove receipt item">${removeIcon}</button>`
             : '';
-          return `<li><span class="dx-bag-receipt-line-wrap"><span class="dx-bag-receipt-line">${text}</span>${countSuffix}</span>${removeLineBtn}</li>`;
+          return `<li data-bag-line-id="${lineId}"><span class="dx-bag-receipt-line-wrap"><span class="dx-bag-receipt-line">${text}</span>${countSuffix}</span>${removeLineBtn}</li>`;
         }).join('');
         const showMore = hiddenCount > 0
           ? `<button type="button" class="dx-bag-receipt-toggle" data-bag-toggle-receipt="${htmlEscape(model.lookup)}">${expanded ? 'Show Less' : `Show All (${hiddenCount} more)`}</button>`
@@ -1488,29 +1712,31 @@
           : '';
 
         return `
-          <article class="dx-bag-card" data-bag-lookup="${htmlEscape(model.lookup)}">
-            <header class="dx-bag-card-head">
-              <div class="dx-bag-card-ident">
-                <h3 data-bag-heading="card-title" data-bag-heading-seed="${htmlEscape(`bag:card-title:${model.lookup}`)}" data-bag-heading-canonical="${htmlEscape(model.title)}">${htmlEscape(model.title)}</h3>
-                <p>${htmlEscape(model.lookup)}</p>
-              </div>
-              <div class="dx-bag-card-controls">
-                <div class="dx-bag-card-actions">
-                  <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-edit="${htmlEscape(model.lookup)}" aria-label="Edit selection" ${model.entryHref ? '' : 'disabled'}>${editIcon}</button>
-                  <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-remove-lookup="${htmlEscape(model.lookup)}" aria-label="Remove selection">${removeIcon}</button>
+          <div class="dx-bag-card-shell" data-bag-lookup="${htmlEscape(model.lookup)}">
+            <article class="dx-bag-card">
+              <header class="dx-bag-card-head">
+                <div class="dx-bag-card-ident">
+                  <h3 data-bag-heading="card-title" data-bag-heading-seed="${htmlEscape(`bag:card-title:${model.lookup}`)}" data-bag-heading-canonical="${htmlEscape(model.title)}">${htmlEscape(model.title)}</h3>
+                  <p>${htmlEscape(model.lookup)}</p>
                 </div>
+                <div class="dx-bag-card-controls">
+                  <div class="dx-bag-card-actions">
+                    <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-edit="${htmlEscape(model.lookup)}" aria-label="Edit selection" ${model.entryHref ? '' : 'disabled'}>${editIcon}</button>
+                    <button type="button" class="dx-button-element dx-button-size--sm dx-button-element--secondary dx-bag-icon-btn" data-bag-remove-lookup="${htmlEscape(model.lookup)}" aria-label="Remove selection">${removeIcon}</button>
+                  </div>
+                </div>
+              </header>
+              <div class="dx-bag-card-main">
+                <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
+                <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
+                <div class="dx-bag-card-receipt-row">
+                  <ol class="dx-bag-receipt">${receiptItems || '<li><span class="dx-bag-receipt-line">No receipt lines.</span></li>'}</ol>
+                  ${thumbnailMarkup}
+                </div>
+                ${showMore}
               </div>
-            </header>
-            <div class="dx-bag-card-main">
-              <p class="dx-bag-scope">${htmlEscape(model.scopeSummary)}</p>
-              <p class="dx-bag-count">${htmlEscape(`${model.resolvedCount} file${model.resolvedCount === 1 ? '' : 's'} in download`)}</p>
-              <div class="dx-bag-card-receipt-row">
-                <ol class="dx-bag-receipt">${receiptItems || '<li><span class="dx-bag-receipt-line">No receipt lines.</span></li>'}</ol>
-                ${thumbnailMarkup}
-              </div>
-              ${showMore}
-            </div>
-          </article>
+            </article>
+          </div>
         `;
       }).join('');
 
@@ -1541,10 +1767,10 @@
               <div class="dx-bag-summary-block">
                 <h2 data-bag-heading="summary" data-bag-heading-seed="bag:h2:summary" data-bag-heading-canonical="${htmlEscape(summaryHeading)}">${htmlEscape(summaryHeading)}</h2>
                 <div class="dx-bag-stats">
-                  <span><strong>${selectedLookupCount}</strong> entries</span>
-                  <span><strong>${selectedUnitCount}</strong> units</span>
-                  <span><strong>${selectedFileCount}</strong> files</span>
-                  <span><strong>${htmlEscape(formatEstimatedSize(estimatedBytes, selectedFileCount))}</strong> estimated size</span>
+                  <span><strong data-bag-stat="entries">${selectedLookupCount}</strong> entries</span>
+                  <span><strong data-bag-stat="units">${selectedUnitCount}</strong> units</span>
+                  <span><strong data-bag-stat="files">${selectedFileCount}</strong> files</span>
+                  <span><strong data-bag-estimated-size>${htmlEscape(formatEstimatedSize(estimatedBytes, selectedFileCount))}</strong> estimated size</span>
                 </div>
               </div>
               <div class="dx-bag-actions">
@@ -1577,6 +1803,12 @@
       window.requestAnimationFrame(() => {
         applyBagHeadingRandomization();
         window.requestAnimationFrame(() => applyBagHeadingRandomization());
+      });
+      animateSummaryCounters({
+        entries: selectedLookupCount,
+        units: selectedUnitCount,
+        files: selectedFileCount,
+        estimatedSize: formatEstimatedSize(estimatedBytes, selectedFileCount),
       });
 
       mountBreadcrumbMotion();
@@ -1750,8 +1982,20 @@
       const removeLookupButton = target.closest('[data-bag-remove-lookup]');
       const removeLookup = removeLookupButton?.getAttribute('data-bag-remove-lookup');
       if (removeLookup) {
-        const card = removeLookupButton?.closest('.dx-bag-card');
-        await animateRemoval(card, { className: 'is-removing', durationMs: 280 });
+        const cardShell = removeLookupButton?.closest('.dx-bag-card-shell');
+        const card = cardShell?.querySelector('.dx-bag-card');
+        if (cardShell?.getAttribute('data-removing') === '1') return;
+        await animateAndCollapse(cardShell, {
+          visualTarget: card,
+          visualDurationMs: BAG_MOTION.visualDurationMs,
+          collapseDurationMs: BAG_MOTION.collapseDurationMs,
+          settleDurationMs: BAG_MOTION.collapseSettleMs,
+          easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+        });
+        const flipBefore = captureFlipState(root, {
+          excludeLookups: new Set([removeLookup]),
+          excludeLineIds: null,
+        });
         suppressBagUpdates = true;
         try {
           removeLookupSelections(removeLookup);
@@ -1763,6 +2007,10 @@
         state.error = '';
         state.status = '';
         render();
+        playFlipState(root, flipBefore, {
+          durationMs: BAG_MOTION.flipDurationMs,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        });
         return;
       }
 
@@ -1785,7 +2033,19 @@
         } catch {}
         if (!keys.length) return;
         const receiptLine = removeLineButton?.closest('li');
-        await animateRemoval(receiptLine, { className: 'is-removing', durationMs: 220 });
+        if (receiptLine?.getAttribute('data-removing') === '1') return;
+        const lineId = toText(receiptLine?.getAttribute('data-bag-line-id')).trim();
+        await animateAndCollapse(receiptLine, {
+          visualTarget: receiptLine,
+          visualDurationMs: BAG_MOTION.visualDurationMs,
+          collapseDurationMs: BAG_MOTION.collapseDurationMs,
+          settleDurationMs: BAG_MOTION.collapseSettleMs,
+          easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+        });
+        const flipBefore = captureFlipState(root, {
+          excludeLookups: null,
+          excludeLineIds: lineId ? new Set([lineId]) : null,
+        });
         suppressBagUpdates = true;
         try {
           keys.forEach((key) => bagApi.removeSelection(key));
@@ -1797,6 +2057,10 @@
         state.error = '';
         state.status = '';
         render();
+        playFlipState(root, flipBefore, {
+          durationMs: BAG_MOTION.flipDurationMs,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        });
         return;
       }
 
