@@ -20,6 +20,7 @@ const DESC_SYNC_SCRIPT_ID = 'dex-entry-desc-sync';
 const BUCKET_FILE_STATS_BUCKETS = ['A', 'B', 'C', 'D', 'E', 'X'];
 const BUCKET_FILE_STATS_AUDIO_KEYS = ['mp3', 'wav'];
 const BUCKET_FILE_STATS_VIDEO_KEYS = ['1080p', '4K'];
+const DOWNLOAD_FILE_TREE_MEDIA_TYPES = ['audio', 'video'];
 const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -797,6 +798,78 @@ function normalizeBucketFileStats(bucketFileStats) {
   return Object.keys(normalized).length ? normalized : undefined;
 }
 
+function normalizeDownloadFileTree(fileTree) {
+  if (!fileTree || typeof fileTree !== 'object' || Array.isArray(fileTree)) {
+    return undefined;
+  }
+
+  const normalizeLookupTree = (lookupKey, lookupTree) => {
+    if (!lookupTree || typeof lookupTree !== 'object' || Array.isArray(lookupTree)) {
+      throw new Error('sidebarPageConfig.downloads.fileTree lookup tree must be an object');
+    }
+    const treeLookup = String(lookupTree.lookup || lookupKey || '').trim();
+    if (!treeLookup) {
+      throw new Error('sidebarPageConfig.downloads.fileTree lookup key is required');
+    }
+    const buckets = Array.isArray(lookupTree.buckets) ? lookupTree.buckets : [];
+    const normalizedBuckets = buckets
+      .map((bucketRow, bucketIndex) => {
+        const bucket = String(bucketRow?.bucket || '').trim().toUpperCase();
+        if (!BUCKET_FILE_STATS_BUCKETS.includes(bucket)) {
+          throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucketIndex}] has unsupported bucket "${bucket}"`);
+        }
+        const types = Array.isArray(bucketRow?.types) ? bucketRow.types : [];
+        const normalizedTypes = types
+          .map((typeRow, typeIndex) => {
+            const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
+            if (!DOWNLOAD_FILE_TREE_MEDIA_TYPES.includes(mediaType)) {
+              throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucket}].types[${typeIndex}] has unsupported mediaType "${mediaType}"`);
+            }
+            const files = Array.isArray(typeRow?.files) ? typeRow.files : [];
+            const normalizedFiles = files
+              .map((fileRow, fileIndex) => {
+                const fileId = String(fileRow?.fileId || '').trim();
+                if (!fileId) {
+                  throw new Error(`sidebarPageConfig.downloads.fileTree.${treeLookup}.buckets[${bucket}].types[${mediaType}].files[${fileIndex}] missing fileId`);
+                }
+                const label = String(fileRow?.label || fileId).trim();
+                return {
+                  fileId,
+                  label,
+                };
+              });
+            return {
+              mediaType,
+              files: normalizedFiles,
+            };
+          });
+        return {
+          bucket,
+          types: normalizedTypes,
+        };
+      });
+    return {
+      lookup: treeLookup,
+      buckets: normalizedBuckets,
+    };
+  };
+
+  const rootLookup = String(fileTree.lookup || '').trim();
+  if (rootLookup && Array.isArray(fileTree.buckets)) {
+    const normalizedLookupTree = normalizeLookupTree(rootLookup, fileTree);
+    return {
+      [normalizedLookupTree.lookup]: normalizedLookupTree,
+    };
+  }
+
+  const normalized = {};
+  Object.entries(fileTree).forEach(([lookupKey, lookupTree]) => {
+    const normalizedLookupTree = normalizeLookupTree(lookupKey, lookupTree);
+    normalized[normalizedLookupTree.lookup] = normalizedLookupTree;
+  });
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
 function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
   const globalConfig = JSON.parse(JSON.stringify(globalSidebarConfig || {}));
   if (globalConfig && typeof globalConfig === 'object') {
@@ -876,6 +949,12 @@ function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
     compiled.bucketFileStats = normalizedBucketFileStats;
   } else if ('bucketFileStats' in compiled) {
     delete compiled.bucketFileStats;
+  }
+  const normalizedFileTree = normalizeDownloadFileTree(compiled.downloads.fileTree);
+  if (normalizedFileTree) {
+    compiled.downloads.fileTree = normalizedFileTree;
+  } else if ('fileTree' in compiled.downloads) {
+    delete compiled.downloads.fileTree;
   }
   const globalJson = JSON.stringify(globalConfig, null, 2);
   const sidebarJson = JSON.stringify(compiled, null, 2);

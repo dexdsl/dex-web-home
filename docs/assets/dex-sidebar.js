@@ -2462,27 +2462,112 @@
       const videoTokens = collectTypeTokens(cfg, bucket, 'video');
       return {
         bucket,
-        hasAudio: audioTokens.length > 0,
-        hasVideo: videoTokens.length > 0,
-        files: [],
+        types: [
+          audioTokens.length > 0 ? { mediaType: 'audio', files: [] } : null,
+          videoTokens.length > 0 ? { mediaType: 'video', files: [] } : null,
+        ].filter(Boolean),
       };
-    }).filter((row) => row.hasAudio || row.hasVideo);
+    }).filter((row) => row.types.length > 0);
     return { lookup, buckets, source: 'manifest' };
+  };
+
+  const normalizeEmbeddedDownloadTree = (cfg, lookup) => {
+    const root = cfg?.downloads?.fileTree;
+    if (!root || typeof root !== 'object' || Array.isArray(root)) return null;
+
+    let lookupTree = null;
+    if (root.lookup && root.buckets) {
+      if (String(root.lookup || '').trim() === lookup) lookupTree = root;
+    }
+    if (!lookupTree && root[lookup] && typeof root[lookup] === 'object' && !Array.isArray(root[lookup])) {
+      lookupTree = root[lookup];
+    }
+    if (!lookupTree) return null;
+
+    const buckets = Array.isArray(lookupTree.buckets) ? lookupTree.buckets : [];
+    const normalizedBuckets = buckets
+      .map((bucketRow) => {
+        const bucket = String(bucketRow?.bucket || '').trim().toUpperCase();
+        if (!bucket || !ALL_BUCKETS.includes(bucket)) return null;
+        const types = Array.isArray(bucketRow?.types)
+          ? bucketRow.types
+          : [];
+        const normalizedTypes = types
+          .map((typeRow) => {
+            const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
+            if (mediaType !== 'audio' && mediaType !== 'video') return null;
+            const files = Array.isArray(typeRow?.files)
+              ? typeRow.files
+              : [];
+            const normalizedFiles = files
+              .map((fileRow) => {
+                const fileId = String(fileRow?.fileId || '').trim();
+                if (!fileId) return null;
+                const label = String(fileRow?.label || fileId).trim();
+                return {
+                  lookup,
+                  bucket,
+                  fileId,
+                  label,
+                  mediaType,
+                  mediaTypes: [mediaType],
+                };
+              })
+              .filter(Boolean);
+            return {
+              mediaType,
+              files: normalizedFiles,
+            };
+          })
+          .filter(Boolean);
+        if (!normalizedTypes.length) return null;
+        return {
+          bucket,
+          types: normalizedTypes,
+        };
+      })
+      .filter(Boolean);
+
+    if (!normalizedBuckets.length) return null;
+    return {
+      lookup,
+      buckets: normalizedBuckets,
+      source: 'embedded',
+    };
   };
 
   const buildInventoryDownloadTree = (cfg, lookup, payload = {}) => {
     const files = normalizeLookupFiles(payload, lookup);
     const buckets = ALL_BUCKETS.map((bucket) => {
       const byBucket = files.filter((file) => file.bucket === bucket);
-      const hasAudio = byBucket.some((file) => file.mediaTypes.includes('audio'));
-      const hasVideo = byBucket.some((file) => file.mediaTypes.includes('video'));
+      const byType = {
+        audio: [],
+        video: [],
+      };
+      byBucket.forEach((file) => {
+        file.mediaTypes.forEach((mediaType) => {
+          if (mediaType !== 'audio' && mediaType !== 'video') return;
+          byType[mediaType].push({
+            lookup,
+            bucket,
+            fileId: file.fileId,
+            label: file.label || file.fileId,
+            mediaType,
+            mediaTypes: [mediaType],
+          });
+        });
+      });
+      const types = ['audio', 'video']
+        .map((mediaType) => ({
+          mediaType,
+          files: byType[mediaType],
+        }))
+        .filter((row) => row.files.length > 0);
       return {
         bucket,
-        hasAudio,
-        hasVideo,
-        files: byBucket,
+        types,
       };
-    }).filter((row) => row.hasAudio || row.hasVideo || row.files.length > 0);
+    }).filter((row) => row.types.length > 0);
     return { lookup, buckets, source: 'inventory' };
   };
 
@@ -2901,442 +2986,784 @@
       if (!(btn instanceof HTMLElement) || btn.dataset.dexBound === '1') return;
       btn.dataset.dexBound = '1';
       btn.addEventListener('click', async () => {
-      const lookup = String(context?.lookup || '').trim();
-      if (!lookup) return;
-      const fallbackTree = buildFallbackDownloadTree(cfg, lookup);
-      let downloadTree = fallbackTree;
-      const selectedNodes = new Map();
+        const lookup = String(context?.lookup || '').trim();
+        if (!lookup) return;
+        const fallbackTree = buildFallbackDownloadTree(cfg, lookup);
+        const embeddedTree = normalizeEmbeddedDownloadTree(cfg, lookup);
+        let downloadTree = embeddedTree || fallbackTree;
+        const selectedLeafKeys = new Set();
+        const expandedNodeKeys = new Set();
+        let filterQuery = '';
 
-      const modal = document.createElement('div');
-      modal.className = 'dex-download-modal';
-      modal.style.setProperty('position', 'fixed', 'important');
-      modal.style.setProperty('inset', '0', 'important');
-      modal.style.setProperty('z-index', '2147483000', 'important');
-      modal.style.setProperty('display', 'flex', 'important');
-      modal.style.setProperty('align-items', 'center', 'important');
-      modal.style.setProperty('justify-content', 'center', 'important');
-      modal.style.setProperty('padding', 'clamp(12px, 2.4vw, 24px)', 'important');
-      modal.style.setProperty('box-sizing', 'border-box', 'important');
-      modal.style.setProperty('background', 'rgba(7, 9, 14, 0.62)', 'important');
-      modal.style.setProperty('backdrop-filter', 'blur(2px)', 'important');
-      modal.style.setProperty('-webkit-backdrop-filter', 'blur(2px)', 'important');
-      modal.style.setProperty('filter', 'none', 'important');
-      modal.style.setProperty('opacity', '1', 'important');
-      modal.style.setProperty('visibility', 'visible', 'important');
-      modal.style.setProperty('pointer-events', 'auto', 'important');
-      modal.style.setProperty('isolation', 'isolate', 'important');
-      const inner = document.createElement('div');
-      inner.className = 'dex-download-modal-inner';
-      inner.style.setProperty('position', 'relative', 'important');
-      inner.style.setProperty('display', 'grid', 'important');
-      inner.style.setProperty('gap', '0.62rem', 'important');
-      inner.style.setProperty('width', 'min(760px, calc(100vw - clamp(28px, 8vw, 120px)))', 'important');
-      inner.style.setProperty('max-height', 'min(78vh, 760px)', 'important');
-      inner.style.setProperty('overflow', 'hidden', 'important');
-      inner.style.setProperty('padding', 'clamp(12px, 1.8vw, 18px)', 'important');
-      inner.style.setProperty('border-radius', 'var(--dx-header-glass-radius, var(--dx-entry-card-radius, 10px))', 'important');
-      inner.style.setProperty('border', '1px solid rgba(214, 220, 232, 0.96)', 'important');
-      inner.style.setProperty('background', 'linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(248, 250, 255, 0.985))', 'important');
-      inner.style.setProperty('box-shadow', '0 20px 50px rgba(0, 0, 0, 0.32)', 'important');
-      inner.style.setProperty('backdrop-filter', 'none', 'important');
-      inner.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-      inner.style.setProperty('filter', 'none', 'important');
-      const close = document.createElement('button');
-      close.className = 'close';
-      close.setAttribute('aria-label', 'Close');
-      close.type = 'button';
-      close.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-        </svg>
-      `;
-      close.style.setProperty('display', 'grid', 'important');
-      close.style.setProperty('place-items', 'center', 'important');
-      close.style.setProperty('width', '1.4rem', 'important');
-      close.style.setProperty('height', '1.4rem', 'important');
-      close.style.setProperty('border', '0', 'important');
-      close.style.setProperty('background', 'transparent', 'important');
-      close.style.setProperty('padding', '0', 'important');
-      close.style.setProperty('color', 'rgba(20, 22, 28, 0.94)', 'important');
-      close.style.setProperty('cursor', 'pointer', 'important');
-      close.style.setProperty('line-height', '0', 'important');
-      const closeIcon = close.querySelector('svg');
-      if (closeIcon instanceof SVGElement) {
-        closeIcon.style.width = '100%';
-        closeIcon.style.height = '100%';
-      }
+        const modal = document.createElement('div');
+        modal.className = 'dex-download-modal';
+        modal.style.setProperty('position', 'fixed', 'important');
+        modal.style.setProperty('inset', '0', 'important');
+        modal.style.setProperty('z-index', '2147483000', 'important');
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('align-items', 'center', 'important');
+        modal.style.setProperty('justify-content', 'center', 'important');
+        modal.style.setProperty('padding', 'clamp(12px, 2.4vw, 24px)', 'important');
+        modal.style.setProperty('box-sizing', 'border-box', 'important');
+        modal.style.setProperty('background', 'rgba(7, 9, 14, 0.62)', 'important');
+        modal.style.setProperty('backdrop-filter', 'blur(2px)', 'important');
+        modal.style.setProperty('-webkit-backdrop-filter', 'blur(2px)', 'important');
+        modal.style.setProperty('filter', 'none', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.setProperty('pointer-events', 'auto', 'important');
+        modal.style.setProperty('isolation', 'isolate', 'important');
 
-      const heading = document.createElement('h4');
-      heading.textContent = randomizeTitleWithJoiners('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
-      heading.style.margin = '0';
-      heading.style.fontFamily = '"Typefesse", sans-serif';
-      heading.style.letterSpacing = '0.02em';
-      heading.style.textTransform = 'uppercase';
-      heading.style.fontSize = 'clamp(1.06rem, 1.48vw, 1.3rem)';
-      heading.style.lineHeight = '1';
+        const inner = document.createElement('div');
+        inner.className = 'dex-download-modal-inner';
+        inner.style.setProperty('position', 'relative', 'important');
+        inner.style.setProperty('display', 'grid', 'important');
+        inner.style.setProperty('gap', '0.62rem', 'important');
+        inner.style.setProperty('width', 'min(820px, calc(100vw - clamp(28px, 8vw, 120px)))', 'important');
+        inner.style.setProperty('max-height', 'min(86vh, 860px)', 'important');
+        inner.style.setProperty('overflow', 'hidden', 'important');
+        inner.style.setProperty('padding', 'clamp(12px, 1.8vw, 18px)', 'important');
+        inner.style.setProperty('border-radius', 'var(--dx-header-glass-radius, var(--dx-entry-card-radius, 10px))', 'important');
+        inner.style.setProperty('border', '1px solid rgba(214, 220, 232, 0.96)', 'important');
+        inner.style.setProperty('background', 'linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(248, 250, 255, 0.985))', 'important');
+        inner.style.setProperty('box-shadow', '0 20px 50px rgba(0, 0, 0, 0.32)', 'important');
+        inner.style.setProperty('backdrop-filter', 'none', 'important');
+        inner.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        inner.style.setProperty('filter', 'none', 'important');
 
-      const titleRow = document.createElement('div');
-      titleRow.style.display = 'flex';
-      titleRow.style.alignItems = 'center';
-      titleRow.style.justifyContent = 'space-between';
-      titleRow.style.gap = '0.62rem';
-      titleRow.style.margin = '0 0 0.28rem';
-      titleRow.appendChild(heading);
-      titleRow.appendChild(close);
-
-      const statusBanner = document.createElement('p');
-      statusBanner.style.margin = '0';
-      statusBanner.style.fontSize = '0.75rem';
-      statusBanner.style.lineHeight = '1.35';
-      statusBanner.style.opacity = '0.84';
-      statusBanner.hidden = true;
-
-      const setModalStatus = (state, message) => {
-        const text = String(message || '').trim();
-        if (!text) {
-          statusBanner.hidden = true;
-          statusBanner.textContent = '';
-          statusBanner.removeAttribute('data-dx-download-state');
-          return;
-        }
-        statusBanner.hidden = false;
-        statusBanner.setAttribute('data-dx-download-state', String(state || 'idle'));
-        statusBanner.textContent = text;
-      };
-
-      const treeWrap = document.createElement('div');
-      treeWrap.style.display = 'grid';
-      treeWrap.style.gap = '0.52rem';
-      treeWrap.style.maxHeight = 'min(52vh, 520px)';
-      treeWrap.style.overflowY = 'auto';
-      treeWrap.style.paddingRight = '0.12rem';
-
-      const controls = document.createElement('div');
-      controls.style.display = 'flex';
-      controls.style.flexWrap = 'wrap';
-      controls.style.gap = '0.42rem';
-      controls.style.alignItems = 'center';
-
-      const addToBagButton = document.createElement('button');
-      addToBagButton.type = 'button';
-      addToBagButton.className = 'dx-button-element--primary';
-      addToBagButton.textContent = 'Add to Bag';
-
-      const downloadNowButton = document.createElement('button');
-      downloadNowButton.type = 'button';
-      downloadNowButton.className = 'dx-button-element--secondary';
-      downloadNowButton.textContent = 'Download Now';
-
-      const updateActionState = () => {
-        const count = selectedNodes.size;
-        addToBagButton.disabled = count === 0;
-        downloadNowButton.disabled = count === 0;
-        addToBagButton.textContent = count > 0 ? `Add to Bag (${count})` : 'Add to Bag';
-      };
-
-      const resolveNormalizedSelection = async () => {
-        const raw = Array.from(selectedNodes.values()).map((node) => normalizeNodeForBag(node, context));
-        if (!raw.length) return [];
-        const bagApi = await ensureBagApi(window.location.origin);
-        if (bagApi && typeof bagApi.normalizeSelections === 'function') {
-          const normalized = bagApi.normalizeSelections(raw);
-          return Array.isArray(normalized) ? normalized : raw;
-        }
-        return raw;
-      };
-
-      const removeModal = () => {
-        document.removeEventListener('keydown', onKeyDown);
-        modal.remove();
-      };
-      const onKeyDown = (event) => {
-        if (event.key === 'Escape') removeModal();
-      };
-
-      const addSelectionRow = (parent, node, label, meta = '') => {
-        const key = buildNodeKey(node);
-        const row = document.createElement('label');
-        row.style.display = 'grid';
-        row.style.gridTemplateColumns = 'auto minmax(0,1fr)';
-        row.style.gap = '0.45rem';
-        row.style.alignItems = 'start';
-        row.style.padding = '0.36rem 0.45rem';
-        row.style.border = '1px solid rgba(0,0,0,0.12)';
-        row.style.borderRadius = '10px';
-        row.style.background = 'rgba(255,255,255,0.34)';
-
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.checked = selectedNodes.has(key);
-        check.addEventListener('change', () => {
-          if (check.checked) selectedNodes.set(key, { ...node });
-          else selectedNodes.delete(key);
-          updateActionState();
-        });
-
-        const copy = document.createElement('div');
-        copy.style.display = 'grid';
-        copy.style.gap = '0.16rem';
-
-        const title = document.createElement('span');
-        title.textContent = label;
-        title.style.fontFamily = '"Typefesse", sans-serif';
-        title.style.fontSize = '0.82rem';
-        title.style.letterSpacing = '0.01em';
-        copy.appendChild(title);
-
-        if (meta) {
-          const note = document.createElement('span');
-          note.textContent = meta;
-          note.style.fontSize = '0.72rem';
-          note.style.opacity = '0.76';
-          copy.appendChild(note);
+        const close = document.createElement('button');
+        close.className = 'close';
+        close.setAttribute('aria-label', 'Close');
+        close.type = 'button';
+        close.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        `;
+        close.style.setProperty('display', 'grid', 'important');
+        close.style.setProperty('place-items', 'center', 'important');
+        close.style.setProperty('width', '1.4rem', 'important');
+        close.style.setProperty('height', '1.4rem', 'important');
+        close.style.setProperty('border', '0', 'important');
+        close.style.setProperty('background', 'transparent', 'important');
+        close.style.setProperty('padding', '0', 'important');
+        close.style.setProperty('color', 'rgba(20, 22, 28, 0.94)', 'important');
+        close.style.setProperty('cursor', 'pointer', 'important');
+        close.style.setProperty('line-height', '0', 'important');
+        const closeIcon = close.querySelector('svg');
+        if (closeIcon instanceof SVGElement) {
+          closeIcon.style.width = '100%';
+          closeIcon.style.height = '100%';
         }
 
-        row.appendChild(check);
-        row.appendChild(copy);
-        parent.appendChild(row);
-      };
+        const heading = document.createElement('h4');
+        heading.textContent = randomizeTitleWithJoiners('Files', { seedKey: `${window.location.pathname || '/'}|download-modal-heading` });
+        heading.style.margin = '0';
+        heading.style.fontFamily = '"Typefesse", sans-serif';
+        heading.style.letterSpacing = '0.02em';
+        heading.style.textTransform = 'uppercase';
+        heading.style.fontSize = 'clamp(1.06rem, 1.48vw, 1.3rem)';
+        heading.style.lineHeight = '1';
 
-      const renderTree = () => {
-        treeWrap.replaceChildren();
+        const titleRow = document.createElement('div');
+        titleRow.style.display = 'flex';
+        titleRow.style.alignItems = 'center';
+        titleRow.style.justifyContent = 'space-between';
+        titleRow.style.gap = '0.62rem';
+        titleRow.style.margin = '0 0 0.12rem';
+        titleRow.appendChild(heading);
+        titleRow.appendChild(close);
 
-        const collectionNode = {
-          kind: 'collection',
-          lookup,
-        };
-        addSelectionRow(treeWrap, collectionNode, 'Whole Collection', 'All buckets, file types, and files for this lookup');
+        const statusBanner = document.createElement('p');
+        statusBanner.style.margin = '0';
+        statusBanner.style.fontSize = '0.75rem';
+        statusBanner.style.lineHeight = '1.35';
+        statusBanner.style.opacity = '0.84';
+        statusBanner.hidden = true;
 
-        downloadTree.buckets.forEach((bucketRow) => {
-          const bucketBlock = document.createElement('section');
-          bucketBlock.style.display = 'grid';
-          bucketBlock.style.gap = '0.35rem';
-          bucketBlock.style.padding = '0.44rem';
-          bucketBlock.style.border = '1px solid rgba(0,0,0,0.12)';
-          bucketBlock.style.borderRadius = '10px';
-
-          const headingEl = document.createElement('h5');
-          headingEl.textContent = `${bucketRow.bucket} Bucket`;
-          headingEl.style.margin = '0';
-          headingEl.style.fontFamily = '"Typefesse", sans-serif';
-          headingEl.style.fontSize = '0.92rem';
-          headingEl.style.letterSpacing = '0.01em';
-          bucketBlock.appendChild(headingEl);
-
-          addSelectionRow(bucketBlock, {
-            kind: 'bucket',
-            lookup,
-            bucket: bucketRow.bucket,
-          }, `Whole ${bucketRow.bucket} Bucket`, 'All file types and files in this bucket');
-
-          if (bucketRow.hasAudio) {
-            addSelectionRow(bucketBlock, {
-              kind: 'type',
-              lookup,
-              bucket: bucketRow.bucket,
-              mediaType: 'audio',
-            }, `${bucketRow.bucket} Audio`, 'All audio files in this bucket');
-          }
-          if (bucketRow.hasVideo) {
-            addSelectionRow(bucketBlock, {
-              kind: 'type',
-              lookup,
-              bucket: bucketRow.bucket,
-              mediaType: 'video',
-            }, `${bucketRow.bucket} Video`, 'All video files in this bucket');
-          }
-
-          if (Array.isArray(bucketRow.files) && bucketRow.files.length) {
-            const details = document.createElement('details');
-            const summary = document.createElement('summary');
-            summary.textContent = `Files (${bucketRow.files.length})`;
-            summary.style.cursor = 'pointer';
-            summary.style.fontSize = '0.74rem';
-            summary.style.opacity = '0.82';
-            details.appendChild(summary);
-
-            const list = document.createElement('div');
-            list.style.display = 'grid';
-            list.style.gap = '0.25rem';
-            list.style.marginTop = '0.34rem';
-            bucketRow.files.forEach((file) => {
-              const mediaLabel = file.mediaTypes.map((mediaType) => mediaType.toUpperCase()).join(' + ') || 'FILE';
-              addSelectionRow(list, {
-                kind: 'file',
-                lookup,
-                bucket: file.bucket,
-                fileId: file.fileId,
-                mediaTypes: file.mediaTypes.slice(),
-              }, file.label || file.fileId, mediaLabel);
-	            });
-	            details.appendChild(list);
-	            bucketBlock.appendChild(details);
-	          }
-	          treeWrap.appendChild(bucketBlock);
-	        });
-
-        updateActionState();
-      };
-
-      const requestBagBundleFromSidebar = async (nodes) => {
-        const payload = await requestAssetsJson({
-          path: '/me/assets/bag/bundle',
-          method: 'POST',
-          body: {
-            source: 'entry-sidebar',
-            dedupe: true,
-            selections: [{
-              lookup,
-              nodes: nodes.map((node) => ({
-                kind: node.kind,
-                lookup,
-                bucket: node.bucket || '',
-                mediaType: node.mediaType || '',
-                mediaTypes: normalizeAvailableMediaTypes(node.mediaTypes, node.mediaType),
-                fileId: node.fileId || '',
-              })),
-            }],
-          },
-        });
-        return payload;
-      };
-
-      const executeDownloadNow = async () => {
-        const nodes = await resolveNormalizedSelection();
-        if (!nodes.length) return;
-        downloadNowButton.disabled = true;
-        setModalStatus('resolving', 'Resolving secure bundle…');
-        try {
-          const token = await getAccessToken();
-          if (!token) {
-            const auth = window.DEX_AUTH || window.dexAuth || null;
-            if (auth && typeof auth.signIn === 'function') {
-              setModalStatus('resolving', 'Sign in required for download.');
-              const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-              try {
-                await auth.signIn(returnTo);
-              } catch {
-                setModalStatus('forbidden', 'Unable to start sign-in flow.');
-              }
-              return;
-            }
-            setModalStatus('forbidden', 'Sign in required for download.');
+        const setModalStatus = (state, message) => {
+          const text = String(message || '').trim();
+          if (!text) {
+            statusBanner.hidden = true;
+            statusBanner.textContent = '';
+            statusBanner.removeAttribute('data-dx-download-state');
             return;
           }
+          statusBanner.hidden = false;
+          statusBanner.setAttribute('data-dx-download-state', String(state || 'idle'));
+          statusBanner.textContent = text;
+        };
 
-          try {
-            const payload = await requestBagBundleFromSidebar(nodes);
-            const delivery = String(payload?.delivery || '').toLowerCase();
-            if (delivery === 'sync') {
-              const signedUrl = String(payload?.signedUrl || payload?.url || '').trim();
-              if (!signedUrl) throw new Error('missing signed url');
-              setModalStatus('ready', 'Bundle ready. Opening signed URL…');
-              openSignedUrl(signedUrl);
+        const treeTools = document.createElement('div');
+        treeTools.style.display = 'grid';
+        treeTools.style.gridTemplateColumns = 'minmax(0,1fr) auto';
+        treeTools.style.gap = '0.45rem';
+        treeTools.style.alignItems = 'center';
+
+        const filterInput = document.createElement('input');
+        filterInput.type = 'text';
+        filterInput.placeholder = 'Filter files';
+        filterInput.autocomplete = 'off';
+        filterInput.style.width = '100%';
+        filterInput.style.minHeight = '34px';
+        filterInput.style.padding = '0.45rem 0.58rem';
+        filterInput.style.border = '1px solid rgba(0,0,0,0.14)';
+        filterInput.style.borderRadius = '9px';
+        filterInput.style.font = 'inherit';
+        filterInput.style.fontSize = '0.76rem';
+        filterInput.style.background = 'rgba(255,255,255,0.92)';
+
+        const quickControls = document.createElement('div');
+        quickControls.style.display = 'inline-flex';
+        quickControls.style.flexWrap = 'wrap';
+        quickControls.style.gap = '0.35rem';
+
+        const makeSecondaryControl = (label) => {
+          const control = document.createElement('button');
+          control.type = 'button';
+          control.className = 'dx-button-element--secondary';
+          control.textContent = label;
+          control.style.padding = '0.34rem 0.55rem';
+          control.style.fontSize = '0.7rem';
+          return control;
+        };
+
+        const selectAllButton = makeSecondaryControl('Select all');
+        const clearButton = makeSecondaryControl('Clear');
+        const expandAllButton = makeSecondaryControl('Expand all');
+        const collapseAllButton = makeSecondaryControl('Collapse all');
+        quickControls.appendChild(selectAllButton);
+        quickControls.appendChild(clearButton);
+        quickControls.appendChild(expandAllButton);
+        quickControls.appendChild(collapseAllButton);
+
+        treeTools.appendChild(filterInput);
+        treeTools.appendChild(quickControls);
+
+        const treeWrap = document.createElement('div');
+        treeWrap.style.display = 'grid';
+        treeWrap.style.gap = '0.46rem';
+        treeWrap.style.maxHeight = 'min(52vh, 520px)';
+        treeWrap.style.overflowY = 'auto';
+        treeWrap.style.paddingRight = '0.12rem';
+        treeWrap.style.paddingBottom = '0.08rem';
+
+        const controls = document.createElement('div');
+        controls.style.display = 'flex';
+        controls.style.flexWrap = 'wrap';
+        controls.style.gap = '0.42rem';
+        controls.style.alignItems = 'center';
+
+        const addToBagButton = document.createElement('button');
+        addToBagButton.type = 'button';
+        addToBagButton.className = 'dx-button-element--primary';
+        addToBagButton.textContent = 'Add to Bag';
+
+        const downloadNowButton = document.createElement('button');
+        downloadNowButton.type = 'button';
+        downloadNowButton.className = 'dx-button-element--secondary';
+        downloadNowButton.textContent = 'Download Now';
+
+        const removeModal = () => {
+          document.removeEventListener('keydown', onKeyDown);
+          modal.remove();
+        };
+        const onKeyDown = (event) => {
+          if (event.key === 'Escape') removeModal();
+        };
+
+        const normalizeTree = (tree) => {
+          const buckets = Array.isArray(tree?.buckets)
+            ? tree.buckets
+            : [];
+          return {
+            lookup,
+            source: tree?.source || 'unknown',
+            buckets: buckets
+              .map((bucketRow) => {
+                const bucket = String(bucketRow?.bucket || '').trim().toUpperCase();
+                if (!bucket || !ALL_BUCKETS.includes(bucket)) return null;
+                const typeRows = Array.isArray(bucketRow?.types)
+                  ? bucketRow.types
+                  : [];
+                const types = typeRows
+                  .map((typeRow) => {
+                    const mediaType = String(typeRow?.mediaType || '').trim().toLowerCase();
+                    if (mediaType !== 'audio' && mediaType !== 'video') return null;
+                    const files = Array.isArray(typeRow?.files)
+                      ? typeRow.files
+                      : [];
+                    const normalizedFiles = files
+                      .map((fileRow) => {
+                        const fileId = String(fileRow?.fileId || '').trim();
+                        if (!fileId) return null;
+                        const label = String(fileRow?.label || fileId).trim();
+                        return {
+                          lookup,
+                          bucket,
+                          mediaType,
+                          mediaTypes: [mediaType],
+                          fileId,
+                          label,
+                        };
+                      })
+                      .filter(Boolean);
+                    return {
+                      mediaType,
+                      files: normalizedFiles,
+                    };
+                  })
+                  .filter(Boolean);
+                if (!types.length) return null;
+                return {
+                  bucket,
+                  types,
+                };
+              })
+              .filter(Boolean),
+          };
+        };
+
+        const treeState = {
+          tree: normalizeTree(downloadTree),
+          leaves: [],
+          allLeafKeys: [],
+          leafByKey: new Map(),
+          leafKeysByBucket: new Map(),
+          leafKeysByType: new Map(),
+        };
+
+        const setLeaves = () => {
+          treeState.leaves = [];
+          treeState.leafByKey = new Map();
+          treeState.leafKeysByBucket = new Map();
+          treeState.leafKeysByType = new Map();
+          treeState.tree.buckets.forEach((bucketRow) => {
+            const bucketKeys = [];
+            bucketRow.types.forEach((typeRow) => {
+              const typeKey = `${bucketRow.bucket}|${typeRow.mediaType}`;
+              const typeLeafKeys = [];
+              if (Array.isArray(typeRow.files) && typeRow.files.length) {
+                typeRow.files.forEach((fileRow) => {
+                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
+                  const leaf = {
+                    kind: 'file',
+                    lookup,
+                    bucket: bucketRow.bucket,
+                    mediaType: typeRow.mediaType,
+                    mediaTypes: [typeRow.mediaType],
+                    fileId: fileRow.fileId,
+                    label: fileRow.label || fileRow.fileId,
+                    leafKey,
+                  };
+                  treeState.leaves.push(leaf);
+                  treeState.leafByKey.set(leafKey, leaf);
+                  typeLeafKeys.push(leafKey);
+                  bucketKeys.push(leafKey);
+                });
+              } else {
+                const leafKey = `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`;
+                const leaf = {
+                  kind: 'type',
+                  lookup,
+                  bucket: bucketRow.bucket,
+                  mediaType: typeRow.mediaType,
+                  mediaTypes: [typeRow.mediaType],
+                  fileId: '',
+                  label: `${bucketRow.bucket} ${typeRow.mediaType.toUpperCase()}`,
+                  leafKey,
+                };
+                treeState.leaves.push(leaf);
+                treeState.leafByKey.set(leafKey, leaf);
+                typeLeafKeys.push(leafKey);
+                bucketKeys.push(leafKey);
+              }
+              treeState.leafKeysByType.set(typeKey, typeLeafKeys);
+            });
+            treeState.leafKeysByBucket.set(bucketRow.bucket, bucketKeys);
+          });
+          treeState.allLeafKeys = treeState.leaves.map((leaf) => leaf.leafKey);
+          selectedLeafKeys.forEach((leafKey) => {
+            if (!treeState.leafByKey.has(leafKey)) selectedLeafKeys.delete(leafKey);
+          });
+          if (!expandedNodeKeys.size) {
+            const rootNode = {
+              id: `collection|${lookup}`,
+              children: treeState.tree.buckets.map((bucketRow) => ({
+                id: `bucket|${lookup}|${bucketRow.bucket}`,
+                children: bucketRow.types.map((typeRow) => ({
+                  id: `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`,
+                  children: [],
+                })),
+              })),
+            };
+            collectExpandableNodeIds(rootNode, []).forEach((nodeId) => expandedNodeKeys.add(nodeId));
+          }
+        };
+
+        const setLeafSet = (leafKeys, checked) => {
+          leafKeys.forEach((leafKey) => {
+            if (checked) selectedLeafKeys.add(leafKey);
+            else selectedLeafKeys.delete(leafKey);
+          });
+        };
+
+        const getSelectionState = (leafKeys) => {
+          const total = Array.isArray(leafKeys) ? leafKeys.length : 0;
+          if (total <= 0) return { checked: false, indeterminate: false };
+          let selected = 0;
+          leafKeys.forEach((leafKey) => {
+            if (selectedLeafKeys.has(leafKey)) selected += 1;
+          });
+          if (selected <= 0) return { checked: false, indeterminate: false };
+          if (selected >= total) return { checked: true, indeterminate: false };
+          return { checked: false, indeterminate: true };
+        };
+
+        const compileSelectionNodes = () => {
+          const selectedSet = new Set(selectedLeafKeys);
+          if (!selectedSet.size) return [];
+
+          const out = [];
+          const consumed = new Set();
+
+          if (selectedSet.size === treeState.allLeafKeys.length && treeState.allLeafKeys.length > 0) {
+            return [{ kind: 'collection', lookup }];
+          }
+
+          treeState.tree.buckets.forEach((bucketRow) => {
+            const bucketKeys = treeState.leafKeysByBucket.get(bucketRow.bucket) || [];
+            const isBucketFull = bucketKeys.length > 0 && bucketKeys.every((leafKey) => selectedSet.has(leafKey));
+            if (isBucketFull) {
+              out.push({
+                kind: 'bucket',
+                lookup,
+                bucket: bucketRow.bucket,
+              });
+              bucketKeys.forEach((leafKey) => consumed.add(leafKey));
               return;
             }
-            if (delivery === 'async') {
-              const jobId = String(payload?.jobId || '').trim();
-              const result = await pollBundleReady(jobId, () => {
-                setModalStatus('queued', 'Preparing secure bundle…');
+
+            bucketRow.types.forEach((typeRow) => {
+              const typeKey = `${bucketRow.bucket}|${typeRow.mediaType}`;
+              const typeLeafKeys = treeState.leafKeysByType.get(typeKey) || [];
+              const isTypeFull = typeLeafKeys.length > 0 && typeLeafKeys.every((leafKey) => selectedSet.has(leafKey));
+              if (isTypeFull) {
+                out.push({
+                  kind: 'type',
+                  lookup,
+                  bucket: bucketRow.bucket,
+                  mediaType: typeRow.mediaType,
+                  mediaTypes: [typeRow.mediaType],
+                });
+                typeLeafKeys.forEach((leafKey) => consumed.add(leafKey));
+              }
+            });
+          });
+
+          selectedSet.forEach((leafKey) => {
+            if (consumed.has(leafKey)) return;
+            const leaf = treeState.leafByKey.get(leafKey);
+            if (!leaf) return;
+            if (leaf.kind === 'type') {
+              out.push({
+                kind: 'type',
+                lookup,
+                bucket: leaf.bucket,
+                mediaType: leaf.mediaType,
+                mediaTypes: [leaf.mediaType],
+              });
+              return;
+            }
+            out.push({
+              kind: 'file',
+              lookup,
+              bucket: leaf.bucket,
+              fileId: leaf.fileId,
+              mediaType: leaf.mediaType,
+              mediaTypes: [leaf.mediaType],
+            });
+          });
+
+          const deduped = new Map();
+          out.forEach((node) => {
+            const key = buildNodeKey(node);
+            if (!deduped.has(key)) deduped.set(key, node);
+          });
+          return Array.from(deduped.values());
+        };
+
+        const resolveNormalizedSelection = async () => {
+          const compiled = compileSelectionNodes();
+          const raw = compiled.map((node) => normalizeNodeForBag(node, context));
+          if (!raw.length) return [];
+          const bagApi = await ensureBagApi(window.location.origin);
+          if (bagApi && typeof bagApi.normalizeSelections === 'function') {
+            const normalized = bagApi.normalizeSelections(raw);
+            return Array.isArray(normalized) ? normalized : raw;
+          }
+          return raw;
+        };
+
+        const updateActionState = () => {
+          const selectedCount = selectedLeafKeys.size;
+          addToBagButton.disabled = selectedCount === 0;
+          downloadNowButton.disabled = selectedCount === 0;
+          addToBagButton.textContent = selectedCount > 0 ? `Add to Bag (${selectedCount})` : 'Add to Bag';
+        };
+
+        const buildTreeModel = () => {
+          const rootNode = {
+            id: `collection|${lookup}`,
+            kind: 'collection',
+            label: `entry/${lookup}`,
+            meta: 'collection',
+            leafKeys: treeState.allLeafKeys.slice(),
+            children: [],
+          };
+          treeState.tree.buckets.forEach((bucketRow) => {
+            const bucketNode = {
+              id: `bucket|${lookup}|${bucketRow.bucket}`,
+              kind: 'bucket',
+              label: `${bucketRow.bucket} bucket`,
+              meta: 'bucket',
+              leafKeys: (treeState.leafKeysByBucket.get(bucketRow.bucket) || []).slice(),
+              children: [],
+            };
+            bucketRow.types.forEach((typeRow) => {
+              const typeNode = {
+                id: `type|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}`,
+                kind: 'type',
+                label: typeRow.mediaType,
+                meta: `${typeRow.files.length || 0} files`,
+                leafKeys: (treeState.leafKeysByType.get(`${bucketRow.bucket}|${typeRow.mediaType}`) || []).slice(),
+                children: [],
+              };
+              if (Array.isArray(typeRow.files) && typeRow.files.length) {
+                typeRow.files.forEach((fileRow) => {
+                  const leafKey = `file|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`;
+                  typeNode.children.push({
+                    id: `file-node|${lookup}|${bucketRow.bucket}|${typeRow.mediaType}|${fileRow.fileId}`,
+                    kind: 'file',
+                    label: fileRow.label || fileRow.fileId,
+                    meta: `${fileRow.fileId} [${typeRow.mediaType}]`,
+                    leafKeys: [leafKey],
+                    children: [],
+                  });
+                });
+              }
+              bucketNode.children.push(typeNode);
+            });
+            rootNode.children.push(bucketNode);
+          });
+          return rootNode;
+        };
+
+        const collectExpandableNodeIds = (node, out = []) => {
+          if (!node || !Array.isArray(node.children) || !node.children.length) return out;
+          out.push(node.id);
+          node.children.forEach((child) => collectExpandableNodeIds(child, out));
+          return out;
+        };
+
+        const pruneTreeByFilter = (node) => {
+          const query = String(filterQuery || '').trim().toLowerCase();
+          if (!query) return node;
+          const children = Array.isArray(node.children)
+            ? node.children.map((child) => pruneTreeByFilter(child)).filter(Boolean)
+            : [];
+          const needle = `${String(node.label || '')} ${String(node.meta || '')}`.toLowerCase();
+          const selfMatches = needle.includes(query);
+          if (!selfMatches && !children.length) return null;
+          return {
+            ...node,
+            children,
+          };
+        };
+
+        const renderTreeNode = (node, parent, depth = 0) => {
+          if (!node || !Array.isArray(node.leafKeys) || !node.leafKeys.length) return;
+          const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+          const isExpanded = hasChildren && expandedNodeKeys.has(node.id);
+
+          const row = document.createElement('div');
+          row.style.display = 'grid';
+          row.style.gridTemplateColumns = '16px auto minmax(0,1fr)';
+          row.style.gap = '0.45rem';
+          row.style.alignItems = 'center';
+          row.style.padding = '0.18rem 0.14rem';
+          row.style.paddingLeft = `${depth * 16 + 4}px`;
+          row.style.borderRadius = '8px';
+
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.style.width = '16px';
+          toggle.style.height = '16px';
+          toggle.style.display = 'grid';
+          toggle.style.placeItems = 'center';
+          toggle.style.padding = '0';
+          toggle.style.border = '0';
+          toggle.style.background = 'transparent';
+          toggle.style.color = 'rgba(18,20,26,0.86)';
+          toggle.style.fontSize = '0.74rem';
+          toggle.style.cursor = hasChildren ? 'pointer' : 'default';
+          toggle.textContent = hasChildren ? (isExpanded ? '▾' : '▸') : '';
+          if (hasChildren) {
+            toggle.addEventListener('click', (event) => {
+              event.preventDefault();
+              if (expandedNodeKeys.has(node.id)) expandedNodeKeys.delete(node.id);
+              else expandedNodeKeys.add(node.id);
+              renderTree();
+            });
+          } else {
+            toggle.setAttribute('aria-hidden', 'true');
+          }
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          const state = getSelectionState(node.leafKeys);
+          checkbox.checked = state.checked;
+          checkbox.indeterminate = state.indeterminate;
+          checkbox.addEventListener('change', () => {
+            setLeafSet(node.leafKeys, Boolean(checkbox.checked));
+            renderTree();
+          });
+
+          const copy = document.createElement('div');
+          copy.style.display = 'grid';
+          copy.style.gridTemplateColumns = 'minmax(0,1fr) auto';
+          copy.style.alignItems = 'center';
+          copy.style.gap = '0.5rem';
+
+          const label = document.createElement('span');
+          label.textContent = node.label;
+          label.style.fontFamily = node.kind === 'file' ? 'var(--font-body)' : '"Typefesse", sans-serif';
+          label.style.fontSize = node.kind === 'file' ? '0.72rem' : '0.76rem';
+          label.style.letterSpacing = '0.01em';
+          label.style.textTransform = node.kind === 'file' ? 'none' : 'uppercase';
+
+          const meta = document.createElement('span');
+          meta.textContent = node.meta || '';
+          meta.style.fontSize = '0.67rem';
+          meta.style.opacity = '0.72';
+          meta.style.whiteSpace = 'nowrap';
+
+          copy.appendChild(label);
+          if (node.meta) copy.appendChild(meta);
+
+          row.appendChild(toggle);
+          row.appendChild(checkbox);
+          row.appendChild(copy);
+          parent.appendChild(row);
+
+          if (hasChildren && isExpanded) {
+            node.children.forEach((child) => renderTreeNode(child, parent, depth + 1));
+          }
+        };
+
+        const renderTree = () => {
+          treeWrap.replaceChildren();
+          const treeRoot = buildTreeModel();
+          const filteredRoot = pruneTreeByFilter(treeRoot);
+          if (!filteredRoot) {
+            const empty = document.createElement('p');
+            empty.style.margin = '0';
+            empty.style.opacity = '0.75';
+            empty.textContent = 'No matching files for this filter.';
+            treeWrap.appendChild(empty);
+            updateActionState();
+            return;
+          }
+          renderTreeNode(filteredRoot, treeWrap, 0);
+          updateActionState();
+        };
+
+        const requestBagBundleFromSidebar = async (nodes) => {
+          const payload = await requestAssetsJson({
+            path: '/me/assets/bag/bundle',
+            method: 'POST',
+            body: {
+              source: 'entry-sidebar',
+              dedupe: true,
+              selections: [{
+                lookup,
+                nodes: nodes.map((node) => ({
+                  kind: node.kind,
+                  lookup,
+                  bucket: node.bucket || '',
+                  mediaType: node.mediaType || '',
+                  mediaTypes: normalizeAvailableMediaTypes(node.mediaTypes, node.mediaType),
+                  fileId: node.fileId || '',
+                })),
+              }],
+            },
+          });
+          return payload;
+        };
+
+        const executeDownloadNow = async () => {
+          const nodes = await resolveNormalizedSelection();
+          if (!nodes.length) return;
+          downloadNowButton.disabled = true;
+          setModalStatus('resolving', 'Resolving secure bundle…');
+          try {
+            const token = await getAccessToken();
+            if (!token) {
+              const auth = window.DEX_AUTH || window.dexAuth || null;
+              if (auth && typeof auth.signIn === 'function') {
+                setModalStatus('resolving', 'Sign in required for download.');
+                const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+                try {
+                  await auth.signIn(returnTo);
+                } catch {
+                  setModalStatus('forbidden', 'Unable to start sign-in flow.');
+                }
+                return;
+              }
+              setModalStatus('forbidden', 'Sign in required for download.');
+              return;
+            }
+
+            try {
+              const payload = await requestBagBundleFromSidebar(nodes);
+              const delivery = String(payload?.delivery || '').toLowerCase();
+              if (delivery === 'sync') {
+                const signedUrl = String(payload?.signedUrl || payload?.url || '').trim();
+                if (!signedUrl) throw new Error('missing signed url');
+                setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+                openSignedUrl(signedUrl);
+                return;
+              }
+              if (delivery === 'async') {
+                const jobId = String(payload?.jobId || '').trim();
+                const result = await pollBundleReady(jobId, () => {
+                  setModalStatus('queued', 'Preparing secure bundle…');
+                });
+                setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+                openSignedUrl(result?.signedUrl);
+                return;
+              }
+              const fallback = resolveBundleReadyPayload(payload);
+              if (fallback) {
+                setModalStatus('ready', 'Bundle ready. Opening signed URL…');
+                openSignedUrl(fallback?.signedUrl);
+                return;
+              }
+              throw new Error('unsupported bag bundle response');
+            } catch (bagError) {
+              if (String(bagError?.code || '').toLowerCase() !== 'not-found') throw bagError;
+              const legacyTokens = expandNodesToLegacyTokens(cfg, nodes);
+              if (!legacyTokens.length) {
+                setModalStatus('not-found', 'No bundle tokens found for this selection.');
+                return;
+              }
+              const result = await requestBundleDownload({
+                lookup,
+                tokens: legacyTokens,
+                onQueuedTick: () => {
+                  setModalStatus('queued', 'Preparing secure bundle…');
+                },
               });
               setModalStatus('ready', 'Bundle ready. Opening signed URL…');
               openSignedUrl(result?.signedUrl);
-              return;
             }
-            const fallback = resolveBundleReadyPayload(payload);
-            if (fallback) {
-              setModalStatus('ready', 'Bundle ready. Opening signed URL…');
-              openSignedUrl(fallback?.signedUrl);
-              return;
+          } catch (error) {
+            const code = String(error?.code || '').toLowerCase();
+            if (code === 'forbidden') {
+              setModalStatus('forbidden', 'Access denied for one or more selected files.');
+            } else if (code === 'not-found') {
+              setModalStatus('not-found', 'Bundle source not found (DX-DL-404).');
+            } else {
+              setModalStatus('error', 'Bundle request failed. Retry or refresh (DX-DL-500).');
             }
-            throw new Error('unsupported bag bundle response');
-          } catch (bagError) {
-            if (String(bagError?.code || '').toLowerCase() !== 'not-found') throw bagError;
-            const legacyTokens = expandNodesToLegacyTokens(cfg, nodes);
-            if (!legacyTokens.length) {
-              setModalStatus('not-found', 'No bundle tokens found for this selection.');
-              return;
-            }
-            const result = await requestBundleDownload({
-              lookup,
-              tokens: legacyTokens,
-              onQueuedTick: () => {
-                setModalStatus('queued', 'Preparing secure bundle…');
-              },
-            });
-            setModalStatus('ready', 'Bundle ready. Opening signed URL…');
-            openSignedUrl(result?.signedUrl);
+          } finally {
+            downloadNowButton.disabled = false;
+            updateActionState();
           }
+        };
+
+        addToBagButton.addEventListener('click', async () => {
+          const nodes = await resolveNormalizedSelection();
+          if (!nodes.length) return;
+          const bagApi = await ensureBagApi(window.location.origin);
+          if (!bagApi) {
+            setModalStatus('error', 'Bag runtime unavailable.');
+            return;
+          }
+          nodes.forEach((node) => {
+            bagApi.upsertSelection(normalizeNodeForBag(node, context));
+          });
+          setModalStatus('ready', `Added ${nodes.length} selection${nodes.length === 1 ? '' : 's'} to bag.`);
+          window.location.assign(resolveBagRoutePath());
+        });
+
+        downloadNowButton.addEventListener('click', () => {
+          void executeDownloadNow();
+        });
+
+        filterInput.addEventListener('input', () => {
+          filterQuery = String(filterInput.value || '').trim().toLowerCase();
+          renderTree();
+        });
+        selectAllButton.addEventListener('click', () => {
+          setLeafSet(treeState.allLeafKeys, true);
+          renderTree();
+        });
+        clearButton.addEventListener('click', () => {
+          selectedLeafKeys.clear();
+          renderTree();
+        });
+        expandAllButton.addEventListener('click', () => {
+          const allExpandableIds = collectExpandableNodeIds(buildTreeModel(), []);
+          allExpandableIds.forEach((nodeId) => expandedNodeKeys.add(nodeId));
+          renderTree();
+        });
+        collapseAllButton.addEventListener('click', () => {
+          expandedNodeKeys.clear();
+          expandedNodeKeys.add(`collection|${lookup}`);
+          renderTree();
+        });
+
+        controls.appendChild(addToBagButton);
+        controls.appendChild(downloadNowButton);
+
+        inner.appendChild(titleRow);
+        inner.appendChild(statusBanner);
+        inner.appendChild(treeTools);
+        inner.appendChild(treeWrap);
+        inner.appendChild(controls);
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        close.addEventListener('click', removeModal);
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) removeModal();
+        });
+        document.addEventListener('keydown', onKeyDown);
+
+        setLeaves();
+        renderTree();
+        setModalStatus('idle', '');
+
+        try {
+          const token = await getAccessToken();
+          if (!token) return;
+          const payload = await requestAssetsJson({
+            path: `/me/assets/${encodeURIComponent(lookup)}`,
+            method: 'GET',
+          });
+          downloadTree = buildInventoryDownloadTree(cfg, lookup, payload);
+          treeState.tree = normalizeTree(downloadTree);
+          setLeaves();
+          renderTree();
+          setModalStatus('idle', '');
         } catch (error) {
           const code = String(error?.code || '').toLowerCase();
           if (code === 'forbidden') {
-            setModalStatus('forbidden', 'Access denied for one or more selected files.');
-          } else if (code === 'not-found') {
-            setModalStatus('not-found', 'Bundle source not found (DX-DL-404).');
+            setModalStatus('idle', '');
           } else {
-            setModalStatus('error', 'Bundle request failed. Retry or refresh (DX-DL-500).');
+            setModalStatus('error', 'Unable to load file tree. Using local tree fallback.');
           }
-        } finally {
-          downloadNowButton.disabled = false;
-          updateActionState();
         }
-      };
-
-      addToBagButton.addEventListener('click', async () => {
-        const nodes = await resolveNormalizedSelection();
-        if (!nodes.length) return;
-        const bagApi = await ensureBagApi(window.location.origin);
-        if (!bagApi) {
-          setModalStatus('error', 'Bag runtime unavailable.');
-          return;
-        }
-        nodes.forEach((node) => {
-          bagApi.upsertSelection(normalizeNodeForBag(node, context));
-        });
-        setModalStatus('ready', `Added ${nodes.length} selection${nodes.length === 1 ? '' : 's'} to bag.`);
-        window.location.assign(resolveBagRoutePath());
-      });
-
-      downloadNowButton.addEventListener('click', () => {
-        void executeDownloadNow();
-      });
-
-      controls.appendChild(addToBagButton);
-      controls.appendChild(downloadNowButton);
-
-      inner.appendChild(titleRow);
-      inner.appendChild(statusBanner);
-      inner.appendChild(treeWrap);
-      inner.appendChild(controls);
-      modal.appendChild(inner);
-      document.body.appendChild(modal);
-      close.addEventListener('click', removeModal);
-      modal.addEventListener('click', (event) => {
-        if (event.target === modal) removeModal();
-      });
-      document.addEventListener('keydown', onKeyDown);
-
-      renderTree();
-      setModalStatus('idle', '');
-
-      try {
-        const token = await getAccessToken();
-        if (!token) return;
-        const payload = await requestAssetsJson({
-          path: `/me/assets/${encodeURIComponent(lookup)}`,
-          method: 'GET',
-        });
-        downloadTree = buildInventoryDownloadTree(cfg, lookup, payload);
-        renderTree();
-        setModalStatus('idle', '');
-      } catch (error) {
-        const code = String(error?.code || '').toLowerCase();
-        if (code === 'forbidden') {
-          setModalStatus('idle', '');
-        } else {
-          setModalStatus('error', 'Unable to load file tree. Using bucket-level fallback.');
-        }
-      }
       });
     });
   };
@@ -3721,6 +4148,9 @@
             || page?.recordingIndexSourceUrl
             || '',
           ).trim(),
+          fileTree: page?.downloads?.fileTree && typeof page.downloads.fileTree === 'object'
+            ? page.downloads.fileTree
+            : null,
           audioFileIds: manifest.audio || {},
           videoFileIds: manifest.video || {},
         },

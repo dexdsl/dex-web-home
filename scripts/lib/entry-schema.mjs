@@ -71,6 +71,25 @@ const bucketFileStatsSchema = z.object({
   X: bucketFileStatsBucketSchema.optional(),
 }).strict();
 
+const downloadTreeFileSchema = z.object({
+  fileId: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+}).strict();
+const downloadTreeTypeSchema = z.object({
+  mediaType: z.enum(['audio', 'video']),
+  files: z.array(downloadTreeFileSchema).default([]),
+}).strict();
+const downloadTreeBucketSchema = z.object({
+  bucket: z.enum(BUCKETS),
+  types: z.array(downloadTreeTypeSchema).default([]),
+}).strict();
+const downloadTreeLookupSchema = z.object({
+  lookup: z.string().trim().min(1).optional(),
+  buckets: z.array(downloadTreeBucketSchema).default([]),
+}).strict();
+const downloadTreeRecordSchema = z.record(z.string().trim().min(1), downloadTreeLookupSchema);
+const downloadTreeSchema = z.union([downloadTreeLookupSchema, downloadTreeRecordSchema]);
+
 export const sidebarConfigSchema = z.object({
   lookupNumber: z.string().min(1),
   buckets: z.array(z.enum(BUCKETS)).min(1),
@@ -116,6 +135,7 @@ export const sidebarConfigSchema = z.object({
     }, {
       message: 'recordingIndexSourceUrl must be an http(s) URL',
     }).optional(),
+    fileTree: downloadTreeSchema.optional(),
   }).optional(),
 });
 
