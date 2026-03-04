@@ -93,6 +93,7 @@
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
   const DONATE_LABEL_CANONICAL = 'DONATE';
   const DONATE_LABEL_SELECTOR = '.header-actions-action--cta a[href], .header-menu-cta a[href], .dx-mobile-menu-actions a[href][data-dx-mobile-menu-action="true"]';
+  window.__dxDisableRouteGooeyBootstrap = true;
 
   let routeAbortController = null;
   let isNavigating = false;
@@ -1461,11 +1462,23 @@
     }
 
     styleEl.textContent = [
+      'html body #gooey-mesh-wrapper {',
+      '  pointer-events: none !important;',
+      '}',
       'html body #gooey-mesh-wrapper .gooey-stage {',
+      '  position: absolute !important;',
+      '  inset: 0 !important;',
       '  filter: url("#goo") !important;',
       '}',
       'html body #gooey-mesh-wrapper .gooey-blob {',
+      '  position: absolute !important;',
+      '  top: 0 !important;',
+      '  left: 0 !important;',
+      '  width: var(--d) !important;',
+      '  height: var(--d) !important;',
       '  border-radius: 50% !important;',
+      '  transform: translate(-50%, -50%) !important;',
+      '  background: radial-gradient(circle at 30% 30%, var(--g1a) 0%, var(--g1b) 45%, transparent 75%), radial-gradient(circle at 70% 70%, var(--g2a) 0%, var(--g2b) 45%, transparent 75%) !important;',
       '  filter: blur(34px) saturate(150%) !important;',
       '  will-change: transform !important;',
       '}',
@@ -1492,14 +1505,14 @@
     }
 
     let defs = svg.querySelector('defs');
-    if (!(defs instanceof SVGDefsElement)) {
+    if (!(defs instanceof Element) || String(defs.tagName || '').toLowerCase() !== 'defs') {
       defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       while (svg.firstChild) svg.removeChild(svg.firstChild);
       svg.appendChild(defs);
     }
 
     let filter = defs.querySelector('filter#goo');
-    if (!(filter instanceof SVGFilterElement)) {
+    if (!(filter instanceof Element) || String(filter.tagName || '').toLowerCase() !== 'filter') {
       filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
       filter.setAttribute('id', 'goo');
       defs.appendChild(filter);
