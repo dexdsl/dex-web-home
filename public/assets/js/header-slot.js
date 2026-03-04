@@ -1433,6 +1433,10 @@
     }
 
     const hasMeshReference = code.includes('gooey-mesh-wrapper') || code.includes('gooey-blob');
+    const hasMeshSelector = code.includes('querySelectorAll(".gooey-blob")')
+      || code.includes('querySelectorAll(\'.gooey-blob\')')
+      || code.includes('getElementsByClassName("gooey-blob")')
+      || code.includes('getElementsByClassName(\'gooey-blob\')');
     const hasMeshLoop = (code.includes('requestAnimationFrame') || code.includes('setInterval'))
       && (
         code.includes('_x')
@@ -1445,7 +1449,7 @@
     const hasGradientLoop = code.includes('scroll-gradient-bg')
       && (code.includes('addEventListener(\'scroll\'') || code.includes('addEventListener(\"scroll\"') || code.includes('scrollY'));
 
-    return (hasMeshReference && hasMeshLoop) || hasGradientLoop;
+    return (hasMeshReference && (hasMeshLoop || hasMeshSelector)) || hasGradientLoop;
   }
 
   function ensureCanonicalGooeyMeshStyleTag() {
@@ -1559,12 +1563,7 @@
       };
     }
 
-    if (speed >= GOOEY_SPEED_MIN && speed <= GOOEY_SPEED_MAX) {
-      return { vx, vy };
-    }
-
-    const clampedSpeed = Math.min(GOOEY_SPEED_MAX, Math.max(GOOEY_SPEED_MIN, speed));
-    const scale = clampedSpeed / speed;
+    const scale = GOOEY_SPEED_DEFAULT / speed;
     return {
       vx: vx * scale,
       vy: vy * scale,
