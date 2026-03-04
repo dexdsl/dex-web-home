@@ -737,6 +737,8 @@ body.homepage :is(
   .page-section:has(#block-9f43a906d54ed3a7b492),
   .page-section:has(#block-08599fb9d03cdc350247)
 ) {
+  min-height: 0 !important;
+  height: auto !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }

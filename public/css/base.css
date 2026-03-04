@@ -235,6 +235,8 @@ body.dx-slot-enabled #dx-slot-scroll-root {
   display: block;
   position: fixed;
   inset: 0;
+  -webkit-clip-path: inset(calc(var(--dx-slot-top) + var(--dx-ios-viewport-offset-top, 0px)) 0 0 0);
+  clip-path: inset(calc(var(--dx-slot-top) + var(--dx-ios-viewport-offset-top, 0px)) 0 0 0);
   overflow-y: auto;
   overflow-x: clip;
   -webkit-overflow-scrolling: touch;
