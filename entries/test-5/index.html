@@ -527,6 +527,33 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
   gap: clamp(14px, 1.8vw, 24px);
   overflow: visible !important;
   min-height: 0;
+  --dx-rail-fade-edge-top: clamp(14px, 1.3vw, 18px);
+  --dx-rail-fade-edge-bottom: clamp(12px, 1.1vw, 16px);
+  --dx-rail-fade-top-alpha: 0;
+  --dx-rail-fade-bottom-alpha: 0;
+}
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main[data-dx-rail-fades="true"] {
+  isolation: isolate;
+  --dx-rail-mask-top-alpha: calc(1 - var(--dx-rail-fade-top-alpha, 0));
+  --dx-rail-mask-bottom-alpha: calc(1 - var(--dx-rail-fade-bottom-alpha, 0));
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--dx-rail-mask-top-alpha)) 0%,
+    rgba(0, 0, 0, 1) var(--dx-rail-fade-edge-top),
+    rgba(0, 0, 0, 1) calc(100% - var(--dx-rail-fade-edge-bottom)),
+    rgba(0, 0, 0, var(--dx-rail-mask-bottom-alpha)) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--dx-rail-mask-top-alpha)) 0%,
+    rgba(0, 0, 0, 1) var(--dx-rail-fade-edge-top),
+    rgba(0, 0, 0, 1) calc(100% - var(--dx-rail-fade-edge-bottom)),
+    rgba(0, 0, 0, var(--dx-rail-mask-bottom-alpha)) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 .dex-sidebar {
   grid-column: 2;
@@ -1581,118 +1608,10 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
             </div>
           
             
-
-
-<!-- Burger -->
-<div class="header-burger
-
-  menu-overlay-has-visible-non-navigation-items
-
-">
-  <button class="header-burger-btn burger">
-    <span hidden="" class="js-header-burger-open-title visually-hidden">Open Menu</span>
-    <span hidden="" class="js-header-burger-close-title visually-hidden">Close Menu</span>
-    <div class="burger-box">
-      <div class="burger-inner header-menu-icon-tripleLineHamburger">
-        <div class="top-bun"></div>
-        <div class="patty"></div>
-        <div class="bottom-bun"></div>
-      </div>
-    </div>
-  </button>
-</div>
-
-          
-          
-          
-          
-          
-
         </div>
         <div class="header-display-mobile">
           
           
-            
-            <!-- Social -->
-            
-              
-                <div class="header-actions header-actions--left">
-                  <div class="header-actions-action header-actions-action--social">
-                    
-                      
-                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ" target="_blank" aria-label="YouTube">
-                          <svg viewBox="23 23 64 64">
-                            <use xlink:href="#youtube-unauth-icon" width="110" height="110"></use>
-                          </svg>
-                        </a>
-                      
-                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="http://instagram.com/dexdsl" target="_blank" aria-label="Instagram">
-                          <svg viewBox="23 23 64 64">
-                            <use xlink:href="#instagram-unauth-icon" width="110" height="110"></use>
-                          </svg>
-                        </a>
-                      
-                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://www.tiktok.com/@dexdsl" target="_blank" aria-label="TikTok">
-                          <svg viewBox="23 23 64 64">
-                            <use xlink:href="#tiktok-unauth-icon" width="110" height="110"></use>
-                          </svg>
-                        </a>
-                      
-                      <a class="icon icon--fill icon--sm  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://twitter.com/dexdsl" target="_blank" aria-label="Twitter">
-                          <svg viewBox="23 23 64 64">
-                            <use xlink:href="#twitter-unauth-icon" width="110" height="110"></use>
-                          </svg>
-                        </a>
-                      
-                    
-                  </div>
-                </div>
-              
-            
-          
-            
-            <!-- Actions -->
-            <div class="header-actions header-actions--right">
-              
-                
-                  <div class="user-accounts-link header-nav-item header-nav-item--collection customerAccountLoginDesktop" data-controller="UserAccountLink">
-                    <a class="user-accounts-text-link header-nav-item" href="#">
-  <span class="unauth">Login</span>
-  <span class="auth">Account</span>
-</a>
-                  </div>
-                
-              
-              
-                
-                
-              
-
-              
-
-            
-            
-
-              
-              <div class="showOnMobile">
-                
-              </div>
-
-              
-              <div class="showOnDesktop">
-                
-              </div>
-
-              
-                <div class="header-actions-action header-actions-action--cta">
-                  <a class="btn btn--border theme-btn--primary-inverse dx-button-element--primary" href="/donate">
-                    DOONATE
-                  </a>
-                </div>
-              
-            </div>
-          
-            
             <!-- Title and nav wrapper -->
             <div class="header-title-nav-wrapper">
               
@@ -1721,63 +1640,6 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
                   </div>
                 
               
-                
-                <!-- Nav -->
-                <div class="header-nav">
-                  <div class="header-nav-wrapper">
-                    <nav class="header-nav-list">
-                      
-
-
-  
-    <div class="header-nav-item header-nav-item--collection">
-      <a href="/catalog">
-        CATALOG
-      </a>
-    </div>
-  
-  
-  
-
-
-  
-    <div class="header-nav-item header-nav-item--collection">
-      <a href="/call">
-        IN DEX
-      </a>
-    </div>
-  
-  
-  
-
-
-  
-    <div class="header-nav-item header-nav-item--collection">
-      <a href="/dexnotes">
-        DEX NOTES
-      </a>
-    </div>
-  
-  
-  
-
-
-  
-    <div class="header-nav-item header-nav-item--collection">
-      <a href="/about">
-        ABOUT
-      </a>
-    </div>
-  
-  
-  
-
-
-
-                    </nav>
-                  </div>
-                </div>
-              
               
             </div>
           
@@ -1785,11 +1647,7 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
 
 
 <!-- Burger -->
-<div class="header-burger
-
-  menu-overlay-has-visible-non-navigation-items
-
-">
+<div class="header-burger">
   <button class="header-burger-btn burger">
     <span hidden="" class="js-header-burger-open-title visually-hidden">Open Menu</span>
     <span hidden="" class="js-header-burger-close-title visually-hidden">Close Menu</span>
@@ -1808,144 +1666,6 @@ body.dex-entry-page .dex-footer-section > .section-border > .section-background 
           
           
         </div>
-      </div>
-    </div>
-    <!-- (Mobile) Menu Navigation -->
-    <div class="header-menu header-menu--folder-list
-      white-bold
-      
-      
-      
-      
-      " data-section-theme="white-bold" data-show-account-login="true">
-      <div class="header-menu-bg theme-bg--primary"></div>
-      <div class="header-menu-nav">
-        <nav class="header-menu-nav-list">
-          <div data-folder="root" class="header-menu-nav-folder">
-            <div class="header-menu-nav-folder-content">
-              <!-- Menu Navigation -->
-<div class="header-menu-nav-wrapper">
-  
-    
-      
-        
-          
-            <div class="container header-menu-nav-item header-menu-nav-item--collection">
-              <a href="/catalog">
-                <div class="header-menu-nav-item-content">
-                  CATALOG
-                </div>
-              </a>
-            </div>
-          
-        
-      
-    
-      
-        
-          
-            <div class="container header-menu-nav-item header-menu-nav-item--collection">
-              <a href="/call">
-                <div class="header-menu-nav-item-content">
-                  IN DEX
-                </div>
-              </a>
-            </div>
-          
-        
-      
-    
-      
-        
-          
-            <div class="container header-menu-nav-item header-menu-nav-item--collection">
-              <a href="/dexnotes">
-                <div class="header-menu-nav-item-content">
-                  DEX NOTES
-                </div>
-              </a>
-            </div>
-          
-        
-      
-    
-      
-        
-          
-            <div class="container header-menu-nav-item header-menu-nav-item--collection">
-              <a href="/about">
-                <div class="header-menu-nav-item-content">
-                  ABOUT
-                </div>
-              </a>
-            </div>
-          
-        
-      
-    
-  
-</div>
-
-              
-                
-                  <div class="user-accounts-link header-menu-nav-item header-nav-item--collection customerAccountLoginMobile" data-controller="UserAccountLink">
-                    <a class="user-accounts-text-link header-nav-item" href="#">
-  <span class="unauth">Login</span>
-  <span class="auth">Account</span>
-</a>
-                </div>
-                
-              
-            </div>
-            
-              <div class="header-menu-actions social-accounts">
-                
-                  
-                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
-                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://www.youtube.com/channel/UCo5B4ztNwaErXhQlGyNhMDQ" target="_blank" aria-label="YouTube">
-                        <svg viewBox="23 23 64 64">
-                          <use xlink:href="#youtube-unauth-icon" width="110" height="110"></use>
-                        </svg>
-                      </a>
-                    </div>
-                  
-                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
-                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="http://instagram.com/dexdsl" target="_blank" aria-label="Instagram">
-                        <svg viewBox="23 23 64 64">
-                          <use xlink:href="#instagram-unauth-icon" width="110" height="110"></use>
-                        </svg>
-                      </a>
-                    </div>
-                  
-                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
-                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://www.tiktok.com/@dexdsl" target="_blank" aria-label="TikTok">
-                        <svg viewBox="23 23 64 64">
-                          <use xlink:href="#tiktok-unauth-icon" width="110" height="110"></use>
-                        </svg>
-                      </a>
-                    </div>
-                  
-                    <div class="header-menu-actions-action header-menu-actions-action--social mobile">
-                      <a class="icon icon--lg icon--fill  header-icon header-icon-border-shape-none header-icon-border-style-outline" href="https://twitter.com/dexdsl" target="_blank" aria-label="Twitter">
-                        <svg viewBox="23 23 64 64">
-                          <use xlink:href="#twitter-unauth-icon" width="110" height="110"></use>
-                        </svg>
-                      </a>
-                    </div>
-                  
-                
-              </div>
-            
-            
-            
-            <div class="header-menu-cta">
-              <a class="theme-btn--primary btn dx-button-element--primary" href="/donate">
-                DOONATE
-              </a>
-            </div>
-            
-          </div>
-        </nav>
       </div>
     </div>
   </header>
@@ -3794,6 +3514,117 @@ Visit Tim Feeney’s website at timfeeney.com</p>
   var MOBILE_BREAKPOINT = 899;
   var resizeObserver = null;
   var styleObserver = null;
+  var railFadeStates = new WeakMap();
+  var RAIL_FADE_TOP_MAX_ALPHA = 0.9;
+  var RAIL_FADE_BOTTOM_MIN_ALPHA = 0.4;
+  var RAIL_FADE_BOTTOM_MAX_ALPHA = 0.82;
+
+  function clamp(value, min, max){
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function smoothstep01(value){
+    var t = clamp(value, 0, 1);
+    return t * t * (3 - (2 * t));
+  }
+
+  function clearRailFade(main){
+    if (!main) return;
+    var state = railFadeStates.get(main);
+    if (state) {
+      state.enabled = false;
+      if (state.raf) cancelAnimationFrame(state.raf);
+      main.removeEventListener('scroll', state.onScroll);
+      window.removeEventListener('resize', state.onResize);
+      railFadeStates.delete(main);
+    }
+    main.removeAttribute('data-dx-rail-fades');
+    main.style.removeProperty('--dx-rail-fade-top-alpha');
+    main.style.removeProperty('--dx-rail-fade-bottom-alpha');
+  }
+
+  function measureRailFadeTargets(state){
+    var main = state.main;
+    var max = Math.max(0, main.scrollHeight - main.clientHeight);
+    if (max <= 1) {
+      state.lastScrollTop = 0;
+      return { top: 0, bottom: 0 };
+    }
+    var scrollTop = clamp(main.scrollTop, 0, max);
+    var remaining = max - scrollTop;
+    var top = smoothstep01(scrollTop / 180);
+    var bottom = 0.48 + (0.52 * smoothstep01(remaining / 210));
+    state.lastScrollTop = scrollTop;
+    return { top: top, bottom: bottom };
+  }
+
+  function writeRailFade(main, topMix, bottomMix){
+    var topAlpha = RAIL_FADE_TOP_MAX_ALPHA * clamp(topMix, 0, 1);
+    var bottomAlpha = RAIL_FADE_BOTTOM_MIN_ALPHA + ((RAIL_FADE_BOTTOM_MAX_ALPHA - RAIL_FADE_BOTTOM_MIN_ALPHA) * clamp(bottomMix, 0, 1));
+    if (bottomMix <= 0) bottomAlpha = 0;
+    main.style.setProperty('--dx-rail-fade-top-alpha', topAlpha.toFixed(3));
+    main.style.setProperty('--dx-rail-fade-bottom-alpha', bottomAlpha.toFixed(3));
+  }
+
+  function renderRailFade(state, immediate){
+    if (!state.enabled) return;
+    var targets = measureRailFadeTargets(state);
+    state.targetTop = targets.top;
+    state.targetBottom = targets.bottom;
+    if (immediate) {
+      state.currentTop = state.targetTop;
+      state.currentBottom = state.targetBottom;
+    } else {
+      state.currentTop += (state.targetTop - state.currentTop) * 0.24;
+      state.currentBottom += (state.targetBottom - state.currentBottom) * 0.24;
+    }
+    writeRailFade(state.main, state.currentTop, state.currentBottom);
+    var keepAnimating = Math.abs(state.targetTop - state.currentTop) > 0.003 || Math.abs(state.targetBottom - state.currentBottom) > 0.003;
+    if (keepAnimating && state.enabled) {
+      requestRailFadeFrame(state, false);
+    }
+  }
+
+  function requestRailFadeFrame(state, immediate){
+    if (!state || !state.enabled) return;
+    if (immediate) state.forceImmediate = true;
+    if (state.raf) return;
+    state.raf = requestAnimationFrame(function(){
+      state.raf = 0;
+      var useImmediate = !!state.forceImmediate;
+      state.forceImmediate = false;
+      renderRailFade(state, useImmediate);
+    });
+  }
+
+  function ensureRailFade(main){
+    if (!main) return;
+    var state = railFadeStates.get(main);
+    if (!state) {
+      state = {
+        main: main,
+        enabled: true,
+        raf: 0,
+        forceImmediate: false,
+        currentTop: 0,
+        currentBottom: 0,
+        targetTop: 0,
+        targetBottom: 0,
+        lastScrollTop: main.scrollTop || 0,
+        onScroll: null,
+        onResize: null
+      };
+      state.onScroll = function(){ requestRailFadeFrame(state, false); };
+      state.onResize = function(){ requestRailFadeFrame(state, true); };
+      main.addEventListener('scroll', state.onScroll, { passive: true });
+      window.addEventListener('resize', state.onResize, { passive: true });
+      railFadeStates.set(main, state);
+    } else {
+      state.enabled = true;
+    }
+    main.setAttribute('data-dx-rail-fades', 'true');
+    requestRailFadeFrame(state, true);
+  }
 
   function clearDesc(desc){
     if (!desc) return;
@@ -3825,9 +3656,11 @@ Visit Tim Feeney’s website at timfeeney.com</p>
       if (main.style.getPropertyValue('overscroll-behavior-y') !== 'contain') {
         main.style.setProperty('overscroll-behavior-y', 'contain', 'important');
       }
+      ensureRailFade(main);
     } else {
       main.style.removeProperty('overflow-y');
       main.style.removeProperty('overscroll-behavior-y');
+      clearRailFade(main);
     }
     clearDesc(desc);
   }

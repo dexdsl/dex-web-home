@@ -677,7 +677,7 @@ hr {
   display: grid !important;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: clamp(0.85rem, 1.4vw, 1.6rem);
+  column-gap: clamp(7px, 0.8vw, 19px);
   min-height: 88px;
 }
 
@@ -702,7 +702,7 @@ hr {
 
 .header-display-desktop .header-actions--right {
   justify-self: end;
-  gap: 0.65rem;
+  gap: clamp(7px, 0.55vw, 10px);
 }
 
 .header-display-desktop .header-actions--left .header-actions-action--social {
@@ -922,6 +922,8 @@ hr {
   align-items: center;
   justify-content: center;
   margin: 0 !important;
+  padding-inline: clamp(165px, 18vw, 240px);
+  box-sizing: border-box;
   z-index: 2;
   pointer-events: none;
   transform: translateY(var(--dx-header-baseline-shift));
@@ -936,7 +938,7 @@ hr {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.25rem, 0.9vw, 0.85rem);
+  gap: clamp(3px, 0.7vw, 14px);
   margin: 0 !important;
   padding: 0 !important;
   pointer-events: auto;
@@ -949,11 +951,11 @@ hr {
 }
 
 .header-display-desktop .header-nav-list > .header-nav-item:nth-child(2) {
-  margin-right: clamp(7.75rem, 10.5vw, 11rem);
+  margin-right: clamp(74px, 7.6vw, 124px);
 }
 
 .header-display-desktop .header-nav-list > .header-nav-item:nth-child(3) {
-  margin-left: clamp(7.75rem, 10.5vw, 11rem);
+  margin-left: clamp(74px, 7.6vw, 124px);
 }
 
 .header-display-desktop .header-nav-item > a {
@@ -967,9 +969,9 @@ hr {
   text-decoration: none;
   text-transform: uppercase;
   font-family: "Courier Prime", var(--font-body) !important;
-  font-size: clamp(1rem, 1.3vw, 1.24rem);
+  font-size: clamp(13px, calc(11px + 0.4vw), 20px);
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: clamp(0.072em, calc(0.058em + 0.02vw), 0.1em);
   line-height: 1.15;
   color: var(--dx-color-text, rgb(35 35 35)) !important;
 }
@@ -1028,6 +1030,11 @@ hr {
   margin: 0;
   align-self: center;
   text-decoration: none;
+}
+
+.header-display-desktop .header-actions-action--cta .btn {
+  padding-left: clamp(12px, 1.05vw, 16px);
+  padding-right: clamp(12px, 1.05vw, 16px);
 }
 
 .header-display-desktop .header-actions--right > #auth-ui #auth-ui-profile[hidden] {

@@ -103,8 +103,12 @@ iframe[src*="youtube-nocookie.com"] {
 
 }
 
-.header-nav-item:nth-of-type(2) {
-    margin-right: 150px!important;
+.header-display-desktop .header-nav-list > .header-nav-item:nth-of-type(2) {
+    margin-right: clamp(74px, 7.6vw, 124px) !important;
+}
+
+.header-display-desktop .header-nav-list > .header-nav-item:nth-of-type(3) {
+    margin-left: clamp(74px, 7.6vw, 124px) !important;
 }
 
 .header-title-logo a {
