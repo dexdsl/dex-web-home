@@ -541,6 +541,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 #footer-sections.sections > .page-section:first-child { margin-top: 0 !important; padding-top: 0 !important; }
 html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-section {
   margin-bottom: var(--dx-entry-footer-gap, clamp(14px, 1.2vw, 20px)) !important;
+  padding-top: clamp(10px, 0.9vw, 14px) !important;
 }
 .dex-entry-layout {
   --dex-entry-frame-radius: var(--radius-md, 8px);
@@ -632,6 +633,14 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+  #dx-slot-scroll-root,
+  body.dx-entry-page .dex-entry-main,
+  body.dx-entry-page .dex-video-shell,
+  body.dx-entry-page .dex-video-aspect,
+  body.dx-entry-page .dex-video-aspect iframe,
+  body.dx-entry-page .dex-entry-desc-scroll {
+    touch-action: pan-y pinch-zoom !important;
   }
   .dex-entry-desc-heading {
     font-size: clamp(0.9rem, 3.6vw, 1.05rem);
@@ -4342,69 +4351,44 @@ Visit Tim Feeney’s website at timfeeney.com</p>
 <script id="dex-entry-desc-sync">
 (function(){
   var MOBILE_BREAKPOINT = 899;
-  var DESC_EXTRA_SLACK_PX = 28;
   var resizeObserver = null;
-
-  function visibleChildren(container){
-    return Array.prototype.filter.call(container.children || [], function(node){
-      return !!(node && node.nodeType === 1 && node.offsetParent !== null);
-    });
-  }
+  var styleObserver = null;
 
   function clearDesc(desc){
     if (!desc) return;
     desc.style.height = '';
     desc.style.maxHeight = '';
     desc.style.minHeight = '';
-    desc.style.overflowY = '';
-    desc.style.overscrollBehavior = '';
+    desc.style.overflowY = 'visible';
+    desc.style.overscrollBehavior = 'auto';
     desc.removeAttribute('data-dex-desc-scrollable');
     desc.scrollTop = 0;
   }
 
   function syncLayout(layout){
     var main = layout.querySelector('.dex-entry-main');
-    var sidebar = layout.querySelector('.dex-sidebar');
     var desc = layout.querySelector('.dex-entry-desc-scroll');
-    if (!main || !sidebar || !desc) return;
+    if (!main || !desc) return;
 
-    if (window.innerWidth <= MOBILE_BREAKPOINT) {
-      clearDesc(desc);
-      main.style.removeProperty('padding-bottom');
-      return;
-    }
+    var root = document.documentElement;
+    var railMode = root ? root.getAttribute('data-dx-entry-rail-mode') : '';
+    var useSharedMainRail = window.innerWidth > MOBILE_BREAKPOINT && railMode === 'desktop-fixed';
 
-    main.style.setProperty('padding-bottom', '0px', 'important');
-    desc.style.minHeight = '0px';
-
-    var children = visibleChildren(main);
-    var descIndex = children.indexOf(desc);
-    if (descIndex < 0) return;
-
-    var mainStyle = window.getComputedStyle(main);
-    var gap = parseFloat(mainStyle.rowGap || mainStyle.gap || '0') || 0;
-    var occupiedHeight = 0;
-    for (var i = 0; i < children.length; i += 1) {
-      if (i === descIndex) continue;
-      occupiedHeight += children[i].getBoundingClientRect().height;
-    }
-    var totalGaps = Math.max(0, children.length - 1);
-    var sidebarHeight = sidebar.getBoundingClientRect().height;
-    var available = Math.max(120, Math.floor(sidebarHeight - occupiedHeight - (gap * totalGaps) + DESC_EXTRA_SLACK_PX));
-
-    desc.style.height = available + 'px';
-    desc.style.maxHeight = available + 'px';
-    var canScroll = (desc.scrollHeight - desc.clientHeight) > 6;
-    if (canScroll) {
-      desc.style.overflowY = 'auto';
-      desc.style.overscrollBehavior = 'contain';
-      desc.setAttribute('data-dex-desc-scrollable', 'true');
+    if (useSharedMainRail) {
+      if (main.style.getPropertyValue('padding-bottom') !== '0px') {
+        main.style.setProperty('padding-bottom', '0px', 'important');
+      }
+      if (main.style.getPropertyValue('overflow-y') !== 'auto') {
+        main.style.setProperty('overflow-y', 'auto', 'important');
+      }
+      if (main.style.getPropertyValue('overscroll-behavior-y') !== 'contain') {
+        main.style.setProperty('overscroll-behavior-y', 'contain', 'important');
+      }
     } else {
-      desc.style.overflowY = 'hidden';
-      desc.style.overscrollBehavior = 'auto';
-      desc.setAttribute('data-dex-desc-scrollable', 'false');
-      desc.scrollTop = 0;
+      main.style.removeProperty('overflow-y');
+      main.style.removeProperty('overscroll-behavior-y');
     }
+    clearDesc(desc);
   }
 
   function syncAll(){
@@ -4416,11 +4400,21 @@ Visit Tim Feeney’s website at timfeeney.com</p>
     if (typeof ResizeObserver !== 'function') return;
     if (resizeObserver) resizeObserver.disconnect();
     resizeObserver = new ResizeObserver(function(){ syncAll(); });
+    if (styleObserver) styleObserver.disconnect();
+    if (typeof MutationObserver === 'function') {
+      styleObserver = new MutationObserver(function(){ schedule(); });
+    }
     document.querySelectorAll('.dex-entry-layout').forEach(function(layout){
       var main = layout.querySelector('.dex-entry-main');
       var sidebar = layout.querySelector('.dex-sidebar');
       if (main) resizeObserver.observe(main);
       if (sidebar) resizeObserver.observe(sidebar);
+      if (styleObserver && main) {
+        styleObserver.observe(main, { attributes: true, attributeFilter: ['style'] });
+      }
+      if (styleObserver && layout) {
+        styleObserver.observe(layout, { attributes: true, attributeFilter: ['data-dx-entry-rail-mode'] });
+      }
     });
   }
 
@@ -5566,6 +5560,12 @@ body.dx-entry-page .dex-footer-section {
   margin-right: auto !important;
   box-sizing: border-box !important;
 }
+html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page #sections section.dex-entry-section.page-section.content-width--wide {
+  width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px)) !important;
+  max-width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px)) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
 body.dx-entry-page .dex-entry-section > .content-wrapper,
 body.dx-entry-page .dex-entry-section > .content-wrapper > .content,
 body.dx-entry-page .dex-footer-section > .content-wrapper,
@@ -5581,6 +5581,14 @@ body.dx-entry-page .dex-footer-section > .content-wrapper > .content {
 body.dx-entry-page .dex-footer-section .sqs-block-content {
   background: transparent !important;
   border: 0 !important;
+}
+@media (max-width: 899px) {
+  html[data-dx-entry-rail-mode="mobile-flow"] body.dx-route-profile-protected.dx-entry-page #footer-sections .dex-footer-section.page-section {
+    width: calc(100% - 16px) !important;
+    max-width: calc(100% - 16px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
 }
 
 /* test-5: force footer visual parity with home footer (layout geometry untouched) */
