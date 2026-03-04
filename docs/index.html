@@ -2837,7 +2837,7 @@ border-bottom: none !important;
     <style>
   /* 0 ▸ make *content* sections transparent – skip anything with “footer”
      (case-insensitive so it also matches 'Footer', 'site-footer', etc.) */
-  .Index-page .dx-section:not([class*="footer" i]) {
+  body.homepage .dx-section:not([class*="footer" i]) {
     background: transparent !important;
   }
  /* 1 ▸ fixed gradient layer behind everything */
@@ -2910,54 +2910,54 @@ border-bottom: none !important;
 /* ——— VISIBILITY PATCHES (place at the end of the block) ——— */
 
 /* A) Make content sections transparent, including the section containing footer glass */
-.Index-page .page-section:not([class*="footer" i]) {
+body.homepage .page-section:not([class*="footer" i]) {
   background: transparent !important;
 }
 @supports selector(.page-section:has(footer.dex-footer)) {
-  .Index-page .page-section:has(footer.dex-footer),
-  .Index-page .page-section:has(footer.dex-footer) .section-border,
-  .Index-page .page-section:has(footer.dex-footer) .section-background,
-  .Index-page .page-section:has(footer.dex-footer) .content-wrapper,
-  .Index-page .page-section:has(footer.dex-footer) .content,
-  .Index-page .page-section:has(footer.dex-footer) .fluid-engine,
-  .Index-page .page-section:has(footer.dex-footer) .fe-block,
-  .Index-page .page-section:has(footer.dex-footer) .dx-block,
-  .Index-page .page-section:has(footer.dex-footer) .dx-block-content,
-  .Index-page .page-section:has(footer.dex-footer) .dx-code-container {
+  body.homepage .page-section:has(footer.dex-footer),
+  body.homepage .page-section:has(footer.dex-footer) .section-border,
+  body.homepage .page-section:has(footer.dex-footer) .section-background,
+  body.homepage .page-section:has(footer.dex-footer) .content-wrapper,
+  body.homepage .page-section:has(footer.dex-footer) .content,
+  body.homepage .page-section:has(footer.dex-footer) .fluid-engine,
+  body.homepage .page-section:has(footer.dex-footer) .fe-block,
+  body.homepage .page-section:has(footer.dex-footer) .dx-block,
+  body.homepage .page-section:has(footer.dex-footer) .dx-block-content,
+  body.homepage .page-section:has(footer.dex-footer) .dx-code-container {
     background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
   }
 
-  .Index-page .page-section:has(footer.dex-footer) .section-border,
-  .Index-page .page-section:has(footer.dex-footer) .section-background {
+  body.homepage .page-section:has(footer.dex-footer) .section-border,
+  body.homepage .page-section:has(footer.dex-footer) .section-background {
     display: none !important;
   }
 }
 
 /* Fallback for engines without :has support (home footer section id). */
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"],
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content-wrapper,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fluid-engine,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fe-block,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block-content,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-code-container {
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"],
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content-wrapper,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fluid-engine,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fe-block,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block-content,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-code-container {
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
 }
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
-.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background {
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
+body.homepage .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background {
   display: none !important;
 }
 
 /* Home footer block host can inject an opaque dx-block-content background. Kill it explicitly. */
-.Index-page #block-9f43a906d54ed3a7b492 > .dx-block-content,
-.Index-page #block-9f43a906d54ed3a7b492 > .dx-block-content > .dx-code-container {
+body.homepage #block-9f43a906d54ed3a7b492 > .dx-block-content,
+body.homepage #block-9f43a906d54ed3a7b492 > .dx-block-content > .dx-code-container {
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
