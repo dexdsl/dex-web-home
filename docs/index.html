@@ -2171,7 +2171,7 @@ document.addEventListener('DOMContentLoaded',async function(){
           thumbnail: row.thumbnail || '',
           date: row.date || ''
         }))
-        .filter((row)=>row.url && row.video);
+        .filter((row)=>row.url);
     };
 
     try{
@@ -2291,31 +2291,61 @@ function loadYT(){
     vw.style.overflow = 'hidden';
     vw.style.isolation = 'isolate';
 
-    const ifr = document.createElement('iframe');
-    const s   = parseStartParam(it.video);
+    const videoId = getYouTubeId(it.video || '');
+    if (videoId) {
+      const ifr = document.createElement('iframe');
+      const s   = parseStartParam(it.video);
 
-    // Use nocookie + origin + inline playback (Safari 18.x friendly)
-    ifr.src = `https://www.youtube-nocookie.com/embed/${getYouTubeId(it.video)}?rel=0&modestbranding=1&playsinline=1${s?`&start=${s}`:''}&origin=${encodeURIComponent(location.origin)}`;
+      // Use nocookie + origin + inline playback (Safari 18.x friendly)
+      ifr.src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1${s?`&start=${s}`:''}&origin=${encodeURIComponent(location.origin)}`;
 
-    // Fill the box, force its own layer (prevents blanking)
-    ifr.style.position = 'absolute';
-    ifr.style.inset = '0';
-    ifr.style.width = '100%';
-    ifr.style.height = '100%';
-    ifr.style.border = '0';
-    ifr.style.transform = 'translateZ(0)';
-    ifr.style.webkitTransform = 'translateZ(0)';
+      // Fill the box, force its own layer (prevents blanking)
+      ifr.style.position = 'absolute';
+      ifr.style.inset = '0';
+      ifr.style.width = '100%';
+      ifr.style.height = '100%';
+      ifr.style.border = '0';
+      ifr.style.transform = 'translateZ(0)';
+      ifr.style.webkitTransform = 'translateZ(0)';
 
-    // Minimal, permissive attrs
-    ifr.setAttribute('playsinline','');
-    ifr.setAttribute('allowfullscreen','');
-    ifr.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+      // Minimal, permissive attrs
+      ifr.setAttribute('playsinline','');
+      ifr.setAttribute('allowfullscreen','');
+      ifr.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
 
-    // Drop referrerpolicy + lazy for Safari quirks
-    ifr.removeAttribute('referrerpolicy');
-    ifr.removeAttribute('loading');
+      // Drop referrerpolicy + lazy for Safari quirks
+      ifr.removeAttribute('referrerpolicy');
+      ifr.removeAttribute('loading');
 
-    vw.appendChild(ifr);
+      vw.appendChild(ifr);
+    } else if (it.thumbnail) {
+      const img = document.createElement('img');
+      img.src = it.thumbnail;
+      img.alt = `${it.artist} featured preview`;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.style.position = 'absolute';
+      img.style.inset = '0';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      vw.appendChild(img);
+    } else {
+      const fallback = document.createElement('a');
+      fallback.href = it.url;
+      fallback.textContent = 'Open featured entry';
+      fallback.style.position = 'absolute';
+      fallback.style.inset = '0';
+      fallback.style.display = 'flex';
+      fallback.style.alignItems = 'center';
+      fallback.style.justifyContent = 'center';
+      fallback.style.color = '#fff';
+      fallback.style.textDecoration = 'none';
+      fallback.style.font = "700 0.95rem/1.2 var(--font-heading,'Typefesse',sans-serif)";
+      fallback.style.letterSpacing = '0.02em';
+      vw.appendChild(fallback);
+    }
+
     card.appendChild(vw);
 
     // Belt-and-suspenders: neutralize any residual filter on this card only
@@ -2560,10 +2590,6 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   .carousel-nav.prev{ left: -3.35rem !important; }
   .carousel-nav.next{ right: -3.35rem !important; }
-
-  #dexFeaturedSide{
-    display: none !important;
-  }
 }
 
 /* Web (≥769px): explicit 2-column just to be clear */
@@ -2572,11 +2598,6 @@ document.addEventListener('DOMContentLoaded', function(){
 }
 
 @media (max-width: 900px){
-  /* Kill featured side completely */
-  #dexFeaturedSide {
-    display: none !important;
-  }
-
   /* Let #dexCombined collapse naturally */
   #dexCombined {
     height: auto !important;
@@ -2888,16 +2909,50 @@ border-bottom: none !important;
   #gooey-mesh-wrapper svg#goo-filter { position: absolute; width: 0; height: 0; }
 /* ——— VISIBILITY PATCHES (place at the end of the block) ——— */
 
-/* A) Make content sections transparent, but NEVER the footer section
-   - Case-insensitive "footer" match
-   - Also guard the section that actually contains a <footer> element */
-.Index-page .dx-section:not([class*="footer" i]) {
+/* A) Make content sections transparent, including the section containing footer glass */
+.Index-page .page-section:not([class*="footer" i]) {
   background: transparent !important;
 }
-@supports selector(.dx-section:has(footer)) {
-  .Index-page .dx-section:has(footer) {
-    background: initial !important;
+@supports selector(.page-section:has(footer.dex-footer)) {
+  .Index-page .page-section:has(footer.dex-footer),
+  .Index-page .page-section:has(footer.dex-footer) .section-border,
+  .Index-page .page-section:has(footer.dex-footer) .section-background,
+  .Index-page .page-section:has(footer.dex-footer) .content-wrapper,
+  .Index-page .page-section:has(footer.dex-footer) .content,
+  .Index-page .page-section:has(footer.dex-footer) .fluid-engine,
+  .Index-page .page-section:has(footer.dex-footer) .fe-block,
+  .Index-page .page-section:has(footer.dex-footer) .dx-block,
+  .Index-page .page-section:has(footer.dex-footer) .dx-block-content,
+  .Index-page .page-section:has(footer.dex-footer) .dx-code-container {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
   }
+
+  .Index-page .page-section:has(footer.dex-footer) .section-border,
+  .Index-page .page-section:has(footer.dex-footer) .section-background {
+    display: none !important;
+  }
+}
+
+/* Fallback for engines without :has support (home footer section id). */
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"],
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content-wrapper,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .content,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fluid-engine,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .fe-block,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-block-content,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .dx-code-container {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-border,
+.Index-page .page-section[data-section-id="68883dd3b36f2302f94a8925"] .section-background {
+  display: none !important;
 }
 
 /* B) Editor / no-JS default:
@@ -2910,7 +2965,7 @@ footer.dex-footer:not([data-surface]) .footer-logo .logo--light { display:block 
 footer.dex-footer:not([data-surface]) .footer-logo .logo--dark  { display:none  !important; }
 
 /* C) Belt & suspenders in case the editor (or a reset) hides nested <footer> */
-.dx-section footer.dex-footer {
+.page-section footer.dex-footer {
   display:block !important;
   visibility:visible !important;
   opacity:1 !important;

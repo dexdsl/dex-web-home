@@ -1,38 +1,70 @@
 {
   "version": "home-featured-v1",
-  "updatedAt": "2026-02-27T23:09:07.363Z",
+  "updatedAt": "2026-03-04T20:53:18.104Z",
   "maxSlots": 4,
   "featured": [
     {
       "slot_index": 0,
-      "entry_id": "jakob-heinemann",
-      "lookup": "S.Pdb. He AV2024 S2",
-      "artist": "jakob heinemann",
-      "instrument": "SPLINTERINGS for DOUBLE BASS",
+      "entry_id": "tim-feeney",
+      "lookup": "P.Pto. Fe AV2024 S2",
+      "artist": "tim feeney",
+      "instrument": "PREPARED FLOOR TOM",
       "season": "S2",
       "tags": [
         "dexFest"
       ],
       "leadIn": "",
-      "video": "",
-      "url": "/entry/jakob-heinemann/",
-      "thumbnail": "",
+      "video": "https://www.youtube.com/watch?v=DVqLc0_Ezhc",
+      "url": "/entry/tim-feeney/",
+      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/7dab8739-8385-4c19-979d-bf9550d753c8/Feeney+shot+2.jpg",
       "date": ""
     },
     {
       "slot_index": 1,
-      "entry_id": "prepared-oboe-sky-macklay",
-      "lookup": "W.Ob. Ma AV2024 S2",
-      "artist": "macklay, sky",
-      "instrument": "PREPARED OBOE",
+      "entry_id": "bojun-zhang",
+      "lookup": "E.Mod. Zh AV2024 S2",
+      "artist": "bojun zhang",
+      "instrument": "MODULAR SYNTH",
       "season": "S2",
       "tags": [
         "dexFest"
       ],
       "leadIn": "",
-      "video": "",
-      "url": "/entry/prepared-oboe-sky-macklay/",
-      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/1f7b1a18-e28e-4ab0-b6d1-1f54c4c21ddc/dex+sky.png",
+      "video": "https://www.youtube.com/watch?v=qNuxhAKCekg",
+      "url": "/entry/bojun-zhang/",
+      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/591af0e1-7357-48a0-a764-9a3a525e10a6/Thumbnail2+no+titles.jpg",
+      "date": ""
+    },
+    {
+      "slot_index": 2,
+      "entry_id": "andrew-chanover",
+      "lookup": "E.Gtr. Ch AV2024 S2",
+      "artist": "andrew chanover",
+      "instrument": "ELECTRIC GUITAR",
+      "season": "S2",
+      "tags": [
+        "dexFest"
+      ],
+      "leadIn": "",
+      "video": "https://www.youtube.com/watch?v=oifj5JZYoWI",
+      "url": "/entry/andrew-chanover/",
+      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/deb11d2e-7b21-4505-bee3-2b4f3071aac2/IMG_0148.jpg",
+      "date": ""
+    },
+    {
+      "slot_index": 3,
+      "entry_id": "splinterings-jakob-heinemann",
+      "lookup": "S.Pdb. He AV2024 S2",
+      "artist": "jakob heinemann",
+      "instrument": "SPLINTERINGS - DOUBLE BASS",
+      "season": "S2",
+      "tags": [
+        "dexFest"
+      ],
+      "leadIn": "",
+      "video": "https://www.youtube.com/watch?v=8sia2JYhwvI",
+      "url": "/entry/splinterings-jakob-heinemann/",
+      "thumbnail": "https://images.squarespace-cdn.com/content/v1/63956a55e99f9772a8cd1742/1eb0fb76-8325-4624-957e-02079fd75d44/headshot.jpg",
       "date": ""
     }
   ]
