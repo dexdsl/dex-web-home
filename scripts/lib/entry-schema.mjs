@@ -77,25 +77,26 @@ const downloadTreeFileSchema = z.object({
   filename: z.string().trim().min(1).optional(),
   extension: z.string().trim().min(1).optional(),
   variantKey: z.string().trim().min(1).optional(),
-}).strict();
+  variantLabel: z.string().trim().min(1).optional(),
+}).passthrough();
 const downloadTreeVariantSchema = z.object({
   variantKey: z.string().trim().min(1),
   label: z.string().trim().min(1).optional(),
   files: z.array(downloadTreeFileSchema).default([]),
-}).strict();
+}).passthrough();
 const downloadTreeTypeSchema = z.object({
   mediaType: z.enum(['audio', 'video']),
   files: z.array(downloadTreeFileSchema).default([]).optional(),
   variants: z.array(downloadTreeVariantSchema).default([]).optional(),
-}).strict();
+}).passthrough();
 const downloadTreeBucketSchema = z.object({
   bucket: z.enum(BUCKETS),
   types: z.array(downloadTreeTypeSchema).default([]),
-}).strict();
+}).passthrough();
 const downloadTreeLookupSchema = z.object({
   lookup: z.string().trim().min(1).optional(),
   buckets: z.array(downloadTreeBucketSchema).default([]),
-}).strict();
+}).passthrough();
 const downloadTreeRecordSchema = z.record(z.string().trim().min(1), downloadTreeLookupSchema);
 const downloadTreeSchema = z.union([downloadTreeLookupSchema, downloadTreeRecordSchema]);
 

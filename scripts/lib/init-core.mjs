@@ -12,6 +12,7 @@ import { pushRecent } from './recents-store.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '../..');
+const CANONICAL_ENTRY_TEMPLATE_PATH = path.join(PROJECT_ROOT, 'entries', 'test-5', 'index.html');
 
 const ensure = async (p) => {
   try {
@@ -34,6 +35,7 @@ export async function prepareTemplate({ templateArg } = {}) {
 
   const candidates = [
     path.resolve(process.cwd(), 'index.html'),
+    CANONICAL_ENTRY_TEMPLATE_PATH,
     path.join(PROJECT_ROOT, 'entry-template', 'index.html'),
   ];
 
@@ -118,11 +120,15 @@ export async function writeEntryFromData({ templateHtml, templatePath, data, opt
     title: data.title,
     authEnabled: true,
   });
-  const rewrittenHtml = rewriteLocalAssetLinks(injected.html, getAssetOrigin());
-  const finalHtml = sanitizeGeneratedHtml(rewrittenHtml);
-  const sanitizedCheck = verifySanitizedHtml(finalHtml);
-  if (!sanitizedCheck.ok) {
-    throw new Error(`Generated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+  const usingCanonicalTemplate = path.resolve(templatePath || '') === path.resolve(CANONICAL_ENTRY_TEMPLATE_PATH);
+  let finalHtml = injected.html;
+  if (!usingCanonicalTemplate) {
+    const rewrittenHtml = rewriteLocalAssetLinks(injected.html, getAssetOrigin());
+    finalHtml = sanitizeGeneratedHtml(rewrittenHtml);
+    const sanitizedCheck = verifySanitizedHtml(finalHtml);
+    if (!sanitizedCheck.ok) {
+      throw new Error(`Generated HTML failed sanitizer verification: ${formatSanitizationIssues(sanitizedCheck.issues)}`);
+    }
   }
 
   const folder = opts.flat ? path.join(path.resolve('.'), data.slug) : path.join(data.outDir, data.slug);

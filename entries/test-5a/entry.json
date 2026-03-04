@@ -1,0 +1,1405 @@
+{
+  "slug": "test-5a",
+  "title": "test-5",
+  "canonical": {
+    "instrument": "Prepared Floor Tom",
+    "artistName": "Tim Feeney"
+  },
+  "lifecycle": {
+    "publishedAt": "2026-03-04T11:13:39.759Z",
+    "updatedAt": "2026-03-04T11:13:39.759Z"
+  },
+  "video": {
+    "mode": "url",
+    "dataUrl": "https://www.youtube.com/watch?v=DVqLc0_Ezhc",
+    "dataUrlOriginal": "https://www.youtube.com/watch?v=DVqLc0_Ezhc",
+    "dataHtml": ""
+  },
+  "descriptionText": "Improviser, composer, and interpreter Tim Feeney seeks to explore and examine the possibilities inherent in unstable sound and duration. Tim began working in this thread in 2002, within Boston’s community of improvisers interested in austere combinations of sounds and silences, and has since performed and recorded with musicians throughout the United States and abroad. He frequently collaborates with artists including the trio Meridian, with percussionists Sarah Hennies and Greg Stuart, pianist Annie Lewandowski, cellist and electronic musician Vic Rawlings, vocalist Ken Ueno, saxophonist Andrew Raffo Dewar, banjo and electronic musician Holland Hopson, trumpeter Nate Wooley, sound artists Jed Speare and Ernst Karel, video artist Jane Cassidy, and many others. Visit Tim Feeney’s website at timfeeney.com",
+  "series": "dex",
+  "selectedBuckets": [
+    "A",
+    "B",
+    "C"
+  ],
+  "creditsData": {
+    "artist": [
+      "Tim Feeney"
+    ],
+    "artistAlt": null,
+    "instruments": [
+      "Prepared Floor Tom"
+    ],
+    "video": {
+      "director": [
+        "Gabrielle Milman"
+      ],
+      "cinematography": [
+        "Gabrielle Milman",
+        "Sebastian Suarez-Solis"
+      ],
+      "editing": [
+        "Sebastian Suarez-Solis"
+      ]
+    },
+    "audio": {
+      "recording": [
+        "Cameron Church"
+      ],
+      "mix": [
+        "Sebastian Suarez-Solis"
+      ],
+      "master": [
+        "Sebastian Suarez-Solis"
+      ]
+    },
+    "year": 2026,
+    "season": "S2",
+    "location": "LA Artcore"
+  },
+  "fileSpecs": {
+    "bitDepth": 24,
+    "sampleRate": 48000,
+    "channels": "stereo",
+    "staticSizes": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "",
+      "E": "",
+      "X": ""
+    }
+  },
+  "metadata": {
+    "sampleLength": "AUTO",
+    "tags": [
+      "ambient",
+      "live",
+      "studio",
+      "experimental"
+    ]
+  },
+  "sidebarPageConfig": {
+    "lookupNumber": "P.Pto. Fe AV2024 S2",
+    "buckets": [
+      "A",
+      "B",
+      "C"
+    ],
+    "specialEventImage": "/assets/series/dexfest.png",
+    "attributionSentence": "Samples licensed under CC-BY 4.0 by Dex Digital Sample Library and Tim Feeney.",
+    "credits": {
+      "artist": [
+        "Tim Feeney"
+      ],
+      "artistAlt": null,
+      "instruments": [
+        "Prepared Floor Tom"
+      ],
+      "video": {
+        "director": [
+          "Gabrielle Milman"
+        ],
+        "cinematography": [
+          "Gabrielle Milman",
+          "Sebastian Suarez-Solis"
+        ],
+        "editing": [
+          "Sebastian Suarez-Solis"
+        ]
+      },
+      "audio": {
+        "recording": [
+          "Cameron Church"
+        ],
+        "mix": [
+          "Sebastian Suarez-Solis"
+        ],
+        "master": [
+          "Sebastian Suarez-Solis"
+        ]
+      },
+      "year": 2026,
+      "season": "S2",
+      "location": "LA Artcore",
+      "instrumentLinksEnabled": false,
+      "linksByPerson": {
+        "tim feeney": [
+          {
+            "label": "website",
+            "href": "https://timfeeney.com/"
+          }
+        ],
+        "sebastian suarez-solis": [
+          {
+            "label": "website",
+            "href": "https://cbassuarez.com/"
+          }
+        ],
+        "cameron church": [
+          {
+            "label": "website",
+            "href": "https://cameronchurch.com/"
+          }
+        ]
+      }
+    },
+    "fileSpecs": {
+      "bitDepth": 24,
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "staticSizes": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": "",
+        "E": "",
+        "X": ""
+      }
+    },
+    "metadata": {
+      "sampleLength": "AUTO",
+      "tags": [
+        "ambient",
+        "live",
+        "studio",
+        "experimental"
+      ]
+    },
+    "downloads": {
+      "recordingIndexPdfRef": "asset:tim-feeney-recording-index-pdf",
+      "recordingIndexBundleRef": "bundle:recording-index:P.Pto. Fe AV2024 S2:all",
+      "recordingIndexSourceUrl": "https://docs.google.com/spreadsheets/d/1jWq1mToYB0exyQTDshjBV2TVCDOLD6epceXWpqJ117Q/edit?gid=0#gid=0",
+      "fileTree": {
+        "P.Pto. Fe AV2024 S2": {
+          "lookup": "P.Pto. Fe AV2024 S2",
+          "buckets": [
+            {
+              "bucket": "A",
+              "types": [
+                {
+                  "mediaType": "audio",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "wav",
+                      "label": "wav",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-a-001",
+                          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 A.1.wav"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "mediaType": "video",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "1080p",
+                      "label": "1080p",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-a-001",
+                          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 A.1.1080p.mov"
+                        }
+                      ]
+                    },
+                    {
+                      "variantKey": "4K",
+                      "label": "4K",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-a-001",
+                          "label": "A.1 (0:00 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 A.1.4k.mov"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bucket": "B",
+              "types": [
+                {
+                  "mediaType": "audio",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "wav",
+                      "label": "wav",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-b-001",
+                          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.1.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-002",
+                          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.2.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-003",
+                          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.3.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-004",
+                          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.4.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-005",
+                          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.5.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-006",
+                          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.6.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-007",
+                          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 B.7.wav"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "mediaType": "video",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "1080p",
+                      "label": "1080p",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-b-001",
+                          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.1.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-002",
+                          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.2.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-003",
+                          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.3.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-004",
+                          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.4.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-005",
+                          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.5.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-006",
+                          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.6.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-007",
+                          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 B.7.1080p.mov"
+                        }
+                      ]
+                    },
+                    {
+                      "variantKey": "4K",
+                      "label": "4K",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-b-001",
+                          "label": "B.1 (0:00 - 4:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.1.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-002",
+                          "label": "B.2 (4:46 - 11:08) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.2.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-003",
+                          "label": "B.3 (11:08 - 16:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.3.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-004",
+                          "label": "B.4 (16:16 - 19:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.4.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-005",
+                          "label": "B.5 (19:14 - 22:03) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.5.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-006",
+                          "label": "B.6 (22:03 - 25:35) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.6.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-b-007",
+                          "label": "B.7 (25:35 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 B.7.4k.mov"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bucket": "C",
+              "types": [
+                {
+                  "mediaType": "audio",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "wav",
+                      "label": "wav",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-c-001",
+                          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.1.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-002",
+                          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.2.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-003",
+                          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.3.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-004",
+                          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.4.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-005",
+                          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.5.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-006",
+                          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.6.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-007",
+                          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.7.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-008",
+                          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.8.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-009",
+                          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.9.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-010",
+                          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.10.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-011",
+                          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.11.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-012",
+                          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.12.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-013",
+                          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.13.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-014",
+                          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.14.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-015",
+                          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.15.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-016",
+                          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.16.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-017",
+                          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.17.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-018",
+                          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.18.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-019",
+                          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.19.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-020",
+                          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.20.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-021",
+                          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.21.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-022",
+                          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.22.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-023",
+                          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.23.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-024",
+                          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.24.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-025",
+                          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.25.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-026",
+                          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.26.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-027",
+                          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.27.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-028",
+                          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.28.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-029",
+                          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.29.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-030",
+                          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.30.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-031",
+                          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.31.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-032",
+                          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.32.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-033",
+                          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.33.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-034",
+                          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.34.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-035",
+                          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.35.wav"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-036",
+                          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+                          "variantKey": "wav",
+                          "variantLabel": "wav",
+                          "extension": "wav",
+                          "filename": "P.Pto. Fe AV2024 S2 C.36.wav"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "mediaType": "video",
+                  "files": [],
+                  "variants": [
+                    {
+                      "variantKey": "1080p",
+                      "label": "1080p",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-c-001",
+                          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.1.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-002",
+                          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.2.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-003",
+                          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.3.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-004",
+                          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.4.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-005",
+                          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.5.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-006",
+                          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.6.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-007",
+                          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.7.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-008",
+                          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.8.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-009",
+                          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.9.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-010",
+                          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.10.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-011",
+                          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.11.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-012",
+                          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.12.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-013",
+                          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.13.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-014",
+                          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.14.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-015",
+                          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.15.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-016",
+                          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.16.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-017",
+                          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.17.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-018",
+                          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.18.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-019",
+                          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.19.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-020",
+                          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.20.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-021",
+                          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.21.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-022",
+                          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.22.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-023",
+                          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.23.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-024",
+                          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.24.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-025",
+                          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.25.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-026",
+                          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.26.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-027",
+                          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.27.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-028",
+                          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.28.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-029",
+                          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.29.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-030",
+                          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.30.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-031",
+                          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.31.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-032",
+                          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.32.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-033",
+                          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.33.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-034",
+                          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.34.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-035",
+                          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.35.1080p.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-036",
+                          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "1080p",
+                          "variantLabel": "1080p",
+                          "filename": "P.Pto. Fe AV2024 S2 C.36.1080p.mov"
+                        }
+                      ]
+                    },
+                    {
+                      "variantKey": "4K",
+                      "label": "4K",
+                      "files": [
+                        {
+                          "fileId": "tim-feeney-c-001",
+                          "label": "C.1 (0:00 - 1:00) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.1.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-002",
+                          "label": "C.2 (1:00 - 1:26) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.2.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-003",
+                          "label": "C.3 (1:26 - 2:07) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.3.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-004",
+                          "label": "C.4 (2:07 - 2:55) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.4.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-005",
+                          "label": "C.5 (2:55 - 3:33) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.5.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-006",
+                          "label": "C.6 (3:33 - 4:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.6.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-007",
+                          "label": "C.7 (4:46 - 6:10) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.7.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-008",
+                          "label": "C.8 (6:10 - 7:27) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.8.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-009",
+                          "label": "C.9 (7:27 - 8:59) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.9.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-010",
+                          "label": "C.10 (8:59 - 9:57) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.10.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-011",
+                          "label": "C.11 (9:57 - 10:38) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.11.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-012",
+                          "label": "C.12 (10:38 - 11:08) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.12.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-013",
+                          "label": "C.13 (11:08 - 11:43) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.13.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-014",
+                          "label": "C.14 (11:43 - 12:36) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.14.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-015",
+                          "label": "C.15 (12:36 - 13:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.15.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-016",
+                          "label": "C.16 (13:16 - 13:52) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.16.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-017",
+                          "label": "C.17 (13:52 - 14:49) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.17.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-018",
+                          "label": "C.18 (14:49 - 15:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.18.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-019",
+                          "label": "C.19 (15:14 - 15:46) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.19.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-020",
+                          "label": "C.20 (15:46 - 16:16) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.20.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-021",
+                          "label": "C.21 (16:16 - 16:45) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.21.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-022",
+                          "label": "C.22 (16:45 - 17:27) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.22.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-023",
+                          "label": "C.23 (17:27 - 18:39) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.23.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-024",
+                          "label": "C.24 (18:39 - 19:14) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.24.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-025",
+                          "label": "C.25 (19:14 - 20:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.25.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-026",
+                          "label": "C.26 (20:24 - 21:06) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.26.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-027",
+                          "label": "C.27 (21:06 - 22:03) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.27.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-028",
+                          "label": "C.28 (22:03 - 23:20) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.28.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-029",
+                          "label": "C.29 (23:20 - 24:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.29.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-030",
+                          "label": "C.30 (24:24 - 25:06) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.30.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-031",
+                          "label": "C.31 (25:06 - 25:35) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.31.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-032",
+                          "label": "C.32 (25:35 - 26:37) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.32.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-033",
+                          "label": "C.33 (26:37 - 27:24) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.33.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-034",
+                          "label": "C.34 (27:24 - 28:31) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.34.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-035",
+                          "label": "C.35 (28:31 - 29:01) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.35.4k.mov"
+                        },
+                        {
+                          "fileId": "tim-feeney-c-036",
+                          "label": "C.36 (29:01 - 30:28) 4K | 1080p | ste",
+                          "extension": "mov",
+                          "variantKey": "4K",
+                          "variantLabel": "4K",
+                          "filename": "P.Pto. Fe AV2024 S2 C.36.4k.mov"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "bucketFileStats": {
+      "A": {
+        "audio": {
+          "mp3": 1,
+          "wav": 1
+        },
+        "video": {
+          "1080p": 1,
+          "4K": 1
+        }
+      },
+      "B": {
+        "audio": {
+          "mp3": 7,
+          "wav": 7
+        },
+        "video": {
+          "1080p": 7,
+          "4K": 7
+        }
+      },
+      "C": {
+        "audio": {
+          "mp3": 36,
+          "wav": 36
+        },
+        "video": {
+          "1080p": 36,
+          "4K": 36
+        }
+      },
+      "D": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      },
+      "E": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      },
+      "X": {
+        "audio": {
+          "mp3": 0,
+          "wav": 0
+        },
+        "video": {
+          "1080p": 0,
+          "4K": 0
+        }
+      }
+    }
+  }
+}

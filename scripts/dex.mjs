@@ -109,7 +109,7 @@ async function collectInitData(opts, slugArg) {
     const computedSlug = dedupeSlug(slugify(slugArg || base.slug || title), existing);
     const videoUrl = String(base.video?.dataUrlOriginal || base.video?.dataUrl || '').trim();
     if (!videoUrl) throw new Error('Video URL is required for non-interactive init. Pass --from with video.dataUrl.');
-    const seedCredits = base.creditsData || base.sidebarPageConfig?.credits;
+    const seedCredits = base.sidebarPageConfig?.credits || base.creditsData;
     const seedRecordingIndexPdfRef = String(
       base?.sidebarPageConfig?.downloads?.recordingIndexPdfRef
       || base?.sidebarPageConfig?.recordingIndexPdfRef
@@ -125,29 +125,68 @@ async function collectInitData(opts, slugArg) {
       || base?.sidebarPageConfig?.recordingIndexSourceUrl
       || '',
     ).trim();
+    const seedDownloads = (
+      base?.sidebarPageConfig?.downloads
+      && typeof base.sidebarPageConfig.downloads === 'object'
+      && !Array.isArray(base.sidebarPageConfig.downloads)
+    )
+      ? JSON.parse(JSON.stringify(base.sidebarPageConfig.downloads))
+      : {};
+    const seedCreditsData = defaultCredits(seedCredits);
+    if (seedCredits && typeof seedCredits === 'object') {
+      if (typeof seedCredits.instrumentLinksEnabled === 'boolean') {
+        seedCreditsData.instrumentLinksEnabled = seedCredits.instrumentLinksEnabled;
+      }
+      if (seedCredits.linksByPerson && typeof seedCredits.linksByPerson === 'object' && !Array.isArray(seedCredits.linksByPerson)) {
+        seedCreditsData.linksByPerson = JSON.parse(JSON.stringify(seedCredits.linksByPerson));
+      }
+    }
     const sidebar = {
       lookupNumber: lookup,
       buckets: base.sidebarPageConfig?.buckets || ['A'],
       specialEventImage: base.sidebarPageConfig?.specialEventImage || mapSeriesToImage(base.series || 'dex'),
       attributionSentence: base.sidebarPageConfig?.attributionSentence || 'Attribution',
-      credits: defaultCredits(seedCredits),
-      fileSpecs: { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
-      metadata: { sampleLength: '', tags: [] },
+      credits: seedCreditsData,
+      fileSpecs: base.sidebarPageConfig?.fileSpecs || base.fileSpecs || { bitDepth: 24, sampleRate: 48000, channels: 'stereo', staticSizes: { A: '', B: '', C: '', D: '', E: '', X: '' } },
+      metadata: base.sidebarPageConfig?.metadata || base.metadata || { sampleLength: '', tags: [] },
     };
-    if (seedRecordingIndexPdfRef || seedRecordingIndexBundleRef || seedRecordingIndexSourceUrl) {
-      sidebar.downloads = {};
-      if (seedRecordingIndexPdfRef) sidebar.downloads.recordingIndexPdfRef = seedRecordingIndexPdfRef;
-      if (seedRecordingIndexBundleRef) sidebar.downloads.recordingIndexBundleRef = seedRecordingIndexBundleRef;
-      if (seedRecordingIndexSourceUrl) sidebar.downloads.recordingIndexSourceUrl = seedRecordingIndexSourceUrl;
+    if (seedRecordingIndexPdfRef) seedDownloads.recordingIndexPdfRef = seedRecordingIndexPdfRef;
+    if (seedRecordingIndexBundleRef) seedDownloads.recordingIndexBundleRef = seedRecordingIndexBundleRef;
+    if (seedRecordingIndexSourceUrl) seedDownloads.recordingIndexSourceUrl = seedRecordingIndexSourceUrl;
+    if (Object.keys(seedDownloads).length) {
+      sidebar.downloads = seedDownloads;
+    }
+    if (base?.sidebarPageConfig?.bucketFileStats && typeof base.sidebarPageConfig.bucketFileStats === 'object') {
+      sidebar.bucketFileStats = JSON.parse(JSON.stringify(base.sidebarPageConfig.bucketFileStats));
     }
     const canonical = deriveCanonicalEntry({
       canonical: base.canonical,
       sidebarConfig: sidebar,
       creditsData: base.creditsData,
     });
-    const manifest = normalizeManifest(buildEmptyManifestSkeleton(opts.formatKeys), opts.formatKeys, ALL_BUCKETS);
+    const manifestSeed = (base.manifest && typeof base.manifest === 'object' && !Array.isArray(base.manifest))
+      ? JSON.parse(JSON.stringify(base.manifest))
+      : buildEmptyManifestSkeleton(opts.formatKeys);
+    const manifest = normalizeManifest(manifestSeed, opts.formatKeys, ALL_BUCKETS);
     manifestSchemaForFormats(opts.formatKeys?.audio || [], opts.formatKeys?.video || []).parse(manifest);
-    return { slug: computedSlug, title, canonical, video: { mode: 'url', dataUrl: videoUrl, dataUrlOriginal: videoUrl, dataHtml: '' }, descriptionText: descriptionTextFromSeed(base), sidebar, manifest, authEnabled: true, outDir };
+    return {
+      slug: computedSlug,
+      title,
+      canonical,
+      video: { mode: 'url', dataUrl: videoUrl, dataUrlOriginal: videoUrl, dataHtml: '' },
+      descriptionText: descriptionTextFromSeed(base),
+      sidebar,
+      manifest,
+      authEnabled: true,
+      series: base.series || 'dex',
+      selectedBuckets: Array.isArray(base.selectedBuckets) && base.selectedBuckets.length
+        ? base.selectedBuckets
+        : (Array.isArray(sidebar.buckets) ? sidebar.buckets : []),
+      creditsData: base.creditsData || seedCreditsData,
+      fileSpecs: base.fileSpecs || sidebar.fileSpecs,
+      metadata: base.metadata || sidebar.metadata,
+      outDir,
+    };
   }
 
   const id = await prompts([

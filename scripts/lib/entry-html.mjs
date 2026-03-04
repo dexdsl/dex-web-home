@@ -187,7 +187,7 @@ function pinFor(name, linksByPerson = new Map()) {
     return `<span class="person-text" data-person-linkable="false">${safeName}</span>`;
   }
   const linksJson = encodeAttrEntities(JSON.stringify(links));
-  return `<span class="person-link" data-person="${safeName}" data-links='${linksJson}' data-person-linkable="true" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false">${safeName}<span class="person-pin" aria-hidden="true"></span></span>`;
+  return `<span class="person-link" data-person="${safeName}" data-links='${linksJson}' data-person-linkable="true" style="position:relative; cursor:pointer;">${safeName}<span class="person-pin"></span></span>`;
 }
 
 function pinsString(names, linksByPerson = new Map()) {
@@ -368,6 +368,70 @@ ${descriptionWithHeading}
   }
 })();
 </script>`;
+}
+
+function collapseText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function stripDescriptionHeadingMarkup(html) {
+  return String(html || '').replace(
+    /<span\s+class=["']dex-entry-desc-heading["'][\s\S]*?<\/span>\s*<span\s+class=["']dex-entry-desc-heading-gap["'][\s\S]*?<\/span>/i,
+    '',
+  );
+}
+
+function extractDescriptionTextFromRegion(regionHtml = '') {
+  const match = String(regionHtml || '').match(/<div[^>]*class=["'][^"']*\bdex-entry-desc-content\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (!match) return '';
+  const withoutHeading = stripDescriptionHeadingMarkup(match[1] || '');
+  return collapseText(stripHtmlTags(withoutHeading));
+}
+
+function injectDescriptionRegion(regionHtml = '', descriptionHtml = '<p></p>') {
+  const descriptionWithHeading = prependDescriptionHeading(descriptionHtml);
+  const region = String(regionHtml || '');
+  const contentRx = /(<div[^>]*class=["'][^"']*\bdex-entry-desc-content\b[^"']*["'][^>]*>)([\s\S]*?)(<\/div>)/i;
+  if (!contentRx.test(region)) {
+    return buildDescriptionRegion(descriptionHtml);
+  }
+  return region.replace(contentRx, (_, open, _inner, close) => `${open}\n${descriptionWithHeading}\n  ${close}`);
+}
+
+function extractVideoSourceFromRegion(regionHtml = '') {
+  const dataUrlMatch = String(regionHtml || '').match(/\bdata-video-url\s*=\s*(["'])(.*?)\1/i);
+  if (dataUrlMatch && dataUrlMatch[2]) return decodeAttrEntities(String(dataUrlMatch[2] || '').trim());
+  const iframeSrcMatch = String(regionHtml || '').match(/<iframe[^>]*\bsrc\s*=\s*(["'])(.*?)\1/i);
+  if (iframeSrcMatch && iframeSrcMatch[2]) return decodeAttrEntities(String(iframeSrcMatch[2] || '').trim());
+  return '';
+}
+
+function injectVideoRegionPreservingMarkup(regionHtml = '', video = {}) {
+  const originalUrl = resolveVideoSourceUrl(video);
+  const parsed = parseVideoUrl(originalUrl);
+  if (parsed.provider === 'unknown') {
+    console.warn(`[dex] unrecognized video provider: ${originalUrl}`);
+  }
+  const embedUrl = parsed.embedUrl || originalUrl;
+  let next = String(regionHtml || '');
+  const encodedOriginal = encodeAttrEntities(originalUrl);
+  const encodedEmbed = encodeAttrEntities(embedUrl);
+
+  if (/\bdata-video-url\s*=\s*(["']).*?\1/i.test(next)) {
+    next = next.replace(/\bdata-video-url\s*=\s*(["']).*?\1/i, `data-video-url="${encodedOriginal}"`);
+  } else if (/<div[^>]*class=["'][^"']*\bdex-video\b[^"']*["'][^>]*>/i.test(next)) {
+    next = next.replace(
+      /<div([^>]*class=["'][^"']*\bdex-video\b[^"']*["'][^>]*)>/i,
+      (match, attrs) => `<div${attrs} data-video-url="${encodedOriginal}">`,
+    );
+  }
+
+  if (/<iframe[^>]*\bsrc\s*=\s*(["']).*?\1/i.test(next)) {
+    next = next.replace(/(<iframe[^>]*\bsrc\s*=\s*)(["']).*?\2/i, `$1"${encodedEmbed}"`);
+    return next;
+  }
+
+  return injectVideoRegion(regionHtml, video);
 }
 
 function markerTokens(html, key) {
@@ -670,6 +734,14 @@ ${buildEntrySubtitleMarkup({ lifecycle, creditsData, sidebarConfig })}
 </div>`;
 }
 
+function extractDisplayLabelFromTitleRegion(regionHtml = '') {
+  const h1Match = String(regionHtml || '').match(/<h1[^>]*class=["'][^"']*\bdex-entry-page-title\b[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i);
+  if (h1Match && h1Match[1]) return collapseText(stripHtmlTags(h1Match[1]));
+  const breadcrumbMatch = String(regionHtml || '').match(/<span[^>]*class=["'][^"']*\bdex-breadcrumb-current\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+  if (breadcrumbMatch && breadcrumbMatch[1]) return collapseText(stripHtmlTags(breadcrumbMatch[1]));
+  return '';
+}
+
 function injectTitleRegion(_regionHtml, { displayLabel = 'entry', lifecycle, creditsData, sidebarConfig } = {}) {
   const headerMarkup = buildEntryHeaderMarkup({ displayLabel, lifecycle, creditsData, sidebarConfig });
   return headerMarkup;
@@ -910,7 +982,7 @@ function normalizeDownloadFileTree(fileTree) {
   return Object.keys(normalized).length ? normalized : undefined;
 }
 
-function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
+function buildSidebarPayload({ globalSidebarConfig, sidebarConfig, manifest }) {
   const globalConfig = JSON.parse(JSON.stringify(globalSidebarConfig || {}));
   if (globalConfig && typeof globalConfig === 'object') {
     if (!globalConfig.downloads || typeof globalConfig.downloads !== 'object') {
@@ -990,16 +1062,55 @@ function buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }) {
   } else if ('bucketFileStats' in compiled) {
     delete compiled.bucketFileStats;
   }
-  const normalizedFileTree = normalizeDownloadFileTree(compiled.downloads.fileTree);
-  if (normalizedFileTree) {
-    compiled.downloads.fileTree = normalizedFileTree;
-  } else if ('fileTree' in compiled.downloads) {
-    delete compiled.downloads.fileTree;
+  if ('fileTree' in compiled.downloads) {
+    if (
+      !compiled.downloads.fileTree
+      || typeof compiled.downloads.fileTree !== 'object'
+      || Array.isArray(compiled.downloads.fileTree)
+    ) {
+      delete compiled.downloads.fileTree;
+    } else {
+      compiled.downloads.fileTree = JSON.parse(JSON.stringify(compiled.downloads.fileTree));
+    }
   }
-  const globalJson = JSON.stringify(globalConfig, null, 2);
-  const sidebarJson = JSON.stringify(compiled, null, 2);
-  const manifestJson = JSON.stringify(manifest || {}, null, 2);
-  return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script>\n<script id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}">\nwindow.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');\n</script>\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;
+
+  return {
+    globalConfig,
+    sidebarConfig: compiled,
+    manifest: manifest || {},
+  };
+}
+
+function buildSidebarRegion(payload = {}) {
+  const globalJson = JSON.stringify(payload.globalConfig || {}, null, 2);
+  const sidebarJson = JSON.stringify(payload.sidebarConfig || {}, null, 2);
+  const manifestJson = JSON.stringify(payload.manifest || {}, null, 2);
+  return `<script id="dex-sidebar-config" type="application/json">\n${globalJson}\n</script>\n<script id="dex-sidebar-page-config" type="application/json">\n${sidebarJson}\n</script><script id="${PAGE_CONFIG_BRIDGE_SCRIPT_ID}">window.dexSidebarPageConfig = JSON.parse(document.getElementById('dex-sidebar-page-config').textContent || '{}');</script>\n\n\n<script id="dex-manifest" type="application/json">\n${manifestJson}\n</script>`;
+}
+
+function deepEqualJson(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (!deepEqualJson(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (typeof a === 'object') {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const key of aKeys) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+      if (!deepEqualJson(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function scriptByIdRegex(id) {
@@ -1015,6 +1126,23 @@ function extractJsonScriptById(html, id) {
   } catch (error) {
     throw new Error(`Invalid JSON in #${id}: ${error.message || error}`);
   }
+}
+
+function injectSidebarRegion(regionHtml = '', payload = {}) {
+  const source = String(regionHtml || '');
+  try {
+    const existingGlobal = extractJsonScriptById(source, 'dex-sidebar-config');
+    const existingSidebar = extractJsonScriptById(source, 'dex-sidebar-page-config');
+    const existingManifest = extractJsonScriptById(source, 'dex-manifest');
+    if (
+      deepEqualJson(existingGlobal, payload.globalConfig || {})
+      && deepEqualJson(existingSidebar, payload.sidebarConfig || {})
+      && deepEqualJson(existingManifest, payload.manifest || {})
+    ) {
+      return source;
+    }
+  } catch {}
+  return buildSidebarRegion(payload);
 }
 
 function stripDexContractScripts(html) {
@@ -1137,13 +1265,18 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   let titleInjectionStrategy = 'layout-fallback';
   if (hasAnchoredRegion(html, 'title')) {
     const titleRegion = getAnchoredRegion(html, 'title');
-    html = replaceBetween(html, titleRegion, injectTitleRegion(titleRegion.content, {
-      displayLabel,
-      lifecycle,
-      creditsData,
-      sidebarConfig,
-    }));
-    titleInjectionStrategy = 'anchors';
+    const existingDisplayLabel = extractDisplayLabelFromTitleRegion(titleRegion.content);
+    if (collapseText(existingDisplayLabel).toLowerCase() === collapseText(displayLabel).toLowerCase()) {
+      titleInjectionStrategy = 'anchors-preserved';
+    } else {
+      html = replaceBetween(html, titleRegion, injectTitleRegion(titleRegion.content, {
+        displayLabel,
+        lifecycle,
+        creditsData,
+        sidebarConfig,
+      }));
+      titleInjectionStrategy = 'anchors';
+    }
   } else {
     const withFallback = injectTitleBeforeLayout(html, {
       displayLabel,
@@ -1156,33 +1289,69 @@ export function injectEntryHtml(templateHtml, { descriptionText, descriptionHtml
   }
 
   const videoRegion = getAnchoredRegion(html, 'video');
-  html = replaceBetween(html, videoRegion, injectVideoRegion(videoRegion.content, video));
+  const injectedVideoRegion = injectVideoRegionPreservingMarkup(videoRegion.content, video);
+  const videoInjectionStrategy = injectedVideoRegion === videoRegion.content ? 'anchors-preserved' : 'anchors';
+  if (videoInjectionStrategy !== 'anchors-preserved') {
+    html = replaceBetween(html, videoRegion, injectedVideoRegion);
+  }
 
   const resolvedDescriptionHtml = descriptionTextToHtml(typeof descriptionText === 'string' ? descriptionText : stripHtmlTags(descriptionHtml));
   const descRegion = getAnchoredRegion(html, 'desc');
-  html = replaceBetween(html, descRegion, buildDescriptionRegion(resolvedDescriptionHtml.trim()));
+  const expectedDescriptionText = collapseText(stripHtmlTags(resolvedDescriptionHtml));
+  const existingDescriptionText = extractDescriptionTextFromRegion(descRegion.content);
+  const injectedDescriptionRegion = existingDescriptionText === expectedDescriptionText
+    ? descRegion.content
+    : injectDescriptionRegion(descRegion.content, resolvedDescriptionHtml.trim());
+  const descriptionInjectionStrategy = injectedDescriptionRegion === descRegion.content ? 'anchors-preserved' : 'anchors';
+  if (descriptionInjectionStrategy !== 'anchors-preserved') {
+    html = replaceBetween(html, descRegion, injectedDescriptionRegion);
+  }
 
   const sidebarRegion = getAnchoredRegion(html, 'sidebar');
-  html = replaceBetween(html, sidebarRegion, buildSidebarRegion({ globalSidebarConfig, sidebarConfig, manifest }));
-  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(displayLabel)}</title>`);
+  const sidebarPayload = buildSidebarPayload({ globalSidebarConfig, sidebarConfig, manifest });
+  const injectedSidebarRegion = injectSidebarRegion(sidebarRegion.content, sidebarPayload);
+  const sidebarInjectionStrategy = injectedSidebarRegion === sidebarRegion.content ? 'anchors-preserved' : 'anchors';
+  if (sidebarInjectionStrategy !== 'anchors-preserved') {
+    html = replaceBetween(html, sidebarRegion, injectedSidebarRegion);
+  }
+
+  const documentTitle = collapseText(title) || displayLabel;
+  const existingTitleMatch = html.match(/<title>([\s\S]*?)<\/title>/i);
+  const existingDocumentTitle = existingTitleMatch ? collapseText(stripHtmlTags(existingTitleMatch[1])) : '';
+  if (existingDocumentTitle !== documentTitle) {
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(documentTitle)}</title>`);
+  }
 
   if (authEnabled) {
-    const canonical = AUTH_CANDIDATES.find((s) => scriptSrcRegex(s).test(html)) || AUTH_CANDIDATES[0];
-    html = html
-      .replace(/<!-- Auth0 -->[\s\S]*?<!-- end Auth0 -->/g, '')
-      .replace(/<[^>]*id="btn-login"[\s\S]*?<\/[^>]+>/g, '')
-      .replace(/<[^>]*id="btn-profile-container"[\s\S]*?<\/[^>]+>/g, '')
-      .replace(scriptSrcRegex(canonical), '')
-      .replace(scriptSrcRegex(AUTH_VENDOR), '')
-      .replace(scriptSrcRegex('/assets/dex-auth.js'), '')
-      .replace(AUTH0_SDK_SRC_RX, '');
-    const trio = `<script defer src="${AUTH_VENDOR}"></script>\n<script defer src="${canonical}"></script>\n<script defer src="/assets/dex-auth.js"></script>`;
-    if (!html.includes('</head>')) throw new Error('Cannot inject auth snippets: </head> not found');
-    html = html.replace('</head>', `${trio}\n</head>`);
+    const hasVendor = scriptSrcRegex(AUTH_VENDOR).test(html);
+    const existingConfig = AUTH_CANDIDATES.find((s) => scriptSrcRegex(s).test(html));
+    const hasAuthRuntime = scriptSrcRegex('/assets/dex-auth.js').test(html);
+    if (!(hasVendor && existingConfig && hasAuthRuntime)) {
+      const canonical = existingConfig || AUTH_CANDIDATES[0];
+      html = html
+        .replace(/<!-- Auth0 -->[\s\S]*?<!-- end Auth0 -->/g, '')
+        .replace(/<[^>]*id="btn-login"[\s\S]*?<\/[^>]+>/g, '')
+        .replace(/<[^>]*id="btn-profile-container"[\s\S]*?<\/[^>]+>/g, '')
+        .replace(scriptSrcRegex(canonical), '')
+        .replace(scriptSrcRegex(AUTH_VENDOR), '')
+        .replace(scriptSrcRegex('/assets/dex-auth.js'), '')
+        .replace(AUTH0_SDK_SRC_RX, '');
+      const trio = `<script defer src="${AUTH_VENDOR}"></script>\n<script defer src="${canonical}"></script>\n<script defer src="/assets/dex-auth.js"></script>`;
+      if (!html.includes('</head>')) throw new Error('Cannot inject auth snippets: </head> not found');
+      html = html.replace('</head>', `${trio}\n</head>`);
+    }
   }
 
   assertDexSidebarContract(html);
-  return { html, strategy: { title: titleInjectionStrategy, video: 'anchors', description: 'anchors', sidebar: 'anchors' } };
+  return {
+    html,
+    strategy: {
+      title: titleInjectionStrategy,
+      video: videoInjectionStrategy,
+      description: descriptionInjectionStrategy,
+      sidebar: sidebarInjectionStrategy,
+    },
+  };
 }
 
 export const AUTH_TRIO = [AUTH_VENDOR, ...AUTH_CANDIDATES, '/assets/dex-auth.js'];
