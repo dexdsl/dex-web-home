@@ -14,7 +14,8 @@
   position: relative;
   z-index: 1;
   margin: 0 auto;
-  width: min(1280px, calc(100vw - (var(--dx-call-gutter) * 2)));
+  width: var(--dx-header-frame-width-vw, var(--dx-header-frame-width, min(1280px, calc(100vw - (var(--dx-call-gutter) * 2)))));
+  max-width: var(--dx-header-frame-width-vw, var(--dx-header-frame-width, min(1280px, calc(100vw - (var(--dx-call-gutter) * 2)))));
   padding-top: 0.72rem;
   padding-bottom: clamp(2rem, 3vw, 3rem);
 }
@@ -495,7 +496,8 @@
 
 @media (max-width: 760px) {
   .dx-call-page {
-    width: min(1280px, calc(100vw - 1rem));
+    width: var(--dx-header-frame-width-vw, var(--dx-header-frame-width, min(1280px, calc(100vw - (var(--dx-call-gutter) * 2)))));
+    max-width: var(--dx-header-frame-width-vw, var(--dx-header-frame-width, min(1280px, calc(100vw - (var(--dx-call-gutter) * 2)))));
     padding-top: 0.56rem;
   }
 
