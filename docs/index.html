@@ -2955,6 +2955,14 @@ border-bottom: none !important;
   display: none !important;
 }
 
+/* Home footer block host can inject an opaque dx-block-content background. Kill it explicitly. */
+.Index-page #block-9f43a906d54ed3a7b492 > .dx-block-content,
+.Index-page #block-9f43a906d54ed3a7b492 > .dx-block-content > .dx-code-container {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 /* B) Editor / no-JS default:
    If the script hasn’t set data-surface, show a LIGHT surface (black text + light logo).
    Use !important to beat the prefers-color-scheme rules. */
