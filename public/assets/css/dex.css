@@ -782,7 +782,7 @@ body.homepage #dex-faq .spark-accordion__item {
   left: 50% !important;
   transform: translateX(-50%) !important;
   box-sizing: border-box !important;
-  background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%) !important;
+  background: var(--liquid-bg, rgba(255, 255, 255, 0.18)) !important;
   border: 1px solid rgba(255, 255, 255, 0.42) !important;
   border-radius: var(--dx-radius-md, 10px) !important;
   box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
