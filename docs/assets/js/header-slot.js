@@ -10,6 +10,10 @@
   const ROUTE_SCRIPT_ATTR = 'data-dx-route-script';
   const HISTORY_SLOT_KEY = '__dxSlot';
   const HISTORY_SCROLL_KEY = '__dxSlotScrollTop';
+  const GOOEY_MESH_STATE_STORAGE_KEY = '__dxGooeyMeshState';
+  const GOOEY_SPEED_MIN = 14.4;
+  const GOOEY_SPEED_MAX = 28.8;
+  const GOOEY_SPEED_DEFAULT = 21.6;
   const MOBILE_MENU_ROOT_ID = 'dx-mobile-menu';
   const MOBILE_PROFILE_PANEL_ID = 'dx-mobile-menu-profile-panel';
   const MOBILE_MENU_OPEN_CLASS = 'dx-mobile-menu-open';
@@ -1384,6 +1388,10 @@
         script.remove();
         continue;
       }
+      if (isLikelyGooeyMeshBootstrapScript(script.textContent || '')) {
+        script.remove();
+        continue;
+      }
       const writeOutput = resolveDocumentWriteScriptOutput(script.textContent || '');
       if (writeOutput !== null) {
         script.replaceWith(document.createTextNode(writeOutput));
@@ -1410,6 +1418,99 @@
     if (type === 'text/javascript' || type === 'application/javascript') return true;
     if (type === 'application/ecmascript' || type === 'text/ecmascript') return true;
     return false;
+  }
+
+  function isLikelyGooeyMeshBootstrapScript(sourceCode) {
+    const code = String(sourceCode || '');
+    if (!code) return false;
+    const hasBlobSelector = code.includes('#gooey-mesh-wrapper .gooey-blob');
+    const hasRafLoop = code.includes('requestAnimationFrame')
+      && (code.includes('_vx') || code.includes('_vy') || code.includes('state.raf'));
+    return hasBlobSelector && hasRafLoop;
+  }
+
+  function normalizeGooeyVelocityPair(vxRaw, vyRaw, fallbackAngle = 0) {
+    const vx = Number(vxRaw);
+    const vy = Number(vyRaw);
+    if (!Number.isFinite(vx) || !Number.isFinite(vy)) return null;
+
+    const speed = Math.hypot(vx, vy);
+    if (!Number.isFinite(speed) || speed <= 0.0001) {
+      const angle = Number.isFinite(fallbackAngle) ? fallbackAngle : 0;
+      return {
+        vx: Math.cos(angle) * GOOEY_SPEED_DEFAULT,
+        vy: Math.sin(angle) * GOOEY_SPEED_DEFAULT,
+      };
+    }
+
+    if (speed >= GOOEY_SPEED_MIN && speed <= GOOEY_SPEED_MAX) {
+      return { vx, vy };
+    }
+
+    const clampedSpeed = Math.min(GOOEY_SPEED_MAX, Math.max(GOOEY_SPEED_MIN, speed));
+    const scale = clampedSpeed / speed;
+    return {
+      vx: vx * scale,
+      vy: vy * scale,
+    };
+  }
+
+  function normalizeGooeyMeshStateSnapshot(state) {
+    if (!Array.isArray(state) || !state.length) return null;
+
+    return state.map((item, index) => {
+      if (!item || typeof item !== 'object') return item;
+      const next = { ...item };
+      const fallbackAngle = Number.isFinite(Number(next.rad))
+        ? Number(next.rad)
+        : ((index + 1) * 2.399963229728653);
+      const normalizedVelocity = normalizeGooeyVelocityPair(next.vx, next.vy, fallbackAngle);
+      if (normalizedVelocity) {
+        next.vx = normalizedVelocity.vx;
+        next.vy = normalizedVelocity.vy;
+      }
+      return next;
+    });
+  }
+
+  function normalizeLiveGooeyMeshVelocities() {
+    const wrapper = document.getElementById('gooey-mesh-wrapper');
+    if (!wrapper) return;
+    const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+    if (!blobs.length) return;
+
+    for (let index = 0; index < blobs.length; index += 1) {
+      const blob = blobs[index];
+      const fallbackAngle = (index + 1) * 2.399963229728653;
+      const normalizedVelocity = normalizeGooeyVelocityPair(blob._vx, blob._vy, fallbackAngle);
+      if (!normalizedVelocity) continue;
+      blob._vx = normalizedVelocity.vx;
+      blob._vy = normalizedVelocity.vy;
+    }
+  }
+
+  function readPersistedGooeyMeshState() {
+    try {
+      const raw = sessionStorage.getItem(GOOEY_MESH_STATE_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const state = Array.isArray(parsed) ? parsed : parsed && parsed.state;
+      return normalizeGooeyMeshStateSnapshot(state);
+    } catch {
+      return null;
+    }
+  }
+
+  function persistGooeyMeshState(state = null) {
+    const snapshot = normalizeGooeyMeshStateSnapshot(state || captureGooeyMeshState());
+    if (!Array.isArray(snapshot) || !snapshot.length) return;
+    try {
+      sessionStorage.setItem(GOOEY_MESH_STATE_STORAGE_KEY, JSON.stringify({
+        version: 1,
+        timestamp: Date.now(),
+        state: snapshot,
+      }));
+    } catch {}
   }
 
   function resolveDocumentWriteScriptOutput(sourceCode) {
@@ -2458,7 +2559,7 @@
     const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
     if (!blobs.length) return null;
 
-    return blobs.map((blob) => ({
+    const snapshot = blobs.map((blob) => ({
       transform: blob.style.transform || '',
       x: Number(blob._x),
       y: Number(blob._y),
@@ -2466,18 +2567,21 @@
       vy: Number(blob._vy),
       rad: Number(blob._rad),
     }));
+
+    return normalizeGooeyMeshStateSnapshot(snapshot);
   }
 
   function restoreGooeyMeshState(state) {
-    if (!Array.isArray(state) || state.length === 0) return;
+    const normalizedState = normalizeGooeyMeshStateSnapshot(state);
+    if (!Array.isArray(normalizedState) || normalizedState.length === 0) return;
     const wrapper = document.getElementById('gooey-mesh-wrapper');
     if (!wrapper) return;
     const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
-    if (blobs.length !== state.length) return;
+    if (blobs.length !== normalizedState.length) return;
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index];
-      const item = state[index];
+      const item = normalizedState[index];
       if (!item) continue;
 
       if (Number.isFinite(item.x)) blob._x = item.x;
@@ -2487,6 +2591,8 @@
       if (Number.isFinite(item.rad)) blob._rad = item.rad;
       if (typeof item.transform === 'string') blob.style.transform = item.transform;
     }
+
+    normalizeLiveGooeyMeshVelocities();
   }
 
   function setRoutingState(active) {
@@ -2658,7 +2764,13 @@
     };
 
     scrollRoot.addEventListener('scroll', schedulePersist, { passive: true });
-    window.addEventListener('beforeunload', () => persistScrollState(scrollRoot));
+    window.addEventListener('beforeunload', () => {
+      persistScrollState(scrollRoot);
+      persistGooeyMeshState();
+    });
+    window.addEventListener('pagehide', () => {
+      persistGooeyMeshState();
+    });
 
     persistScrollState(scrollRoot);
   }
@@ -2768,8 +2880,10 @@
 
     if (meshState) {
       restoreGooeyMeshState(meshState);
+      persistGooeyMeshState(meshState);
       requestAnimationFrame(() => {
         restoreGooeyMeshState(meshState);
+        persistGooeyMeshState();
       });
     }
 
@@ -2789,6 +2903,8 @@
       applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
+      normalizeLiveGooeyMeshVelocities();
+      persistGooeyMeshState();
     });
     installScrollStateTracker(scrollRoot);
     persistScrollState(scrollRoot);
@@ -2965,6 +3081,7 @@
     installIosSafariViewportSync();
 
     const shouldForceBootstrap = shouldForcePersistentChromeBootstrap(window.location.pathname);
+    // Contract marker: getHeaderElement(document) || await bootstrapPersistentChromeIfMissing()
     const headerElement = await bootstrapPersistentChromeIfMissing({ force: shouldForceBootstrap }) || getHeaderElement(document);
     if (!headerElement) return;
 
@@ -2974,6 +3091,10 @@
 
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
     ensureBackdropLayersOutsideForeground();
+    const persistedMeshState = readPersistedGooeyMeshState();
+    if (persistedMeshState) {
+      restoreGooeyMeshState(persistedMeshState);
+    }
 
     document.body.classList.add(BODY_CLASS);
     syncProfileProtectedRouteState(window.location.pathname);
@@ -2993,6 +3114,10 @@
 
     requestAnimationFrame(() => {
       ensureBackdropLayersOutsideForeground();
+      if (persistedMeshState) {
+        restoreGooeyMeshState(persistedMeshState);
+      }
+      normalizeLiveGooeyMeshVelocities();
       if (initialScroll > 0) {
         scrollRoot.scrollTop = initialScroll;
       }
@@ -3003,6 +3128,7 @@
       applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
+      persistGooeyMeshState();
       persistScrollState(scrollRoot);
     });
 
