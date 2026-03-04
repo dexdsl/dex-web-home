@@ -4707,3 +4707,18 @@ body.dx-entry-page .person-popup.person-popup--dx .person-popup-link:focus-visib
     justify-content: flex-start;
   }
 }
+
+/* Home spacing contract: keep vertical gaps tighter between major homepage sections. */
+html body.homepage {
+  --dx-home-section-outer-gap: clamp(6px, 0.75vw, 10px);
+}
+
+html body.homepage main#page .page-section {
+  padding-top: var(--dx-home-section-outer-gap) !important;
+  padding-bottom: var(--dx-home-section-outer-gap) !important;
+}
+
+html body.homepage main#page .page-section > .content-wrapper {
+  padding-top: var(--dx-home-section-outer-gap) !important;
+  padding-bottom: var(--dx-home-section-outer-gap) !important;
+}
