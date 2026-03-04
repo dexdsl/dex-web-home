@@ -793,6 +793,21 @@ body.homepage #dex-faq .spark-accordion__item {
   color: #232323 !important;
 }
 
+/* Canonical footer glass visual (beats page-inline snapshot styles). */
+html body footer.dex-footer,
+html body .dex-footer.dx-profile-footer-portaled {
+  --dex-footer-text: #232323 !important;
+  --liquid-bg: rgba(255, 255, 255, 0.18) !important;
+  --liquid-border: rgba(255, 255, 255, 0.42) !important;
+  background: var(--liquid-bg, rgba(255, 255, 255, 0.18)) !important;
+  background-image: none !important;
+  border: 1px solid var(--liquid-border, rgba(255, 255, 255, 0.42)) !important;
+  box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  color: #232323 !important;
+  -webkit-backdrop-filter: saturate(180%) blur(18px) !important;
+  backdrop-filter: saturate(180%) blur(18px) !important;
+}
+
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .dex-footer {
     -webkit-backdrop-filter: saturate(180%) blur(18px) !important;
@@ -1268,6 +1283,26 @@ body.dx-route-standard-chrome .dex-footer.dx-profile-footer-portaled {
   width: var(--dx-header-frame-width-vw) !important;
   max-width: var(--dx-header-frame-width-vw) !important;
   margin: 0 auto calc(var(--dx-fixed-header-top, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Keep footer host shells transparent on every page so glass blur samples real backdrop. */
+#footer-sections .section-border,
+#footer-sections .section-background {
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+#footer-sections .page-section,
+#footer-sections .content-wrapper,
+#footer-sections .content,
+#footer-sections .fluid-engine,
+#footer-sections .fe-block,
+#footer-sections .dx-block,
+#footer-sections .dx-block-content,
+#footer-sections .dx-code-container,
+#footer-sections .sqs-block-content {
+  background: transparent !important;
 }
 
 body.dx-route-standard-chrome #dex-submission {
