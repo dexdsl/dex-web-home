@@ -1846,16 +1846,19 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   body.dx-slot-enabled.dx-route-profile-protected #dx-slot-scroll-root {
     overflow-y: auto !important;
     overscroll-behavior-y: auto !important;
-    inset: 0 !important;
+    top: calc(var(--dx-slot-top) + var(--dx-ios-viewport-offset-top, 0px)) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
     padding-bottom: 0 !important;
-    scroll-padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset) + var(--dx-space-xs, 8px)) !important;
+    scroll-padding-top: calc(var(--dx-slot-content-offset) + var(--dx-space-xs, 8px)) !important;
   }
 
   body.dx-slot-enabled.dx-route-profile-protected #dx-slot-foreground-root {
     position: relative !important;
     z-index: calc(var(--dx-layer-foreground) + 1) !important;
     isolation: isolate !important;
-    padding-top: calc(var(--dx-slot-top) + var(--dx-slot-content-offset)) !important;
+    padding-top: var(--dx-slot-content-offset) !important;
     padding-bottom: max(var(--dx-space-lg, 24px), env(safe-area-inset-bottom, 0px)) !important;
   }
 
