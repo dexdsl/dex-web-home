@@ -629,6 +629,17 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
 .dex-entry-desc-content > :first-child { margin-top: 0; }
 .dex-entry-desc-content > :last-child { margin-bottom: 0; }
 @media (max-width: 899px) {
+  html[data-dx-entry-rail-mode="mobile-flow"] body.dx-entry-page #sections section.dex-entry-section.page-section.content-width--wide {
+    width: calc(100% - 16px) !important;
+    max-width: calc(100% - 16px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  html[data-dx-entry-rail-mode="mobile-flow"] body.dx-entry-page .dex-entry-layout .dex-sidebar,
+  html[data-dx-entry-rail-mode="mobile-flow"] body.dx-entry-page .dex-sidebar {
+    box-sizing: border-box !important;
+    padding: clamp(8px, 2vw, 12px) !important;
+  }
   .dex-entry-desc-scroll {
     height: auto !important;
     max-height: none !important;
