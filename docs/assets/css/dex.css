@@ -733,6 +733,22 @@ body.homepage #dex-board-promo > .promo-surface {
   display: block !important;
 }
 
+body.homepage :is(
+  .page-section:has(#block-9f43a906d54ed3a7b492),
+  .page-section:has(#block-08599fb9d03cdc350247)
+) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.homepage :is(
+  .page-section:has(#block-9f43a906d54ed3a7b492),
+  .page-section:has(#block-08599fb9d03cdc350247)
+) > .content-wrapper {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 /* Prevent inline board centering shim from reserving extra vertical dead space. */
 body.homepage .fluid-engine.fe-68b3e8c63403a7561accfc93 > .fe-block.fe-block-ee939fa7ed636a261fd7 > .dx-block > .dx-block-content {
   display: block !important;

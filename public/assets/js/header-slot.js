@@ -2509,13 +2509,101 @@
   }
 
   function clearHomeStackSpacingOverrides() {
-    if (!document.body.classList.contains('homepage')) return;
+    document.documentElement.style.removeProperty('--dx-home-uniform-gap');
     for (const id of HOME_STACK_BLOCK_IDS) {
       const block = document.getElementById(id);
       if (!block) continue;
       const section = block.closest('section.page-section');
       if (!section) continue;
       section.style.removeProperty('margin-top');
+      section.style.removeProperty('margin-bottom');
+    }
+  }
+
+  function clampHomeGapAdjustment(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(-320, Math.min(320, Math.round(value)));
+  }
+
+  function applyHomeUniformStackGap() {
+    if (!document.body.classList.contains('homepage')) {
+      clearHomeStackSpacingOverrides();
+      return;
+    }
+
+    const headerFrame = document.querySelector('.header-announcement-bar-wrapper');
+    const hero = document.getElementById('dexCombined');
+    if (!(headerFrame instanceof HTMLElement) || !(hero instanceof HTMLElement)) {
+      clearHomeStackSpacingOverrides();
+      return;
+    }
+
+    const headerRect = headerFrame.getBoundingClientRect();
+    const heroRect = hero.getBoundingClientRect();
+    let targetGap = Math.round(heroRect.top - headerRect.bottom);
+    if (!Number.isFinite(targetGap)) {
+      clearHomeStackSpacingOverrides();
+      return;
+    }
+    targetGap = Math.max(0, Math.min(240, targetGap));
+    document.documentElement.style.setProperty('--dx-home-uniform-gap', `${targetGap}px`);
+
+    const stackElements = [
+      hero,
+      document.getElementById('dex-board-promo'),
+      document.getElementById('dex-signup'),
+      document.getElementById('dex-faq'),
+      document.querySelector('footer.dex-footer'),
+    ].filter((element) => element instanceof HTMLElement);
+
+    if (stackElements.length < 2) {
+      clearHomeStackSpacingOverrides();
+      return;
+    }
+
+    const sectionByElement = new Map();
+    const touchedSections = new Set();
+    for (let index = 1; index < stackElements.length; index += 1) {
+      const section = stackElements[index].closest('section.page-section');
+      if (!(section instanceof HTMLElement)) continue;
+      sectionByElement.set(stackElements[index], section);
+      touchedSections.add(section);
+    }
+
+    for (const section of touchedSections) {
+      section.style.removeProperty('margin-top');
+      section.style.removeProperty('margin-bottom');
+    }
+
+    for (let index = 1; index < stackElements.length; index += 1) {
+      const previousRect = stackElements[index - 1].getBoundingClientRect();
+      const currentRect = stackElements[index].getBoundingClientRect();
+      const naturalGap = currentRect.top - previousRect.bottom;
+      const section = sectionByElement.get(stackElements[index]);
+      if (!(section instanceof HTMLElement) || !Number.isFinite(naturalGap)) continue;
+      const adjustment = clampHomeGapAdjustment(targetGap - naturalGap);
+      section.style.marginTop = `${adjustment}px`;
+    }
+
+    const footer = stackElements[stackElements.length - 1];
+    const footerSection = sectionByElement.get(footer);
+    if (footer instanceof HTMLElement && footerSection instanceof HTMLElement) {
+      const footerRect = footer.getBoundingClientRect();
+      const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
+      let naturalBottomGap = Number.NaN;
+      if (scrollRoot instanceof HTMLElement) {
+        const rootRect = scrollRoot.getBoundingClientRect();
+        const footerBottomInRoot = (footerRect.bottom - rootRect.top) + scrollRoot.scrollTop;
+        naturalBottomGap = scrollRoot.scrollHeight - footerBottomInRoot;
+      } else {
+        const footerBottomInDocument = footerRect.bottom + window.scrollY;
+        const documentBottom = document.documentElement.scrollHeight;
+        naturalBottomGap = documentBottom - footerBottomInDocument;
+      }
+      if (Number.isFinite(naturalBottomGap)) {
+        const adjustment = clampHomeGapAdjustment(targetGap - naturalBottomGap);
+        footerSection.style.marginBottom = `${adjustment}px`;
+      }
     }
   }
 
@@ -2526,7 +2614,7 @@
     let rafId = 0;
     const run = () => {
       alignHomeHeroToHeader();
-      clearHomeStackSpacingOverrides();
+      applyHomeUniformStackGap();
     };
 
     const schedule = () => {
