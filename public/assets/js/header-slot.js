@@ -1604,6 +1604,136 @@
     }
   }
 
+  function resolveGooeyBlobRadius(blob) {
+    if (!(blob instanceof HTMLElement)) return 120;
+    const offsetWidth = Number(blob.offsetWidth);
+    if (Number.isFinite(offsetWidth) && offsetWidth > 0) {
+      return offsetWidth / 2;
+    }
+    try {
+      const computedWidth = Number.parseFloat(window.getComputedStyle(blob).width || '');
+      if (Number.isFinite(computedWidth) && computedWidth > 0) {
+        return computedWidth / 2;
+      }
+    } catch {}
+    return 120;
+  }
+
+  function clampGooeyCoordinate(value, min, max) {
+    if (!Number.isFinite(value)) return min;
+    if (max <= min) return min;
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function applyGooeyBlobTransform(blob) {
+    if (!(blob instanceof HTMLElement)) return;
+    if (!Number.isFinite(Number(blob._x)) || !Number.isFinite(Number(blob._y))) return;
+    blob.style.transform = `translate(${Number(blob._x)}px, ${Number(blob._y)}px) translate(-50%, -50%)`;
+  }
+
+  function blobsLookStackedAtSpawn(entries) {
+    if (!Array.isArray(entries) || entries.length < 2) return false;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const entry of entries) {
+      const x = Number(entry.x);
+      const y = Number(entry.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return true;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+
+    return (maxX - minX) < 8 && (maxY - minY) < 8;
+  }
+
+  function seedInitialGooeyMeshPositionsIfStacked() {
+    const wrapper = document.getElementById('gooey-mesh-wrapper');
+    if (!wrapper) return false;
+    const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+    if (!blobs.length) return false;
+
+    const viewportWidth = Number(window.innerWidth);
+    const viewportHeight = Number(window.innerHeight);
+    if (!Number.isFinite(viewportWidth) || !Number.isFinite(viewportHeight) || viewportWidth <= 0 || viewportHeight <= 0) {
+      return false;
+    }
+
+    const entries = blobs.map((blob, index) => {
+      const radius = resolveGooeyBlobRadius(blob);
+      if (!Number.isFinite(Number(blob._rad)) || Number(blob._rad) <= 0) {
+        blob._rad = radius;
+      }
+      return {
+        blob,
+        index,
+        rad: Number(blob._rad) > 0 ? Number(blob._rad) : radius,
+        x: Number(blob._x),
+        y: Number(blob._y),
+      };
+    });
+
+    if (!blobsLookStackedAtSpawn(entries)) return false;
+
+    const sorted = [...entries].sort((a, b) => b.rad - a.rad);
+    const placed = [];
+    const anchorX = viewportWidth * (0.28 + Math.random() * 0.44);
+    const anchorY = viewportHeight * (0.24 + Math.random() * 0.52);
+    const clusterRadius = Math.min(viewportWidth, viewportHeight) * 0.38;
+    const separationScales = [0.66, 0.54, 0.42];
+
+    for (const entry of sorted) {
+      const radius = entry.rad;
+      const minX = radius;
+      const maxX = viewportWidth - radius;
+      const minY = radius;
+      const maxY = viewportHeight - radius;
+      let point = null;
+
+      for (const scale of separationScales) {
+        for (let attempt = 0; attempt < 120; attempt += 1) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.pow(Math.random(), 0.72) * clusterRadius;
+          const x = clampGooeyCoordinate(anchorX + Math.cos(angle) * distance, minX, maxX);
+          const y = clampGooeyCoordinate(anchorY + Math.sin(angle) * distance, minY, maxY);
+          let collides = false;
+
+          for (const existing of placed) {
+            const minSeparation = Math.max(16, (radius + existing.rad) * scale);
+            if (Math.hypot(x - existing.x, y - existing.y) < minSeparation) {
+              collides = true;
+              break;
+            }
+          }
+
+          if (!collides) {
+            point = { x, y };
+            break;
+          }
+        }
+        if (point) break;
+      }
+
+      if (!point) {
+        const x = clampGooeyCoordinate((0.08 + Math.random() * 0.84) * viewportWidth, minX, maxX);
+        const y = clampGooeyCoordinate((0.08 + Math.random() * 0.84) * viewportHeight, minY, maxY);
+        point = { x, y };
+      }
+
+      entry.blob._x = point.x;
+      entry.blob._y = point.y;
+      entry.blob._rad = radius;
+      applyGooeyBlobTransform(entry.blob);
+      placed.push({ x: point.x, y: point.y, rad: radius });
+    }
+
+    return true;
+  }
+
   function readPersistedGooeyMeshState() {
     try {
       const raw = sessionStorage.getItem(GOOEY_MESH_STATE_STORAGE_KEY);
@@ -3025,6 +3155,7 @@
       applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
+      seedInitialGooeyMeshPositionsIfStacked();
       normalizeLiveGooeyMeshVelocities();
       persistGooeyMeshState();
     });
@@ -3241,6 +3372,7 @@
       if (persistedMeshState) {
         restoreGooeyMeshState(persistedMeshState);
       }
+      seedInitialGooeyMeshPositionsIfStacked();
       normalizeLiveGooeyMeshVelocities();
       if (initialScroll > 0) {
         scrollRoot.scrollTop = initialScroll;
