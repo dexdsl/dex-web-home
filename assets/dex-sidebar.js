@@ -24,7 +24,8 @@
   let entryRailFooterResizeObserver = null;
   let entryRailFooterMutationObserver = null;
   let entryRailObservedFooter = null;
-  const ENTRY_RAIL_BREAKPOINT = 960;
+  let entryRailLastMode = '';
+  const ENTRY_RAIL_BREAKPOINT = 900;
   const COLLECTION_HEADING_CANONICAL = 'COL\u200CLECTION';
   const BUCKET_TOOLTIP_CACHE_PREFIX = 'dx:entry:bucket-tooltips:v1:';
   const ENTRY_RUNTIME_STYLE_ID = 'dx-entry-runtime-layout-overrides';
@@ -447,15 +448,78 @@
         margin: 0 !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
-        padding-left: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
-        padding-right: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
         min-height: 0 !important;
       }
 
-      body.dx-route-profile-protected.dx-entry-page #footer-sections {
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-route-profile-protected.dx-entry-page #footer-sections {
+        position: relative !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin-left: calc(50% - 50vw) !important;
+        margin-right: calc(50% - 50vw) !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        pointer-events: auto !important;
+        z-index: calc(var(--dx-layer-foreground) + 2) !important;
+      }
+
+      html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-route-profile-protected.dx-entry-page #footer-sections .dex-footer-section {
+        width: var(--dx-header-frame-width-vw) !important;
+        max-width: var(--dx-header-frame-width-vw) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .page-section,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .content-wrapper,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .content,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .fluid-engine,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .fe-block,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .sqs-block,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .sqs-block-content,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .sqs-code-container,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .dx-block,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .dx-block-content,
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .dx-code-container {
         margin: 0 !important;
         padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
         min-height: 0 !important;
+        overflow: visible !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .fe-block {
+        grid-column: 1 / -1 !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .sqs-block {
+        justify-self: stretch !important;
+        place-self: auto stretch !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page #footer-sections .dex-footer {
+        position: relative !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto calc(var(--dx-fixed-header-top, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+        z-index: calc(var(--dx-layer-foreground) + 3) !important;
+        pointer-events: auto !important;
+      }
+
+      body.dx-route-profile-protected.dx-entry-page .dex-footer.dx-profile-footer-portaled {
+        display: none !important;
       }
 
       body.dx-entry-page .dex-sidebar section {
@@ -469,7 +533,7 @@
         margin-top: clamp(12px, 1.05vw, 18px) !important;
       }
 
-      @media (max-width: 979px) {
+      @media (max-width: 899px) {
         html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout,
         html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-main,
         html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar {
@@ -1583,6 +1647,7 @@
       root.style.removeProperty('--dx-entry-rails-height');
       root.style.removeProperty('--dx-entry-rail-inline-pad');
       root.style.removeProperty('--dx-entry-footer-inline-pad');
+      root.style.removeProperty('--dx-entry-footer-gap');
       document.body.style.removeProperty('overflow');
       main.style.removeProperty('height');
       main.style.removeProperty('max-height');
@@ -1590,7 +1655,41 @@
       sidebar.style.removeProperty('max-height');
       main.style.removeProperty('overflow-y');
       sidebar.style.removeProperty('overflow-y');
+      layout.setAttribute('data-dx-entry-rail-mode', 'mobile-flow');
+      entryRailLastMode = 'mobile-flow';
       return;
+    }
+
+    const resetEntryScrollRoots = () => {
+      const resetElement = (node) => {
+        if (!(node instanceof HTMLElement)) return;
+        node.scrollTop = 0;
+        node.scrollLeft = 0;
+        try { node.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch {}
+      };
+      resetElement(document.scrollingElement);
+      resetElement(document.documentElement);
+      resetElement(document.body);
+      resetElement(document.getElementById('dx-slot-scroll-root'));
+      resetElement(document.getElementById('dx-slot-foreground-root'));
+      resetElement(document.getElementById('siteWrapper'));
+      resetElement(document.querySelector('.site-wrapper'));
+      try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch {}
+    };
+
+    const docScroll = Math.max(
+      Math.abs(window.scrollY || 0),
+      Math.abs(window.pageYOffset || 0),
+      Math.abs((document.scrollingElement && document.scrollingElement.scrollTop) || 0),
+      Math.abs(document.documentElement.scrollTop || 0),
+      Math.abs(document.body.scrollTop || 0)
+    );
+    const slotRoot = document.getElementById('dx-slot-scroll-root');
+    const slotScroll = slotRoot instanceof HTMLElement ? Math.abs(slotRoot.scrollTop || 0) : 0;
+    if (entryRailLastMode !== 'desktop-fixed' || docScroll > 1 || slotScroll > 1) {
+      resetEntryScrollRoots();
+      window.requestAnimationFrame(resetEntryScrollRoots);
+      window.setTimeout(resetEntryScrollRoots, 40);
     }
 
     let bottomInset = 20;
@@ -1609,8 +1708,10 @@
     }
     if (footer instanceof HTMLElement) {
       const footerRect = footer.getBoundingClientRect();
+      const footerStyle = window.getComputedStyle(footer);
+      const isOverlayFooter = footerStyle.position === 'fixed' || footerStyle.position === 'sticky';
       const bottomOcclusion = Math.max(0, window.innerHeight - Math.max(0, footerRect.top));
-      const footerExtent = Math.max(footerRect.height, bottomOcclusion);
+      const footerExtent = isOverlayFooter ? Math.max(footerRect.height, bottomOcclusion) : footerRect.height;
       if (footerExtent > 0) bottomInset = Math.max(bottomInset, Math.ceil(footerExtent + 12));
     }
 
@@ -1636,6 +1737,7 @@
     sidebar.style.setProperty('overflow-y', 'auto', 'important');
 
     layout.setAttribute('data-dx-entry-rail-mode', 'desktop-fixed');
+    entryRailLastMode = 'desktop-fixed';
 
     const desc = main.querySelector('.dex-entry-desc-scroll');
     if (desc instanceof HTMLElement) {

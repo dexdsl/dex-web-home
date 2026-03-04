@@ -1898,7 +1898,7 @@ gap: 24px;
 align-items: stretch;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 899px) {
 .dex-entry-layout {
 grid-template-columns: 1fr;
 align-items: start;
@@ -1976,7 +1976,7 @@ margin-top: 0;
 margin-bottom: 0;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 899px) {
 .dex-entry-desc-scroll {
 height: auto !important;
 max-height: none !important;
@@ -2058,7 +2058,7 @@ color: rgba(30, 30, 30, 0.78);
 text-transform: none;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 899px) {
 .dex-entry-header {
 margin-bottom: 14px;
 gap: 5px;
@@ -3936,7 +3936,12 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-footer-sec
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
-  margin: 0 !important;
+  width: var(--dx-header-frame-width) !important;
+  max-width: var(--dx-header-frame-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   padding-left: var(--dx-entry-footer-inline-pad, var(--dx-entry-rail-inline-pad, clamp(16px, 1.6vw, 22px))) !important;
@@ -3958,7 +3963,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar se
   text-transform: uppercase !important;
 }
 
-@media (max-width: 979px) {
+@media (max-width: 899px) {
   html[data-dx-entry-rail-mode="desktop-fixed"],
   body[data-dx-entry-rail-mode="desktop-fixed"] {
     overflow: auto !important;
@@ -3979,10 +3984,6 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-sidebar se
     bottom: auto;
   }
 
-  html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
-    --dx-entry-rail-inline-pad: 0px;
-    --dx-entry-footer-inline-pad: 0px;
-  }
 }
 
 .dex-download-modal-inner [data-dx-download-state="error"] {
@@ -4276,7 +4277,7 @@ body.dx-entry-page .dex-collections .overview-item--favorite-buckets .dx-fav-buc
   display: none !important;
 }
 
-@media (max-width: 979px) {
+@media (max-width: 899px) {
   body.dx-entry-page .dex-collections .overview-buckets-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
     justify-content: stretch !important;

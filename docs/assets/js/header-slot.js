@@ -455,6 +455,11 @@
   function syncProfileFooterPlacementNow() {
     const isProtectedRoute = document.body && document.body.classList.contains(PROFILE_PROTECTED_ROUTE_CLASS);
     const isStandardChromeRoute = document.body && document.body.classList.contains(PROFILE_STANDARD_CHROME_ROUTE_CLASS);
+    const isEntryPage = document.body && document.body.classList.contains('dx-entry-page');
+    if (isEntryPage) {
+      restoreProfileFooterFromPortal();
+      return;
+    }
     if (isProtectedRoute && !isStandardChromeRoute) {
       if (isMobileViewport()) {
         restoreProfileFooterFromPortal();

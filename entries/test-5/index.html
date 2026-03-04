@@ -56,7 +56,7 @@
 
 
 <script type="application/ld+json">{"url":"https://dexdsl.org","name":"dex digital sample library","description":"","image":"/assets/img/21fad4e13609600d109e.png","@context":"http://schema.org","@type":"WebSite"}</script><script type="application/ld+json">{"address":"","image":"/assets/img/21fad4e13609600d109e.png","openingHours":", , , , , , ","@context":"http://schema.org","@type":"LocalBusiness"}</script>
-<link rel="stylesheet" href="https://dexdsl.github.io/assets/css/dex.css">
+<link rel="stylesheet" href="/assets/css/dex.css">
 <!-- header code injection.css -->
 
 <script>
@@ -549,7 +549,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
   gap: clamp(16px, 2vw, 24px) !important;
   align-items: stretch !important;
 }
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .dex-entry-layout {
     grid-template-columns: 1fr !important;
     align-items: start !important;
@@ -575,7 +575,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
   grid-row: 1;
   align-self: stretch;
 }
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .dex-entry-main,
   .dex-sidebar {
     grid-column: 1;
@@ -627,7 +627,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
 }
 .dex-entry-desc-content > :first-child { margin-top: 0; }
 .dex-entry-desc-content > :last-child { margin-bottom: 0; }
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .dex-entry-desc-scroll {
     height: auto !important;
     max-height: none !important;
@@ -697,7 +697,7 @@ html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-sect
   text-transform: lowercase;
   color: rgba(30, 30, 30, 0.78);
 }
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .dex-entry-header {
     margin-bottom: 14px;
     gap: 5px;
@@ -4341,7 +4341,7 @@ Visit Tim Feeney’s website at timfeeney.com</p>
 </div>
 <script id="dex-entry-desc-sync">
 (function(){
-  var MOBILE_BREAKPOINT = 960;
+  var MOBILE_BREAKPOINT = 899;
   var resizeObserver = null;
 
   function visibleChildren(container){
@@ -5342,14 +5342,6 @@ body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div {
 body.dx-entry-page .dex-sidebar .dex-file-info .file-info-panels > div:not([hidden]) {
   display: block !important;
 }
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page {
-  --dx-test5-body-uplift: clamp(16px, 1.45vw, 24px);
-}
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-header,
-html[data-dx-entry-rail-mode="desktop-fixed"] body.dx-entry-page .dex-entry-layout {
-  transform: translateY(calc(-1 * var(--dx-test5-body-uplift))) !important;
-}
-
 /* test-5 credits content hierarchy + section dividers */
 body.dx-entry-page .dex-sidebar .dex-credits .dex-credits-row,
 body.dx-entry-page .dex-sidebar .dex-credits .dex-credits-role {
@@ -5562,39 +5554,50 @@ body.dx-entry-page .dex-collections .overview-buckets-grid {
   padding-right: 0 !important;
 }
 
-/* test-5: mobile-only body/header/footer inset alignment (<900px) */
-@media (max-width: 900px) {
-  :root {
-    --dx-test5-mobile-body-inset: var(--dx-test5-header-inset-px, clamp(14px, 4.2vw, 24px));
-  }
-  body.dx-entry-page .dex-entry-header,
-  body.dx-entry-page .dex-entry-layout {
-    padding-left: var(--dx-test5-mobile-body-inset) !important;
-    padding-right: var(--dx-test5-mobile-body-inset) !important;
-    box-sizing: border-box !important;
-  }
+/* test-5: single geometry owner — body/footer shell matches header frame at all widths */
+body.dx-entry-page .dex-entry-section,
+body.dx-entry-page .dex-footer-section {
+  width: var(--dx-header-frame-width) !important;
+  max-width: var(--dx-header-frame-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+body.dx-entry-page .dex-entry-section > .content-wrapper,
+body.dx-entry-page .dex-entry-section > .content-wrapper > .content,
+body.dx-entry-page .dex-footer-section > .content-wrapper,
+body.dx-entry-page .dex-footer-section > .content-wrapper > .content {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* test-5: force footer visual parity with home footer (layout geometry untouched) */
+body.dx-entry-page .dex-footer {
+  --dex-footer-text: #232323 !important;
+  --liquid-bg: rgba(255, 255, 255, 0.18) !important;
+  --liquid-border: rgba(255, 255, 255, 0.42) !important;
+  --shadow-md: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  border-radius: var(--dx-radius-md, 10px) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: #232323 !important;
+  -webkit-backdrop-filter: saturate(180%) blur(18px) !important;
+  backdrop-filter: saturate(180%) blur(18px) !important;
+}
+body.dx-entry-page .dex-footer .footer-grid {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto auto !important;
+  align-items: center !important;
+  gap: var(--space-4, 1.5rem) !important;
+}
+body.dx-entry-page .dex-footer .candid-seal {
+  margin-right: 0 !important;
 }
 </style>
-<script id="dx-test5-shell-inset-sync">
-(function(){
-  if (window.__dxTest5ShellInsetSyncBound) return;
-  window.__dxTest5ShellInsetSyncBound = true;
-  var apply = function(){
-    try {
-      var source = document.querySelector('#header .header-inner') || document.querySelector('#header');
-      if (!source) return;
-      var rect = source.getBoundingClientRect();
-      var inset = Math.max(0, Math.round(rect.left));
-      if (!Number.isFinite(inset) || inset <= 0) return;
-      document.documentElement.style.setProperty('--dx-test5-header-inset-px', inset + 'px');
-    } catch (error) {}
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', apply, { once: true });
-  } else {
-    apply();
-  }
-  window.addEventListener('resize', apply, { passive: true });
-})();
-</script>
 </body></html>
