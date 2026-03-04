@@ -1251,6 +1251,13 @@ body.dx-route-standard-chrome #footer-sections .dx-code-container {
   padding: 0 !important;
 }
 
+body.dx-route-standard-chrome #footer-sections .dx-block-content,
+body.dx-route-standard-chrome #footer-sections .sqs-block-content {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 body.dx-route-standard-chrome #footer-sections .dex-footer,
 body.dx-route-standard-chrome .dex-footer.dx-profile-footer-portaled {
   position: relative !important;
@@ -1347,6 +1354,13 @@ body.dx-route-profile-protected #footer-sections .dx-code-container {
   height: 0 !important;
   overflow: visible !important;
   transform: none !important;
+}
+
+body.dx-route-profile-protected #footer-sections .dx-block-content,
+body.dx-route-profile-protected #footer-sections .sqs-block-content {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 body.dx-route-profile-protected #footer-sections .dex-footer,
