@@ -739,10 +739,17 @@ body.homepage .fluid-engine.fe-68b3e8c63403a7561accfc93 > .fe-block.fe-block-ee9
   align-content: normal !important;
 }
 
-/* FAQ accordion rows should span the full available card width. */
+/* FAQ surfaces should share identical frame width and internal padding. */
+body.homepage #dex-faq .hdr,
 body.homepage #dex-faq .card {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+body.homepage #dex-faq .card {
+  padding-left: var(--pad, 14px) !important;
+  padding-right: var(--pad, 14px) !important;
 }
 
 body.homepage #dex-faq .spark-accordion,
