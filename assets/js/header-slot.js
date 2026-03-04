@@ -1477,7 +1477,6 @@
       '  width: var(--d) !important;',
       '  height: var(--d) !important;',
       '  border-radius: 50% !important;',
-      '  transform: translate(-50%, -50%) !important;',
       '  background: radial-gradient(circle at 30% 30%, var(--g1a) 0%, var(--g1b) 45%, transparent 75%), radial-gradient(circle at 70% 70%, var(--g2a) 0%, var(--g2b) 45%, transparent 75%) !important;',
       '  filter: blur(34px) saturate(150%) !important;',
       '  will-change: transform !important;',
