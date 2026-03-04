@@ -1703,236 +1703,532 @@
     </script>
 
     <!-- File: footer.html (surface-aware + horizontal Candid seal, no card) -->
-    <style>
-      :root{
-        --space-3:   1rem;
-        --space-4:   1.5rem;
-        --radius-md: 4px;
-        --shadow-md: 0 8px 24px rgba(0,0,0,.12);
-        --font-body: 'Courier New', monospace;
-        --dex-accent:#ff1910;
-        --ease:      .3s ease-out;
-        --badge-size:   2.5rem;
-        --badge-radius: 0.75rem;
-        --liquid-bg:     rgba(255,255,255,.18);
-        --liquid-border: rgba(255,255,255,.35);
-        --seal-height: 4.5rem;
-        --dex-footer-text: #232323;
-      }
 
-      .dex-footer{
-        background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.42);
-        backdrop-filter: saturate(1.8) blur(18px);
-        -webkit-backdrop-filter: saturate(1.8) blur(18px);
-        border-radius: var(--radius-md);
-        box-shadow: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-        padding: var(--space-4) var(--space-3);
-        color: var(--dex-footer-text);
-        font-family: var(--font-body);
-      }
+<!-- Load Font Awesome Free for social icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-      .footer-grid{
-        display:grid;
-        grid-template-columns: auto 1fr auto auto;
-        align-items:center;
-        gap:var(--space-4);
-      }
+<style>
+  /*───────────────────────────────────────────────────────────*/
+  /* Dex Surface-Aware Footer (matches board glass)            */
 
-      .footer-logo-column{ justify-self:start; text-align:center; }
-      .footer-logo{ display:grid; }
-      .footer-logo img{ width:8rem; height:auto; display:none; margin:0; }
+  :root{
+    --space-3:   1rem;
+    --space-4:   1.5rem;
+    --radius-md: 0.5rem;
+    --shadow-md: 0 8px 24px rgba(0,0,0,.12);
+    --font-body: 'Courier New', monospace;
+    --dex-accent:#ff1910;
+    --ease:      .3s ease-out;
 
-      .footer-attribution{
-        justify-self:center; text-align:center;
-        font-size:.85rem; line-height:1.2;
-      }
+    --badge-size:   2.5rem;
+    --badge-radius: 0.75rem;
 
-      .footer-seal-column{ justify-self:center; }
-      .candid-seal{
-        margin-right: calc(var(--space-4) + 5.5rem);
-        display:inline-block;
-        padding:0; background:none; border:0; box-shadow:none;
-        line-height:0; text-decoration:none; transition:none;
-      }
-      .candid-seal img{ height:var(--seal-height); width:auto; display:block; }
+    /* Glass tokens (same as board block) */
+    --liquid-bg:     rgba(255,255,255,.18);
+    --liquid-border: rgba(255,255,255,.35);
 
-      .footer-links-column{
-        justify-self:end; align-self:stretch;
-        display:flex; flex-direction:column; align-items:center; justify-content:center;
-        gap:var(--space-3);
-      }
+    /* Seal sizing */
+    --seal-height: 4.5rem;
 
-      .footer-social{ display:flex; gap:var(--space-3); }
-      .footer-social a{
-        width:var(--badge-size); height:var(--badge-size);
-        display:inline-flex; align-items:center; justify-content:center;
-        border-radius:var(--badge-radius);
-        box-shadow:0 2px 6px rgba(0,0,0,.2);
-        color:#fff; transition: transform var(--ease), background var(--ease);
-      }
-      .footer-social a:hover{ transform:scale(1.1); }
-      .footer-social svg{ width:1.1rem; height:1.1rem; display:block; fill:currentColor; }
-      .footer-social a.youtube   { background:#FF0000; }
-      .footer-social a.instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%); }
-      .footer-social a.tiktok    { background:#000; }
-      .footer-social a.twitter   { background:#1DA1F2; }
+    /* Footer text color (set per-surface below) */
+    --dex-footer-text: #fff;
+  }
 
-      .footer-nav{ display:flex; gap:var(--space-3); font-size:.85rem; flex-wrap:wrap; justify-content:center; }
-      .footer-nav a{ color:var(--dex-footer-text); text-decoration:none; transition:color var(--ease); white-space:nowrap; }
-      .footer-nav a:hover{ color:var(--dex-accent); }
+  /* Footer shell */
+  .dex-footer{
+    background: var(--liquid-bg);
+    border: 1px solid var(--liquid-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-4) var(--space-3);
+    color: var(--dex-footer-text);
+    font-family: var(--font-body);
+  }
 
-      .dex-footer[data-surface="dark"]  { --dex-footer-text:#232323; }
-      .dex-footer[data-surface="dark"]  .footer-logo .logo--dark { display:block; }
-      .dex-footer[data-surface="light"] { --dex-footer-text:#232323; }
-      .dex-footer[data-surface="light"] .footer-logo .logo--light{ display:block; }
+  .footer-grid{
+    display:grid;
+    grid-template-columns: auto 1fr auto auto; /* logo | attribution | seal | socials+nav */
+    align-items:center;                        /* vertical centering */
+    gap:var(--space-4);
+  }
 
-      @media (prefers-color-scheme: dark){
-        .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
-        .dex-footer:not([data-surface]) .footer-logo .logo--dark{ display:block; }
-      }
-      @media (prefers-color-scheme: light){
-        .dex-footer:not([data-surface]){ --dex-footer-text:#232323; }
-        .dex-footer:not([data-surface]) .footer-logo .logo--light{ display:block; }
-      }
+  /* Logo */
+  .footer-logo-column{ justify-self:start; text-align:center; }
+  .footer-logo{ display:grid; }
+  .footer-logo img{ width:8rem; height:auto; display:none; margin:0; }
 
-      @media (max-width:600px){
-        .footer-grid{
-          grid-template-columns:1fr;
-          justify-items:center; width:100%;
-          max-width: calc(100% - 2 * var(--space-3)); margin:0 auto; gap:var(--space-3);
-        }
-        .footer-logo-column, .footer-attribution, .footer-seal-column, .footer-links-column{
-          justify-self:center; text-align:center;
-        }
-        .footer-links-column{ flex-direction:column; }
-      }
-    </style>
+  /* Attribution */
+  .footer-attribution{
+    justify-self:center; text-align:center;
+    font-size:.85rem; line-height:1.2;
+  }
 
-    <footer class="dex-footer"><!-- script will set data-surface="dark|light" -->
-      <div class="footer-grid">
-        <div class="footer-logo-column">
-          <div class="footer-logo">
-            <img class="logo--dark" src="/assets/img/4471b81e48dd98fdcc7c.png" alt="Dex Footer Logo (white)" loading="lazy" decoding="async">
-            <img class="logo--light" src="/assets/img/4471b81e48dd98fdcc7c.png" alt="Dex Footer Logo (black)" loading="lazy" decoding="async">
-          </div>
-        </div>
+  /* Seal: its own column, image only (no card chrome) */
+  .footer-seal-column{ justify-self:center; }
+  .candid-seal{
+  margin-right: calc(var(--space-4) + 5.5rem);
+    display:inline-block;
+    padding:0; background:none; border:0; box-shadow:none;
+    line-height:0; text-decoration:none; transition:none;
+  }
+  .candid-seal img{ height:var(--seal-height); width:auto; display:block; }
 
-        <div class="footer-attribution">
-          © 2023–2026 DEX CO-OP CORP (EIN 92-3509152)<br>
-          dba Dex Digital Sample Library. All rights reserved.
-        </div>
+  /* Links column */
+  .footer-links-column{
+    justify-self:end; align-self:stretch;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:var(--space-3);
+  }
 
-        <div class="footer-seal-column">
-          <a class="candid-seal" href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152" target="_blank" rel="noopener noreferrer" aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile">
-            <img src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg" alt="Candid (GuideStar) Transparency Seal">
-          </a>
-        </div>
+  /* Socials */
+  .footer-social{ display:flex; align-items:center; gap:var(--space-3); }
+  .footer-social:hover a:not(:hover):not(:focus-visible){ opacity:.72; }
+  .footer-social a{
+    position:relative;
+    width:var(--badge-size); height:var(--badge-size);
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:var(--dx-radius-md, 10px);
+    border:1px solid rgba(255,255,255,.42);
+    background:linear-gradient(120deg, rgba(221,230,240,.34) 0%, rgba(191,208,224,.25) 55%, rgba(232,210,203,.22) 100%);
+    box-shadow:0 10px 22px rgba(18,22,30,.20), inset 0 1px 0 rgba(255,255,255,.30);
+    color:#191b20;
+    overflow:hidden;
+    isolation:isolate;
+    backdrop-filter:saturate(180%) blur(12px);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    transition:transform .24s cubic-bezier(.22,.8,.24,1), box-shadow .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1), color .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .footer-social a::before{
+    content:"";
+    position:absolute;
+    inset:-44% -120%;
+    background:linear-gradient(110deg, rgba(255,255,255,0) 35%, rgba(255,255,255,.56) 50%, rgba(255,255,255,0) 65%);
+    transform:translateX(-130%) skewX(-18deg);
+    opacity:0;
+    pointer-events:none;
+    z-index:0;
+  }
+  .footer-social a::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    pointer-events:none;
+    opacity:0;
+    z-index:2;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.72), 0 0 0 2px rgba(255,108,42,.52);
+    transition:opacity .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .footer-social a svg{
+    width:1.52rem;
+    height:1.52rem;
+    fill:currentColor;
+    position:relative;
+    z-index:1;
+    transition:transform .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .footer-social a:hover,
+  .footer-social a:focus-visible{
+    transform:translateY(-2px);
+    box-shadow:0 14px 28px rgba(18,22,30,.26), inset 0 1px 0 rgba(255,255,255,.42);
+    color:#101218;
+  }
+  .footer-social a:hover::before,
+  .footer-social a:focus-visible::before{
+    opacity:1;
+    animation:dx-social-sheen 700ms cubic-bezier(.22,.8,.24,1) 1 both;
+  }
+  .footer-social a:hover::after,
+  .footer-social a:focus-visible::after{ opacity:1; }
+  .footer-social a:hover svg,
+  .footer-social a:focus-visible svg{ transform:scale(1.08); }
+  .footer-social a:active{ transform:translateY(0) scale(.98); }
+  .footer-social a:focus{ outline:none; }
 
-        <div class="footer-links-column">
-          <div class="footer-social">
-            <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube" target="_blank" rel="noopener noreferrer">
-              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
-            </a>
-            <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram" target="_blank" rel="noopener noreferrer">
-              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
-            </a>
-            <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok" target="_blank" rel="noopener noreferrer">
-              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
-            </a>
-            <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter" target="_blank" rel="noopener noreferrer">
-              <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
-            </a>
-          </div>
-          <nav class="footer-nav">
-            <a href="/privacy/">Privacy</a>
-            <a href="/contact/">Contact</a>
-            <a href="/copyright/">Copyright</a>
-          </nav>
-        </div>
+  @keyframes dx-social-sheen {
+    from { transform:translateX(-130%) skewX(-18deg); }
+    to { transform:translateX(130%) skewX(-18deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .footer-social a,
+    .footer-social a svg{
+      transition:color .24s cubic-bezier(.22,.8,.24,1), opacity .24s cubic-bezier(.22,.8,.24,1);
+    }
+    .footer-social a:hover,
+    .footer-social a:focus-visible,
+    .footer-social a:active,
+    .footer-social a:hover svg,
+    .footer-social a:focus-visible svg{
+      transform:none;
+    }
+    .footer-social a:hover::before,
+    .footer-social a:focus-visible::before{
+      opacity:0;
+      animation:none;
+    }
+  }
+
+  /* Nav */
+  .footer-nav{ display:flex; gap:var(--space-3); font-size:.85rem; flex-wrap:wrap; justify-content:center; }
+  .footer-nav a{ color:var(--dex-footer-text); text-decoration:none; transition:color var(--ease); white-space:nowrap; }
+  .footer-nav a:hover{ color:var(--dex-accent); }
+
+  /*──────── Surface control (choose one): data-surface or prefers-color-scheme ───────*/
+  /* 1) Explicit (script sets this): data-surface="dark" | "light" */
+  .dex-footer[data-surface="dark"]  { --dex-footer-text:#fff; }
+  .dex-footer[data-surface="dark"]  .footer-logo .logo--dark { display:block; }
+  .dex-footer[data-surface="light"] { --dex-footer-text:#000; }
+  .dex-footer[data-surface="light"] .footer-logo .logo--light{ display:block; }
+
+  /* 2) Fallback: if no data-surface, follow OS theme */
+  @media (prefers-color-scheme: dark){
+    .dex-footer:not([data-surface]){ --dex-footer-text:#fff; }
+    .dex-footer:not([data-surface]) .footer-logo .logo--dark{ display:block; }
+  }
+  @media (prefers-color-scheme: light){
+    .dex-footer:not([data-surface]){ --dex-footer-text:#000; }
+    .dex-footer:not([data-surface]) .footer-logo .logo--light{ display:block; }
+  }
+
+  /* Responsive */
+  @media (max-width:600px){
+    .footer-grid{
+      grid-template-columns:1fr;
+      justify-items:center; width:100%;
+      max-width: calc(100% - 2 * var(--space-3)); margin:0 auto; gap:var(--space-3);
+    }
+    .footer-logo-column, .footer-attribution, .footer-seal-column, .footer-links-column{
+      justify-self:center; text-align:center;
+    }
+    .footer-links-column{ flex-direction:column; }
+  }
+  
+</style>
+
+<footer class="dex-footer" data-surface="light"><!-- script will set data-surface="dark|light" -->
+  <div class="footer-grid">
+    <!-- Logo (shows the right one based on surface) -->
+    <div class="footer-logo-column">
+      <div class="footer-logo">
+        <!-- DARK surface → white logo -->
+        <img class="logo--dark" src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png" alt="Dex Footer Logo (white)" loading="lazy" decoding="async">
+        <!-- LIGHT surface → black logo (update URL if needed) -->
+        <img class="logo--light" src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b3ad9db971dd68b77c9cc8/1756605853287/dex_web_wordmark_black_transparent_72dpi.png" alt="Dex Footer Logo (black)" loading="lazy" decoding="async">
       </div>
-    </footer>
+    </div>
 
-    <script id="dex-footer-surface">
-    (() => {
-      const clamp01 = n => Math.max(0, Math.min(1, n));
-      const parseRGB = s => {
-        if (!s) return { r:255, g:255, b:255, a:1 };
-        if (s === 'transparent') return { r:0, g:0, b:0, a:0 };
-        const m = s.match(/rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9.]+)\s*)?\)/i);
-        if (m) return { r:+m[1], g:+m[2], b:+m[3], a: m[4] == null ? 1 : +m[4] };
-        return { r:255, g:255, b:255, a:1 };
-      };
-      const isTransparent = s => parseRGB(s).a < 0.01;
-      const relLum = ({r,g,b}) => {
-        const srgb = [r,g,b].map(v => clamp01(v/255));
-        const lin = srgb.map(c => (c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4)));
-        return 0.2126*lin[0] + 0.7152*lin[1] + 0.0722*lin[2];
-      };
-      const median = arr => {
-        const a = arr.slice().sort((x,y)=>x-y);
-        const i = Math.floor(a.length/2);
-        return a.length % 2 ? a[i] : (a[i-1] + a[i]) / 2;
-      };
-      const nearestBgColor = (el) => {
-        let n = el;
-        while (n) {
-          const cs = getComputedStyle(n);
-          const bg = cs.backgroundColor;
-          if (bg && !isTransparent(bg)) return bg;
-          n = n.parentElement;
-        }
-        return getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
-      };
-      const measureFooter = (footer) => {
-        const rect = footer.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) return;
-        const pts = [
-          [rect.left + rect.width/2, rect.top + rect.height/2],
-          [rect.left + 8,            rect.top + rect.height/2],
-          [rect.right - 8,           rect.top + rect.height/2],
-          [rect.left + rect.width/2, rect.top + 6],
-          [rect.left + rect.width/2, rect.bottom - 6]
-        ].map(([x,y]) => [
-          Math.min(innerWidth  - 1, Math.max(0, x)),
-          Math.min(innerHeight - 1, Math.max(0, y))
-        ]);
-        const prevPE = footer.style.pointerEvents;
-        footer.style.pointerEvents = 'none';
-        const lums = pts.map(([x,y]) => {
-          const under = document.elementFromPoint(x,y) || document.body;
-          const bg    = nearestBgColor(under);
-          return relLum(parseRGB(bg));
-        });
-        footer.style.pointerEvents = prevPE;
-        const L = median(lums);
-        const surface = L >= 0.5 ? 'light' : 'dark';
-        if (footer.getAttribute('data-surface') !== surface) {
-          footer.setAttribute('data-surface', surface);
-          footer.dataset.surfaceL = L.toFixed(3);
-        }
-      };
-      const footers = [...document.querySelectorAll('.dex-footer')];
-      if (!footers.length) return;
-      const io = new IntersectionObserver(entries => {
-        for (const e of entries) if (e.isIntersecting) measureFooter(e.target);
-      }, { threshold: 0.01 });
-      footers.forEach(f => io.observe(f));
-      const schedule = (() => {
-        let raf = 0;
-        return () => {
-          if (raf) cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => {
-            footers.forEach(measureFooter);
-            raf = 0;
-          });
-        };
-      })();
-      addEventListener('resize', schedule, { passive:true });
-      addEventListener('orientationchange', schedule);
-      addEventListener('load', schedule);
-    })();
-    </script>
+    <!-- Two-line copyright attribution -->
+    <div class="footer-attribution">
+      © 2023–2026 DEX CO-OP CORP (EIN 92-3509152)<br>
+      dba Dex Digital Sample Library. All rights reserved.
+    </div>
+
+    <!-- NEW: horizontal Candid (GuideStar) Transparency Seal -->
+    <div class="footer-seal-column">
+      <a class="candid-seal" href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152" target="_blank" rel="noopener noreferrer" aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile">
+        <img src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg" alt="Candid (GuideStar) Transparency Seal">
+      </a>
+    </div>
+
+    <!-- Social badges + nav links -->
+    <div class="footer-links-column">
+      <div class="footer-social">
+        <a href="https://www.youtube.com/dexdsl" aria-label="YouTube" class="youtube">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#youtube-unauth-icon"></use></svg>
+        </a>
+        <a href="https://instagram.com/dexdsl" aria-label="Instagram" class="instagram">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#instagram-unauth-icon"></use></svg>
+        </a>
+        <a href="https://www.tiktok.com/@dexdsl" aria-label="TikTok" class="tiktok">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#tiktok-unauth-icon"></use></svg>
+        </a>
+        <a href="https://twitter.com/dexdsl" aria-label="Twitter" class="twitter">
+          <svg aria-hidden="true" viewBox="0 0 64 64"><use xlink:href="#twitter-unauth-icon"></use></svg>
+        </a>
+      </div>
+      <nav class="footer-nav">
+        <a href="/privacy">Privacy</a>
+        <a href="/contact">Contact</a>
+        <a href="/copyright">Copyright</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<!-- Auto-detect page background and set data-surface="light|dark" -->
+
+
+  
+</div>
+</div></div></div></div></div>
+    </div>
+  
+  </div>
+  
+</section>
+
+  
+</footer>
+
+      
+    </div>
+
+    
+
+<style>
+/* chromatic abberation 
+  
+  /*──────────────────────────────────────────────────*/
+  /*  LIQUID-GLASS + RGB SPLIT (raw CSS in )   */
+  /*──────────────────────────────────────────────────*/
+  :root {
+    --liquid-blur:    28px;
+    --liquid-bg:      rgba(255,255,255,0.18);
+    --liquid-border:  rgba(255,255,255,0.35);
+  }
+
+  /* SVG filter must already be injected as shown earlier */
+
+  .dex-sidebar,
+  .dex-sidebar section,
+  .dex-overview,
+  .dex-collections,
+  .dex-license,
+  .dex-credits,
+  .badge,
+  .license-btn.usage-btn,
+  .dex-modal,
+  .dex-modal-content {
+    background: var(--liquid-bg);
+    border: 1px solid var(--liquid-border);
+
+    /* raw CSS so saturate() etc. stay intact: */
+    backdrop-filter:
+      blur(var(--liquid-blur))
+      saturate(180%)
+      contrast(1.12)
+      brightness(1.06);
+    -webkit-backdrop-filter:
+      blur(var(--liquid-blur))
+      saturate(180%)
+      contrast(1.12)
+      brightness(1.06);
+
+    /* the SVG chromatic-prism filter you injected earlier */
+    filter: url("#chromatic-aberration");
+  }
+
+  @keyframes liquidChromaticShift {
+    0%,100% { transform: translate3d(0,0,0); }
+    50%     { transform: translate3d(1.5px,1.5px,0); }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .dex-sidebar,
+    .dex-modal-content,
+    .badge {
+      position: relative;
+      overflow: hidden;
+    }
+    .dex-sidebar::after,
+    .dex-modal-content::after,
+    .badge::after {
+      content: "";
+      position: absolute;
+      inset: -6%;
+      background: linear-gradient(130deg, rgba(255,0,140,0.06) 0%, rgba(0,170,255,0.06) 100%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      animation: liquidChromaticShift 14s ease-in-out infinite;
+    }
+  }
+
+
+</style>
+
+
+
+<!-- Dex — Universal Video Hover Cards (No-Scale, 4px radius) -->
+<style>
+  /* Card shell */
+  body .dex-video-card{
+    position: relative;
+    display: block;
+    border-radius: 4px;
+    overflow: hidden;              /* clip iframe corners reliably */
+    background: transparent;
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
+    transition:
+      transform 220ms cubic-bezier(.2,.7,.2,1),
+      box-shadow 220ms cubic-bezier(.2,.7,.2,1);
+    /* ambient + hairline to read on flat backgrounds */
+    box-shadow:
+      0 1px 3px rgba(0,0,0,.12),
+      0 1px 2px rgba(0,0,0,.06),
+      inset 0 0 0 1px rgba(0,0,0,.10);
+    outline: none;
+  }
+
+  /* Ensure inner media respects rounding */
+  .dex-video-card iframe,
+  .dex-video-card video,
+  .dex-video-card .intrinsic,
+  .dex-video-card .sqs-video-wrapper,
+  .dex-video-card .sqs-oembed,
+  .dex-video-card .sqs-embed-content{
+    border-radius: 4px !important;
+    display: block;
+  }
+
+  /* Hover lift — translate only (no scale) */
+  @media (hover:hover) and (pointer:fine){
+    body .dex-video-card:hover{
+      transform: translateY(-2px);
+      box-shadow:
+        0 12px 32px rgba(0,0,0,.22),
+        0 4px 12px rgba(0,0,0,.14),
+        inset 0 0 0 1px rgba(0,0,0,.10);
+    }
+  }
+
+  /* Keyboard focus: ring only (no transform) */
+  body .dex-video-card:focus-visible,
+  body .dex-video-card:focus-within{
+    box-shadow:
+      0 0 0 2px rgba(0,115,255,.45),
+      0 12px 32px rgba(0,0,0,.22),
+      0 4px 12px rgba(0,0,0,.14),
+      inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+
+  /* Motion safety */
+  @media (prefers-reduced-motion: reduce){
+    .dex-video-card{ transition: box-shadow 140ms ease !important; }
+    .dex-video-card:hover,
+    .dex-video-card:focus-visible,
+    .dex-video-card:focus-within{ transform: none !important; }
+  }
+
+  /* Dark mode tuning */
+  @media (prefers-color-scheme: dark){
+    .dex-video-card{
+      box-shadow:
+        0 1px 2px rgba(0,0,0,.35),
+        inset 0 0 0 1px rgba(255,255,255,.16);
+    }
+    @media (hover:hover) and (pointer:fine){
+      body .dex-video-card:hover{
+        box-shadow:
+          0 16px 38px rgba(0,0,0,.55),
+          inset 0 0 0 1px rgba(255,255,255,.16);
+      }
+    }
+    body .dex-video-card:focus-visible,
+    body .dex-video-card:focus-within{
+      box-shadow:
+        0 0 0 2px rgba(0,135,255,.45),
+        0 16px 38px rgba(0,0,0,.55),
+        inset 0 0 0 1px rgba(255,255,255,.16);
+    }
+  }
+</style>
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="display:none" data-usage="social-icons-svg"><symbol id="youtube-unauth-icon" viewBox="0 0 64 64"><path d="M46.7,26c0,0-0.3-2.1-1.2-3c-1.1-1.2-2.4-1.2-3-1.3C38.3,21.4,32,21.4,32,21.4h0 c0,0-6.3,0-10.5,0.3c-0.6,0.1-1.9,0.1-3,1.3c-0.9,0.9-1.2,3-1.2,3S17,28.4,17,30.9v2.3c0,2.4,0.3,4.9,0.3,4.9s0.3,2.1,1.2,3 c1.1,1.2,2.6,1.2,3.3,1.3c2.4,0.2,10.2,0.3,10.2,0.3s6.3,0,10.5-0.3c0.6-0.1,1.9-0.1,3-1.3c0.9-0.9,1.2-3,1.2-3s0.3-2.4,0.3-4.9 v-2.3C47,28.4,46.7,26,46.7,26z M28.9,35.9l0-8.4l8.1,4.2L28.9,35.9z"></path></symbol><symbol id="youtube-unauth-mask" viewBox="0 0 64 64"><path d="M0,0v64h64V0H0z M47,33.1c0,2.4-0.3,4.9-0.3,4.9s-0.3,2.1-1.2,3c-1.1,1.2-2.4,1.2-3,1.3 C38.3,42.5,32,42.6,32,42.6s-7.8-0.1-10.2-0.3c-0.7-0.1-2.2-0.1-3.3-1.3c-0.9-0.9-1.2-3-1.2-3S17,35.6,17,33.1v-2.3 c0-2.4,0.3-4.9,0.3-4.9s0.3-2.1,1.2-3c1.1-1.2,2.4-1.2,3-1.3c4.2-0.3,10.5-0.3,10.5-0.3h0c0,0,6.3,0,10.5,0.3c0.6,0.1,1.9,0.1,3,1.3 c0.9,0.9,1.2,3,1.2,3s0.3,2.4,0.3,4.9V33.1z M28.9,35.9l8.1-4.2l-8.1-4.2L28.9,35.9z"></path></symbol><symbol id="instagram-unauth-icon" viewBox="0 0 64 64"><path d="M46.91,25.816c-0.073-1.597-0.326-2.687-0.697-3.641c-0.383-0.986-0.896-1.823-1.73-2.657c-0.834-0.834-1.67-1.347-2.657-1.73c-0.954-0.371-2.045-0.624-3.641-0.697C36.585,17.017,36.074,17,32,17s-4.585,0.017-6.184,0.09c-1.597,0.073-2.687,0.326-3.641,0.697c-0.986,0.383-1.823,0.896-2.657,1.73c-0.834,0.834-1.347,1.67-1.73,2.657c-0.371,0.954-0.624,2.045-0.697,3.641C17.017,27.415,17,27.926,17,32c0,4.074,0.017,4.585,0.09,6.184c0.073,1.597,0.326,2.687,0.697,3.641c0.383,0.986,0.896,1.823,1.73,2.657c0.834,0.834,1.67,1.347,2.657,1.73c0.954,0.371,2.045,0.624,3.641,0.697C27.415,46.983,27.926,47,32,47s4.585-0.017,6.184-0.09c1.597-0.073,2.687-0.326,3.641-0.697c0.986-0.383,1.823-0.896,2.657-1.73c0.834-0.834,1.347-1.67,1.73-2.657c0.371-0.954,0.624-2.045,0.697-3.641C46.983,36.585,47,36.074,47,32S46.983,27.415,46.91,25.816z M44.21,38.061c-0.067,1.462-0.311,2.257-0.516,2.785c-0.272,0.7-0.597,1.2-1.122,1.725c-0.525,0.525-1.025,0.85-1.725,1.122c-0.529,0.205-1.323,0.45-2.785,0.516c-1.581,0.072-2.056,0.087-6.061,0.087s-4.48-0.015-6.061-0.087c-1.462-0.067-2.257-0.311-2.785-0.516c-0.7-0.272-1.2-0.597-1.725-1.122c-0.525-0.525-0.85-1.025-1.122-1.725c-0.205-0.529-0.45-1.323-0.516-2.785c-0.072-1.582-0.087-2.056-0.087-6.061s0.015-4.48,0.087-6.061c0.067-1.462,0.311-2.257,0.516-2.785c0.272-0.7,0.597-1.2,1.122-1.725c0.525-0.525,1.025-0.85,1.725-1.122c0.529-0.205,1.323-0.45,2.785-0.516c1.582-0.072,2.056-0.087,6.061-0.087s4.48,0.015,6.061,0.087c1.462,0.067,2.257,0.311,2.785,0.516c0.7,0.272,1.2,0.597,1.725,1.122c0.525,0.525,0.85,1.025,1.122,1.725c0.205,0.529,0.45,1.323,0.516,2.785c0.072,1.582,0.087,2.056,0.087,6.061S44.282,36.48,44.21,38.061z M32,24.297c-4.254,0-7.703,3.449-7.703,7.703c0,4.254,3.449,7.703,7.703,7.703c4.254,0,7.703-3.449,7.703-7.703C39.703,27.746,36.254,24.297,32,24.297z M32,37c-2.761,0-5-2.239-5-5c0-2.761,2.239-5,5-5s5,2.239,5,5C37,34.761,34.761,37,32,37z M40.007,22.193c-0.994,0-1.8,0.806-1.8,1.8c0,0.994,0.806,1.8,1.8,1.8c0.994,0,1.8-0.806,1.8-1.8C41.807,22.999,41.001,22.193,40.007,22.193z"></path></symbol><symbol id="instagram-unauth-mask" viewBox="0 0 64 64"><path d="M43.693,23.153c-0.272-0.7-0.597-1.2-1.122-1.725c-0.525-0.525-1.025-0.85-1.725-1.122c-0.529-0.205-1.323-0.45-2.785-0.517c-1.582-0.072-2.056-0.087-6.061-0.087s-4.48,0.015-6.061,0.087c-1.462,0.067-2.257,0.311-2.785,0.517c-0.7,0.272-1.2,0.597-1.725,1.122c-0.525,0.525-0.85,1.025-1.122,1.725c-0.205,0.529-0.45,1.323-0.516,2.785c-0.072,1.582-0.087,2.056-0.087,6.061s0.015,4.48,0.087,6.061c0.067,1.462,0.311,2.257,0.516,2.785c0.272,0.7,0.597,1.2,1.122,1.725s1.025,0.85,1.725,1.122c0.529,0.205,1.323,0.45,2.785,0.516c1.581,0.072,2.056,0.087,6.061,0.087s4.48-0.015,6.061-0.087c1.462-0.067,2.257-0.311,2.785-0.516c0.7-0.272,1.2-0.597,1.725-1.122s0.85-1.025,1.122-1.725c0.205-0.529,0.45-1.323,0.516-2.785c0.072-1.582,0.087-2.056,0.087-6.061s-0.015-4.48-0.087-6.061C44.143,24.476,43.899,23.682,43.693,23.153z M32,39.703c-4.254,0-7.703-3.449-7.703-7.703s3.449-7.703,7.703-7.703s7.703,3.449,7.703,7.703S36.254,39.703,32,39.703z M40.007,25.793c-0.994,0-1.8-0.806-1.8-1.8c0-0.994,0.806-1.8,1.8-1.8c0.994,0,1.8,0.806,1.8,1.8C41.807,24.987,41.001,25.793,40.007,25.793z M0,0v64h64V0H0z M46.91,38.184c-0.073,1.597-0.326,2.687-0.697,3.641c-0.383,0.986-0.896,1.823-1.73,2.657c-0.834,0.834-1.67,1.347-2.657,1.73c-0.954,0.371-2.044,0.624-3.641,0.697C36.585,46.983,36.074,47,32,47s-4.585-0.017-6.184-0.09c-1.597-0.073-2.687-0.326-3.641-0.697c-0.986-0.383-1.823-0.896-2.657-1.73c-0.834-0.834-1.347-1.67-1.73-2.657c-0.371-0.954-0.624-2.044-0.697-3.641C17.017,36.585,17,36.074,17,32c0-4.074,0.017-4.585,0.09-6.185c0.073-1.597,0.326-2.687,0.697-3.641c0.383-0.986,0.896-1.823,1.73-2.657c0.834-0.834,1.67-1.347,2.657-1.73c0.954-0.371,2.045-0.624,3.641-0.697C27.415,17.017,27.926,17,32,17s4.585,0.017,6.184,0.09c1.597,0.073,2.687,0.326,3.641,0.697c0.986,0.383,1.823,0.896,2.657,1.73c0.834,0.834,1.347,1.67,1.73,2.657c0.371,0.954,0.624,2.044,0.697,3.641C46.983,27.415,47,27.926,47,32C47,36.074,46.983,36.585,46.91,38.184z M32,27c-2.761,0-5,2.239-5,5s2.239,5,5,5s5-2.239,5-5S34.761,27,32,27z"></path></symbol><symbol id="tiktok-unauth-icon" viewBox="0 0 64 64"><path d="M37.9281 17C38.4298 21.2545 40.825 23.7941 45 24.0658V28.8451C42.5859 29.0794 40.4652 28.3016 38.0038 26.821V35.7423C38.0038 47.147 25.4788 50.7361 20.4233 42.5457C17.1856 37.3073 19.1642 28.1048 29.5496 27.73V32.781C28.7296 32.9058 27.9219 33.1002 27.1355 33.362C24.835 34.1398 23.5191 35.583 23.8883 38.1413C24.5889 43.033 33.6584 44.4856 32.901 34.9176V17H37.9091H37.9281Z"></path></symbol><symbol id="tiktok-unauth-mask" viewBox="0 0 64 64"><path fill-rule="evenodd" clip-rule="evenodd" d="M64 0H0V64H64V0ZM45.44 23.54C41 23.25 38.5 20.54 38 16H32.68V35.12C33.48 45.33 23.9 43.78 23.16 38.56C22.78 35.83 24.16 34.29 26.6 33.46C27.4272 33.1806 28.2771 32.9732 29.14 32.84V27.45C18.18 27.85 16.08 37.67 19.5 43.26C24.82 52 38.05 48.17 38.05 36V26.48C40.65 28.06 42.89 28.89 45.44 28.64V23.54Z"></path></symbol><symbol id="twitter-unauth-icon" viewBox="0 0 64 64"><path d="M48,22.1c-1.2,0.5-2.4,0.9-3.8,1c1.4-0.8,2.4-2.1,2.9-3.6c-1.3,0.8-2.7,1.3-4.2,1.6 C41.7,19.8,40,19,38.2,19c-3.6,0-6.6,2.9-6.6,6.6c0,0.5,0.1,1,0.2,1.5c-5.5-0.3-10.3-2.9-13.5-6.9c-0.6,1-0.9,2.1-0.9,3.3 c0,2.3,1.2,4.3,2.9,5.5c-1.1,0-2.1-0.3-3-0.8c0,0,0,0.1,0,0.1c0,3.2,2.3,5.8,5.3,6.4c-0.6,0.1-1.1,0.2-1.7,0.2c-0.4,0-0.8,0-1.2-0.1 c0.8,2.6,3.3,4.5,6.1,4.6c-2.2,1.8-5.1,2.8-8.2,2.8c-0.5,0-1.1,0-1.6-0.1c2.9,1.9,6.4,2.9,10.1,2.9c12.1,0,18.7-10,18.7-18.7 c0-0.3,0-0.6,0-0.8C46,24.5,47.1,23.4,48,22.1z"></path></symbol><symbol id="twitter-unauth-mask" viewBox="0 0 64 64"><path d="M0,0v64h64V0H0z M44.7,25.5c0,0.3,0,0.6,0,0.8C44.7,35,38.1,45,26.1,45c-3.7,0-7.2-1.1-10.1-2.9 c0.5,0.1,1,0.1,1.6,0.1c3.1,0,5.9-1,8.2-2.8c-2.9-0.1-5.3-2-6.1-4.6c0.4,0.1,0.8,0.1,1.2,0.1c0.6,0,1.2-0.1,1.7-0.2 c-3-0.6-5.3-3.3-5.3-6.4c0,0,0-0.1,0-0.1c0.9,0.5,1.9,0.8,3,0.8c-1.8-1.2-2.9-3.2-2.9-5.5c0-1.2,0.3-2.3,0.9-3.3 c3.2,4,8.1,6.6,13.5,6.9c-0.1-0.5-0.2-1-0.2-1.5c0-3.6,2.9-6.6,6.6-6.6c1.9,0,3.6,0.8,4.8,2.1c1.5-0.3,2.9-0.8,4.2-1.6 c-0.5,1.5-1.5,2.8-2.9,3.6c1.3-0.2,2.6-0.5,3.8-1C47.1,23.4,46,24.5,44.7,25.5z"></path></symbol></svg>
+
+
+<script id="dex-entry-gooey-bg-script" data-managed="1">
+
+;(function(){
+  if (window.__dexEntryGooeyBgInit) return;
+  window.__dexEntryGooeyBgInit = true;
+
+  var start = function(){
+    var mesh = document.getElementById('gooey-mesh-wrapper');
+    var grad = document.getElementById('scroll-gradient-bg');
+    if (!mesh) return;
+    if (grad) grad.style.background = 'rgb(252, 252, 252)';
+
+    var blobs = Array.from(mesh.querySelectorAll('.gooey-blob'));
+    if (!blobs.length) return;
+
+    var vw = Math.max(window.innerWidth || 0, 1);
+    var vh = Math.max(window.innerHeight || 0, 1);
+
+    var updateViewport = function(){
+      vw = Math.max(window.innerWidth || 0, 1);
+      vh = Math.max(window.innerHeight || 0, 1);
+      blobs.forEach(function(b){
+        b._x = Math.min(Math.max(b._r, b._x), vw - b._r);
+        b._y = Math.min(Math.max(b._r, b._y), vh - b._r);
+      });
+    };
+
+    blobs.forEach(function(b){
+      var speed = 60 + Math.random() * 60;
+      var ang = Math.random() * Math.PI * 2;
+      b._r = Math.max(b.offsetWidth / 2, 1);
+      b._x = b._r + Math.random() * Math.max(vw - b._r * 2, 1);
+      b._y = b._r + Math.random() * Math.max(vh - b._r * 2, 1);
+      b._vx = Math.cos(ang) * speed * 0.25;
+      b._vy = Math.sin(ang) * speed * 0.25;
+      b.style.transform = 'translate(' + b._x + 'px,' + b._y + 'px) translate(-50%,-50%)';
+    });
+
+    var state = { raf: 0, timer: 0, last: performance.now(), lastFrame: performance.now(), stopped: false };
+    var step = function(now){
+      var dt = Math.min(Math.max((now - state.last) / 1000, 0), 0.05);
+      state.last = now;
+      for (var i = 0; i < blobs.length; i += 1) {
+        var b = blobs[i];
+        b._x += b._vx * dt;
+        b._y += b._vy * dt;
+        if ((b._x - b._r <= 0 && b._vx < 0) || (b._x + b._r >= vw && b._vx > 0)) b._vx *= -1;
+        if ((b._y - b._r <= 0 && b._vy < 0) || (b._y + b._r >= vh && b._vy > 0)) b._vy *= -1;
+        b.style.transform = 'translate(' + b._x + 'px,' + b._y + 'px) translate(-50%,-50%)';
+      }
+      state.lastFrame = now;
+    };
+    var tick = function(now){
+      if (state.stopped) return;
+      try { step(now); } catch {}
+      state.raf = requestAnimationFrame(tick);
+    };
+    var watchdog = function(){
+      if (state.stopped) return;
+      var now = performance.now();
+      if (now - state.lastFrame > 140) {
+        try { step(now); } catch {}
+      }
+    };
+
+    state.raf = requestAnimationFrame(tick);
+    state.timer = setInterval(watchdog, 80);
+    window.addEventListener('resize', updateViewport, { passive: true });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) return;
+      var now = performance.now();
+      state.last = now;
+      state.lastFrame = now;
+    });
+    window.addEventListener('pagehide', function(){
+      state.stopped = true;
+      if (state.raf) cancelAnimationFrame(state.raf);
+      if (state.timer) clearInterval(state.timer);
+    }, { once: true });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+})();
+</script>
+
     <script>
       (function () {
         if (typeof window === 'undefined') return;

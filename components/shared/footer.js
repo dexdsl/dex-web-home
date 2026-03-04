@@ -1,6 +1,8 @@
 <!-- File: footer.html (surface-aware + horizontal Candid seal, no card) -->
 
 <!-- Load Font Awesome Free for social icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
   /*───────────────────────────────────────────────────────────*/
   /* Dex Surface-Aware Footer (matches board glass)            */
@@ -8,7 +10,7 @@
   :root{
     --space-3:   1rem;
     --space-4:   1.5rem;
-    --radius-md: 4px;
+    --radius-md: 0.5rem;
     --shadow-md: 0 8px 24px rgba(0,0,0,.12);
     --font-body: 'Courier New', monospace;
     --dex-accent:#ff1910;
@@ -174,7 +176,7 @@
   /* 1) Explicit (script sets this): data-surface="dark" | "light" */
   .dex-footer[data-surface="dark"]  { --dex-footer-text:#fff; }
   .dex-footer[data-surface="dark"]  .footer-logo .logo--dark { display:block; }
-  .dex-footer[data-surface="light"] { --dex-footer-text:#fff; }
+  .dex-footer[data-surface="light"] { --dex-footer-text:#000; }
   .dex-footer[data-surface="light"] .footer-logo .logo--light{ display:block; }
 
   /* 2) Fallback: if no data-surface, follow OS theme */
@@ -183,7 +185,7 @@
     .dex-footer:not([data-surface]) .footer-logo .logo--dark{ display:block; }
   }
   @media (prefers-color-scheme: light){
-    .dex-footer:not([data-surface]){ --dex-footer-text:#fff; }
+    .dex-footer:not([data-surface]){ --dex-footer-text:#000; }
     .dex-footer:not([data-surface]) .footer-logo .logo--light{ display:block; }
   }
 
@@ -202,23 +204,15 @@
   
 </style>
 
-<footer class="dex-footer"><!-- script will set data-surface="dark|light" -->
+<footer class="dex-footer" data-surface="light"><!-- script will set data-surface="dark|light" -->
   <div class="footer-grid">
     <!-- Logo (shows the right one based on surface) -->
     <div class="footer-logo-column">
       <div class="footer-logo">
         <!-- DARK surface → white logo -->
-        <img
-          class="logo--dark"
-          src="/assets/img/129ade86338e9c3d8b90.png"
-          alt="Dex Footer Logo (white)"
-          loading="lazy" decoding="async">
+        <img class="logo--dark" src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b0b7dd85ff8d50b39feaf0/1756411869678/dex_web_wordmark_white_transparent_72dpi.png" alt="Dex Footer Logo (white)" loading="lazy" decoding="async">
         <!-- LIGHT surface → black logo (update URL if needed) -->
-        <img
-          class="logo--light"
-          src="/assets/img/129ade86338e9c3d8b90.png"
-          alt="Dex Footer Logo (black)"
-          loading="lazy" decoding="async">
+        <img class="logo--light" src="https://static1.squarespace.com/static/63956a55e99f9772a8cd1742/t/68b3ad9db971dd68b77c9cc8/1756605853287/dex_web_wordmark_black_transparent_72dpi.png" alt="Dex Footer Logo (black)" loading="lazy" decoding="async">
       </div>
     </div>
 
@@ -230,14 +224,8 @@
 
     <!-- NEW: horizontal Candid (GuideStar) Transparency Seal -->
     <div class="footer-seal-column">
-      <a
-        class="candid-seal"
-        href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152"
-        target="_blank" rel="noopener noreferrer"
-        aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile">
-        <img
-          src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg"
-          alt="Candid (GuideStar) Transparency Seal">
+      <a class="candid-seal" href="https://app.candid.org/profile/15083758/dex-digital-sample-library-92-3509152" target="_blank" rel="noopener noreferrer" aria-label="View Dex Digital Sample Library's Candid (GuideStar) profile">
+        <img src="https://widgets.guidestar.org/prod/v1/pdp/transparency-seal/15083758/svg" alt="Candid (GuideStar) Transparency Seal">
       </a>
     </div>
 
@@ -267,83 +255,6 @@
 </footer>
 
 <!-- Auto-detect page background and set data-surface="light|dark" -->
-<script id="dex-footer-surface">
-(() => {
-  const clamp01 = n => Math.max(0, Math.min(1, n));
-  const parseRGB = s => {
-    if (!s) return { r:255, g:255, b:255, a:1 };
-    if (s === 'transparent') return { r:0, g:0, b:0, a:0 };
-    const m = s.match(/rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9.]+)\s*)?\)/i);
-    if (m) return { r:+m[1], g:+m[2], b:+m[3], a: m[4] == null ? 1 : +m[4] };
-    return { r:255, g:255, b:255, a:1 };
-  };
-  const isTransparent = s => parseRGB(s).a < 0.01;
-  const relLum = ({r,g,b}) => {
-    const srgb = [r,g,b].map(v => clamp01(v/255));
-    const lin = srgb.map(c => (c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4)));
-    return 0.2126*lin[0] + 0.7152*lin[1] + 0.0722*lin[2];
-  };
-  const median = arr => {
-    const a = arr.slice().sort((x,y)=>x-y);
-    const i = Math.floor(a.length/2);
-    return a.length % 2 ? a[i] : (a[i-1] + a[i]) / 2;
-  };
-  const nearestBgColor = (el) => {
-    let n = el;
-    while (n) {
-      const cs = getComputedStyle(n);
-      const bg = cs.backgroundColor;
-      if (bg && !isTransparent(bg)) return bg;
-      n = n.parentElement;
-    }
-    return getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
-  };
-  const measureFooter = (footer) => {
-    const rect = footer.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-    const pts = [
-      [rect.left + rect.width/2, rect.top + rect.height/2],
-      [rect.left + 8,            rect.top + rect.height/2],
-      [rect.right - 8,           rect.top + rect.height/2],
-      [rect.left + rect.width/2, rect.top + 6],
-      [rect.left + rect.width/2, rect.bottom - 6]
-    ].map(([x,y]) => [
-      Math.min(innerWidth  - 1, Math.max(0, x)),
-      Math.min(innerHeight - 1, Math.max(0, y))
-    ]);
-    const prevPE = footer.style.pointerEvents;
-    footer.style.pointerEvents = 'none';
-    const lums = pts.map(([x,y]) => {
-      const under = document.elementFromPoint(x,y) || document.body;
-      const bg    = nearestBgColor(under);
-      return relLum(parseRGB(bg));
-    });
-    footer.style.pointerEvents = prevPE;
-    const L = median(lums);
-    const surface = L >= 0.5 ? 'light' : 'dark';
-    if (footer.getAttribute('data-surface') !== surface) {
-      footer.setAttribute('data-surface', surface);
-      footer.dataset.surfaceL = L.toFixed(3); // optional debug
-    }
-  };
-  const footers = [...document.querySelectorAll('.dex-footer')];
-  if (!footers.length) return;
-  const io = new IntersectionObserver(entries => {
-    for (const e of entries) if (e.isIntersecting) measureFooter(e.target);
-  }, { threshold: 0.01 });
-  footers.forEach(f => io.observe(f));
-  const schedule = (() => {
-    let raf = 0;
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        footers.forEach(measureFooter);
-        raf = 0;
-      });
-    };
-  })();
-  addEventListener('resize', schedule, { passive:true });
-  addEventListener('orientationchange', schedule);
-  addEventListener('load', schedule);
-})();
-</script>
+
+
+
