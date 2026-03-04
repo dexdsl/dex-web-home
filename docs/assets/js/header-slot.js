@@ -171,6 +171,58 @@
     return unique;
   }
 
+  function insertBackdropNode(node) {
+    if (!(node instanceof HTMLElement) || !(document.body instanceof HTMLElement)) return;
+    const scrollRoot = document.getElementById(SLOT_SCROLL_ID);
+    if (scrollRoot && scrollRoot.parentElement === document.body) {
+      document.body.insertBefore(node, scrollRoot);
+      return;
+    }
+    if (document.body.firstChild) {
+      document.body.insertBefore(node, document.body.firstChild);
+      return;
+    }
+    document.body.appendChild(node);
+  }
+
+  function createFallbackBackdropElementsIfMissing() {
+    if (!(document.body instanceof HTMLElement)) return;
+
+    if (!document.getElementById('scroll-gradient-bg')) {
+      const gradient = document.createElement('div');
+      gradient.id = 'scroll-gradient-bg';
+      gradient.setAttribute('data-dex-entry-bg', '1');
+      insertBackdropNode(gradient);
+    }
+
+    if (!document.getElementById('gooey-mesh-wrapper')) {
+      const mesh = document.createElement('div');
+      mesh.id = 'gooey-mesh-wrapper';
+      mesh.setAttribute('data-dex-entry-bg', '1');
+
+      const stage = document.createElement('div');
+      stage.className = 'gooey-stage';
+
+      const blobStyles = [
+        '--d:36vmax;--g1a:#ff5f6d;--g1b:#ffc371;--g2a:#47c9e5;--g2b:#845ef7',
+        '--d:32vmax;--g1a:#7f00ff;--g1b:#e100ff;--g2a:#00dbde;--g2b:#fc00ff',
+        '--d:33vmax;--g1a:#ffd452;--g1b:#ffb347;--g2a:#ff8456;--g2b:#ff5e62',
+        '--d:37vmax;--g1a:#13f1fc;--g1b:#0470dc;--g2a:#a1ffce;--g2b:#faffd1',
+        '--d:27vmax;--g1a:#f9516d;--g1b:#ff9a44;--g2a:#fa8bff;--g2b:#6f7bf7',
+      ];
+
+      for (const styleText of blobStyles) {
+        const blob = document.createElement('div');
+        blob.className = 'gooey-blob';
+        blob.setAttribute('style', styleText);
+        stage.appendChild(blob);
+      }
+
+      mesh.appendChild(stage);
+      insertBackdropNode(mesh);
+    }
+  }
+
   async function ensureBackdropElementsFromTemplateIfMissing() {
     if (!(document.body instanceof HTMLElement)) return;
     const hasGradient = !!document.getElementById('scroll-gradient-bg');
@@ -192,34 +244,42 @@
         const parsed = new DOMParser().parseFromString(html, 'text/html');
         if (!parsed || !parsed.body) continue;
 
+        let importedBackdrop = false;
         for (const backdropId of ['scroll-gradient-bg', 'gooey-mesh-wrapper']) {
           if (document.getElementById(backdropId)) continue;
           const sourceBackdrop = parsed.getElementById(backdropId);
           if (!(sourceBackdrop instanceof HTMLElement)) continue;
-          const importedBackdrop = document.importNode(sourceBackdrop, true);
-          if (document.body.firstChild) {
-            document.body.insertBefore(importedBackdrop, document.body.firstChild);
-          } else {
-            document.body.appendChild(importedBackdrop);
-          }
+          const backdropNode = document.importNode(sourceBackdrop, true);
+          insertBackdropNode(backdropNode);
+          importedBackdrop = true;
         }
 
+        let importedSprite = false;
         if (!document.querySelector('svg[data-usage="social-icons-svg"]')) {
           const sourceSprite = parsed.querySelector('svg[data-usage="social-icons-svg"]');
           if (sourceSprite instanceof SVGElement) {
-            const importedSprite = document.importNode(sourceSprite, true);
-            if (document.body.firstChild) {
-              document.body.insertBefore(importedSprite, document.body.firstChild);
-            } else {
-              document.body.appendChild(importedSprite);
-            }
+            const spriteNode = document.importNode(sourceSprite, true);
+            insertBackdropNode(spriteNode);
+            importedSprite = true;
           }
         }
 
-        ensureBackdropLayersOutsideForeground();
-        return;
+        const readyGradient = !!document.getElementById('scroll-gradient-bg');
+        const readyMesh = !!document.getElementById('gooey-mesh-wrapper');
+        const readySprite = !!document.querySelector('svg[data-usage="social-icons-svg"]');
+        if (readyGradient && readyMesh && readySprite) {
+          ensureBackdropLayersOutsideForeground();
+          return;
+        }
+
+        // This candidate was valid HTML but did not contain what we needed.
+        if (!importedBackdrop && !importedSprite) continue;
       } catch {}
     }
+
+    createFallbackBackdropElementsIfMissing();
+    ensureBackdropLayersOutsideForeground();
+    ensureCanonicalGooeyMeshPresentation();
   }
 
   async function bootstrapPersistentChromeIfMissing({ force = false } = {}) {
@@ -3206,6 +3266,7 @@
     const { fragment: nextFragment, inlineScripts } = buildForegroundFragment(sourceDocument);
     clearChildren(foregroundRoot);
     foregroundRoot.appendChild(nextFragment);
+    await ensureBackdropElementsFromTemplateIfMissing();
     ensureBackdropLayersOutsideForeground();
     ensureCanonicalGooeyMeshPresentation();
 
@@ -3431,6 +3492,7 @@
     const { scrollRoot, foregroundRoot } = ensureSlotRoots(container, headerElement);
 
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
+    await ensureBackdropElementsFromTemplateIfMissing();
     ensureBackdropLayersOutsideForeground();
     ensureCanonicalGooeyMeshPresentation();
     const persistedMeshState = readPersistedGooeyMeshState();
