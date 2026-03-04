@@ -569,6 +569,8 @@ body.homepage :is(
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
   box-sizing: border-box !important;
@@ -699,6 +701,61 @@ body.homepage #dex-faq .hdr,
 body.homepage #dex-faq .card,
 body.homepage #dex-faq .spark-accordion__item {
   border-radius: var(--dx-header-glass-radius) !important;
+}
+
+/* Homepage stack: tighten inter-card spacing and avoid oversized board track. */
+body.homepage :is(
+  .page-section:has(.fluid-engine.fe-68b3e8c63403a7561accfc93),
+  .page-section:has(.fluid-engine.fe-688841bf6c535d6f5dca29bd),
+  .page-section:has(.fluid-engine.fe-68883dd3c03b5805a3c0e4d7)
+) {
+  min-height: 0 !important;
+  height: auto !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.homepage :is(
+  .page-section:has(.fluid-engine.fe-68b3e8c63403a7561accfc93),
+  .page-section:has(.fluid-engine.fe-688841bf6c535d6f5dca29bd),
+  .page-section:has(.fluid-engine.fe-68883dd3c03b5805a3c0e4d7)
+) > .content-wrapper {
+  padding-top: clamp(0px, 0.25vw, 4px) !important;
+  padding-bottom: clamp(0px, 0.25vw, 4px) !important;
+}
+
+body.homepage #dex-board-promo {
+  height: auto !important;
+}
+
+body.homepage #dex-board-promo > .promo-surface {
+  min-height: 0 !important;
+  display: block !important;
+}
+
+/* Prevent inline board centering shim from reserving extra vertical dead space. */
+body.homepage .fluid-engine.fe-68b3e8c63403a7561accfc93 > .fe-block.fe-block-ee939fa7ed636a261fd7 > .dx-block > .dx-block-content {
+  display: block !important;
+  align-content: normal !important;
+}
+
+/* FAQ accordion rows should span the full available card width. */
+body.homepage #dex-faq .card {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.homepage #dex-faq .spark-accordion,
+body.homepage #dex-faq .spark-accordion__item,
+body.homepage #dex-faq .spark-accordion__item > h4,
+body.homepage #dex-faq .spark-accordion__header {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body.homepage #dex-faq .spark-accordion__header {
+  box-sizing: border-box !important;
+  padding-right: 2.4rem !important;
 }
 
 /* Footer wrapper chain: force same frame width as header on every page */

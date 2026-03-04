@@ -1900,6 +1900,26 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+<script>
+(() => {
+  const ACCESS_WITH_ZWNJ = 'AC\u200CCES\u200CS';
+  const applyHeroAccessZwnj = () => {
+    const heading = document.querySelector('#dexCombined h1');
+    if (!heading) return;
+    heading.childNodes.forEach((node) => {
+      if (node.nodeType !== Node.TEXT_NODE) return;
+      node.textContent = node.textContent.replace(/ACCESS/g, ACCESS_WITH_ZWNJ);
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyHeroAccessZwnj();
+    requestAnimationFrame(applyHeroAccessZwnj);
+    setTimeout(applyHeroAccessZwnj, 140);
+  });
+})();
+</script>
+
 <div id="dexCombined" style="
   display:flex;
   gap:1.75rem;
@@ -1937,7 +1957,7 @@ document.addEventListener('DOMContentLoaded', function(){
         font:700 clamp(2rem,5vw,3rem)/1.15 var(--font-heading,sans-serif);
         text-transform:uppercase;
       ">
-        THE OPEN-ACCESS<br>
+        THE OPEN-AC&#8204;CES&#8204;S<br>
         RECORDING LIBRARY FOR<br>
         <span
           id="heroWord"
