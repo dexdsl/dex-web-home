@@ -11,6 +11,7 @@
   const HISTORY_SLOT_KEY = '__dxSlot';
   const HISTORY_SCROLL_KEY = '__dxSlotScrollTop';
   const GOOEY_MESH_STATE_STORAGE_KEY = '__dxGooeyMeshState';
+  const GOOEY_MESH_CANONICAL_STYLE_ID = 'dx-gooey-mesh-canonical-style';
   const GOOEY_SPEED_MIN = 14.4;
   const GOOEY_SPEED_MAX = 28.8;
   const GOOEY_SPEED_DEFAULT = 21.6;
@@ -1388,7 +1389,7 @@
         script.remove();
         continue;
       }
-      if (isLikelyGooeyMeshBootstrapScript(script.textContent || '')) {
+      if (isLikelyGooeyMeshBootstrapScript(script)) {
         script.remove();
         continue;
       }
@@ -1420,13 +1421,116 @@
     return false;
   }
 
-  function isLikelyGooeyMeshBootstrapScript(sourceCode) {
-    const code = String(sourceCode || '');
+  function isLikelyGooeyMeshBootstrapScript(scriptOrCode) {
+    const script = (scriptOrCode instanceof HTMLScriptElement) ? scriptOrCode : null;
+    const code = String(script ? (script.textContent || '') : (scriptOrCode || ''));
     if (!code) return false;
-    const hasBlobSelector = code.includes('#gooey-mesh-wrapper .gooey-blob');
-    const hasRafLoop = code.includes('requestAnimationFrame')
-      && (code.includes('_vx') || code.includes('_vy') || code.includes('state.raf'));
-    return hasBlobSelector && hasRafLoop;
+
+    const scriptId = String(script && script.id || '').toLowerCase();
+    if (scriptId && (scriptId.includes('gooey') || scriptId.includes('mesh') || scriptId.includes('scroll-gradient'))) {
+      return true;
+    }
+
+    const hasMeshReference = code.includes('gooey-mesh-wrapper') || code.includes('gooey-blob');
+    const hasMeshLoop = (code.includes('requestAnimationFrame') || code.includes('setInterval'))
+      && (
+        code.includes('_x')
+        || code.includes('_y')
+        || code.includes('_vx')
+        || code.includes('_vy')
+        || code.includes('state.raf')
+        || code.includes('blobs.forEach')
+      );
+    const hasGradientLoop = code.includes('scroll-gradient-bg')
+      && (code.includes('addEventListener(\'scroll\'') || code.includes('addEventListener(\"scroll\"') || code.includes('scrollY'));
+
+    return (hasMeshReference && hasMeshLoop) || hasGradientLoop;
+  }
+
+  function ensureCanonicalGooeyMeshStyleTag() {
+    const host = document.head || document.body;
+    if (!host) return;
+
+    let styleEl = document.getElementById(GOOEY_MESH_CANONICAL_STYLE_ID);
+    if (!(styleEl instanceof HTMLStyleElement)) {
+      styleEl = document.createElement('style');
+      styleEl.id = GOOEY_MESH_CANONICAL_STYLE_ID;
+      host.appendChild(styleEl);
+    } else if (styleEl.parentElement !== host) {
+      host.appendChild(styleEl);
+    }
+
+    styleEl.textContent = [
+      'html body #gooey-mesh-wrapper .gooey-stage {',
+      '  filter: url("#goo") !important;',
+      '}',
+      'html body #gooey-mesh-wrapper .gooey-blob {',
+      '  border-radius: 50% !important;',
+      '  filter: blur(34px) saturate(150%) !important;',
+      '  will-change: transform !important;',
+      '}',
+      'html body #gooey-mesh-wrapper svg#goo-filter {',
+      '  position: absolute !important;',
+      '  width: 0 !important;',
+      '  height: 0 !important;',
+      '  overflow: hidden !important;',
+      '  pointer-events: none !important;',
+      '}',
+    ].join('\n');
+  }
+
+  function ensureCanonicalGooeyFilterMarkup() {
+    const wrapper = document.getElementById('gooey-mesh-wrapper');
+    if (!(wrapper instanceof HTMLElement)) return;
+
+    let svg = wrapper.querySelector('svg#goo-filter');
+    if (!(svg instanceof SVGElement)) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('id', 'goo-filter');
+      svg.setAttribute('aria-hidden', 'true');
+      wrapper.appendChild(svg);
+    }
+
+    let defs = svg.querySelector('defs');
+    if (!(defs instanceof SVGDefsElement)) {
+      defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      svg.appendChild(defs);
+    }
+
+    let filter = defs.querySelector('filter#goo');
+    if (!(filter instanceof SVGFilterElement)) {
+      filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+      filter.setAttribute('id', 'goo');
+      defs.appendChild(filter);
+    }
+
+    while (filter.firstChild) filter.removeChild(filter.firstChild);
+
+    const blur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+    blur.setAttribute('in', 'SourceGraphic');
+    blur.setAttribute('stdDeviation', '15');
+    blur.setAttribute('result', 'blur');
+
+    const matrix = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
+    matrix.setAttribute('in', 'blur');
+    matrix.setAttribute('mode', 'matrix');
+    matrix.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8');
+    matrix.setAttribute('result', 'goo');
+
+    const blend = document.createElementNS('http://www.w3.org/2000/svg', 'feBlend');
+    blend.setAttribute('in', 'SourceGraphic');
+    blend.setAttribute('in2', 'goo');
+    blend.setAttribute('mode', 'normal');
+
+    filter.appendChild(blur);
+    filter.appendChild(matrix);
+    filter.appendChild(blend);
+  }
+
+  function ensureCanonicalGooeyMeshPresentation() {
+    ensureCanonicalGooeyMeshStyleTag();
+    ensureCanonicalGooeyFilterMarkup();
   }
 
   function normalizeGooeyVelocityPair(vxRaw, vyRaw, fallbackAngle = 0) {
@@ -2556,6 +2660,7 @@
   function captureGooeyMeshState() {
     const wrapper = document.getElementById('gooey-mesh-wrapper');
     if (!wrapper) return null;
+    ensureCanonicalGooeyMeshPresentation();
     const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
     if (!blobs.length) return null;
 
@@ -2574,6 +2679,7 @@
   function restoreGooeyMeshState(state) {
     const normalizedState = normalizeGooeyMeshStateSnapshot(state);
     if (!Array.isArray(normalizedState) || normalizedState.length === 0) return;
+    ensureCanonicalGooeyMeshPresentation();
     const wrapper = document.getElementById('gooey-mesh-wrapper');
     if (!wrapper) return;
     const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
@@ -2771,6 +2877,9 @@
     window.addEventListener('pagehide', () => {
       persistGooeyMeshState();
     });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) persistGooeyMeshState();
+    });
 
     persistScrollState(scrollRoot);
   }
@@ -2869,6 +2978,7 @@
     clearChildren(foregroundRoot);
     foregroundRoot.appendChild(nextFragment);
     ensureBackdropLayersOutsideForeground();
+    ensureCanonicalGooeyMeshPresentation();
 
     const scripts = collectRouteScripts(sourceDocument, targetUrl.href);
     const meshState = captureGooeyMeshState();
@@ -2900,6 +3010,7 @@
     syncProfileRouteGlassFromHeader(document);
     requestAnimationFrame(() => {
       ensureBackdropLayersOutsideForeground();
+      ensureCanonicalGooeyMeshPresentation();
       applyHeadingTypographyAndSupportHooks(document);
       scheduleProfileViewportMetricsSync();
       syncProfileRouteGlassFromHeader(document);
@@ -3091,6 +3202,7 @@
 
     moveForegroundNodes(container, headerElement, scrollRoot, foregroundRoot);
     ensureBackdropLayersOutsideForeground();
+    ensureCanonicalGooeyMeshPresentation();
     const persistedMeshState = readPersistedGooeyMeshState();
     if (persistedMeshState) {
       restoreGooeyMeshState(persistedMeshState);
@@ -3114,6 +3226,7 @@
 
     requestAnimationFrame(() => {
       ensureBackdropLayersOutsideForeground();
+      ensureCanonicalGooeyMeshPresentation();
       if (persistedMeshState) {
         restoreGooeyMeshState(persistedMeshState);
       }
