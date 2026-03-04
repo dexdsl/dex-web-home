@@ -4342,6 +4342,7 @@ Visit Tim Feeney’s website at timfeeney.com</p>
 <script id="dex-entry-desc-sync">
 (function(){
   var MOBILE_BREAKPOINT = 899;
+  var DESC_EXTRA_SLACK_PX = 28;
   var resizeObserver = null;
 
   function visibleChildren(container){
@@ -4369,9 +4370,11 @@ Visit Tim Feeney’s website at timfeeney.com</p>
 
     if (window.innerWidth <= MOBILE_BREAKPOINT) {
       clearDesc(desc);
+      main.style.removeProperty('padding-bottom');
       return;
     }
 
+    main.style.setProperty('padding-bottom', '0px', 'important');
     desc.style.minHeight = '0px';
 
     var children = visibleChildren(main);
@@ -4387,7 +4390,7 @@ Visit Tim Feeney’s website at timfeeney.com</p>
     }
     var totalGaps = Math.max(0, children.length - 1);
     var sidebarHeight = sidebar.getBoundingClientRect().height;
-    var available = Math.max(120, Math.floor(sidebarHeight - occupiedHeight - (gap * totalGaps)));
+    var available = Math.max(120, Math.floor(sidebarHeight - occupiedHeight - (gap * totalGaps) + DESC_EXTRA_SLACK_PX));
 
     desc.style.height = available + 'px';
     desc.style.maxHeight = available + 'px';
@@ -5575,6 +5578,10 @@ body.dx-entry-page .dex-footer-section > .content-wrapper > .content {
   padding-right: 0 !important;
   box-sizing: border-box !important;
 }
+body.dx-entry-page .dex-footer-section .sqs-block-content {
+  background: transparent !important;
+  border: 0 !important;
+}
 
 /* test-5: force footer visual parity with home footer (layout geometry untouched) */
 body.dx-entry-page .dex-footer {
@@ -5582,13 +5589,13 @@ body.dx-entry-page .dex-footer {
   --liquid-bg: rgba(255, 255, 255, 0.18) !important;
   --liquid-border: rgba(255, 255, 255, 0.42) !important;
   --shadow-md: 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
-  background: linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%) !important;
+  background: var(--liquid-bg) !important;
   border: 1px solid rgba(255, 255, 255, 0.42) !important;
   border-radius: var(--dx-radius-md, 10px) !important;
   box-shadow: var(--shadow-md) !important;
   color: #232323 !important;
-  -webkit-backdrop-filter: saturate(180%) blur(18px) !important;
-  backdrop-filter: saturate(180%) blur(18px) !important;
+  -webkit-backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px)) !important;
+  backdrop-filter: var(--dx-header-glass-backdrop, saturate(180%) blur(18px)) !important;
 }
 body.dx-entry-page .dex-footer .footer-grid {
   display: grid !important;

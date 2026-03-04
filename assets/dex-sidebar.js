@@ -1693,6 +1693,11 @@
     }
 
     let bottomInset = 20;
+    let footerIsOverlay = false;
+    if (footer instanceof HTMLElement) {
+      const footerStyle = window.getComputedStyle(footer);
+      footerIsOverlay = footerStyle.position === 'fixed' || footerStyle.position === 'sticky';
+    }
     const footerBottomVar = parseFirstCssPx(
       docStyle.getPropertyValue('--dx-profile-footer-bottom'),
       bodyStyle.getPropertyValue('--dx-profile-footer-bottom')
@@ -1703,7 +1708,7 @@
       bodyStyle.getPropertyValue('--dx-profile-footer-height'),
       bodyStyle.getPropertyValue('--dx-profile-footer-height-effective')
     );
-    if (footerHeightVar > 0) {
+    if (footerHeightVar > 0 && (footerIsOverlay || !(footer instanceof HTMLElement))) {
       bottomInset = Math.max(bottomInset, Math.ceil(footerBottomVar + footerHeightVar + 12));
     }
     if (footer instanceof HTMLElement) {
@@ -1712,7 +1717,10 @@
       const isOverlayFooter = footerStyle.position === 'fixed' || footerStyle.position === 'sticky';
       const bottomOcclusion = Math.max(0, window.innerHeight - Math.max(0, footerRect.top));
       const footerExtent = isOverlayFooter ? Math.max(footerRect.height, bottomOcclusion) : footerRect.height;
-      if (footerExtent > 0) bottomInset = Math.max(bottomInset, Math.ceil(footerExtent + 12));
+      if (footerExtent > 0) {
+        const footerPad = isOverlayFooter ? 12 : 8;
+        bottomInset = Math.max(bottomInset, Math.ceil(footerExtent + footerPad));
+      }
     }
 
     const layoutRect = layout.getBoundingClientRect();
