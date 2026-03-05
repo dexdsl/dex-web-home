@@ -53,6 +53,11 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
     </svg>
   `.trim();
+  const OPEN_ENTRY_ARROW_SVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 dx-catalog-index-row-open-svg" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+    </svg>
+  `.trim();
   let favoritesToastTimer = 0;
 
   function redirectLegacyHashes() {
@@ -289,6 +294,10 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
         color: rgba(37, 41, 52, 0.88);
       }
 
+      .dx-fav-heart-btn.is-auth-required {
+        color: rgba(37, 41, 52, 0.6);
+      }
+
       .dx-fav-heart-btn.is-active {
         color: #e0245e;
       }
@@ -497,6 +506,96 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return link;
   }
 
+  function createEntryOpenArrowCta(href) {
+    const link = create('a', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-index-row-open');
+    link.href = href || '#';
+    link.setAttribute('aria-label', 'Open entry');
+    link.setAttribute('title', 'Open entry');
+    link.innerHTML = OPEN_ENTRY_ARROW_SVG;
+    return link;
+  }
+
+  function getAuthApi() {
+    return window.DEX_AUTH || window.dexAuth || null;
+  }
+
+  function hasAuthIdentityHint() {
+    const directSub = text(window.auth0Sub).trim();
+    if (directSub) return true;
+    const authUser = window.AUTH0_USER && typeof window.AUTH0_USER === 'object'
+      ? window.AUTH0_USER
+      : null;
+    const userSub = text(authUser?.sub || authUser?.user_id).trim();
+    return Boolean(userSub);
+  }
+
+  function withTimeout(promise, timeoutMs, fallbackValue = null) {
+    const waitMs = Math.max(120, Number(timeoutMs) || 1200);
+    return new Promise((resolve) => {
+      let settled = false;
+      const timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(fallbackValue);
+      }, waitMs);
+      Promise.resolve(promise)
+        .then((value) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve(value);
+        })
+        .catch(() => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve(fallbackValue);
+        });
+    });
+  }
+
+  async function resolveFavoritesAuthState(timeoutMs = 1500) {
+    const auth = getAuthApi();
+    let authenticated = hasAuthIdentityHint();
+    if (!auth) {
+      return { auth: null, authenticated };
+    }
+
+    try {
+      if (typeof auth.resolve === 'function') {
+        await withTimeout(auth.resolve(timeoutMs), timeoutMs, null);
+      } else if (auth.ready && typeof auth.ready.then === 'function') {
+        await withTimeout(auth.ready, timeoutMs, null);
+      }
+    } catch {}
+
+    try {
+      if (typeof auth.isAuthenticated === 'function') {
+        authenticated = Boolean(await withTimeout(auth.isAuthenticated(), timeoutMs, authenticated));
+      }
+    } catch {}
+
+    return { auth, authenticated };
+  }
+
+  async function promptFavoritesSignIn(auth) {
+    if (!auth || typeof auth.signIn !== 'function') return false;
+    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    try {
+      await auth.signIn({ returnTo });
+      return true;
+    } catch {}
+    try {
+      await auth.signIn(returnTo);
+      return true;
+    } catch {}
+    try {
+      await auth.signIn();
+      return true;
+    } catch {}
+    return false;
+  }
+
   function getFavoritesApi() {
     const api = window.__dxFavorites;
     if (!api || typeof api.list !== 'function' || typeof api.toggle !== 'function' || typeof api.isFavorite !== 'function') {
@@ -519,13 +618,16 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     };
   }
 
-  function setFavoriteButtonState(button, active) {
+  function setFavoriteButtonState(button, active, canToggle = true) {
     ensureFavoritesUiStyles();
     ensureFavoriteButtonContent(button);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
     button.classList.toggle('is-active', active);
+    button.classList.toggle('is-auth-required', !canToggle);
     const sr = button.querySelector('.dx-fav-sr');
-    const nextLabel = active ? 'Favorited' : 'Add to favorites';
+    const nextLabel = !canToggle
+      ? 'Sign in to save favorites'
+      : (active ? 'Favorited' : 'Add to favorites');
     button.setAttribute('aria-label', nextLabel);
     button.setAttribute('title', nextLabel);
     if (sr) sr.textContent = nextLabel;
@@ -533,11 +635,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
   function syncFavoriteButtons(root = document) {
     const api = getFavoritesApi();
+    const canToggle = hasAuthIdentityHint();
     const buttons = Array.from(root.querySelectorAll('[data-dx-fav-kind="entry"][data-dx-fav-key]'));
     buttons.forEach((button) => {
       const key = text(button.getAttribute('data-dx-fav-key')).trim();
-      const active = api ? api.isFavorite(key) : false;
-      setFavoriteButtonState(button, active);
+      const active = canToggle && api ? api.isFavorite(key) : false;
+      setFavoriteButtonState(button, active, canToggle);
     });
   }
 
@@ -566,19 +669,33 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     if (key) button.setAttribute('data-dx-fav-key', key);
     button.setAttribute('data-dx-fav-kind', 'entry');
     button.setAttribute('data-dx-fav-lookup', record.lookupNumber);
-    button.addEventListener('click', (event) => {
+    button.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const runtime = getFavoritesApi();
-      if (!runtime) return;
-      const result = runtime.toggle(record);
-      if (result && result.action === 'added') {
-        animateFavoriteAdded(button);
-        showFavoritesToast('Added to favorites!');
+      if (button.getAttribute('data-dx-fav-busy') === '1') return;
+      button.setAttribute('data-dx-fav-busy', '1');
+      try {
+        const authState = await resolveFavoritesAuthState();
+        if (!authState.authenticated) {
+          setFavoriteButtonState(button, false, false);
+          showFavoritesToast('Sign in to save favorites.');
+          await promptFavoritesSignIn(authState.auth);
+          return;
+        }
+        const runtime = getFavoritesApi();
+        if (!runtime) return;
+        const result = runtime.toggle(record);
+        if (result && result.action === 'added') {
+          animateFavoriteAdded(button);
+          showFavoritesToast('Added to favorites!');
+        }
+        syncFavoriteButtons(document);
+      } finally {
+        button.removeAttribute('data-dx-fav-busy');
       }
-      syncFavoriteButtons(document);
     });
-    setFavoriteButtonState(button, api ? api.isFavorite(record) : false);
+    const canToggle = hasAuthIdentityHint();
+    setFavoriteButtonState(button, canToggle && api ? api.isFavorite(record) : false, canToggle);
     return button;
   }
 
@@ -1376,8 +1493,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       ...(entry.instrument_family || []),
     ].filter(Boolean).join(' · '));
 
-    const open = openCta(text(entry.entry_href || '#'), 'Open entry', 'secondary');
-    open.classList.add('dx-catalog-index-row-open');
+    const open = createEntryOpenArrowCta(text(entry.entry_href || '#'));
     const favorite = createEntryFavoriteButton(entry);
 
     const textWrap = create('div', 'dx-catalog-index-row-text');

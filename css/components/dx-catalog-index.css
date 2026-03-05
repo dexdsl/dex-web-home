@@ -698,6 +698,32 @@
 
 .dx-catalog-index-row-open {
   justify-self: start;
+  min-width: 2.05rem;
+  width: 2.05rem;
+  min-height: 2.05rem;
+  height: 2.05rem;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.dx-catalog-index-row-open .dx-catalog-index-row-open-svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+  flex: none;
+}
+
+.dx-catalog-index-row-open .dx-catalog-index-row-open-svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 @media (min-width: 860px) {
