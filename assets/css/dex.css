@@ -1277,7 +1277,7 @@ body.dx-route-profile-protected {
   --dx-profile-card-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --dx-profile-card-rim: rgba(255, 255, 255, 0.42) !important;
   --dx-profile-card-surface: rgba(255, 255, 255, 0.16) !important;
-  --dx-profile-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  --dx-profile-card-shadow: 0 14px 20px -14px rgba(0, 0, 0, 0.34), 0 6px 10px -8px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   --dx-profile-card-backdrop: blur(24px) saturate(170%) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
