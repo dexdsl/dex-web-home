@@ -552,6 +552,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       stagger: 0.024,
       threshold: 0.14,
       rootMargin: '0px 0px -5% 0px',
+      initialHidden: false,
     });
     bindDexButtonMotion(app, {
       selector: '.dx-button-element, .dx-dexnotes-card, .dx-dexnotes-card-media',

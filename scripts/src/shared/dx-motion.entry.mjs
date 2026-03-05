@@ -888,6 +888,7 @@ export function revealStagger(scopeEl, selector, opts = {}) {
   const threshold = typeof opts.threshold === 'number' ? opts.threshold : 0.13;
   const rootMargin = typeof opts.rootMargin === 'string' ? opts.rootMargin : '0px 0px -6% 0px';
   const y = typeof opts.y === 'number' ? opts.y : 20;
+  const initialHidden = opts.initialHidden !== false;
   const slotRoot = typeof window.dxGetSlotScrollRoot === 'function' ? window.dxGetSlotScrollRoot() : null;
   const observerRoot = opts.root instanceof Element ? opts.root : (slotRoot instanceof Element ? slotRoot : null);
 
@@ -900,18 +901,33 @@ export function revealStagger(scopeEl, selector, opts = {}) {
     node.dataset.dxRevealed = key;
     const localOrder = Number(node.dataset.dxRevealOrder || 0);
 
-    animateNode(
-      node,
-      {
-        opacity: [0, 1],
-        transform: [`translate3d(0, ${y}px, 0)`, 'translate3d(0, 0, 0)'],
-      },
-      {
-        duration,
-        ease: DEFAULTS.easeStandard,
-        delay: localOrder * stagger,
-      },
-    );
+    if (initialHidden) {
+      animateNode(
+        node,
+        {
+          opacity: [0, 1],
+          transform: [`translate3d(0, ${y}px, 0)`, 'translate3d(0, 0, 0)'],
+        },
+        {
+          duration,
+          ease: DEFAULTS.easeStandard,
+          delay: localOrder * stagger,
+        },
+      );
+    } else {
+      animateNode(
+        node,
+        {
+          opacity: [1, 1],
+          transform: ['translate3d(0, 0, 0)', 'translate3d(0, 0, 0)'],
+        },
+        {
+          duration: Math.min(duration, 0.2),
+          ease: DEFAULTS.easeStandard,
+          delay: localOrder * Math.min(stagger, 0.018),
+        },
+      );
+    }
 
     if (instance) instance.unobserve(node);
   };
@@ -949,8 +965,13 @@ export function revealStagger(scopeEl, selector, opts = {}) {
 
   nodes.forEach((node, index) => {
     if (!markBound(node, key)) return;
-    node.style.opacity = '0';
-    node.style.transform = `translate3d(0, ${y}px, 0)`;
+    if (initialHidden) {
+      node.style.opacity = '0';
+      node.style.transform = `translate3d(0, ${y}px, 0)`;
+    } else {
+      node.style.opacity = '1';
+      node.style.transform = 'translate3d(0, 0, 0)';
+    }
     node.dataset.dxRevealOrder = String(index);
     observer.observe(node);
     if (isInView(node)) revealNode(node, observer);

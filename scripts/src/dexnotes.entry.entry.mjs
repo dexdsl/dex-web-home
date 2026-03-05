@@ -475,6 +475,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       stagger: 0.038,
       threshold: 0.13,
       rootMargin: '0px 0px -6% 0px',
+      initialHidden: false,
     });
     bindDexButtonMotion(app, {
       selector: '.dx-button-element, .dx-dexnotes-entry-related-item, .dx-dexnotes-entry-cover-link',
