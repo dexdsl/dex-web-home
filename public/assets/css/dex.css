@@ -2192,14 +2192,27 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 /* Settings route should pin as a single shell and scroll internally above mobile breakpoints. */
 @media (min-width: 901px) {
   body.dx-route-profile-protected #dex-settings {
+    --dx-settings-shell-top-pad: max(6px, calc(var(--dx-profile-home-header-gap) - 4px)) !important;
+    --dx-settings-shell-gap: max(8px, calc(var(--dx-profile-home-header-gap) - 2px)) !important;
+    --pad: var(--dx-settings-shell-gap) !important;
+    --gap: var(--dx-settings-shell-gap) !important;
     padding-top: var(--dx-profile-home-header-gap) !important;
     padding-bottom: var(--dx-profile-home-header-gap) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
-    scroll-padding-top: var(--dx-profile-home-header-gap) !important;
+    scroll-padding-top: var(--dx-settings-shell-top-pad) !important;
     scroll-padding-bottom: var(--dx-profile-home-header-gap) !important;
     scrollbar-gutter: stable both-edges !important;
+  }
+
+  body.dx-route-profile-protected #dex-settings {
+    padding-top: var(--dx-settings-shell-top-pad) !important;
+  }
+
+  body.dx-route-profile-protected #dex-settings .tabsbar,
+  body.dx-route-profile-protected #dex-settings .grid {
+    margin-top: var(--dx-settings-shell-gap) !important;
   }
 
   body.dx-route-profile-protected #dex-settings #dxMembershipV3Root {
