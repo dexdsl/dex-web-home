@@ -28,12 +28,39 @@ function assertExcludes(label, source, markers) {
 }
 
 async function verifyCallRuntime() {
-  const rel = 'scripts/src/call.editorial.entry.mjs';
-  const source = await readText(rel);
-  assertIncludes(rel, source, [
+  const callRel = 'scripts/src/call.editorial.entry.mjs';
+  const callSource = await readText(callRel);
+  assertIncludes(callRel, callSource, [
+    'mountMarketingNewsletter',
+    'data-dx-marketing-newsletter-mount',
+  ]);
+
+  const sharedRel = 'scripts/src/shared/dx-marketing-newsletter.entry.mjs';
+  const sharedSource = await readText(sharedRel);
+  assertIncludes(sharedRel, sharedSource, [
     '/newsletter/subscribe',
-    'CHECK YOUR EMAIL TO CONFIRM SUBSCRIPTION.',
-    'REQUEST TIMED OUT',
+    'x-dx-idempotency-key',
+    'challengeToken',
+    'honey',
+    'submittedAt',
+    'clientRequestId',
+  ]);
+
+  const cssRel = 'public/css/components/dx-marketing-newsletter.css';
+  const cssSource = await readText(cssRel);
+  assertIncludes(cssRel, cssSource, [
+    '.dx-marketing-newsletter-form',
+    '.dx-marketing-newsletter-feedback',
+    '.dx-marketing-newsletter-honey-wrap',
+  ]);
+
+  const callPageRel = 'docs/call/index.html';
+  const callPage = await readText(callPageRel);
+  assertIncludes(callPageRel, callPage, [
+    '/css/components/dx-marketing-newsletter.css',
+    '/assets/dex-runtime-config.js',
+    'challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
+    'data-dx-marketing-newsletter-mount="call-page"',
   ]);
 }
 
@@ -63,6 +90,14 @@ async function verifyLegacyRemoval() {
   const favoritesRel = 'docs/favorites/index.html';
   const favoritesHtml = await readText(favoritesRel);
   assertExcludes(favoritesRel, favoritesHtml, ['chimpstatic.com', 'id="mcjs"']);
+
+  const callRel = 'docs/call/index.html';
+  const callHtml = await readText(callRel);
+  assertExcludes(callRel, callHtml, [
+    'chimpstatic.com',
+    'id="mcjs"',
+    "Y.use('legacysite-form-submit'",
+  ]);
 }
 
 async function verifyCliWiring() {

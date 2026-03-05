@@ -48,14 +48,24 @@ skill." />
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
     <link rel="stylesheet" href="/css/components/dx-call-editorial.css">
+    <link rel="stylesheet" href="/css/components/dx-marketing-newsletter.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
+<script defer src="/assets/dex-runtime-config.js"></script>
 <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
 <script defer src="/assets/dex-auth0-config.js"></script>
 <script defer src="/assets/dex-auth.js"></script>
 <script defer src="/assets/js/header-slot.js"></script>
 <script defer src="/assets/js/dx-scroll-dot.js"></script>
 <script defer src="/assets/js/interactive-hover.js"></script>
+<script>
+  window.DEX_MARKETING_NEWSLETTER = Object.assign({
+    source: 'call-page',
+    turnstileAction: 'newsletter_subscribe',
+    turnstileSiteKey: window.DEX_TURNSTILE_SITE_KEY || ''
+  }, window.DEX_MARKETING_NEWSLETTER || {});
+</script>
+<script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 <script defer src="/assets/js/call.editorial.js"></script>
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
 <link rel="preconnect" href="https://p.fonthost.net" crossorigin>
@@ -1036,7 +1046,9 @@ skill." />
             <section id="call-mini" hidden aria-hidden="true"></section>
             <section id="call-requireements" hidden aria-hidden="true"></section>
             <section id="call-past" hidden aria-hidden="true"></section>
-            <section id="call-newsletter" hidden aria-hidden="true"></section>
+            <section id="call-newsletter" hidden aria-hidden="true">
+              <div data-dx-marketing-newsletter-mount="call-page" hidden aria-hidden="true"></div>
+            </section>
             <noscript>
               <section class="dx-call-surface dx-call-error">
                 <h2 class="dx-call-title">CALL PAGE REQUIRES JAVASCRIPT.</h2>

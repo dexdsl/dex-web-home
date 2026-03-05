@@ -1,0 +1,89 @@
+.dx-marketing-newsletter-form,
+.dx-call-newsletter-form {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.dx-marketing-newsletter-input,
+.dx-call-newsletter-input {
+  flex: 1 1 240px;
+  min-height: 2.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(22, 28, 41, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--dx-call-ink, #111827);
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 14px;
+  padding: 0.54rem 0.78rem;
+}
+
+.dx-marketing-newsletter-input::placeholder,
+.dx-call-newsletter-input::placeholder {
+  color: rgba(15, 23, 42, 0.66);
+}
+
+.dx-marketing-newsletter-input:focus,
+.dx-marketing-newsletter-submit:focus-visible,
+.dx-call-newsletter-input:focus,
+.dx-call-newsletter-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.22);
+}
+
+.dx-marketing-newsletter-submit[disabled],
+.dx-call-newsletter-submit[disabled] {
+  cursor: progress;
+  opacity: 0.76;
+}
+
+.dx-marketing-newsletter-feedback,
+.dx-call-newsletter-feedback {
+  margin: 0.45rem 0 0;
+  color: var(--dx-call-muted, rgba(15, 23, 42, 0.74));
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dx-marketing-newsletter-feedback[data-state="success"],
+.dx-call-newsletter-feedback[data-state="success"] {
+  color: #0f5132;
+}
+
+.dx-marketing-newsletter-feedback[data-state="error"],
+.dx-call-newsletter-feedback[data-state="error"] {
+  color: #7f1d1d;
+}
+
+.dx-marketing-newsletter-honey-wrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dx-marketing-newsletter-turnstile {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .dx-marketing-newsletter-form,
+  .dx-call-newsletter-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

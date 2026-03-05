@@ -1,5 +1,6 @@
 import { animate } from 'framer-motion/dom';
 import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -585,92 +586,31 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
 
     section.appendChild(create('p', 'dx-call-kicker', 'NEWSLETTER LOOP'));
     appendOptionalText(section, data.prompt_raw, 'dx-call-section-title');
+    const mount = create('div', 'dx-call-newsletter-mount');
+    mount.setAttribute('data-dx-marketing-newsletter-mount', 'call-page');
+    section.appendChild(mount);
 
-    const form = create('form', 'dx-call-newsletter-form');
-    form.setAttribute('novalidate', 'novalidate');
+    const marketingConfig =
+      window.DEX_MARKETING_NEWSLETTER && typeof window.DEX_MARKETING_NEWSLETTER === 'object'
+        ? window.DEX_MARKETING_NEWSLETTER
+        : {};
 
-    const input = create('input', 'dx-call-newsletter-input');
-    input.type = 'email';
-    input.required = true;
-    input.autocomplete = 'email';
-    input.placeholder = 'EMAIL ADDRESS';
-    input.name = 'email';
-
-    const button = create('button', 'dx-button-element dx-button-size--md dx-button-element--secondary dx-call-newsletter-submit', 'JOIN');
-    button.type = 'submit';
-
-    const feedback = create('p', 'dx-call-newsletter-feedback');
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const emailValue = text(input.value).trim();
-      if (!emailValue || !/^\S+@\S+\.\S+$/.test(emailValue)) {
-        feedback.textContent = 'ENTER A VALID EMAIL ADDRESS.';
-        return;
-      }
-
-      const apiBase = String(window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_NEWSLETTER_API).replace(/\/+$/, '');
-      const controller = typeof AbortController === 'function' ? new AbortController() : null;
-      const timeoutMs = 8000;
-      const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : 0;
-
-      button.disabled = true;
-      feedback.textContent = 'SUBMITTING...';
-
-      try {
-        const response = await fetch(`${apiBase}/newsletter/subscribe`, {
-          method: 'POST',
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: emailValue,
-            source: 'call-page',
-            timezone: (() => {
-              try {
-                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-              } catch {
-                return 'UTC';
-              }
-            })(),
-          }),
-          signal: controller ? controller.signal : undefined,
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const failure = new Error(payload?.error || `HTTP ${response.status}`);
-          failure.status = response.status;
-          throw failure;
-        }
-
-        if (String(payload?.state || '').toLowerCase() === 'active') {
-          feedback.textContent = 'ALREADY SUBSCRIBED.';
-        } else {
-          feedback.textContent = 'CHECK YOUR EMAIL TO CONFIRM SUBSCRIPTION.';
-        }
-        input.value = '';
-      } catch (error) {
-        const message = String(error?.message || '').toLowerCase();
-        const status = Number(error?.status || 0);
-        if (message.includes('abort')) {
-          feedback.textContent = 'REQUEST TIMED OUT. TRY AGAIN.';
-        } else if (status === 503 || message.includes('public endpoint disabled')) {
-          feedback.textContent = 'NEWSLETTER SIGNUP OPENS SOON. CHECK BACK SHORTLY.';
-        } else if (status === 429 || message.includes('rate limit')) {
-          feedback.textContent = 'TOO MANY ATTEMPTS. TRY AGAIN IN A FEW MINUTES.';
-        } else {
-          feedback.textContent = 'SUBSCRIBE FAILED. TRY AGAIN LATER.';
-        }
-      } finally {
-        if (timeoutId) window.clearTimeout(timeoutId);
-        button.disabled = false;
-      }
+    mountMarketingNewsletter(mount, {
+      source: 'call-page',
+      defaultApiBase: DEFAULT_NEWSLETTER_API,
+      formClassName: 'dx-call-newsletter-form',
+      inputClassName: 'dx-call-newsletter-input',
+      submitClassName: 'dx-button-element dx-button-size--md dx-button-element--secondary dx-call-newsletter-submit',
+      feedbackClassName: 'dx-call-newsletter-feedback',
+      submitLabel: 'JOIN',
+      submitBusyLabel: 'SUBMITTING...',
+      requireChallenge: marketingConfig.requireChallenge !== false,
+      turnstileSiteKey:
+        text(marketingConfig.turnstileSiteKey || '') ||
+        text(window.DEX_NEWSLETTER_TURNSTILE_SITE_KEY || '') ||
+        text(window.DEX_TURNSTILE_SITE_KEY || ''),
+      turnstileAction: text(marketingConfig.turnstileAction || '') || 'newsletter_subscribe',
     });
-
-    form.append(input, button);
-    section.append(form, feedback);
 
     if (data.privacy_link?.href) {
       const privacy = create('p', 'dx-call-copy');

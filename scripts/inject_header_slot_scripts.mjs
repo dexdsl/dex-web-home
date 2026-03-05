@@ -7,6 +7,7 @@ const DOCS_DIR = path.join(ROOT, 'docs');
 const SLOT_SCRIPT_TAG = '<script defer src="/assets/js/header-slot.js"></script>';
 const DOT_SCRIPT_TAG = '<script defer src="/assets/js/dx-scroll-dot.js"></script>';
 const INTERACTIVE_HOVER_SCRIPT_TAG = '<script defer src="/assets/js/interactive-hover.js"></script>';
+const RUNTIME_CONFIG_TAG = '<script defer src="/assets/dex-runtime-config.js"></script>';
 const AUTH0_VENDOR_TAG = '<script src="/assets/vendor/auth0-spa-js.umd.min.js"></script>';
 const AUTH0_CONFIG_TAG = '<script src="/assets/dex-auth0-config.js"></script>';
 const AUTH_RUNTIME_TAG = '<script src="/assets/dex-auth.js"></script>';
@@ -200,6 +201,7 @@ function shouldInject(relativePath, html) {
   const requiresRuntime = FORCE_INCLUDE_PATHS.has(relativePath) || CONTENT_HINTS.some((hint) => html.includes(hint));
   const requiresProtectedAuth = PROTECTED_AUTH_PATHS.has(relativePath);
   if (!requiresRuntime && !requiresProtectedAuth) return false;
+  if (!html.includes(RUNTIME_CONFIG_TAG)) return true;
   if (requiresProtectedAuth) {
     if (!html.includes(AUTH0_VENDOR_TAG) || !html.includes(AUTH0_CONFIG_TAG) || !html.includes(AUTH_RUNTIME_TAG)) {
       return true;
@@ -263,10 +265,23 @@ function injectTag(html, relativePath) {
   }
   const authAnchor = '<script defer src="/assets/dex-auth.js"></script>';
   const authConfigAnchor = '<script defer src="/assets/dex-auth0-config.js"></script>';
+  const authVendorAnchor = '<script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>';
 
   next = injectSingleTag(next, SLOT_SCRIPT_TAG, [authAnchor, authConfigAnchor]);
   next = injectSingleTag(next, DOT_SCRIPT_TAG, [SLOT_SCRIPT_TAG, authAnchor, authConfigAnchor]);
   next = injectSingleTag(next, INTERACTIVE_HOVER_SCRIPT_TAG, [DOT_SCRIPT_TAG, SLOT_SCRIPT_TAG, authAnchor, authConfigAnchor]);
+  next = injectSingleTagBefore(next, RUNTIME_CONFIG_TAG, [
+    AUTH_RUNTIME_TAG,
+    AUTH0_CONFIG_TAG,
+    AUTH0_VENDOR_TAG,
+    authAnchor,
+    authConfigAnchor,
+    authVendorAnchor,
+    SLOT_SCRIPT_TAG,
+    DOT_SCRIPT_TAG,
+    INTERACTIVE_HOVER_SCRIPT_TAG,
+    '</head>',
+  ]);
   return next;
 }
 

@@ -7,6 +7,8 @@ const ROOT = process.cwd();
 const DATA_PATH = path.join(ROOT, 'public', 'data', 'call.data.json');
 const JS_PATH = path.join(ROOT, 'public', 'assets', 'js', 'call.editorial.js');
 const CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-call-editorial.css');
+const NEWSLETTER_CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-marketing-newsletter.css');
+const RUNTIME_SOURCE_PATH = path.join(ROOT, 'scripts', 'src', 'call.editorial.entry.mjs');
 const PAGE_PATH = path.join(ROOT, 'docs', 'call', 'index.html');
 
 const REQUIRED_MAIN_IDS = [
@@ -46,6 +48,7 @@ function main() {
   const failures = [];
 
   if (!fs.existsSync(CSS_PATH)) failures.push(`missing stylesheet ${path.relative(ROOT, CSS_PATH)}`);
+  if (!fs.existsSync(NEWSLETTER_CSS_PATH)) failures.push(`missing stylesheet ${path.relative(ROOT, NEWSLETTER_CSS_PATH)}`);
   if (!fs.existsSync(JS_PATH)) failures.push(`missing runtime bundle ${path.relative(ROOT, JS_PATH)}`);
 
   const model = readJson(DATA_PATH);
@@ -60,6 +63,14 @@ function main() {
   if (!model?.newsletter?.prompt_raw) failures.push('call data missing newsletter prompt');
 
   const pageHtml = readText(PAGE_PATH);
+  const runtimeSource = readText(RUNTIME_SOURCE_PATH);
+  if (!runtimeSource.includes('mountMarketingNewsletter')) {
+    failures.push('call runtime must mount shared marketing newsletter component');
+  }
+  if (!runtimeSource.includes('data-dx-marketing-newsletter-mount')) {
+    failures.push('call runtime missing canonical marketing newsletter mount marker');
+  }
+
   const mainHtml = getMainHtml(pageHtml);
   if (!mainHtml) {
     failures.push('call page missing <main id="page">');
@@ -74,13 +85,34 @@ function main() {
     if (mainHtml.includes('section.page-section')) {
       failures.push('call page main still contains snapshot page-section blocks');
     }
+    if (!mainHtml.includes('data-dx-marketing-newsletter-mount="call-page"')) {
+      failures.push('call page main missing canonical marketing newsletter mount marker');
+    }
   }
 
   if (!pageHtml.includes('/css/components/dx-call-editorial.css')) {
     failures.push('call page must include /css/components/dx-call-editorial.css');
   }
+  if (!pageHtml.includes('/css/components/dx-marketing-newsletter.css')) {
+    failures.push('call page must include /css/components/dx-marketing-newsletter.css');
+  }
+  if (!pageHtml.includes('/assets/dex-runtime-config.js')) {
+    failures.push('call page must include /assets/dex-runtime-config.js');
+  }
   if (!pageHtml.includes('/assets/js/call.editorial.js')) {
     failures.push('call page must include /assets/js/call.editorial.js');
+  }
+  if (!pageHtml.includes('challenges.cloudflare.com/turnstile/v0/api.js?render=explicit')) {
+    failures.push('call page must include turnstile runtime');
+  }
+  if (pageHtml.includes('chimpstatic.com')) {
+    failures.push('call page must not include chimpstatic.com');
+  }
+  if (pageHtml.includes('id="mcjs"')) {
+    failures.push('call page must not include id="mcjs"');
+  }
+  if (pageHtml.includes("Y.use('legacysite-form-submit'")) {
+    failures.push('call page must not include legacy newsletter form runtime');
   }
 
   if (failures.length > 0) {

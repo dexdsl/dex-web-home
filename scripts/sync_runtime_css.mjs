@@ -94,6 +94,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-call-editorial.css', 'docs/css/components/dx-call-editorial.css'],
   },
   {
+    source: 'public/css/components/dx-marketing-newsletter.css',
+    targets: ['css/components/dx-marketing-newsletter.css', 'docs/css/components/dx-marketing-newsletter.css'],
+  },
+  {
     source: 'public/css/components/dx-submit-samples.css',
     targets: ['css/components/dx-submit-samples.css', 'docs/css/components/dx-submit-samples.css'],
   },
@@ -204,6 +208,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/dex-auth.js',
     targets: ['assets/dex-auth.js', 'docs/assets/dex-auth.js'],
+  },
+  {
+    source: 'public/assets/dex-runtime-config.js',
+    targets: ['assets/dex-runtime-config.js', 'docs/assets/dex-runtime-config.js'],
   },
   {
     source: 'public/assets/dex-auth0-config.js',
