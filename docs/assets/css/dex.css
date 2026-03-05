@@ -2251,15 +2251,65 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
 }
 
 /* Settings desktop ownership: no root scrolling; sidebar-first rails + membership main fallback. */
+#dex-settings .dx-settings-membership-aside-rail {
+  min-height: 0 !important;
+}
+
+#dex-settings .dx-settings-membership-aside-stack {
+  display: grid;
+  gap: var(--gap);
+}
+
+#dex-settings #settingsMembershipAsideRail #asideWhy,
+#dex-settings #settingsMembershipAsideRail #asideBilling {
+  margin: 0 !important;
+}
+
 @media (min-width: 980px) {
-  #dex-settings {
+  body.dx-route-profile-protected #dex-settings {
     overflow-y: visible !important;
     overflow-x: visible !important;
     overscroll-behavior-y: auto !important;
     scrollbar-gutter: auto !important;
   }
 
-  #dex-settings[data-dx-settings-pane="membership"] .grid > aside,
+  #dex-settings[data-dx-settings-pane="membership"] .grid > aside {
+    position: sticky !important;
+    top: var(--dx-profile-pin-top, 0px) !important;
+    align-self: start !important;
+    max-height: min(
+      var(--dx-profile-pin-max-h, calc(100vh - 180px)),
+      calc(100vh - (var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 2))
+    ) !important;
+    overflow: visible !important;
+    margin-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
+  }
+
+  #dex-settings[data-dx-settings-pane="membership"] #settingsMembershipAsideRail {
+    max-height: min(
+      var(--dx-profile-pin-max-h, calc(100vh - 180px)),
+      calc(100vh - (var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 2))
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain !important;
+    scrollbar-gutter: stable both-edges !important;
+    padding-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
+    padding-right: 4px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.24) rgba(255, 255, 255, 0.08) !important;
+  }
+
+  #dex-settings[data-dx-settings-pane="membership"] #settingsMembershipAsideRail::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  #dex-settings[data-dx-settings-pane="membership"] #settingsMembershipAsideRail::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.64);
+    background: rgba(0, 0, 0, 0.24);
+  }
+
   #dex-settings[data-dx-settings-pane="notifs"] .grid > aside {
     position: sticky !important;
     top: var(--dx-profile-pin-top, 0px) !important;
@@ -2276,7 +2326,6 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     margin-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
   }
 
-  #dex-settings[data-dx-settings-pane="membership"] .grid > aside > :last-child,
   #dex-settings[data-dx-settings-pane="notifs"] .grid > aside > :last-child {
     margin-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
   }

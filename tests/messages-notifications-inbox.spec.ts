@@ -799,9 +799,15 @@ test('settings membership v3 renders trust-first status and production billing l
       const style = window.getComputedStyle(node);
       return { overflowY: style.overflowY };
     });
-    expect(['auto', 'scroll', 'overlay']).toContain(membershipSidebarMeta.overflowY);
+    expect(['auto', 'scroll', 'overlay']).not.toContain(membershipSidebarMeta.overflowY);
+    const membershipAsideRailMeta = await page.locator('#settingsMembershipAsideRail').evaluate((node) => {
+      const style = window.getComputedStyle(node);
+      return { overflowY: style.overflowY };
+    });
+    expect(['auto', 'scroll', 'overlay']).toContain(membershipAsideRailMeta.overflowY);
   }
 
+  await expect(page.locator('#settingsMembershipAsideRail')).toHaveAttribute('data-dx-settings-aside-rail', 'membership');
   const membershipRoot = page.locator('#dxMembershipV3Root');
   await expect(membershipRoot).toBeVisible();
   await expect(membershipRoot).toHaveAttribute('data-dx-membership-state', /none|active|trialing|past_due|unpaid|canceled_at_period_end|canceled/);

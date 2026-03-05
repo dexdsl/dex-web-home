@@ -2971,54 +2971,62 @@
     </main>
 
     <aside aria-label="Context">
-  <div id="asideWhy" class="card">
-    <div class="dx-why-shell">
-      <p class="dx-why-kicker">Membership impact</p>
-      <h2>Why membership matters</h2>
-      <p id="dxWhyHook" class="dx-why-hook">Fund new recording sessions and keep every release open access for everyone.</p>
-      <ul class="dx-why-grid">
-        <li class="dx-why-row">
-          <span class="dx-why-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12Zm9-4v8m-4-4h8"/></svg>
-          </span>
-          <span class="dx-why-copy">
-            <strong>Keep it open</strong>
-            <span>Membership offsets hosting and bandwidth for the CC-BY archive.</span>
-          </span>
-        </li>
-        <li class="dx-why-row">
-          <span class="dx-why-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v8m0 0 3-3m-3 3-3-3M6 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
-          </span>
-          <span class="dx-why-copy">
-            <strong>More sessions</strong>
-            <span>Your plan directly funds new artist captures and faster publishing.</span>
-          </span>
-        </li>
-        <li class="dx-why-row">
-          <span class="dx-why-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.6 6.7 19l1-5.8L3.5 9.2l5.9-.9L12 3Z"/></svg>
-          </span>
-          <span class="dx-why-copy">
-            <strong>Member signal</strong>
-            <span>Show support in achievements and priority member-only update lanes.</span>
-          </span>
-        </li>
-      </ul>
-      <div class="dx-why-personal" role="status" aria-live="polite">
-        <span class="dx-why-personal-label">Personal focus</span>
-        <span id="dxWhyFavoriteMain" class="dx-why-personal-main">Support artists like your favorites.</span>
-        <span id="dxWhyFavoriteSub" class="dx-why-personal-sub">Your patronage is part of what helps us record more artist-led sessions season after season.</span>
-      </div>
-      <a id="dxWhyJoinCta" class="cta dx-why-cta" href="/entry/settings#membership">Support with membership</a>
-    </div>
-  </div>
+      <div
+        id="settingsMembershipAsideRail"
+        class="card dx-settings-membership-aside-rail"
+        data-dx-settings-aside-rail="membership"
+      >
+        <div class="dx-settings-membership-aside-stack">
+          <div id="asideWhy" class="card">
+            <div class="dx-why-shell">
+              <p class="dx-why-kicker">Membership impact</p>
+              <h2>Why membership matters</h2>
+              <p id="dxWhyHook" class="dx-why-hook">Fund new recording sessions and keep every release open access for everyone.</p>
+              <ul class="dx-why-grid">
+                <li class="dx-why-row">
+                  <span class="dx-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12Zm9-4v8m-4-4h8"/></svg>
+                  </span>
+                  <span class="dx-why-copy">
+                    <strong>Keep it open</strong>
+                    <span>Membership offsets hosting and bandwidth for the CC-BY archive.</span>
+                  </span>
+                </li>
+                <li class="dx-why-row">
+                  <span class="dx-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v8m0 0 3-3m-3 3-3-3M6 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+                  </span>
+                  <span class="dx-why-copy">
+                    <strong>More sessions</strong>
+                    <span>Your plan directly funds new artist captures and faster publishing.</span>
+                  </span>
+                </li>
+                <li class="dx-why-row">
+                  <span class="dx-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.6 6.7 19l1-5.8L3.5 9.2l5.9-.9L12 3Z"/></svg>
+                  </span>
+                  <span class="dx-why-copy">
+                    <strong>Member signal</strong>
+                    <span>Show support in achievements and priority member-only update lanes.</span>
+                  </span>
+                </li>
+              </ul>
+              <div class="dx-why-personal" role="status" aria-live="polite">
+                <span class="dx-why-personal-label">Personal focus</span>
+                <span id="dxWhyFavoriteMain" class="dx-why-personal-main">Support artists like your favorites.</span>
+                <span id="dxWhyFavoriteSub" class="dx-why-personal-sub">Your patronage is part of what helps us record more artist-led sessions season after season.</span>
+              </div>
+              <a id="dxWhyJoinCta" class="cta dx-why-cta" href="/entry/settings#membership">Support with membership</a>
+            </div>
+          </div>
 
-  <div id="asideBilling" class="card" style="margin-top:var(--gap);">
-    <h2>Billing &amp; privacy</h2>
-    <p class="note">Stripe handles payments. Update card, switch tiers, and download invoices in the Customer Portal.</p>
-  </div>
-</aside>
+          <div id="asideBilling" class="card">
+            <h2>Billing &amp; privacy</h2>
+            <p class="note">Stripe handles payments. Update card, switch tiers, and download invoices in the Customer Portal.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
 
   </div>
   <!-- GSAP for ink animation (falls back to inline styles if not present) -->
@@ -3451,6 +3459,7 @@ const panes = new Map(
 
 const asideWhy = document.getElementById('asideWhy');
 const asideBilling = document.getElementById('asideBilling');
+const asideMembershipRail = document.getElementById('settingsMembershipAsideRail');
 
 function ensureHeroiconNavArrow(btn, d){
   if (!btn) return;
@@ -3479,6 +3488,7 @@ function ensureHeroiconNavArrow(btn, d){
 
 function toggleProfileAside() {
   const hide = (current === 'profile');
+  if (asideMembershipRail) asideMembershipRail.hidden = hide;
   if (asideWhy) asideWhy.hidden = hide;
   if (asideBilling) asideBilling.hidden = hide;
 }
