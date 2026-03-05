@@ -5043,5 +5043,15 @@ html body.homepage main#page .page-section > .content-wrapper {
 body main.dx-dexnotes-page .dx-dexnotes-controls-top .dx-dexnotes-filter-toggle.dx-button-element,
 body main.dx-dexnotes-page .dx-dexnotes-filter-actions .dx-button-element {
   border: 0 !important;
+  background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
+  color: #000 !important;
   box-shadow: none !important;
+}
+
+body main.dx-dexnotes-page .dx-dexnotes-controls-top .dx-dexnotes-filter-toggle.dx-button-element:hover,
+body main.dx-dexnotes-page .dx-dexnotes-controls-top .dx-dexnotes-filter-toggle.dx-button-element:focus-visible,
+body main.dx-dexnotes-page .dx-dexnotes-filter-actions .dx-button-element:hover,
+body main.dx-dexnotes-page .dx-dexnotes-filter-actions .dx-button-element:focus-visible {
+  background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
+  color: #000 !important;
 }
