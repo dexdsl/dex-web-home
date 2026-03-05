@@ -5038,3 +5038,10 @@ html body.homepage main#page .page-section > .content-wrapper {
   padding-top: var(--dx-home-section-outer-gap) !important;
   padding-bottom: var(--dx-home-section-outer-gap) !important;
 }
+
+/* Dex Notes filter buttons: force stroke-free secondary controls to match Catalog. */
+body main.dx-dexnotes-page .dx-dexnotes-controls-top .dx-dexnotes-filter-toggle.dx-button-element,
+body main.dx-dexnotes-page .dx-dexnotes-filter-actions .dx-button-element {
+  border: 0 !important;
+  box-shadow: none !important;
+}
