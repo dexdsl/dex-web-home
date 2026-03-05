@@ -1970,12 +1970,12 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   body.dx-route-profile-protected #footer-sections .dex-footer,
   body.dx-route-profile-protected .dex-footer.dx-profile-footer-portaled {
     position: relative !important;
-    left: auto !important;
+    left: 50% !important;
     right: auto !important;
     bottom: auto !important;
-    transform: none !important;
-    width: calc(100% - 16px) !important;
-    max-width: var(--dx-header-frame-width) !important;
+    transform: translateX(-50%) !important;
+    width: var(--dx-header-frame-width-vw) !important;
+    max-width: var(--dx-header-frame-width-vw) !important;
     margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
     z-index: calc(var(--dx-layer-foreground) + 3) !important;
   }

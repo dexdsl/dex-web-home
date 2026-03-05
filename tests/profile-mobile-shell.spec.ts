@@ -252,6 +252,8 @@ test('mid-width profile routes keep footer in flow below content', async ({ page
         '#dex-favorites,#dex-msg,#dex-submit,#dex-press,#dex-achv,#dex-console,#dex-settings',
       ) as HTMLElement | null;
       const routeRect = routeRoot ? routeRoot.getBoundingClientRect() : null;
+      const header = document.querySelector('.header-announcement-bar-wrapper') as HTMLElement | null;
+      const headerRect = header ? header.getBoundingClientRect() : null;
       const footer = document.querySelector('.dex-footer') as HTMLElement | null;
       const sectionFooter = document.querySelector('#footer-sections .dex-footer') as HTMLElement | null;
       const footerRect = footer ? footer.getBoundingClientRect() : null;
@@ -262,6 +264,8 @@ test('mid-width profile routes keep footer in flow below content', async ({ page
         footerWithinFooterSections: !!(footer && sectionFooter && footer === sectionFooter),
         footerPortaled: !!(footer && footer.classList.contains('dx-profile-footer-portaled')),
         footerPosition: footerStyle ? footerStyle.position : '',
+        headerWidthPx: headerRect ? Math.round(headerRect.width) : 0,
+        footerWidthPx: footerRect ? Math.round(footerRect.width) : 0,
         routeBottomPx: routeRect ? Math.round(routeRect.bottom) : 0,
         footerTopPx: footerRect ? Math.round(footerRect.top) : 0,
         footerHeightPx: footerRect ? Math.round(footerRect.height) : 0,
@@ -273,6 +277,8 @@ test('mid-width profile routes keep footer in flow below content', async ({ page
     expect(metrics.footerPortaled).toBeFalsy();
     expect(metrics.footerPosition).toBe('relative');
     expect(metrics.footerHeightPx).toBeGreaterThan(0);
+    expect(metrics.headerWidthPx).toBeGreaterThan(0);
+    expect(Math.abs(metrics.footerWidthPx - metrics.headerWidthPx)).toBeLessThanOrEqual(4);
     expect(Math.abs(metrics.footerTopPx - metrics.routeBottomPx)).toBeLessThan(180);
   }
 });
