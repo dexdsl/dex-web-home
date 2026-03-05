@@ -2937,6 +2937,10 @@ body.homepage .page-section:not([class*="footer" i]) {
   background: transparent !important;
 }
 @supports selector(.page-section:has(footer.dex-footer)) {
+  body.homepage .page-section:has(footer.dex-footer) {
+    margin-top: 0 !important;
+  }
+
   body.homepage .page-section:has(footer.dex-footer),
   body.homepage .page-section:has(footer.dex-footer) .section-border,
   body.homepage .page-section:has(footer.dex-footer) .section-background,
@@ -2956,6 +2960,10 @@ body.homepage .page-section:not([class*="footer" i]) {
   body.homepage .page-section:has(footer.dex-footer) .section-background {
     display: none !important;
   }
+}
+
+body.homepage .page-section[data-section-id="68b3e0101bba1927c78baa85"] {
+  margin-top: 0 !important;
 }
 
 /* Fallback for engines without :has support (home footer section id). */
@@ -4178,7 +4186,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 
 
   .fe-block-5976018fa8f9e1213243 {
-    grid-area: 1/2/7/10;
+    grid-area: 1/2/8/10;
     z-index: 3;
 
     @media (max-width: 767px) {
@@ -4199,7 +4207,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 
   @media (min-width: 768px) {
     .fe-block-5976018fa8f9e1213243 {
-      grid-area: 1/2/6/26;
+      grid-area: 1/2/7/26;
       z-index: 2;
 
       
