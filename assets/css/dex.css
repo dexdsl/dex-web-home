@@ -2076,6 +2076,58 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   }
 }
 
+/* Keep profile footer pinned for desktop/tablet profile routes (>900px). */
+@media (min-width: 901px) and (max-width: 1200px) {
+  body.dx-route-profile-protected #footer-sections {
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+    z-index: auto !important;
+  }
+
+  body.dx-route-profile-protected #footer-sections .page-section,
+  body.dx-route-profile-protected #footer-sections .content-wrapper,
+  body.dx-route-profile-protected #footer-sections .content,
+  body.dx-route-profile-protected #footer-sections .fluid-engine,
+  body.dx-route-profile-protected #footer-sections .fe-block,
+  body.dx-route-profile-protected #footer-sections .dx-block,
+  body.dx-route-profile-protected #footer-sections .dx-block-content,
+  body.dx-route-profile-protected #footer-sections .dx-code-container {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.dx-route-profile-protected #footer-sections .dex-footer,
+  body.dx-route-profile-protected .dex-footer.dx-profile-footer-portaled {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: var(--dx-profile-footer-bottom) !important;
+    transform: translateX(-50%) !important;
+    width: var(--dx-header-frame-width-vw) !important;
+    max-width: var(--dx-header-frame-width-vw) !important;
+    margin: 0 auto !important;
+    z-index: 1288 !important;
+    pointer-events: auto !important;
+  }
+
+  body.dx-slot-enabled.dx-route-profile-protected #dx-slot-foreground-root {
+    padding-bottom: 0 !important;
+  }
+
+  body.dx-route-profile-protected :is(#dex-submit, #dex-msg, #dex-press, #dex-settings) {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+
 // Product Variant Button (Just Text Style- Ghost //
 
 .ProductItem-details .variant-radiobtn-wrapper label {

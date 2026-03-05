@@ -19,7 +19,7 @@
   const MOBILE_PROFILE_PANEL_ID = 'dx-mobile-menu-profile-panel';
   const MOBILE_MENU_OPEN_CLASS = 'dx-mobile-menu-open';
   const MOBILE_BREAKPOINT_QUERY = '(max-width: 980px)';
-  const PROFILE_FOOTER_INLINE_QUERY = '(max-width: 1200px)';
+  const PROFILE_FOOTER_INLINE_QUERY = '(max-width: 900px)';
   const ROUTE_TRANSITION_OUT_START = 'dx:route-transition-out:start';
   const ROUTE_TRANSITION_OUT_END = 'dx:route-transition-out:end';
   const ROUTE_TRANSITION_IN_START = 'dx:route-transition-in:start';
@@ -1926,7 +1926,7 @@
     try {
       return window.matchMedia(PROFILE_FOOTER_INLINE_QUERY).matches;
     } catch {
-      return window.innerWidth <= 1200;
+      return window.innerWidth <= 900;
     }
   }
 
