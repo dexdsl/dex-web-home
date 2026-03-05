@@ -30,6 +30,11 @@
   gap: clamp(0.92rem, 1.6vw, 1.35rem);
 }
 
+.dx-dexnotes-index-app {
+  display: grid;
+  gap: clamp(0.92rem, 1.6vw, 1.35rem);
+}
+
 #gooey-mesh-wrapper {
   position: fixed;
   top: 0;
@@ -348,6 +353,11 @@
 
 /* Guardrail: preserve Dex Notes card spacing against global reset collisions. */
 main.dx-dexnotes-page .dx-dexnotes-index-shell {
+  gap: clamp(0.92rem, 1.6vw, 1.35rem) !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-index-app {
+  display: grid !important;
   gap: clamp(0.92rem, 1.6vw, 1.35rem) !important;
 }
 
