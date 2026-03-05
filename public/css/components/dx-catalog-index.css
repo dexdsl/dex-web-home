@@ -7,10 +7,19 @@
   --dx-catalog-index-ink: #1f2028;
   --dx-catalog-index-muted: #535865;
   --dx-catalog-index-frame-width: min(calc(100% - clamp(16px, 3vw, 40px)), 1380px);
-  --dx-catalog-index-control-glass: rgba(255, 255, 255, 0.58);
+  --dx-catalog-index-control-h: clamp(2.625rem, 4.2vw, 2.9rem);
+  --dx-catalog-index-control-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
+  --dx-catalog-index-control-rim: rgba(255, 255, 255, 0.3);
+  --dx-catalog-index-control-glass: linear-gradient(
+    132deg,
+    rgba(14, 19, 29, 0.74) 0%,
+    rgba(10, 15, 24, 0.68) 52%,
+    rgba(18, 24, 36, 0.72) 100%
+  );
   --dx-catalog-index-search-glass: rgba(28, 35, 49, 0.46);
-  --dx-catalog-index-search-rim: rgba(255, 255, 255, 0.26);
-  --dx-catalog-index-search-ink: #f1f4fb;
+  --dx-catalog-index-search-rim: rgba(255, 255, 255, 0.3);
+  --dx-catalog-index-search-ink: rgba(244, 248, 255, 0.96);
+  --dx-catalog-index-search-placeholder: rgba(226, 234, 248, 0.72);
 }
 
 .dx-catalog-page {
@@ -486,7 +495,7 @@
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 1fr;
-  align-items: center;
+  align-items: stretch;
 }
 
 .dx-catalog-index-mode-label {
@@ -502,36 +511,82 @@
 .dx-catalog-index-search,
 .dx-catalog-index-select {
   width: 100%;
-  min-height: 2.58rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.58);
+  min-height: var(--dx-catalog-index-control-h);
+  height: var(--dx-catalog-index-control-h);
+  border-radius: var(--dx-catalog-index-control-radius);
+  border: 1px solid var(--dx-catalog-index-control-rim);
   background: var(--dx-catalog-index-control-glass);
-  color: var(--dx-catalog-index-ink);
+  color: var(--dx-catalog-index-search-ink);
+  -webkit-backdrop-filter: saturate(170%) blur(14px);
+  backdrop-filter: saturate(170%) blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 22px rgba(5, 8, 15, 0.26);
   font-family: var(--font-mono, "Courier Prime", monospace);
   font-size: 14px;
-  padding: 0.54rem 0.78rem;
+  line-height: 1;
+  padding: 0 0.84rem;
 }
 
 .dx-catalog-index-search {
   border-color: var(--dx-catalog-index-search-rim);
-  background: var(--dx-catalog-index-search-glass);
+  background: var(--dx-catalog-index-control-glass);
   color: var(--dx-catalog-index-search-ink);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .dx-catalog-index-search::placeholder {
-  color: rgba(234, 240, 252, 0.7);
+  color: var(--dx-catalog-index-search-placeholder);
 }
 
 .dx-catalog-index-search:focus,
 .dx-catalog-index-select:focus,
 .dx-catalog-index-filters-toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.22);
 }
 
 .dx-catalog-index-filters-toggle {
   justify-self: start;
+  min-height: var(--dx-catalog-index-control-h) !important;
+  height: var(--dx-catalog-index-control-h);
+  min-width: clamp(9rem, 13vw, 12rem);
+  border-radius: var(--dx-catalog-index-control-radius) !important;
+  border: 1px solid var(--dx-catalog-index-control-rim) !important;
+  background: var(--dx-catalog-index-control-glass) !important;
+  color: var(--dx-catalog-index-search-ink) !important;
+  -webkit-backdrop-filter: saturate(170%) blur(14px);
+  backdrop-filter: saturate(170%) blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 22px rgba(5, 8, 15, 0.26) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em;
+  padding-inline: clamp(0.92rem, 1.6vw, 1.26rem) !important;
+}
+
+.dx-catalog-index-drawer-actions .dx-button-element {
+  min-height: var(--dx-catalog-index-control-h) !important;
+  height: var(--dx-catalog-index-control-h);
+  border-radius: var(--dx-catalog-index-control-radius) !important;
+  border: 1px solid var(--dx-catalog-index-control-rim) !important;
+  background: var(--dx-catalog-index-control-glass) !important;
+  color: var(--dx-catalog-index-search-ink) !important;
+  -webkit-backdrop-filter: saturate(170%) blur(14px);
+  backdrop-filter: saturate(170%) blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 22px rgba(5, 8, 15, 0.26) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em;
+}
+
+.dx-catalog-index-filters-toggle:hover,
+.dx-catalog-index-filters-toggle:focus-visible,
+.dx-catalog-index-drawer-actions .dx-button-element:hover,
+.dx-catalog-index-drawer-actions .dx-button-element:focus-visible {
+  border-color: rgba(255, 255, 255, 0.54) !important;
+  color: #fff !important;
 }
 
 .dx-catalog-index-drawer {
