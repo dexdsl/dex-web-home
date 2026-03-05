@@ -1,17 +1,20 @@
 .dx-marketing-newsletter-form,
 .dx-call-newsletter-form {
+  --dx-newsletter-control-h: clamp(2.625rem, 4.2vw, 2.9rem);
+  --dx-newsletter-control-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
   margin-top: 0.8rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
+  align-items: stretch;
 }
 
 form.dx-marketing-newsletter-form input.dx-marketing-newsletter-input,
 form.dx-call-newsletter-form input.dx-call-newsletter-input {
   flex: 1 1 240px;
-  min-height: 2.65rem;
-  border-radius: 12px;
+  min-height: var(--dx-newsletter-control-h);
+  height: var(--dx-newsletter-control-h);
+  border-radius: var(--dx-newsletter-control-radius);
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: linear-gradient(
     132deg,
@@ -27,7 +30,19 @@ form.dx-call-newsletter-form input.dx-call-newsletter-input {
   color: rgba(244, 248, 255, 0.96);
   font-family: var(--font-mono, "Courier Prime", monospace);
   font-size: 14px;
-  padding: 0.54rem 0.78rem;
+  line-height: 1;
+  padding: 0 0.84rem;
+}
+
+.dx-marketing-newsletter-submit,
+.dx-call-newsletter-submit {
+  min-height: var(--dx-newsletter-control-h) !important;
+  height: var(--dx-newsletter-control-h);
+  flex: 0 0 clamp(9.5rem, 14vw, 13rem);
+  min-width: clamp(9.5rem, 14vw, 13rem);
+  border-radius: var(--dx-newsletter-control-radius) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em;
 }
 
 form.dx-marketing-newsletter-form input.dx-marketing-newsletter-input::placeholder,
@@ -110,5 +125,12 @@ form.dx-call-newsletter-form input.dx-call-newsletter-input:-webkit-autofill:foc
   .dx-call-newsletter-form {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .dx-marketing-newsletter-submit,
+  .dx-call-newsletter-submit {
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
   }
 }
