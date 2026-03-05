@@ -1167,15 +1167,17 @@ body .dex-sidebar::before {
   #dex-console,
   #dex-settings
 ) {
-  --dx-route-glass-bg: rgba(255, 255, 255, 0.14) !important;
-  --dx-route-glass-rim: rgba(255, 255, 255, 0.32) !important;
+  --dx-route-glass-bg: rgba(255, 255, 255, 0.16) !important;
+  --dx-route-glass-rim: rgba(255, 255, 255, 0.42) !important;
   --dx-route-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-  --dx-route-glass-blur: 28px !important;
+  --dx-route-glass-blur: 24px !important;
+  --dx-route-glass-backdrop: blur(24px) saturate(170%) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --liquid-bg: var(--dx-route-glass-bg) !important;
   --liquid-border: var(--dx-route-glass-rim) !important;
   --liquid-blur: var(--dx-route-glass-blur) !important;
+  --liquid-backdrop: var(--dx-route-glass-backdrop) !important;
   --shadow-light: var(--dx-route-glass-shadow) !important;
   --shadow-md: var(--dx-route-glass-shadow) !important;
 }
@@ -1223,8 +1225,8 @@ body .dex-sidebar::before {
   border: 1px solid var(--liquid-border) !important;
   background: var(--liquid-bg) !important;
   box-shadow: var(--shadow-md) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
-  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  -webkit-backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
+  backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
   filter: none !important;
 }
 
@@ -1271,17 +1273,26 @@ body.dx-route-profile-protected {
   --space-3: var(--dx-space-md, 1rem) !important;
   --space-4: var(--dx-space-lg, 1.5rem) !important;
   --space-5: var(--dx-space-xl, 2rem) !important;
+  --dx-profile-frame-width: var(--dx-header-frame-width-vw) !important;
+  --dx-profile-card-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
+  --dx-profile-card-rim: rgba(255, 255, 255, 0.42) !important;
+  --dx-profile-card-surface: rgba(255, 255, 255, 0.16) !important;
+  --dx-profile-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  --dx-profile-card-backdrop: blur(24px) saturate(170%) !important;
   --radius-sm: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
   --radius-md: var(--dx-header-glass-radius, var(--dx-radius-md, 10px)) !important;
-  --liquid-bg: rgba(255, 255, 255, 0.14) !important;
-  --liquid-border: rgba(255, 255, 255, 0.32) !important;
-  --liquid-blur: 28px !important;
-  --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  --liquid-bg: var(--dx-profile-card-surface) !important;
+  --liquid-border: var(--dx-profile-card-rim) !important;
+  --liquid-blur: 24px !important;
+  --liquid-backdrop: var(--dx-profile-card-backdrop) !important;
+  --shadow-light: var(--dx-profile-card-shadow) !important;
+  --shadow-md: var(--dx-profile-card-shadow) !important;
   --dx-profile-home-header-gap: 13.5px !important;
   --dx-profile-home-card-footer-gap: 34.671875px !important;
   --dx-profile-home-footer-inset: 35px !important;
   --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
+  --dx-profile-pin-top: calc(var(--dx-fixed-header-space, 114px) - var(--dx-fixed-header-top, 12px) + 8px) !important;
+  --dx-profile-pin-max-h: calc(100vh - (var(--dx-fixed-header-space, 114px) - var(--dx-fixed-header-top, 12px) + 20px)) !important;
   --dx-profile-footer-bottom: max(var(--dx-profile-home-footer-inset), calc(var(--dx-safe-bottom, 0px) + 4px)) !important;
   --dx-profile-footer-height-fallback: clamp(108px, 18vh, 220px) !important;
   --dx-profile-footer-height-effective: var(--dx-profile-footer-height, var(--dx-profile-footer-height-fallback)) !important;
@@ -1528,8 +1539,8 @@ body.dx-route-profile-protected :is(
   background: var(--liquid-bg) !important;
   border-color: var(--liquid-border) !important;
   box-shadow: var(--shadow-light) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
-  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  -webkit-backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
+  backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
 }
 
 html body.dx-route-profile-protected {
@@ -1545,8 +1556,8 @@ body.dx-route-profile-protected :is(
   main#page,
   #dx-slot-foreground-root > main#page
 ) {
-  width: var(--dx-header-frame-width) !important;
-  max-width: var(--dx-header-frame-width) !important;
+  width: var(--dx-profile-frame-width) !important;
+  max-width: var(--dx-profile-frame-width) !important;
   margin-left: auto !important;
   margin-right: auto !important;
   padding-left: 0 !important;
@@ -1571,6 +1582,45 @@ body.dx-route-profile-protected :is(
   padding-top: var(--dx-profile-home-header-gap) !important;
   padding-bottom: var(--dx-profile-home-card-footer-gap) !important;
   box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+body.dx-route-profile-protected :is(
+  #dex-favorites,
+  #dex-msg,
+  #dex-submit,
+  #dex-press,
+  #dex-achv,
+  #dex-console,
+  #dex-settings
+) > * {
+  overflow: visible !important;
+}
+
+/* Canonical profile-shell scrollers and rail pinning follow /submit behavior. */
+body.dx-route-profile-protected :is(
+  #dex-submit .dx-submit-stage,
+  #dex-submit .dx-submit-command,
+  #dex-press .dx-press-stage-host,
+  #dex-press .dx-press-command,
+  #dex-submission,
+  #dxMembershipV3Root[data-dx-membership-rail-scrollable="true"]
+) {
+  overflow: auto !important;
+}
+
+body.dx-route-profile-protected :is(#dex-submit .dx-submit-command, #dex-press .dx-press-command) {
+  position: sticky !important;
+  top: var(--dx-profile-pin-top) !important;
+  max-height: var(--dx-profile-pin-max-h) !important;
+}
+
+@media (max-width: 1100px) {
+  body.dx-route-profile-protected :is(#dex-submit .dx-submit-command, #dex-press .dx-press-command) {
+    position: relative !important;
+    top: auto !important;
+    max-height: none !important;
+  }
 }
 
 body.dx-route-profile-protected #dex-settings .hdr,
@@ -1581,8 +1631,27 @@ body.dx-route-profile-protected #dex-settings .savebar {
   border: 1px solid var(--liquid-border) !important;
   background: var(--liquid-bg) !important;
   box-shadow: var(--shadow-md) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
-  backdrop-filter: blur(var(--liquid-blur)) saturate(180%) contrast(1.12) brightness(1.06) !important;
+  -webkit-backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
+  backdrop-filter: var(--liquid-backdrop, blur(24px) saturate(170%)) !important;
+}
+
+body.dx-route-profile-protected :is(
+  #dex-msg .dx-msg-shell,
+  #dex-msg .dx-msg-item,
+  #dex-msg .dx-msg-warning,
+  #dex-msg .dx-msg-empty,
+  #dex-settings #dxMembershipV3Root .dx-memv3-card,
+  #dex-settings #dxMembershipV3Root .dx-memv3-status,
+  #dex-settings #dxMembershipV3Root .dx-memv3-tier,
+  #dex-settings #dxMembershipV3Root .dx-memv3-plan-panel,
+  #dex-settings #dxMembershipV3Root .dx-memv3-tier-composer
+) {
+  border-radius: var(--dx-profile-card-radius) !important;
+  border: 1px solid var(--dx-profile-card-rim) !important;
+  background: var(--dx-profile-card-surface) !important;
+  box-shadow: var(--dx-profile-card-shadow) !important;
+  -webkit-backdrop-filter: var(--dx-profile-card-backdrop) !important;
+  backdrop-filter: var(--dx-profile-card-backdrop) !important;
 }
 
 /* Always remove base wrapper shells on profile-route surfaces (independent of route class hydration). */
@@ -1632,6 +1701,16 @@ body.dx-route-profile-protected :is(
   width: 100% !important;
   max-width: none !important;
   padding: clamp(16px, 2vw, 26px) !important;
+}
+
+/* Achievements uses its sidebar shell as the primary card surface; keep it canonical to /submit. */
+body.dx-route-profile-protected #dex-achv > .dex-sidebar {
+  border-radius: var(--dx-profile-card-radius) !important;
+  border: 1px solid var(--dx-profile-card-rim) !important;
+  background: var(--dx-profile-card-surface) !important;
+  box-shadow: var(--dx-profile-card-shadow) !important;
+  -webkit-backdrop-filter: var(--dx-profile-card-backdrop) !important;
+  backdrop-filter: var(--dx-profile-card-backdrop) !important;
 }
 
 body.dx-route-profile-protected #dex-favorites > .dex-sidebar::before,
@@ -1814,9 +1893,9 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 
 @media (max-width: 1200px) {
   body.dx-route-profile-protected {
-    --dx-profile-home-header-gap: 13.5px !important;
-    --dx-profile-home-card-footer-gap: 8px !important;
-    --dx-profile-home-footer-inset: 8px !important;
+    --dx-profile-home-header-gap: 12px !important;
+    --dx-profile-home-card-footer-gap: 12px !important;
+    --dx-profile-home-footer-inset: 12px !important;
     --dx-profile-layout-gap: var(--dx-profile-home-header-gap) !important;
     --dx-profile-footer-height-fallback: clamp(124px, 24vh, 280px) !important;
   }
@@ -1826,8 +1905,8 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
     main#page,
     #dx-slot-foreground-root > main#page
   ) {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: var(--dx-profile-frame-width) !important;
+    max-width: var(--dx-profile-frame-width) !important;
   }
 
   body.dx-route-profile-protected :is(
@@ -1978,6 +2057,22 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
     max-width: var(--dx-header-frame-width-vw) !important;
     margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
     z-index: calc(var(--dx-layer-foreground) + 3) !important;
+  }
+}
+
+@media (max-width: 1099px) {
+  body.dx-route-profile-protected {
+    --dx-profile-home-header-gap: 10px !important;
+    --dx-profile-home-card-footer-gap: 10px !important;
+    --dx-profile-home-footer-inset: 10px !important;
+  }
+}
+
+@media (max-width: 899px) {
+  body.dx-route-profile-protected {
+    --dx-profile-home-header-gap: 8px !important;
+    --dx-profile-home-card-footer-gap: 8px !important;
+    --dx-profile-home-footer-inset: 8px !important;
   }
 }
 
