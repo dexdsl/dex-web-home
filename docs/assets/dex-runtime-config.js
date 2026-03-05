@@ -8,7 +8,7 @@
 
   const config = Object.assign(
     {
-      turnstileSiteKey: 'REPLACE_WITH_TURNSTILE_SITE_KEY',
+      turnstileSiteKey: '0x4AAAAAACmdfgiNkzPWMVN5',
     },
     existing,
   );
