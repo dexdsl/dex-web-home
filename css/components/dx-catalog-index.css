@@ -495,55 +495,65 @@
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 1fr;
-  align-items: stretch;
+  align-items: center;
 }
 
 .dx-catalog-index-mode-label {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--dx-catalog-index-control-h);
+  line-height: 1;
 }
 
 .dx-catalog-index-search-wrap {
   display: block;
+  align-self: stretch;
 }
 
-.dx-catalog-index-search,
-.dx-catalog-index-select {
+.dx-catalog-index-toolbar input.dx-catalog-index-search,
+.dx-catalog-index-toolbar select.dx-catalog-index-select,
+.dx-catalog-index-drawer select.dx-catalog-index-select,
+input.dx-catalog-index-search,
+select.dx-catalog-index-select {
   width: 100%;
   min-height: var(--dx-catalog-index-control-h);
   height: var(--dx-catalog-index-control-h);
-  border-radius: var(--dx-catalog-index-control-radius);
-  border: 1px solid var(--dx-catalog-index-control-rim);
-  background: var(--dx-catalog-index-control-glass);
-  color: var(--dx-catalog-index-search-ink);
-  -webkit-backdrop-filter: saturate(170%) blur(14px);
-  backdrop-filter: saturate(170%) blur(14px);
+  border-radius: var(--dx-catalog-index-control-radius) !important;
+  border: 1px solid var(--dx-catalog-index-control-rim) !important;
+  background: var(--dx-catalog-index-control-glass) !important;
+  background-color: rgba(12, 17, 27, 0.66) !important;
+  color: var(--dx-catalog-index-search-ink) !important;
+  -webkit-backdrop-filter: saturate(170%) blur(14px) !important;
+  backdrop-filter: saturate(170%) blur(14px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 10px 22px rgba(5, 8, 15, 0.26);
+    0 10px 22px rgba(5, 8, 15, 0.26) !important;
   font-family: var(--font-mono, "Courier Prime", monospace);
   font-size: 14px;
-  line-height: 1;
-  padding: 0 0.84rem;
+  line-height: 1.05;
+  padding: 0 0.84rem !important;
 }
 
 .dx-catalog-index-search {
-  border-color: var(--dx-catalog-index-search-rim);
-  background: var(--dx-catalog-index-control-glass);
-  color: var(--dx-catalog-index-search-ink);
+  border-color: var(--dx-catalog-index-search-rim) !important;
+  background: var(--dx-catalog-index-control-glass) !important;
+  color: var(--dx-catalog-index-search-ink) !important;
 }
 
 .dx-catalog-index-search::placeholder {
-  color: var(--dx-catalog-index-search-placeholder);
+  color: var(--dx-catalog-index-search-placeholder) !important;
+  opacity: 1;
 }
 
 .dx-catalog-index-search:focus,
 .dx-catalog-index-select:focus,
 .dx-catalog-index-filters-toggle:focus-visible {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.22);
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(255, 25, 16, 0.22) !important;
 }
 
 .dx-catalog-index-filters-toggle {
@@ -552,16 +562,12 @@
   height: var(--dx-catalog-index-control-h);
   min-width: clamp(9rem, 13vw, 12rem);
   border-radius: var(--dx-catalog-index-control-radius) !important;
-  border: 1px solid var(--dx-catalog-index-control-rim) !important;
-  background: var(--dx-catalog-index-control-glass) !important;
-  color: var(--dx-catalog-index-search-ink) !important;
-  -webkit-backdrop-filter: saturate(170%) blur(14px);
-  backdrop-filter: saturate(170%) blur(14px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 10px 22px rgba(5, 8, 15, 0.26) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.07em;
+  border: 1px solid var(--dx-btn-secondary-border, rgba(32, 32, 32, 0.22)) !important;
+  background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
   padding-inline: clamp(0.92rem, 1.6vw, 1.26rem) !important;
 }
 
@@ -569,24 +575,20 @@
   min-height: var(--dx-catalog-index-control-h) !important;
   height: var(--dx-catalog-index-control-h);
   border-radius: var(--dx-catalog-index-control-radius) !important;
-  border: 1px solid var(--dx-catalog-index-control-rim) !important;
-  background: var(--dx-catalog-index-control-glass) !important;
-  color: var(--dx-catalog-index-search-ink) !important;
-  -webkit-backdrop-filter: saturate(170%) blur(14px);
-  backdrop-filter: saturate(170%) blur(14px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 10px 22px rgba(5, 8, 15, 0.26) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.07em;
+  border: 1px solid var(--dx-btn-secondary-border, rgba(32, 32, 32, 0.22)) !important;
+  background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
 }
 
 .dx-catalog-index-filters-toggle:hover,
 .dx-catalog-index-filters-toggle:focus-visible,
 .dx-catalog-index-drawer-actions .dx-button-element:hover,
 .dx-catalog-index-drawer-actions .dx-button-element:focus-visible {
-  border-color: rgba(255, 255, 255, 0.54) !important;
-  color: #fff !important;
+  border-color: rgba(32, 32, 32, 0.32) !important;
+  color: #000 !important;
 }
 
 .dx-catalog-index-drawer {
