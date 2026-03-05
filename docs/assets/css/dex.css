@@ -1763,6 +1763,36 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   pointer-events: none !important;
 }
 
+/* Unconditional settings host reset (independent of :has support). */
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] {
+  min-height: 0 !important;
+  height: auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] > .content-wrapper,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] > .content-wrapper > .content,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .fluid-engine,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .fluid-engine > .fe-block,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .dx-block,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .dx-block-content,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .dx-code-container {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-border,
+body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-background {
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
 @supports selector(.fluid-engine:has(#dex-favorites)) {
   /* Settings host wrappers: keep surrounding section chrome fully transparent. */
   body.dx-route-profile-protected .page-section:has(#dex-settings),
@@ -2192,8 +2222,7 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 /* Settings route should pin as a single shell and scroll internally above mobile breakpoints. */
 @media (min-width: 901px) {
   body.dx-route-profile-protected #dex-settings {
-    --dx-settings-shell-top-pad: max(6px, calc(var(--dx-profile-home-header-gap) - 4px)) !important;
-    --dx-settings-shell-gap: max(8px, calc(var(--dx-profile-home-header-gap) - 2px)) !important;
+    --dx-settings-shell-gap: var(--dx-profile-home-header-gap) !important;
     --pad: var(--dx-settings-shell-gap) !important;
     --gap: var(--dx-settings-shell-gap) !important;
     padding-top: var(--dx-profile-home-header-gap) !important;
@@ -2201,13 +2230,9 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
-    scroll-padding-top: var(--dx-settings-shell-top-pad) !important;
+    scroll-padding-top: var(--dx-profile-home-header-gap) !important;
     scroll-padding-bottom: var(--dx-profile-home-header-gap) !important;
     scrollbar-gutter: stable both-edges !important;
-  }
-
-  body.dx-route-profile-protected #dex-settings {
-    padding-top: var(--dx-settings-shell-top-pad) !important;
   }
 
   body.dx-route-profile-protected #dex-settings .tabsbar,
