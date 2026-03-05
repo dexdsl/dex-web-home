@@ -643,7 +643,13 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
       const style = window.getComputedStyle(node);
       return { overflowY: style.overflowY };
     });
-    expect(['auto', 'scroll', 'overlay']).toContain(sidebarMeta.overflowY);
+    expect(['auto', 'scroll', 'overlay']).not.toContain(sidebarMeta.overflowY);
+    await expect(page.locator('#settingsMembershipAsideRail')).toBeVisible();
+    const railMeta = await page.locator('#settingsMembershipAsideRail').evaluate((node) => {
+      const style = window.getComputedStyle(node);
+      return { overflowY: style.overflowY };
+    });
+    expect(['auto', 'scroll', 'overlay']).toContain(railMeta.overflowY);
   }
 
   await expect(page.locator('#notCard .dx-not-scroll')).toBeVisible();
