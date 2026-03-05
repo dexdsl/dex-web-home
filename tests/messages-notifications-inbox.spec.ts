@@ -631,9 +631,20 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page, 'signed-in');
   await stubMessagesApi(page, 'success', [], [], newsletterHits);
+  await page.setViewportSize({ width: 1200, height: 900 });
 
   await page.goto('/entry/settings/#notifs', { waitUntil: 'domcontentloaded' });
   await page.locator('#tab-notifs').click();
+  await expect(page.locator('#dex-settings')).toHaveAttribute('data-dx-settings-pane', 'notifs');
+
+  const desktopSettingsWidth = await page.evaluate(() => window.innerWidth || document.documentElement.clientWidth || 0);
+  if (desktopSettingsWidth >= 980) {
+    const sidebarMeta = await page.locator('#dex-settings .grid > aside').evaluate((node) => {
+      const style = window.getComputedStyle(node);
+      return { overflowY: style.overflowY };
+    });
+    expect(['auto', 'scroll', 'overlay']).toContain(sidebarMeta.overflowY);
+  }
 
   await expect(page.locator('#notCard .dx-not-scroll')).toBeVisible();
   const scrollMeta = await page.locator('#notCard .dx-not-scroll').evaluate((node) => {
@@ -776,9 +787,20 @@ test('settings membership v3 renders trust-first status and production billing l
     customer_portal_enabled: true,
     has_default_payment_method: false,
   });
+  await page.setViewportSize({ width: 1200, height: 900 });
 
   await page.goto('/entry/settings/#membership', { waitUntil: 'domcontentloaded' });
   await page.locator('#tab-membership').click();
+  await expect(page.locator('#dex-settings')).toHaveAttribute('data-dx-settings-pane', 'membership');
+
+  const desktopMembershipWidth = await page.evaluate(() => window.innerWidth || document.documentElement.clientWidth || 0);
+  if (desktopMembershipWidth >= 980) {
+    const membershipSidebarMeta = await page.locator('#dex-settings .grid > aside').evaluate((node) => {
+      const style = window.getComputedStyle(node);
+      return { overflowY: style.overflowY };
+    });
+    expect(['auto', 'scroll', 'overlay']).toContain(membershipSidebarMeta.overflowY);
+  }
 
   const membershipRoot = page.locator('#dxMembershipV3Root');
   await expect(membershipRoot).toBeVisible();

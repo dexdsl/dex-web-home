@@ -3483,6 +3483,12 @@ function toggleProfileAside() {
   if (asideBilling) asideBilling.hidden = hide;
 }
 
+function setSettingsPaneState(paneName) {
+  if (!(root instanceof HTMLElement)) return;
+  const nextPane = paneName === 'membership' || paneName === 'notifs' ? paneName : 'profile';
+  root.setAttribute('data-dx-settings-pane', nextPane);
+}
+
       const ink   = $('.pills .ink');
       const prev  = $('#navPrev'), next = $('#navNext');
       ensureHeroiconNavArrow(prev, HEROICON_ARROW_LEFT_D);
@@ -3546,6 +3552,7 @@ function fitProfileLayout(){
             loadMembershipPane().then(()=>{});
             showPane._loadedMembership = true;
           }
+          setSettingsPaneState(current);
           fitProfileLayout();
           toggleProfileAside();
           queueInkSync(true);
@@ -3556,6 +3563,7 @@ function fitProfileLayout(){
         tabs.forEach(b => b.tabIndex = (b.dataset.pane===name ? 0 : -1));
         panes.forEach((el,key)=> el.hidden = key!==name);
         current = name;
+        setSettingsPaneState(current);
         fitProfileLayout();
 
         toggleProfileAside();
@@ -3632,6 +3640,7 @@ function fitProfileLayout(){
   first.setAttribute('aria-selected','true');
   panes.forEach((el, key) => el.hidden = (key !== first.dataset.pane));
   current = first.dataset.pane;
+  setSettingsPaneState(current);
 
   if (current === 'membership' && !showPane._loadedMembership){
     loadMembershipPane().then(()=>{});

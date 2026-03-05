@@ -39,7 +39,7 @@
   };
 
   const ALLOWED_INTERVALS = new Set(['month', 'year']);
-  const DESKTOP_RAIL_BREAKPOINT = 900;
+  const DESKTOP_RAIL_BREAKPOINT = 980;
   const RAIL_VIEWPORT_GUTTER = 18;
   const RAIL_MIN_HEIGHT = 280;
 

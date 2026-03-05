@@ -186,6 +186,8 @@ async function captureMetrics(page: Page, routePath: string, selectors: string[]
     const rootRect = root?.getBoundingClientRect() || null;
     const headerRect = header?.getBoundingClientRect() || null;
     const footerRect = footer?.getBoundingClientRect() || null;
+    const rootStyle = root ? window.getComputedStyle(root) : null;
+    const rootChildStyle = rootChild ? window.getComputedStyle(rootChild) : null;
     const cardStyle = card ? window.getComputedStyle(card) : null;
 
     return {
@@ -193,8 +195,10 @@ async function captureMetrics(page: Page, routePath: string, selectors: string[]
       headerWidthPx: headerRect ? Math.round(headerRect.width) : 0,
       footerWidthPx: footerRect ? Math.round(footerRect.width) : 0,
       rootTopGapPx: rootRect && headerRect ? Math.round(rootRect.top - headerRect.bottom) : 0,
-      rootOverflow: root ? window.getComputedStyle(root).overflow : '',
-      rootChildOverflow: rootChild ? window.getComputedStyle(rootChild).overflow : '',
+      rootOverflow: rootStyle ? rootStyle.overflow : '',
+      rootOverflowY: rootStyle ? rootStyle.overflowY : '',
+      rootChildOverflow: rootChildStyle ? rootChildStyle.overflow : '',
+      rootChildOverflowY: rootChildStyle ? rootChildStyle.overflowY : '',
       cardRadiusPx: cardStyle ? Number.parseFloat(cardStyle.borderTopLeftRadius || '0') : 0,
       cardBorderColor: cardStyle ? String(cardStyle.borderTopColor || '') : '',
       cardBackground: cardStyle ? String(cardStyle.backgroundColor || '') : '',
@@ -231,8 +235,12 @@ test('profile routes inherit /submit canonical shell geometry and glass', async 
       expect(Math.abs(routeMetrics.rootWidthPx - baseline.rootWidthPx)).toBeLessThanOrEqual(14);
       expect(Math.abs(routeMetrics.footerWidthPx - baseline.footerWidthPx)).toBeLessThanOrEqual(14);
       expect(Math.abs(routeMetrics.rootTopGapPx - baseline.rootTopGapPx)).toBeLessThanOrEqual(48);
-      expect(routeMetrics.rootOverflow).toBe(baseline.rootOverflow);
-      expect(routeMetrics.rootChildOverflow).toBe(baseline.rootChildOverflow);
+      if (routePath === '/entry/settings/' && breakpoint.width >= 980) {
+        expect(['auto', 'scroll', 'overlay']).not.toContain(routeMetrics.rootOverflowY);
+      } else {
+        expect(routeMetrics.rootOverflow).toBe(baseline.rootOverflow);
+        expect(routeMetrics.rootChildOverflow).toBe(baseline.rootChildOverflow);
+      }
       expect(Math.abs(routeMetrics.cardRadiusPx - baseline.cardRadiusPx)).toBeLessThanOrEqual(2);
       expect(
         hasCanonicalBackdrop(routeMetrics.cardBackdrop),
