@@ -3,49 +3,58 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const ABOUT_PATH = path.join(ROOT, 'docs', 'about', 'index.html');
 
-const EXPECTED_TABS = [
-  ['mission', 'About'],
-  ['work', 'What We Do'],
-  ['impact', 'Impact'],
-  ['team', 'Team'],
-  ['partners', 'Partners'],
-  ['press', 'Press'],
-  ['contact', 'Contact'],
-  ['license', 'License'],
+const ABOUT_HTML_PATH = path.join(ROOT, 'docs', 'about', 'index.html');
+const ABOUT_DATA_PATH = path.join(ROOT, 'public', 'data', 'about.data.json');
+const ABOUT_CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-about.css');
+const ABOUT_RUNTIME_SOURCE_PATH = path.join(ROOT, 'scripts', 'src', 'about.editorial.entry.mjs');
+const ABOUT_RUNTIME_BUNDLE_PATH = path.join(ROOT, 'public', 'assets', 'js', 'dx-about.js');
+
+const REQUIRED_STEP_IDS = [
+  'about-hero',
+  'about-model',
+  'about-impact',
+  'about-team',
+  'about-partners',
+  'about-press',
+  'about-contact',
 ];
 
-const REQUIRED_CTA_SIGNATURES = [
-  /<a[^>]*href="\/dex\/"[^>]*>More About Dex<\/a>/i,
-  /<a[^>]*href="#license"[^>]*data-goto="license"[^>]*>What CC BY 4\.0 Means<\/a>/i,
-  /<a[^>]*href="\/programs\/"[^>]*>Current Programs<\/a>/i,
-  /<a[^>]*href="#contact"[^>]*data-goto="contact"[^>]*>Propose a Project<\/a>/i,
-  /<a[^>]*href="\/contact\/"[^>]*>Open Contact Page<\/a>/i,
-  /<a[^>]*href="\/contact#form"[^>]*>Open Contact Form<\/a>/i,
-  /<a[^>]*href="\/copyright\/"[^>]*>Copyright & Policies<\/a>/i,
-];
+const REQUIRED_ALIASES = {
+  mission: 'about-hero',
+  work: 'about-model',
+  impact: 'about-impact',
+  team: 'about-team',
+  partners: 'about-partners',
+  press: 'about-press',
+  contact: 'about-contact',
+  license: 'about-contact',
+};
+
+function readText(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Missing required file: ${path.relative(ROOT, filePath)}`);
+  }
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+function readJson(filePath) {
+  return JSON.parse(readText(filePath));
+}
 
 function countMatches(text, pattern) {
   return (text.match(pattern) || []).length;
 }
 
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function extractAboutSection(html) {
-  const start = html.indexOf('<section id="dex-about"');
-  if (start < 0) {
-    throw new Error('Missing <section id="dex-about">.');
-  }
+function extractAboutShell(html) {
+  const marker = '<section class="dx-about-page-shell"';
+  const start = html.indexOf(marker);
+  if (start < 0) return '';
 
   const token = /<section\b[^>]*>|<\/section>/gi;
   token.lastIndex = start;
   const first = token.exec(html);
-  if (!first || first.index !== start) {
-    throw new Error('Unable to parse #dex-about section start.');
-  }
+  if (!first || first.index !== start) return '';
 
   let depth = 1;
   let match;
@@ -57,75 +66,134 @@ function extractAboutSection(html) {
     }
   }
 
-  throw new Error('Unable to find closing </section> for #dex-about.');
+  return '';
 }
 
-function normalizeText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
+function pushIf(failures, condition, message) {
+  if (!condition) failures.push(message);
 }
 
-function verifyTabs(fragment) {
-  const tabs = [];
-  const rx = /<button[^>]*class="pill"[^>]*data-pane="([^"]+)"[^>]*>([^<]*)<\/button>/gi;
-  let match;
-  while ((match = rx.exec(fragment))) {
-    tabs.push([normalizeText(match[1]), normalizeText(match[2])]);
+function verifyPageContract(html, failures) {
+  pushIf(failures, countMatches(html, /data-dx-about-app/g) === 1, 'about page must include exactly one data-dx-about-app mount');
+  pushIf(failures, countMatches(html, /href="\/css\/components\/dx-about\.css"/g) === 1, 'about page must include /css/components/dx-about.css exactly once');
+  pushIf(failures, countMatches(html, /src="\/assets\/js\/dx-about\.js"/g) === 1, 'about page must include /assets/js/dx-about.js exactly once');
+  pushIf(failures, html.includes('/assets/js/dx-marketing-newsletter.js'), 'about page must include /assets/js/dx-marketing-newsletter.js');
+  pushIf(failures, html.includes('window.DEX_ABOUT_CONFIG'), 'about page must include window.DEX_ABOUT_CONFIG');
+  pushIf(failures, html.includes('hashAliases'), 'about page DEX_ABOUT_CONFIG must include hashAliases');
+
+  const forbiddenMarkers = [
+    'id="dex-about"',
+    'id="aboutPrev"',
+    'id="aboutNext"',
+    'class="pill"',
+    'data-goto=',
+    'id="teamModal"',
+    'id="teamModalTitle"',
+    'id="teamModalBody"',
+    'id="teamModalClose"',
+  ];
+  for (const marker of forbiddenMarkers) {
+    pushIf(failures, !html.includes(marker), `about page contains forbidden legacy marker: ${marker}`);
   }
-  assert(
-    JSON.stringify(tabs) === JSON.stringify(EXPECTED_TABS),
-    `Tab order/labels mismatch.\nExpected: ${JSON.stringify(EXPECTED_TABS)}\nActual: ${JSON.stringify(tabs)}`,
-  );
-}
+  pushIf(failures, !/id="pane-[^"]+"/i.test(html), 'about page must not include legacy pane ids');
 
-function verifyPaneContract(fragment) {
-  for (const [paneKey] of EXPECTED_TABS) {
-    const paneId = `pane-${paneKey}`;
-    const rx = new RegExp(`<section[^>]*id="${paneId}"[^>]*class="pane"`, 'i');
-    assert(rx.test(fragment), `Missing pane section contract for #${paneId}.`);
+  const shell = extractAboutShell(html);
+  pushIf(failures, Boolean(shell), 'about page missing .dx-about-page-shell section');
+  if (shell) {
+    pushIf(failures, !/<style\b/i.test(shell), 'about module container must not include inline <style>');
+    pushIf(failures, !/<script\b/i.test(shell), 'about module container must not include inline <script>');
+    pushIf(failures, shell.includes('data-dx-about-app'), 'about module shell must include data-dx-about-app mount');
   }
 }
 
-function verifyCTAs(fragment) {
-  for (const signature of REQUIRED_CTA_SIGNATURES) {
-    assert(signature.test(fragment), `Missing CTA signature: ${signature}`);
+function verifyRuntimeContract(source, bundle, failures) {
+  const requiredSourceMarkers = [
+    'mountMarketingNewsletter',
+    'data-dx-marketing-newsletter-mount',
+    'wireHashCompatibility',
+    'IntersectionObserver',
+    'about-contact',
+  ];
+  for (const marker of requiredSourceMarkers) {
+    pushIf(failures, source.includes(marker), `about runtime source missing marker: ${marker}`);
+  }
+
+  for (const [legacyHash, canonicalHash] of Object.entries(REQUIRED_ALIASES)) {
+    pushIf(
+      failures,
+      source.includes(legacyHash) && source.includes(canonicalHash),
+      `about runtime source missing hash alias mapping for ${legacyHash} -> ${canonicalHash}`,
+    );
+  }
+
+  const requiredBundleMarkers = [
+    'data-dx-marketing-newsletter-mount',
+    'about-contact',
+    'dx-about-progress-link',
+  ];
+  for (const marker of requiredBundleMarkers) {
+    pushIf(failures, bundle.includes(marker), `about runtime bundle missing marker: ${marker}`);
   }
 }
 
-function verifyAssetInclusions(html) {
-  assert(
-    countMatches(html, /href="\/css\/components\/dx-about\.css"/g) === 1,
-    'Expected exactly one /css/components/dx-about.css inclusion.',
-  );
-  assert(
-    countMatches(html, /src="\/assets\/js\/dx-about\.js"/g) === 1,
-    'Expected exactly one /assets/js/dx-about.js inclusion.',
-  );
-}
+function verifyDataContract(data, failures) {
+  const requiredKeys = ['hero', 'model', 'impact', 'team', 'partners', 'press', 'contact'];
+  for (const key of requiredKeys) {
+    pushIf(failures, Boolean(data?.[key]), `about data missing section: ${key}`);
+  }
 
-function verifyNoInlineModuleStyleOrScript(fragment) {
-  assert(!/<style\b/i.test(fragment), 'Inline <style> found inside #dex-about module.');
-  assert(!/<script\b/i.test(fragment), 'Inline <script> found inside #dex-about module.');
+  const stepIds = Array.isArray(data?.steps) ? data.steps.map((step) => String(step?.id || '')) : [];
+  pushIf(
+    failures,
+    JSON.stringify(stepIds) === JSON.stringify(REQUIRED_STEP_IDS),
+    `about data steps mismatch. expected=${JSON.stringify(REQUIRED_STEP_IDS)} actual=${JSON.stringify(stepIds)}`,
+  );
+
+  const aliases = data?.hashAliases && typeof data.hashAliases === 'object' ? data.hashAliases : {};
+  for (const [legacyHash, canonicalHash] of Object.entries(REQUIRED_ALIASES)) {
+    pushIf(
+      failures,
+      String(aliases[legacyHash] || '') === canonicalHash,
+      `about data hashAliases missing mapping ${legacyHash} -> ${canonicalHash}`,
+    );
+  }
+
+  pushIf(
+    failures,
+    String(data?.contact?.newsletter?.source || '') === 'about-support-page',
+    'about contact newsletter source must be "about-support-page"',
+  );
 }
 
 function main() {
-  assert(fs.existsSync(ABOUT_PATH), `Missing file: ${path.relative(ROOT, ABOUT_PATH)}`);
-  const html = fs.readFileSync(ABOUT_PATH, 'utf8');
+  const failures = [];
 
-  assert(countMatches(html, /id="dex-about"/g) === 1, 'Expected exactly one #dex-about element.');
-  verifyAssetInclusions(html);
+  pushIf(failures, fs.existsSync(ABOUT_CSS_PATH), `missing stylesheet ${path.relative(ROOT, ABOUT_CSS_PATH)}`);
+  pushIf(failures, fs.existsSync(ABOUT_RUNTIME_BUNDLE_PATH), `missing runtime bundle ${path.relative(ROOT, ABOUT_RUNTIME_BUNDLE_PATH)}`);
 
-  const fragment = extractAboutSection(html);
-  verifyTabs(fragment);
-  verifyPaneContract(fragment);
-  verifyCTAs(fragment);
-  verifyNoInlineModuleStyleOrScript(fragment);
+  const pageHtml = readText(ABOUT_HTML_PATH);
+  const runtimeSource = readText(ABOUT_RUNTIME_SOURCE_PATH);
+  const runtimeBundle = readText(ABOUT_RUNTIME_BUNDLE_PATH);
+  const data = readJson(ABOUT_DATA_PATH);
 
-  console.log('verify_about_integrity passed.');
+  verifyPageContract(pageHtml, failures);
+  verifyRuntimeContract(runtimeSource, runtimeBundle, failures);
+  verifyDataContract(data, failures);
+
+  if (failures.length > 0) {
+    console.error(`verify:about failed with ${failures.length} issue(s):`);
+    for (const failure of failures) {
+      console.error(`- ${failure}`);
+    }
+    process.exit(1);
+  }
+
+  console.log('verify:about passed.');
 }
 
 try {
   main();
 } catch (error) {
-  console.error(error.message || String(error));
+  console.error(`verify:about failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }

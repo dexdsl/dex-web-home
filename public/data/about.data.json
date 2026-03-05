@@ -1,0 +1,195 @@
+{
+  "source": "about-page",
+  "steps": [
+    { "id": "about-hero", "label": "MISSION" },
+    { "id": "about-model", "label": "MODEL" },
+    { "id": "about-impact", "label": "IMPACT" },
+    { "id": "about-team", "label": "TEAM" },
+    { "id": "about-partners", "label": "PARTNERS" },
+    { "id": "about-press", "label": "PRESS" },
+    { "id": "about-contact", "label": "CONTACT" }
+  ],
+  "hashAliases": {
+    "mission": "about-hero",
+    "work": "about-model",
+    "impact": "about-impact",
+    "team": "about-team",
+    "partners": "about-partners",
+    "press": "about-press",
+    "contact": "about-contact",
+    "license": "about-contact"
+  },
+  "hero": {
+    "kicker": "ABOUT DEX",
+    "title": "Dex Digital Sample Library builds open cultural infrastructure artists can trust.",
+    "lede": "We commission and publish artist-made audio-visual work for legal reuse under Creative Commons Attribution 4.0.",
+    "copy": [
+      "Dex is a nonprofit, public-interest library focused on practical openness. We design capture, editorial, and metadata systems so people can actually reuse what they find.",
+      "Our baseline is simple: compensate artists, document provenance, publish clearly, and make attribution straightforward in real production contexts."
+    ],
+    "facts": [
+      { "label": "Default License", "value": "CC BY 4.0" },
+      { "label": "Catalog Footage", "value": "30+ hours" },
+      { "label": "Artists Commissioned", "value": "24+" },
+      { "label": "Countries Represented", "value": "3+" }
+    ],
+    "ctas": [
+      { "label": "Read Dex Notes", "href": "/dexnotes/", "variant": "secondary" },
+      { "label": "View Current Calls", "href": "/call/", "variant": "primary" }
+    ]
+  },
+  "model": {
+    "kicker": "HOW WE WORK",
+    "title": "A rights-forward production model from commission to release.",
+    "cards": [
+      {
+        "title": "Commission",
+        "body": "We scope sessions with artists first, align creative goals, and set reuse expectations before capture starts."
+      },
+      {
+        "title": "Capture",
+        "body": "We record for downstream value: clean audio, reusable angles, robust notes, and durable source files."
+      },
+      {
+        "title": "Clear Rights",
+        "body": "Licensing is explicit at publish time. We prioritize plain-language attribution patterns that creators can ship quickly."
+      },
+      {
+        "title": "Open Publication",
+        "body": "Release pages include context, metadata, and credits so work can be reused by educators, artists, and institutions."
+      }
+    ],
+    "ctas": [
+      { "label": "Program Overview", "href": "/dex/", "variant": "secondary" },
+      { "label": "Propose a Project", "href": "/contact/", "variant": "primary" }
+    ]
+  },
+  "impact": {
+    "kicker": "PUBLIC VALUE",
+    "title": "Open access is only useful when it is operational.",
+    "copy": [
+      "Dex reduces rights ambiguity for artists, students, curators, and independent creators. The result is less legal hesitation and more legitimate reuse.",
+      "We measure success by practical outcomes: releases cited, classes using materials, artist participation, and repeat partner demand for open workflows."
+    ],
+    "bullets": [
+      "Commissioned work that remains publicly usable after release cycles.",
+      "Attribution examples designed for video descriptions, liner notes, and classrooms.",
+      "Long-term catalog access without paywall lock-in.",
+      "Rights and metadata discipline that supports archival reuse."
+    ],
+    "ctas": [
+      { "label": "Attribution Guidance", "href": "/copyright/#attribution", "variant": "secondary" },
+      { "label": "Support The Mission", "href": "/donate/", "variant": "primary" }
+    ]
+  },
+  "team": {
+    "kicker": "TEAM",
+    "title": "A compact team shipping production, rights, and platform work.",
+    "intro": "We keep the operating model small and accountable so decisions can move quickly while standards remain high.",
+    "members": [
+      {
+        "name": "S. SUAREZ-SOLIS",
+        "role": "Co-Founder, Artistic Director",
+        "bio": "Leads strategy, programs, and partnerships. Shapes commissioning priorities and keeps Dex aligned with a commons-first mission across arts, education, and civic collaborations.",
+        "email": "seb@dexdsl.org",
+        "websiteLabel": "Website",
+        "websiteHref": "https://cbassuarez.bandcamp.com",
+        "imageSrc": "/assets/img/2319bdb331c97527f23f.jpg",
+        "imageAlt": "S. Suarez-Solis portrait"
+      },
+      {
+        "name": "C. CHURCH",
+        "role": "Co-Founder, Director of Communications",
+        "bio": "Directs capture and editorial systems. Designs session formats that translate into reusable releases and supports production training across contributors.",
+        "email": "cameron@dexdsl.org",
+        "websiteLabel": "Website",
+        "websiteHref": "https://cameronchurch.com",
+        "imageSrc": "/assets/img/8777ddc189323d789f1c.jpg",
+        "imageAlt": "C. Church portrait"
+      },
+      {
+        "name": "T. JORDAN",
+        "role": "Co-Founder, Treasurer",
+        "bio": "Maintains financial and rights stewardship. Implements licensing policy and translates legal structure into practical publishing guidance.",
+        "email": "tyler@dexdsl.org",
+        "websiteLabel": "Website",
+        "websiteHref": "https://tylerjordan.com",
+        "imageSrc": "/assets/img/15e1054490df27af1ca2.jpg",
+        "imageAlt": "T. Jordan portrait"
+      }
+    ],
+    "ctas": [
+      { "label": "Open Opportunities", "href": "/call/", "variant": "secondary" },
+      { "label": "Contact The Team", "href": "/contact/", "variant": "primary" }
+    ]
+  },
+  "partners": {
+    "kicker": "PARTNERSHIPS",
+    "title": "Work with Dex on commissions, education, and open release strategy.",
+    "copy": "We collaborate with ensembles, presenters, archives, labels, schools, and civic institutions that want cultural work to remain reusable and well-documented.",
+    "bullets": [
+      "Co-commission sessions released for legal downstream use.",
+      "Host recording days with clear production and rights workflows.",
+      "Contribute archival materials with durable metadata standards.",
+      "Pilot education modules using openly licensed material."
+    ],
+    "ctas": [
+      {
+        "label": "Download One-Pager",
+        "href": "https://drive.google.com/uc?export=download&id=1D1CVW6H6cbEeIclXLdEqFjUdaLdjQdfK",
+        "variant": "secondary"
+      },
+      { "label": "Start A Partnership", "href": "/contact/", "variant": "primary" }
+    ]
+  },
+  "press": {
+    "kicker": "PRESS",
+    "title": "Core facts, boilerplate, and media access.",
+    "boilerplate": "Dex Digital Sample Library is a nonprofit open-access catalog of artist-made audio-visual materials published for legal reuse under Creative Commons Attribution 4.0.",
+    "facts": [
+      { "label": "Founded", "value": "2021" },
+      { "label": "Public Launch", "value": "April 2022" },
+      { "label": "Status", "value": "501(c)(3)" },
+      { "label": "Media Contact", "value": "press@dexdsl.org" }
+    ],
+    "ctas": [
+      { "label": "Pressroom", "href": "/press/", "variant": "secondary" },
+      {
+        "label": "Download Press Kit",
+        "href": "https://drive.google.com/file/d/1EKNXT-qInKd1nEJ2bd4hZ8zzfxDkY1iw",
+        "variant": "primary"
+      }
+    ]
+  },
+  "contact": {
+    "kicker": "CONTACT",
+    "title": "Start a conversation, request support, or follow release updates.",
+    "intro": "For proposals, rights questions, or collaboration inquiries, contact Dex directly. We respond as quickly as possible, typically within 3 to 5 business days.",
+    "channels": [
+      { "label": "General", "value": "info@dexdsl.org" },
+      { "label": "Partnerships", "value": "info@dexdsl.org" },
+      { "label": "Press", "value": "press@dexdsl.org" },
+      { "label": "Rights", "value": "legal@dexdsl.org" }
+    ],
+    "newsletter": {
+      "source": "about-support-page",
+      "prompt": "Get mission updates, new releases, and open-call notices.",
+      "submitLabel": "Subscribe",
+      "submitBusyLabel": "Submitting...",
+      "privacyHref": "/privacy-policy"
+    },
+    "license": {
+      "title": "Reuse baseline",
+      "body": "Unless noted otherwise, Dex materials are released under CC BY 4.0. Credit artists and Dex, link to source pages when possible, and indicate edits.",
+      "bullets": [
+        "Catalog materials are reusable, including commercial use, with attribution.",
+        "Dex trademarks and partner logos are not covered by CC BY.",
+        "When in doubt, include source URL and edit notes."
+      ]
+    },
+    "ctas": [
+      { "label": "Open Contact Form", "href": "/contact/#form", "variant": "primary" },
+      { "label": "Copyright + Policies", "href": "/copyright/", "variant": "secondary" }
+    ]
+  }
+}

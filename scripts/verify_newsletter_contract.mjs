@@ -76,9 +76,15 @@ async function verifyMarketingMountCoverage() {
   const aboutRel = 'docs/about/index.html';
   const aboutHtml = await readText(aboutRel);
   assertIncludes(aboutRel, aboutHtml, [
-    'data-dx-marketing-newsletter-mount="about-support-page"',
     '/css/components/dx-marketing-newsletter.css',
     '/assets/js/dx-marketing-newsletter.js',
+  ]);
+  const aboutRuntimeRel = 'scripts/src/about.editorial.entry.mjs';
+  const aboutRuntime = await readText(aboutRuntimeRel);
+  assertIncludes(aboutRuntimeRel, aboutRuntime, [
+    'mountMarketingNewsletter',
+    'data-dx-marketing-newsletter-mount',
+    'about-support-page',
   ]);
 
   const catalogIndexRel = 'docs/catalog/index.html';

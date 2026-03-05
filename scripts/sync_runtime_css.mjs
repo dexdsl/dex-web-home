@@ -70,6 +70,10 @@ const SYNC_MAP = [
     targets: ['data/call.data.json', 'docs/data/call.data.json'],
   },
   {
+    source: 'public/data/about.data.json',
+    targets: ['data/about.data.json', 'docs/data/about.data.json'],
+  },
+  {
     source: 'public/data/hdr.media-manifest.json',
     targets: ['data/hdr.media-manifest.json', 'docs/data/hdr.media-manifest.json'],
   },
