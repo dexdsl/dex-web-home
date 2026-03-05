@@ -193,7 +193,6 @@ select.dx-dexnotes-select {
   border-radius: var(--dx-dexnotes-control-radius) !important;
   border: 1px solid var(--dx-dexnotes-control-rim) !important;
   background: var(--dx-dexnotes-control-dark) !important;
-  background-color: rgba(12, 17, 27, 0.66) !important;
   color: var(--dx-dexnotes-control-ink) !important;
   -webkit-backdrop-filter: saturate(170%) blur(14px) !important;
   backdrop-filter: saturate(170%) blur(14px) !important;
@@ -201,8 +200,8 @@ select.dx-dexnotes-select {
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 10px 22px rgba(5, 8, 15, 0.26) !important;
   font-family: var(--font-mono, "Courier Prime", monospace);
-  font-size: clamp(14px, 1.02vw, 15px);
-  line-height: 1.05;
+  font-size: 14px;
+  line-height: 1;
   padding: 0 0.84rem !important;
 }
 
