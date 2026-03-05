@@ -2932,13 +2932,18 @@ border-bottom: none !important;
   #gooey-mesh-wrapper svg#goo-filter { position: absolute; width: 0; height: 0; }
 /* ——— VISIBILITY PATCHES (place at the end of the block) ——— */
 
+body.homepage {
+  --dx-home-newsletter-gap: clamp(14px, 1.4vw, 22px);
+}
+
 /* A) Make content sections transparent, including the section containing footer glass */
 body.homepage .page-section:not([class*="footer" i]) {
   background: transparent !important;
 }
 @supports selector(.page-section:has(footer.dex-footer)) {
   body.homepage .page-section:has(footer.dex-footer) {
-    margin-top: 0 !important;
+    margin-top: var(--dx-home-newsletter-gap) !important;
+    margin-bottom: var(--dx-home-newsletter-gap) !important;
   }
 
   body.homepage .page-section:has(footer.dex-footer),
@@ -2963,7 +2968,12 @@ body.homepage .page-section:not([class*="footer" i]) {
 }
 
 body.homepage .page-section[data-section-id="68b3e0101bba1927c78baa85"] {
-  margin-top: 0 !important;
+  margin-top: var(--dx-home-newsletter-gap) !important;
+  margin-bottom: var(--dx-home-newsletter-gap) !important;
+}
+
+body.homepage #footer-sections {
+  padding-bottom: var(--dx-home-newsletter-gap) !important;
 }
 
 /* Fallback for engines without :has support (home footer section id). */
@@ -4483,7 +4493,7 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
 
 <style>
   #dex-home-newsletter{
-    margin-top:12px;
+    margin-top:var(--dx-home-newsletter-gap, 16px);
     border:1px solid rgba(255,255,255,.36);
     border-radius:4px;
     background:rgba(255,255,255,.46);
