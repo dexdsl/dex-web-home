@@ -888,37 +888,60 @@ export function revealStagger(scopeEl, selector, opts = {}) {
   const threshold = typeof opts.threshold === 'number' ? opts.threshold : 0.13;
   const rootMargin = typeof opts.rootMargin === 'string' ? opts.rootMargin : '0px 0px -6% 0px';
   const y = typeof opts.y === 'number' ? opts.y : 20;
+  const slotRoot = typeof window.dxGetSlotScrollRoot === 'function' ? window.dxGetSlotScrollRoot() : null;
+  const observerRoot = opts.root instanceof Element ? opts.root : (slotRoot instanceof Element ? slotRoot : null);
+
+  const revealNode = (node, instance) => {
+    if (node.dataset.dxRevealed === key) {
+      if (instance) instance.unobserve(node);
+      return;
+    }
+
+    node.dataset.dxRevealed = key;
+    const localOrder = Number(node.dataset.dxRevealOrder || 0);
+
+    animateNode(
+      node,
+      {
+        opacity: [0, 1],
+        transform: [`translate3d(0, ${y}px, 0)`, 'translate3d(0, 0, 0)'],
+      },
+      {
+        duration,
+        ease: DEFAULTS.easeStandard,
+        delay: localOrder * stagger,
+      },
+    );
+
+    if (instance) instance.unobserve(node);
+  };
+
+  const isInView = (node) => {
+    if (!node || typeof node.getBoundingClientRect !== 'function') return false;
+    const rect = node.getBoundingClientRect();
+    if (!rect || (rect.width <= 0 && rect.height <= 0)) return false;
+
+    const rootRect = observerRoot
+      ? observerRoot.getBoundingClientRect()
+      : {
+          top: 0,
+          right: window.innerWidth || document.documentElement.clientWidth || 0,
+          bottom: window.innerHeight || document.documentElement.clientHeight || 0,
+          left: 0,
+        };
+
+    return rect.bottom > rootRect.top && rect.top < rootRect.bottom && rect.right > rootRect.left && rect.left < rootRect.right;
+  };
 
   const observer = new IntersectionObserver(
     (entries, instance) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
-        const node = entry.target;
-        if (node.dataset.dxRevealed === key) {
-          instance.unobserve(node);
-          return;
-        }
-
-        node.dataset.dxRevealed = key;
-        const localOrder = Number(node.dataset.dxRevealOrder || 0);
-
-        animateNode(
-          node,
-          {
-            opacity: [0, 1],
-            transform: [`translate3d(0, ${y}px, 0)`, 'translate3d(0, 0, 0)'],
-          },
-          {
-            duration,
-            ease: DEFAULTS.easeStandard,
-            delay: localOrder * stagger,
-          },
-        );
-
-        instance.unobserve(node);
+        revealNode(entry.target, instance);
       });
     },
     {
+      root: observerRoot,
       threshold,
       rootMargin,
     },
@@ -930,5 +953,13 @@ export function revealStagger(scopeEl, selector, opts = {}) {
     node.style.transform = `translate3d(0, ${y}px, 0)`;
     node.dataset.dxRevealOrder = String(index);
     observer.observe(node);
+    if (isInView(node)) revealNode(node, observer);
+  });
+
+  requestAnimationFrame(() => {
+    nodes.forEach((node) => {
+      if (node.dataset.dxRevealed === key) return;
+      if (isInView(node)) revealNode(node, observer);
+    });
   });
 }
