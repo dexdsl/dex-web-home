@@ -23,6 +23,7 @@ import { animate } from 'framer-motion/dom';
   const JSONP_TIMEOUT_MS = 8000;
   const PREFETCH_SWR_MS = 60000;
   const QUOTA_RETRY_DELAY_MS = 220;
+  const DEFAULT_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_WEEKLY_LIMIT = 4;
@@ -302,8 +303,12 @@ import { animate } from 'framer-motion/dom';
       quotaLeft: 0,
       quotaResolved: false,
       webappUrl: config.webappUrl,
+      apiBase: config.apiBase,
       auth0Sub: '',
       authUser: null,
+      profileDefaults: null,
+      profileDefaultsLoaded: false,
+      profileDefaultsAutoApplied: false,
       meta: createInitialMeta(),
       licenseType: 'joint',
       licenseConfirmed: false,
@@ -483,6 +488,137 @@ import { animate } from 'framer-motion/dom';
     return null;
   }
 
+  function normalizeProfileCategoryCode(value) {
+    const normalized = text(value).toUpperCase();
+    return ['V', 'K', 'B', 'E', 'S', 'W', 'P', 'X'].includes(normalized) ? normalized : '';
+  }
+
+  function resolveSubmitCategoryValue(categoryCode, instrumentHint = '') {
+    const code = normalizeProfileCategoryCode(categoryCode);
+    const fromCode = code
+      ? CATEGORY_OPTIONS.find((value) => text(value).toUpperCase().startsWith(`${code} -`))
+      : '';
+    if (fromCode) return fromCode;
+    const inferred = inferProfileCategoryFromInstrument(instrumentHint);
+    if (!inferred) return '';
+    return CATEGORY_OPTIONS.find((value) => text(value).toUpperCase().startsWith(`${inferred} -`)) || '';
+  }
+
+  function inferProfileCategoryFromInstrument(value) {
+    const normalized = text(value).toLowerCase();
+    if (!normalized) return '';
+    if (normalized.includes('voice') || normalized.includes('vocal') || normalized.includes('vox') || normalized.includes('choir')) return 'V';
+    if (normalized.includes('piano') || normalized.includes('organ') || normalized.includes('key')) return 'K';
+    if (normalized.includes('trumpet') || normalized.includes('trombone') || normalized.includes('tuba') || normalized.includes('horn')) return 'B';
+    if (normalized.includes('violin') || normalized.includes('viola') || normalized.includes('cello') || normalized.includes('bass') || normalized.includes('guitar') || normalized.includes('harp')) return 'S';
+    if (normalized.includes('flute') || normalized.includes('clarinet') || normalized.includes('oboe') || normalized.includes('bassoon') || normalized.includes('sax')) return 'W';
+    if (normalized.includes('percussion') || normalized.includes('drum') || normalized.includes('marimba') || normalized.includes('vibraphone')) return 'P';
+    if (normalized.includes('electronic') || normalized.includes('synth') || normalized.includes('modular') || normalized.includes('field recording')) return 'E';
+    return 'X';
+  }
+
+  function normalizeSubmitProfileDefaults(profile) {
+    const payload = profile && typeof profile === 'object' ? profile : {};
+    const submitDefaults = payload.submit_defaults && typeof payload.submit_defaults === 'object'
+      ? payload.submit_defaults
+      : {};
+    const creator = text(submitDefaults.creator || payload.credit_name || payload.name, '');
+    const instrument = text(submitDefaults.instrument || payload.instrument_primary || (Array.isArray(payload.instruments) ? payload.instruments[0] : ''), '');
+    const category = normalizeProfileCategoryCode(
+      submitDefaults.category || inferProfileCategoryFromInstrument(instrument),
+    );
+
+    return { creator, category, instrument };
+  }
+
+  function hasSubmitProfileDefaults() {
+    const defaults = state?.profileDefaults;
+    if (!defaults || typeof defaults !== 'object') return false;
+    return Boolean(text(defaults.creator) || text(defaults.category) || text(defaults.instrument));
+  }
+
+  function getApiAuthRuntimes() {
+    return [window.DEX_AUTH, window.dexAuth, window.auth0].filter(Boolean);
+  }
+
+  async function getApiAccessToken() {
+    const runtimes = getApiAuthRuntimes();
+    for (const runtime of runtimes) {
+      if (!runtime || typeof runtime.getAccessToken !== 'function') continue;
+      try {
+        const maybe = runtime.getAccessToken();
+        const token = maybe && typeof maybe.then === 'function' ? await maybe : maybe;
+        const normalized = text(token, '');
+        if (normalized) return normalized;
+      } catch {}
+    }
+    return '';
+  }
+
+  async function fetchSubmitProfileDefaults() {
+    if (!state || !text(state.apiBase)) return null;
+    const token = await getApiAccessToken();
+    const headers = { accept: 'application/json' };
+    if (token) headers.authorization = `Bearer ${token}`;
+    let response = null;
+    try {
+      response = await fetch(`${state.apiBase}/me/profile`, {
+        method: 'GET',
+        headers,
+      });
+    } catch {
+      return null;
+    }
+    if (!response || !response.ok) return null;
+    const payload = await response.json().catch(() => null);
+    if (!payload || typeof payload !== 'object') return null;
+    return normalizeSubmitProfileDefaults(payload);
+  }
+
+  function applySubmitProfileDefaults(options = {}) {
+    if (!state || !state.profileDefaults) return false;
+    const defaults = state.profileDefaults;
+    const force = !!options.force;
+    let applied = false;
+
+    if ((force || !text(state.meta.creator)) && text(defaults.creator)) {
+      state.meta.creator = defaults.creator;
+      applied = true;
+    }
+    if (force || !text(state.meta.category)) {
+      const categoryValue = resolveSubmitCategoryValue(defaults.category, defaults.instrument);
+      if (text(categoryValue)) {
+        state.meta.category = categoryValue;
+        applied = true;
+      }
+    }
+    if ((force || !text(state.meta.instrument)) && text(defaults.instrument)) {
+      state.meta.instrument = defaults.instrument;
+      applied = true;
+    }
+
+    if (applied && options.announce !== false) {
+      showToast('Profile defaults applied.');
+    }
+    return applied;
+  }
+
+  async function hydrateSubmitProfileDefaults(options = {}) {
+    if (!state) return null;
+    const force = !!options.force;
+    if (state.profileDefaultsLoaded && !force) return state.profileDefaults;
+    const defaults = await fetchSubmitProfileDefaults();
+    state.profileDefaultsLoaded = true;
+    if (defaults) state.profileDefaults = defaults;
+    if (!state.profileDefaults) return null;
+
+    if (!state.profileDefaultsAutoApplied) {
+      const applied = applySubmitProfileDefaults({ force: false, announce: false });
+      if (applied) state.profileDefaultsAutoApplied = true;
+    }
+    return state.profileDefaults;
+  }
+
   function formatCounter(value) {
     const parsed = Number.parseInt(String(value || '0'), 10);
     const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
@@ -595,8 +731,8 @@ import { animate } from 'framer-motion/dom';
     const webappUrl = text(runtime.webappUrl || root?.dataset?.webappUrl || DEFAULT_WEBAPP_URL, DEFAULT_WEBAPP_URL);
     const weeklyLimitRaw = runtime.weeklyLimit ?? runtime.dailyLimit ?? root?.dataset?.weeklyLimit ?? root?.dataset?.dailyLimit ?? DEFAULT_WEEKLY_LIMIT;
     const weeklyLimit = Math.max(1, Math.min(99, Math.floor(number(weeklyLimitRaw, DEFAULT_WEEKLY_LIMIT))));
-
-    return { webappUrl, weeklyLimit };
+    const apiBase = text(runtime.apiBase || root?.dataset?.api || window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || DEFAULT_API, DEFAULT_API).replace(/\/+$/, '');
+    return { webappUrl, weeklyLimit, apiBase };
   }
 
   function setFetchState(root, fetchState) {
@@ -1181,6 +1317,29 @@ import { animate } from 'framer-motion/dom';
 
     section.appendChild(create('p', 'dx-submit-kicker', 'Step 2'));
     section.appendChild(create('h2', 'dx-submit-title', 'Metadata that powers discoverability and review speed'));
+
+    const defaultsWrap = create('div', 'dx-submit-stage-actions');
+    const defaultsInfo = create(
+      'p',
+      'dx-submit-copy dx-submit-copy--compact',
+      hasSubmitProfileDefaults()
+        ? 'Profile defaults are available for creator/category/instrument.'
+        : 'Add defaults in Settings > Contribution Profile to speed up repeat submissions.',
+    );
+    const defaultsApply = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary',
+      'Apply profile defaults',
+    );
+    defaultsApply.type = 'button';
+    defaultsApply.disabled = !hasSubmitProfileDefaults();
+    defaultsApply.classList.toggle('is-disabled', !hasSubmitProfileDefaults());
+    defaultsApply.addEventListener('click', () => {
+      const applied = applySubmitProfileDefaults({ force: true, announce: true });
+      if (applied) render();
+    });
+    defaultsWrap.append(defaultsInfo, defaultsApply);
+    section.appendChild(defaultsWrap);
 
     const grid = create('div', 'dx-submit-grid');
 
@@ -2081,6 +2240,7 @@ import { animate } from 'framer-motion/dom';
         window.auth0Sub = sub;
       }
       state.authUser = await resolveAuthUser(Math.min(AUTH_TIMEOUT_MS, 2200));
+      await hydrateSubmitProfileDefaults({ force: !!opts.forceLive });
       const verified = await refreshWeeklyQuotaFromSheet({
         useCache: true,
         forceLive: !!opts.forceLive,
@@ -2154,6 +2314,17 @@ import { animate } from 'framer-motion/dom';
     if (applyQuotaPayload(cached)) {
       setQuotaSource('cache');
       refreshQuotaCopy();
+    }
+  });
+
+  window.addEventListener('dx:profile:updated', (event) => {
+    if (!state) return;
+    const detail = event && typeof event.detail === 'object' ? event.detail : null;
+    if (!detail) return;
+    state.profileDefaults = normalizeSubmitProfileDefaults(detail);
+    state.profileDefaultsLoaded = true;
+    if (state.step === 1) {
+      render();
     }
   });
 

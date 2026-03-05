@@ -74,6 +74,10 @@ const SYNC_MAP = [
     targets: ['data/about.data.json', 'docs/data/about.data.json'],
   },
   {
+    source: 'public/data/profile-taxonomy.json',
+    targets: ['data/profile-taxonomy.json', 'docs/data/profile-taxonomy.json'],
+  },
+  {
     source: 'public/data/hdr.media-manifest.json',
     targets: ['data/hdr.media-manifest.json', 'docs/data/hdr.media-manifest.json'],
   },
@@ -116,6 +120,10 @@ const SYNC_MAP = [
   {
     source: 'public/css/components/dx-settings-membership.css',
     targets: ['css/components/dx-settings-membership.css', 'docs/css/components/dx-settings-membership.css'],
+  },
+  {
+    source: 'public/css/components/dx-settings-profile.css',
+    targets: ['css/components/dx-settings-profile.css', 'docs/css/components/dx-settings-profile.css'],
   },
   {
     source: 'public/css/components/dx-controls.css',
@@ -180,6 +188,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/settings.membership.js',
     targets: ['assets/js/settings.membership.js', 'docs/assets/js/settings.membership.js'],
+  },
+  {
+    source: 'public/assets/js/settings.profile.js',
+    targets: ['assets/js/settings.profile.js', 'docs/assets/js/settings.profile.js'],
   },
   {
     source: 'public/assets/js/header-slot.js',

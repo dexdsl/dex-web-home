@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
     <link rel="stylesheet" href="/css/components/dx-settings-membership.css">
+    <link rel="stylesheet" href="/css/components/dx-settings-profile.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
@@ -2684,52 +2685,148 @@
   <div class="grid">
     <main>
       <!-- PROFILE -->
-      <section id="pane-profile" class="pane" role="tabpanel" aria-labelledby="tab-profile">
+      <section id="pane-profile" class="pane" role="tabpanel" aria-labelledby="tab-profile" data-dx-settings-profile="v1">
         <div class="twocol">
           <div class="profile-col profile-col-left">
-            <!-- Identity (read-only from social) -->
-            <div class="card" id="idCard">
-              <h2>Identity</h2>
-              <div class="ident-row">
-                <img id="profAvatar" class="avatar" alt="" decoding="async" referrerpolicy="no-referrer" width="64" height="64">
-                <div class="id-fields">
-                  <div class="credit-name" id="profName">—</div>
-                  <div class="note">
-                    <span id="profEmail">—</span>
-                    <span id="emailVerif" class="badge" hidden aria-live="polite"></span>
-                  </div>
-                  <div class="id-provider">
-                    <span id="provChip" class="provider-chip" aria-live="polite">—</span>
-                  </div>
-                </div>
-                <button id="refreshIdentity" class="ghost" type="button" aria-live="polite">Refresh from provider</button>
+            <!-- Identity -->
+            <div class="card" id="idCard" data-dx-profile-identity-card="true">
+              <div class="card-head">
+                <h2>Identity</h2>
+                <span id="identitySyncState" class="save-status" hidden>Synced</span>
               </div>
-              <p class="note">We don’t store your password or photo. Identity is provided by your connected provider via Auth0.</p>
+              <div class="dx-profile-stack">
+                <section class="dx-profile-subcard" data-dx-profile-panel="public">
+                  <p class="dx-profile-kicker">Public identity</p>
+                  <div class="ident-row">
+                    <img id="profAvatar" class="avatar" alt="" decoding="async" referrerpolicy="no-referrer" width="64" height="64">
+                    <div class="id-fields">
+                      <div class="credit-name" id="profName">—</div>
+                      <p class="note">This is how your profile identity appears across Dex surfaces.</p>
+                    </div>
+                  </div>
+                </section>
+                <section class="dx-profile-subcard" data-dx-profile-panel="account">
+                  <p class="dx-profile-kicker">Account identity</p>
+                  <div class="dx-profile-meta-list">
+                    <div class="dx-profile-meta-row">
+                      <span>Email</span>
+                      <span class="dx-profile-meta-value">
+                        <span id="profEmail">—</span>
+                        <span id="emailVerif" class="badge" hidden aria-live="polite"></span>
+                      </span>
+                    </div>
+                    <div class="dx-profile-meta-row">
+                      <span>Last sync</span>
+                      <span id="profLastSync" class="dx-profile-meta-value">—</span>
+                    </div>
+                  </div>
+                </section>
+                <section class="dx-profile-subcard" data-dx-profile-panel="provider">
+                  <p class="dx-profile-kicker">Provider connection</p>
+                  <div class="dx-profile-meta-list">
+                    <div class="dx-profile-meta-row">
+                      <span>Provider</span>
+                      <span id="provChip" class="provider-chip" aria-live="polite">—</span>
+                    </div>
+                    <div class="dx-profile-meta-row">
+                      <span>Connection</span>
+                      <span id="identityProviderState" class="dx-profile-meta-value">Healthy</span>
+                    </div>
+                  </div>
+                  <div class="actions actions-tight">
+                    <button id="refreshIdentity" class="ghost" type="button" aria-live="polite">Refresh from provider</button>
+                  </div>
+                </section>
+              </div>
+              <p class="note">We never store your password or provider profile photo. Identity comes from your connected auth provider.</p>
             </div>
 
             <!-- Credits & Roles (editable) -->
-            <div class="card" id="creditsCard">
+            <div class="card" id="creditsCard" data-dx-contrib-profile-card="true">
               <div class="card-head">
-                <h2>Credits &amp; Roles</h2>
+                <h2>Contribution profile</h2>
                 <div id="profStatus" class="save-status" aria-live="polite" hidden>Saved</div>
               </div>
+              <div class="dx-profile-stack">
+                <section class="dx-profile-subcard" data-dx-profile-panel="credit">
+                  <p class="dx-profile-kicker">Public credits</p>
+                  <div class="field">
+                    <label class="label" for="creditNameInput">Primary credit name</label>
+                    <input id="creditNameInput" class="dx-profile-input" type="text" maxlength="120" autocomplete="name" placeholder="How your name appears in credits">
+                  </div>
+                  <div class="field">
+                    <label class="label" for="creditAliasInput">Credit aliases</label>
+                    <div id="creditAliasTokens" class="tokens" role="listbox" aria-label="Credit aliases">
+                      <input id="creditAliasInput" type="text" autocomplete="off" placeholder="Add alias and press Enter">
+                    </div>
+                    <p class="note">Use aliases only when you publish under multiple names.</p>
+                  </div>
+                </section>
 
-              <div class="field">
-                <label class="label">Credit name</label>
-                <div id="creditNameRO" class="readonly">—</div>
-              </div>
+                <section class="dx-profile-subcard" data-dx-profile-panel="roles">
+                  <p class="dx-profile-kicker">Roles</p>
+                  <div class="field">
+                    <label class="label">Role tags</label>
+                    <div id="roleChips" class="chips role-chips" role="group" aria-label="Select roles"></div>
+                  </div>
+                  <div class="field">
+                    <label class="label" for="rolePrimarySelect">Primary role</label>
+                    <select id="rolePrimarySelect" class="dx-profile-input"></select>
+                  </div>
+                </section>
 
-              <div class="field">
-                <label class="label">Roles</label>
-                <div id="roleChips" class="chips role-chips" role="group" aria-label="Select roles"></div>
-              </div>
+                <section class="dx-profile-subcard" data-dx-profile-panel="instruments">
+                  <p class="dx-profile-kicker">Instruments and mediums</p>
+                  <div class="field">
+                    <label class="label">Instruments / mediums</label>
+                    <div id="instrTokens" class="tokens" role="listbox" aria-label="Instruments">
+                      <input id="instrInput" type="text" autocomplete="off" placeholder="Type and press Enter">
+                    </div>
+                    <div id="instrSuggest" class="suggestions" hidden></div>
+                  </div>
+                  <div class="field">
+                    <label class="label" for="instrPrimarySelect">Primary instrument</label>
+                    <select id="instrPrimarySelect" class="dx-profile-input"></select>
+                  </div>
+                </section>
 
-              <div class="field">
-                <label class="label">Instruments / mediums</label>
-                <div id="instrTokens" class="tokens" role="listbox" aria-label="Instruments">
-                  <input id="instrInput" type="text" autocomplete="off" placeholder="Type and press Enter">
-                  <div id="instrSuggest" class="suggestions" hidden></div>
-                </div>
+                <section class="dx-profile-subcard" data-dx-profile-panel="submit-defaults">
+                  <p class="dx-profile-kicker">Submit defaults</p>
+                  <div class="dx-profile-default-grid">
+                    <div class="field">
+                      <label class="label" for="submitDefaultCreator">Creator</label>
+                      <input id="submitDefaultCreator" class="dx-profile-input" type="text" maxlength="2000" placeholder="Default creator name(s)">
+                    </div>
+                    <div class="field">
+                      <label class="label" for="submitDefaultCategory">Category</label>
+                      <select id="submitDefaultCategory" class="dx-profile-input">
+                        <option value="">Choose category</option>
+                        <option value="V">V - Voice + Body</option>
+                        <option value="K">K - Keyboards</option>
+                        <option value="B">B - Brass</option>
+                        <option value="E">E - Electronics</option>
+                        <option value="S">S - Strings</option>
+                        <option value="W">W - Winds</option>
+                        <option value="P">P - Percussion</option>
+                        <option value="X">X - Other</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="label" for="submitDefaultInstrument">Instrument</label>
+                      <input id="submitDefaultInstrument" class="dx-profile-input" type="text" maxlength="120" placeholder="Default instrument label">
+                    </div>
+                  </div>
+                  <div class="actions actions-tight">
+                    <button id="profileUseRecentDefaults" class="btn" type="button">Use recent submission</button>
+                    <button id="profileUseTopInstrument" class="btn" type="button">Use top instrument</button>
+                  </div>
+                </section>
+
+                <section class="dx-profile-subcard" data-dx-profile-panel="insights">
+                  <p class="dx-profile-kicker">Profile insights</p>
+                  <p id="profileInsightsSummary" class="note">Loading submission-aware suggestions…</p>
+                  <div id="profileInsightChips" class="chips" role="group" aria-label="Contribution insights"></div>
+                </section>
               </div>
 
               <div id="undoWrap" class="undo" hidden>Saved · <button id="undoLast" class="linklike" type="button">Undo</button></div>
@@ -3031,6 +3128,7 @@
   </div>
   <!-- GSAP for ink animation (falls back to inline styles if not present) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="/assets/js/settings.profile.js"></script>
   <script src="/assets/js/settings.membership.js"></script>
 
   <script>
@@ -3687,464 +3785,34 @@ function fitProfileLayout(){
       }
 
 
-      /* Profile — identity from social + autosave (roles, instruments) */
-const Profile = {
-  me: null, serverState: { roles:[], instruments:[] },
-  pendingTO: null, debounceMs: 450,
-  lastUndo: null, saving: false,
-  saveState: 'idle',
-  inFlightSave: null,
-  queuedPayload: null,
-  lastSubmittedPayloadHash: '',
-  lastSuccessfulPayloadHash: '',
-  lastFailedPayload: null,
-  stateResetTimer: null
-};
-const roleOptions = ['Composer','Performer','Producer','Engineer','Video','Conductor','Arranger','Editor','Other'];
-const instrumentSuggest = [
-  'piano','violin','viola','cello','bass','flute','clarinet','oboe','bassoon','trumpet','horn','trombone','tuba','saxophone',
-  'percussion','marimba','vibraphone','drum set','guitar','voice','electronics','modular','field recording','tape','keys','synth','sampler','live coding','video','drone','strings','winds','brass'
-];
-
-const elP = {
-  avatar:  document.getElementById('profAvatar'),
-  name:    document.getElementById('profName'),
-  email:   document.getElementById('profEmail'),
-  verif:   document.getElementById('emailVerif'),
-  prov:    document.getElementById('provChip'),
-  refresh: document.getElementById('refreshIdentity'),
-
-  creditRO: document.getElementById('creditNameRO'),
-  chips:    document.getElementById('roleChips'),
-  tokWrap:  document.getElementById('instrTokens'),
-  tokInput: document.getElementById('instrInput'),
-  sugg:     document.getElementById('instrSuggest'),
-
-  status:   document.getElementById('profStatus'),
-  undoWrap: document.getElementById('undoWrap'),
-  undoBtn:  document.getElementById('undoLast'),
-  retryBtn: document.getElementById('retryProfileSave'),
-  saveError: document.getElementById('profileSaveError'),
-  saveActions: document.getElementById('profileSaveActions'),
-
-  prevAvatar: document.getElementById('prevAvatar'),
-  prevName:   document.getElementById('prevName'),
-  prevRoles:  document.getElementById('prevRoles'),
-  prevInstr:  document.getElementById('prevInstr'),
-};
-const securityEls = {
-  lastSignin: document.getElementById('lastSignin'),
-  provider: document.getElementById('securityProvider'),
-  emailState: document.getElementById('securityEmailState'),
-  signOutCurrent: document.getElementById('signOutCurrent'),
-  revokeOthers: document.getElementById('revokeOthers'),
-  reauthNow: document.getElementById('reauthNow'),
-  status: document.getElementById('securityInlineStatus')
-};
-const SECURITY_ENDPOINTS = {
-  revokeOthers: '/me/security/revoke-others'
-};
-
-function setStatus(state, text){
-  const s = elP.status; if(!s) return;
-  if(state){ s.hidden = false; s.textContent = text || state; }
-  else { s.hidden = true; }
-}
-
-function profilePayloadHash(payload){
-  const safeRoles = Array.isArray(payload?.roles) ? payload.roles : [];
-  const safeInstruments = Array.isArray(payload?.instruments) ? payload.instruments : [];
-  return JSON.stringify({ roles: safeRoles, instruments: safeInstruments });
-}
-
-function summarizeProfileSaveError(error){
-  const payload = parseErrorPayload(error);
-  const detail = payload ? safeText(payload.detail || payload.error || payload.message || '', '') : '';
-  if (detail) return detail;
-  const status = statusCodeOf(error);
-  if (status === 408) return 'Save request timed out. Please retry.';
-  if (status === 401 || status === 403) return 'Session expired. Sign in and retry.';
-  const raw = safeText(error?.message, '');
-  if (!raw || raw === '[object Object]') return 'Could not save changes right now.';
-  return raw.length > 140 ? `${raw.slice(0, 137)}...` : raw;
-}
-
-function setProfileSaveState(nextState, message = ''){
-  Profile.saveState = nextState;
-  if (Profile.stateResetTimer){
-    clearTimeout(Profile.stateResetTimer);
-    Profile.stateResetTimer = null;
-  }
-  if (nextState === 'idle'){
-    setStatus(null);
-    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
-    if (elP.saveActions) elP.saveActions.hidden = true;
-    if (elP.retryBtn) elP.retryBtn.hidden = true;
-    return;
-  }
-  if (nextState === 'saving'){
-    setStatus('Saving…', 'Saving…');
-    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
-    if (elP.saveActions) elP.saveActions.hidden = true;
-    if (elP.retryBtn) elP.retryBtn.hidden = true;
-    return;
-  }
-  if (nextState === 'saved'){
-    setStatus('Saved', 'Saved');
-    if (elP.saveError){ elP.saveError.hidden = true; elP.saveError.textContent = ''; }
-    if (elP.saveActions) elP.saveActions.hidden = true;
-    if (elP.retryBtn) elP.retryBtn.hidden = true;
-    Profile.stateResetTimer = setTimeout(() => {
-      if (Profile.saveState === 'saved') setProfileSaveState('idle');
-    }, 1200);
-    return;
-  }
-  if (nextState === 'error'){
-    setStatus('Save failed', 'Save failed');
-    if (elP.saveError){
-      elP.saveError.hidden = false;
-      elP.saveError.textContent = message || 'Could not save changes right now.';
-    }
-    if (elP.saveActions) elP.saveActions.hidden = false;
-    if (elP.retryBtn) elP.retryBtn.hidden = false;
-  }
-}
-
-function setSecurityStatus(message){
-  if (!securityEls.status) return;
-  securityEls.status.textContent = String(message || '').trim();
-}
-
-function renderSecurity(me){
-  const providerLabel = me?.provider?.display || me?.provider?.name || providerName(me?.sub) || '—';
-  if (securityEls.provider) securityEls.provider.textContent = providerLabel;
-  if (securityEls.emailState){
-    if (typeof me?.email_verified === 'boolean') {
-      securityEls.emailState.textContent = me.email_verified ? 'Verified' : 'Unverified';
-    } else {
-      securityEls.emailState.textContent = 'Unknown';
-    }
-  }
-  if (securityEls.lastSignin){
-    const ts = parseTimestampSeconds(me?.last_signin)
-      || parseTimestampSeconds(me?.auth_time)
-      || parseTimestampSeconds(me?.iat);
-    securityEls.lastSignin.textContent = ts ? new Date(ts * 1000).toLocaleString() : '—';
-  }
-}
-
-function renderIdentity(me){
-  const pic = me?.provider?.picture || me?.picture || '';
-  const provLabel = me?.provider?.display || me?.provider?.name || providerName(me?.sub) || '—';
-
-  if (elP.avatar){
-    elP.avatar.src = pic || '';
-    elP.avatar.alt = me?.credit_name || me?.name || 'Profile picture';
-  }
-  if (elP.name)   elP.name.textContent  = me?.credit_name || me?.name || '—';
-  if (elP.email)  elP.email.textContent = me?.email || '—';
-
-  if (elP.verif){
-    // Hide until known; show correct label only when we have a boolean
-    if (typeof me?.email_verified === 'boolean'){
-      elP.verif.hidden = false;
-      elP.verif.textContent = me.email_verified ? 'Verified' : 'Unverified';
-    } else {
-      elP.verif.hidden = true;
-    }
-  }
-
-  if (elP.prov)   elP.prov.textContent  = provLabel;
-
-  if (elP.prevAvatar){ elP.prevAvatar.src = pic || ''; elP.prevAvatar.alt = elP.avatar.alt; }
-  if (elP.prevName)  elP.prevName.textContent = elP.name.textContent;
-  renderSecurity(me);
-  try {
-    window.dispatchEvent(new CustomEvent('dx:settings:identity-hydrated', {
-      detail: { email: String(me?.email || '').trim() }
-    }));
-  } catch {}
-}
-
-
-function renderRoleChips(selected){
-  if(!elP.chips) return;
-  elP.chips.innerHTML = '';
-  roleOptions.forEach(role=>{
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'chip'; b.textContent = role;
-    b.setAttribute('aria-pressed', String(selected.includes(role)));
-    b.addEventListener('click', ()=>{
-      const on = b.getAttribute('aria-pressed') === 'true';
-      b.setAttribute('aria-pressed', String(!on));
-      scheduleSave();
-      updatePreview();
-    });
-    elP.chips.appendChild(b);
-  });
-}
-
-function currentRoles(){
-  return Array.from(elP.chips?.querySelectorAll('.chip[aria-pressed="true"]') || []).map(b=>b.textContent);
-}
-
-function renderTokens(list){
-  if(!elP.tokWrap) return;
-  // Remove existing tokens
-  elP.tokWrap.querySelectorAll('.tok').forEach(n=>n.remove());
-  // Add tokens
-  (list || []).forEach(v=>{
-    const t = document.createElement('span');
-    t.className = 'tok';
-    t.innerHTML = `<span>${v}</span><button type="button" aria-label="Remove">×</button>`;
-    t.querySelector('button').addEventListener('click', ()=> { t.remove(); scheduleSave(); updatePreview(); });
-    elP.tokInput.before(t);
-  });
-}
-
-function currentInstruments(){
-  return Array.from(elP.tokWrap?.querySelectorAll('.tok span:first-child') || []).map(n=>n.textContent.trim()).filter(Boolean);
-}
-
-function addInstrumentToken(v){
-  v = (v||'').trim();
-  if(!v) return;
-  const existing = new Set(currentInstruments().map(x=>x.toLowerCase()));
-  if (existing.has(v.toLowerCase())) return;
-  renderTokens([...existing.values()].map(x=>x).concat([v])); // re-render to normalize
-  // Simpler: just append
-  const t = document.createElement('span');
-  t.className = 'tok';
-  t.innerHTML = `<span>${v}</span><button type="button" aria-label="Remove">×</button>`;
-  t.querySelector('button').addEventListener('click', ()=> { t.remove(); scheduleSave(); updatePreview(); });
-  elP.tokInput.before(t);
-}
-
-function showSuggest(q){
-  if(!elP.sugg) return;
-  const ql = (q||'').toLowerCase();
-  const opts = instrumentSuggest.filter(x=> x.toLowerCase().includes(ql) && !currentInstruments().map(s=>s.toLowerCase()).includes(x.toLowerCase())).slice(0,8);
-  if(!opts.length){ elP.sugg.hidden = true; elP.sugg.innerHTML=''; return; }
-  elP.sugg.hidden = false; elP.sugg.innerHTML = '';
-  opts.forEach((x,i)=>{
-    const b = document.createElement('button');
-    b.type='button'; b.className='opt'; b.textContent=x; if(i===0) b.setAttribute('aria-selected','true');
-    b.addEventListener('click', ()=>{ addInstrumentToken(x); elP.tokInput.value=''; elP.sugg.hidden=true; scheduleSave(); updatePreview(); });
-    elP.sugg.appendChild(b);
-  });
-}
-
-if (elP.tokInput){
-  elP.tokInput.addEventListener('input', e=> showSuggest(e.target.value));
-  elP.tokInput.addEventListener('keydown', e=>{
-    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab'){
-      const pick = elP.sugg.hidden ? null : elP.sugg.querySelector('.opt[aria-selected="true"]');
-      const val = pick ? pick.textContent : elP.tokInput.value;
-      if (val){ addInstrumentToken(val); elP.tokInput.value=''; elP.sugg.hidden=true; scheduleSave(); updatePreview(); }
-      if (e.key !== 'Tab') e.preventDefault();
-    } else if (e.key === 'Backspace' && !elP.tokInput.value){
-      const last = elP.tokWrap.querySelector('.tok:last-of-type'); last?.remove(); scheduleSave(); updatePreview();
-    } else if (!elP.sugg.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
-      const opts = Array.from(elP.sugg.querySelectorAll('.opt'));
-      let i = opts.findIndex(o=>o.getAttribute('aria-selected')==='true');
-      i = i<0 ? 0 : i;
-      opts[i].setAttribute('aria-selected','false');
-      i = (i + (e.key==='ArrowDown'? 1:-1) + opts.length) % opts.length;
-      opts[i].setAttribute('aria-selected','true'); e.preventDefault();
-    } else if (e.key === 'Escape'){ elP.sugg.hidden = true; }
-  });
-  document.addEventListener('click', e=>{ if(!elP.sugg.contains(e.target) && e.target !== elP.tokInput){ elP.sugg.hidden=true; } });
-}
-
-function updatePreview(){
-  if (elP.prevRoles) elP.prevRoles.textContent = currentRoles().join(' · ') || '—';
-  if (elP.prevInstr) elP.prevInstr.textContent = currentInstruments().join(', ') || '—';
-}
-
-function buildCurrentProfilePayload(){
-  return { roles: currentRoles(), instruments: currentInstruments() };
-}
-
-function queueProfileSave(payload = buildCurrentProfilePayload()){
-  const normalizedPayload = {
-    roles: Array.isArray(payload?.roles) ? payload.roles : [],
-    instruments: Array.isArray(payload?.instruments) ? payload.instruments : []
-  };
-  Profile.queuedPayload = {
-    payload: normalizedPayload,
-    hash: profilePayloadHash(normalizedPayload)
-  };
-  void flushProfileSaveQueue();
-}
-
-async function flushProfileSaveQueue(){
-  if (Profile.inFlightSave) return Profile.inFlightSave;
-  Profile.inFlightSave = (async () => {
-    while (Profile.queuedPayload){
-      const next = Profile.queuedPayload;
-      Profile.queuedPayload = null;
-      if (!next) break;
-      if (next.hash === Profile.lastSuccessfulPayloadHash){
-        continue;
-      }
-      if (!Profile.lastUndo) Profile.lastUndo = { ...Profile.serverState };
-      setProfileSaveState('saving');
-      try{
-        Profile.saving = true;
-        await jfetch(api + '/me/profile', {
-          method: 'PATCH',
-          body: JSON.stringify(next.payload),
-          timeoutMs: 10000
-        });
-        Profile.serverState = { ...next.payload };
-        Profile.lastSubmittedPayloadHash = next.hash;
-        Profile.lastSuccessfulPayloadHash = next.hash;
-        Profile.lastFailedPayload = null;
-        if (elP.undoWrap) elP.undoWrap.hidden = false;
-        setProfileSaveState('saved');
-      }catch(error){
-        Profile.lastSubmittedPayloadHash = next.hash;
-        const queuedOnFailure = Profile.queuedPayload && Profile.queuedPayload.payload
-          ? Profile.queuedPayload.payload
-          : null;
-        Profile.lastFailedPayload = queuedOnFailure
-          ? { roles: [...(queuedOnFailure.roles || [])], instruments: [...(queuedOnFailure.instruments || [])] }
-          : { ...next.payload };
-        setProfileSaveState('error', summarizeProfileSaveError(error));
-        break;
-      }finally{
-        Profile.saving = false;
-      }
-    }
-  })();
-  try{
-    return await Profile.inFlightSave;
-  }finally{
-    Profile.inFlightSave = null;
-  }
-}
-
-function scheduleSave(){
-  if (Profile.pendingTO) clearTimeout(Profile.pendingTO);
-  Profile.pendingTO = setTimeout(() => {
-    Profile.pendingTO = null;
-    queueProfileSave(buildCurrentProfilePayload());
-  }, Profile.debounceMs);
-}
-
-elP.undoBtn?.addEventListener('click', ()=>{
-  if (!Profile.lastUndo) return;
-  const snap = {
-    roles: Array.isArray(Profile.lastUndo.roles) ? [...Profile.lastUndo.roles] : [],
-    instruments: Array.isArray(Profile.lastUndo.instruments) ? [...Profile.lastUndo.instruments] : []
-  };
-  Profile.lastUndo = null;
-  if (elP.undoWrap) elP.undoWrap.hidden = true;
-  // Re-render UI
-  renderRoleChips(snap.roles||[]);
-  renderTokens(snap.instruments||[]);
-  updatePreview();
-  queueProfileSave(snap);
-});
-
-elP.retryBtn?.addEventListener('click', () => {
-  const retryPayload = Profile.lastFailedPayload || buildCurrentProfilePayload();
-  queueProfileSave(retryPayload);
-});
-
-elP.refresh?.addEventListener('click', async ()=>{
-  try{
-    elP.refresh.disabled = true;
-    setStatus('Refreshing…','Refreshing…');
-    const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: true, timeoutMs: 2500 });
-    if (authGate?.status !== 'authenticated') return;
-
-    let fresh = null;
-    try { fresh = await jfetch(api + '/me/identity/refresh', { method:'POST' }); } catch {}
-    if (!fresh || (!fresh.name && !fresh.email && !fresh.picture)){
-      fresh = await getClaimsIdentity();
-    }
-
-    const merged = mergeIdentity(Profile.me || {}, fresh || {});
-    Profile.me = merged;
-    renderIdentity(merged);
-    if (elP.creditRO) elP.creditRO.textContent = merged?.credit_name || merged?.name || '—';
-    updatePreview();
-
-    setStatus('Up to date','Up to date'); setTimeout(()=> setStatus(null), 1200);
-  }catch{
-    setStatus('Error','Error'); setTimeout(()=> setStatus(null), 1400);
-  }finally{
-    elP.refresh.disabled = false;
-  }
-});
-
-securityEls.signOutCurrent?.addEventListener('click', async () => {
-  setSecurityStatus('Signing out…');
-  try {
-    if (window.DEX_AUTH?.signOut) {
-      await window.DEX_AUTH.signOut(window.location.origin);
-      return;
-    }
-    window.location.href = '/';
-  } catch (_error) {
-    setSecurityStatus('Could not sign out right now.');
-  }
-});
-
-securityEls.reauthNow?.addEventListener('click', async () => {
-  setSecurityStatus('Starting re-authentication…');
-  try {
-    if (window.DEX_AUTH?.signIn) {
-      await window.DEX_AUTH.signIn(currentReturnTo());
-      return;
-    }
-    setSecurityStatus('Sign-in bridge unavailable.');
-  } catch (_error) {
-    setSecurityStatus('Could not start re-authentication.');
-  }
-});
-
-securityEls.revokeOthers?.addEventListener('click', async () => {
-  securityEls.revokeOthers.disabled = true;
-  setSecurityStatus('Revoking other sessions…');
-  try {
-    await jfetch(api + SECURITY_ENDPOINTS.revokeOthers, {
-      method: 'POST',
-      body: JSON.stringify({ returnPath: currentReturnTo() })
-    });
-    setSecurityStatus('Other sessions revoked. This session remains active.');
-  } catch (error) {
-    if (isCompatFallbackStatus(error) || statusCodeOf(error) === 503) {
-      setSecurityStatus('Revoke endpoint unavailable. Configure Auth0 Management API scopes.');
-    } else {
-      setSecurityStatus('Could not revoke other sessions right now.');
-    }
-  } finally {
-    securityEls.revokeOthers.disabled = false;
-  }
-});
-
-
+      /* Profile — delegated to settings.profile runtime */
+const profileRuntime = window.__dxSettingsProfileRuntimeV1 || null;
+const Profile = profileRuntime && profileRuntime.state
+  ? profileRuntime.state
+  : { me: null };
 function hydrateProfile(me){
-  Profile.me = me;
-  renderIdentity(me);
-  if (elP.creditRO) elP.creditRO.textContent = me?.credit_name || me?.name || '—';
-  // Seed editable state
-  const roles = Array.isArray(me?.roles) ? me.roles : [];
-  const instr = Array.isArray(me?.instruments) ? me.instruments : [];
-  const seedPayload = { roles:[...roles], instruments:[...instr] };
-  const seedHash = profilePayloadHash(seedPayload);
-  Profile.serverState = seedPayload;
-  Profile.lastSubmittedPayloadHash = seedHash;
-  Profile.lastSuccessfulPayloadHash = seedHash;
-  Profile.lastFailedPayload = null;
-  renderRoleChips(roles);
-  renderTokens(instr);
-  updatePreview();
-  setProfileSaveState('idle');
-  markSettingsCardReady('idCard');
-  markSettingsCardReady('creditsCard');
+  if (profileRuntime && typeof profileRuntime.hydrateProfile === 'function') {
+    profileRuntime.hydrateProfile(me);
+  } else {
+    Profile.me = me || null;
+  }
+}
+if (profileRuntime && typeof profileRuntime.attach === 'function') {
+  try {
+    profileRuntime.attach({
+      root: document.getElementById('dex-settings'),
+      apiBase: api,
+      currentReturnTo,
+      requireProtectedAuth,
+      statusCodeOf,
+      parseErrorPayload,
+      safeText,
+      parseTimestampSeconds,
+      providerName,
+      isCompatFallbackStatus,
+      markSettingsCardReady,
+    });
+  } catch (_error) {}
 }
 
 

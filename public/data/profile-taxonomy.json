@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "roles": [
+    { "id": "composer", "label": "Composer", "aliases": ["composition", "writer"], "group": "creation" },
+    { "id": "performer", "label": "Performer", "aliases": ["player", "instrumentalist"], "group": "performance" },
+    { "id": "improviser", "label": "Improviser", "aliases": ["improv"], "group": "performance" },
+    { "id": "producer", "label": "Producer", "aliases": ["production"], "group": "production" },
+    { "id": "engineer", "label": "Engineer", "aliases": ["recording engineer", "mix engineer"], "group": "production" },
+    { "id": "arranger", "label": "Arranger", "aliases": [], "group": "creation" },
+    { "id": "conductor", "label": "Conductor", "aliases": [], "group": "performance" },
+    { "id": "editor", "label": "Editor", "aliases": ["audio editor", "video editor"], "group": "post" },
+    { "id": "video", "label": "Video", "aliases": ["director", "videographer"], "group": "visual" },
+    { "id": "sound-design", "label": "Sound Design", "aliases": ["sound designer"], "group": "post" },
+    { "id": "other", "label": "Other", "aliases": [], "group": "other" }
+  ],
+  "instruments": [
+    { "id": "voice", "label": "Voice", "aliases": ["vox", "choir"], "defaultCategory": "V" },
+    { "id": "piano", "label": "Piano", "aliases": ["grand piano", "upright"], "defaultCategory": "K" },
+    { "id": "organ", "label": "Organ", "aliases": ["pipe organ", "hammond"], "defaultCategory": "K" },
+    { "id": "violin", "label": "Violin", "aliases": [], "defaultCategory": "S" },
+    { "id": "viola", "label": "Viola", "aliases": [], "defaultCategory": "S" },
+    { "id": "cello", "label": "Cello", "aliases": [], "defaultCategory": "S" },
+    { "id": "double-bass", "label": "Double Bass", "aliases": ["bass"], "defaultCategory": "S" },
+    { "id": "flute", "label": "Flute", "aliases": [], "defaultCategory": "W" },
+    { "id": "clarinet", "label": "Clarinet", "aliases": [], "defaultCategory": "W" },
+    { "id": "oboe", "label": "Oboe", "aliases": [], "defaultCategory": "W" },
+    { "id": "bassoon", "label": "Bassoon", "aliases": [], "defaultCategory": "W" },
+    { "id": "saxophone", "label": "Saxophone", "aliases": ["sax"], "defaultCategory": "W" },
+    { "id": "trumpet", "label": "Trumpet", "aliases": [], "defaultCategory": "B" },
+    { "id": "horn", "label": "Horn", "aliases": ["french horn"], "defaultCategory": "B" },
+    { "id": "trombone", "label": "Trombone", "aliases": [], "defaultCategory": "B" },
+    { "id": "tuba", "label": "Tuba", "aliases": [], "defaultCategory": "B" },
+    { "id": "guitar", "label": "Guitar", "aliases": ["electric guitar", "acoustic guitar"], "defaultCategory": "S" },
+    { "id": "percussion", "label": "Percussion", "aliases": ["drums", "drum set"], "defaultCategory": "P" },
+    { "id": "electronics", "label": "Electronics", "aliases": ["synth", "synthesizer", "modular"], "defaultCategory": "E" },
+    { "id": "field-recording", "label": "Field Recording", "aliases": ["field recordings"], "defaultCategory": "E" },
+    { "id": "video", "label": "Video", "aliases": ["visual"], "defaultCategory": "X" },
+    { "id": "other", "label": "Other", "aliases": [], "defaultCategory": "X" }
+  ],
+  "limits": {
+    "creditAliases": 8,
+    "roles": 10,
+    "instruments": 20,
+    "creditNameMax": 120,
+    "roleMax": 48,
+    "instrumentMax": 80
+  }
+}
