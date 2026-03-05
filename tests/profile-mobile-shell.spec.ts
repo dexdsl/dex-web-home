@@ -7,6 +7,7 @@ const PROFILE_ROUTES = [
   '/entry/pressroom/',
   '/entry/achievements/',
 ];
+const PROFILE_MENU_ROUTES = ['/press/', '/favorites/'];
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -219,5 +220,59 @@ test('mobile profile routes keep gooey behind content and footer compact', async
     expect(metrics.sealHeightPx).toBeLessThan(60);
     expect(Math.abs(metrics.sealTopPx - metrics.socialTopPx)).toBeLessThan(60);
     expect(Math.abs(metrics.sealTopPx - metrics.navTopPx)).toBeLessThan(70);
+  }
+});
+
+test('mid-width profile routes keep footer in flow below content', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await stubDexAuthRuntime(page);
+  await stubExternalApis(page);
+
+  for (const routePath of PROFILE_MENU_ROUTES) {
+    await page.goto(routePath, { waitUntil: 'domcontentloaded' });
+
+    await expect
+      .poll(() => page.evaluate(() => document.body.classList.contains('dx-route-profile-protected')))
+      .toBeTruthy();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          !!document.querySelector('#dex-favorites,#dex-msg,#dex-submit,#dex-press,#dex-achv,#dex-console,#dex-settings'),
+        ),
+      )
+      .toBeTruthy();
+
+    await expect
+      .poll(() => page.evaluate(() => !!document.querySelector('.dex-footer')))
+      .toBeTruthy();
+
+    const metrics = await page.evaluate(() => {
+      const routeRoot = document.querySelector(
+        '#dex-favorites,#dex-msg,#dex-submit,#dex-press,#dex-achv,#dex-console,#dex-settings',
+      ) as HTMLElement | null;
+      const routeRect = routeRoot ? routeRoot.getBoundingClientRect() : null;
+      const footer = document.querySelector('.dex-footer') as HTMLElement | null;
+      const sectionFooter = document.querySelector('#footer-sections .dex-footer') as HTMLElement | null;
+      const footerRect = footer ? footer.getBoundingClientRect() : null;
+      const footerStyle = footer ? window.getComputedStyle(footer) : null;
+
+      return {
+        footerPresent: !!footer,
+        footerWithinFooterSections: !!(footer && sectionFooter && footer === sectionFooter),
+        footerPortaled: !!(footer && footer.classList.contains('dx-profile-footer-portaled')),
+        footerPosition: footerStyle ? footerStyle.position : '',
+        routeBottomPx: routeRect ? Math.round(routeRect.bottom) : 0,
+        footerTopPx: footerRect ? Math.round(footerRect.top) : 0,
+        footerHeightPx: footerRect ? Math.round(footerRect.height) : 0,
+      };
+    });
+
+    expect(metrics.footerPresent).toBeTruthy();
+    expect(metrics.footerWithinFooterSections).toBeTruthy();
+    expect(metrics.footerPortaled).toBeFalsy();
+    expect(metrics.footerPosition).toBe('relative');
+    expect(metrics.footerHeightPx).toBeGreaterThan(0);
+    expect(Math.abs(metrics.footerTopPx - metrics.routeBottomPx)).toBeLessThan(180);
   }
 });
