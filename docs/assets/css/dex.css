@@ -5055,3 +5055,14 @@ body main.dx-dexnotes-page .dx-dexnotes-filter-actions .dx-button-element:focus-
   background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
   color: #000 !important;
 }
+
+/* Canonical secondary controls: no stroke, keep fill. */
+.dx-button-element--secondary,
+.dx-block-button-element--secondary,
+.sqs-button-element--secondary,
+.ghost,
+.ghost-btn,
+.btn--border.theme-btn--primary-inverse,
+.dx-button-element--primary.btn--border.theme-btn--primary-inverse {
+  border: 0 !important;
+}

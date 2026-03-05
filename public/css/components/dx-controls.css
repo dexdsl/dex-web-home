@@ -102,7 +102,7 @@ button,
 .ghost-btn,
 .btn--border.theme-btn--primary-inverse,
 .dx-button-element--primary.btn--border.theme-btn--primary-inverse {
-  border-color: var(--dx-btn-secondary-border);
+  border: 0;
   background: var(--dx-btn-secondary-bg);
   color: #000;
   box-shadow: none;
@@ -136,7 +136,7 @@ button,
 .join-button.dx-button-element--secondary,
 .ghost.dx-button-element--secondary,
 .btn--border.theme-btn--primary-inverse.dx-button-element--secondary {
-  border-color: var(--dx-btn-secondary-border) !important;
+  border: 0 !important;
   background: var(--dx-btn-secondary-bg) !important;
   color: #000 !important;
   box-shadow: none !important;
