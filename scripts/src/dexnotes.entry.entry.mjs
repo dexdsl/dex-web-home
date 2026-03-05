@@ -1,4 +1,5 @@
 import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -439,6 +440,33 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
     app.appendChild(renderPrevNext(entry));
     app.appendChild(renderComments(entry, commentsConfig));
+
+    const newsletter = create('section', 'dx-dexnotes-surface dx-dexnotes-entry-newsletter dx-dexnotes-entry-reveal');
+    newsletter.appendChild(create('p', 'dx-dexnotes-kicker', 'Newsletter'));
+    newsletter.appendChild(create('h2', 'dx-dexnotes-entry-pagination-title', 'Enjoyed this article? Subscribe for future notes.'));
+    newsletter.appendChild(
+      create(
+        'p',
+        'dx-dexnotes-copy dx-dexnotes-entry-newsletter-copy',
+        'Receive new Dex Notes stories, release updates, and open-call highlights.',
+      ),
+    );
+    const newsletterMount = create('div', 'dx-dexnotes-entry-newsletter-mount');
+    newsletterMount.setAttribute('data-dx-marketing-newsletter-mount', 'dexnotes-article-page');
+    newsletter.appendChild(newsletterMount);
+    const newsletterPrivacy = create('a', 'dx-dexnotes-entry-newsletter-privacy', 'Read privacy policy');
+    newsletterPrivacy.href = '/privacy/';
+    newsletter.appendChild(newsletterPrivacy);
+    app.appendChild(newsletter);
+    mountMarketingNewsletter(newsletterMount, {
+      source: 'dexnotes-article-page',
+      formClassName: 'dx-dexnotes-entry-newsletter-form',
+      inputClassName: 'dx-dexnotes-entry-newsletter-input',
+      submitClassName: 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-dexnotes-entry-newsletter-submit',
+      feedbackClassName: 'dx-dexnotes-entry-newsletter-feedback',
+      submitLabel: 'Subscribe',
+      submitBusyLabel: 'Submitting...',
+    });
 
     revealStagger(app, '.dx-dexnotes-entry-reveal', {
       key: 'dexnotes-entry-reveal',

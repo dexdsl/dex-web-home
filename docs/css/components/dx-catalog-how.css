@@ -124,6 +124,31 @@
   font-size: clamp(1rem, 1.7vw, 1.26rem);
 }
 
+.dx-catalog-how-newsletter {
+  padding: clamp(1rem, 1.8vw, 1.4rem);
+}
+
+.dx-catalog-how-newsletter-mount {
+  margin-top: 0.8rem;
+}
+
+.dx-catalog-how-newsletter-privacy {
+  display: inline-flex;
+  margin-top: 0.62rem;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--dx-catalog-how-muted);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(24, 30, 42, 0.26);
+}
+
+.dx-catalog-how-newsletter-privacy:hover,
+.dx-catalog-how-newsletter-privacy:focus-visible {
+  color: var(--dx-catalog-how-ink);
+  border-bottom-color: rgba(255, 25, 16, 0.46);
+}
+
 .dx-catalog-how-example-list {
   margin: 0.7rem 0 0;
   padding-left: 1.1rem;

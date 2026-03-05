@@ -158,6 +158,10 @@ const SYNC_MAP = [
     targets: ['assets/js/call.editorial.js', 'docs/assets/js/call.editorial.js'],
   },
   {
+    source: 'public/assets/js/dx-marketing-newsletter.js',
+    targets: ['assets/js/dx-marketing-newsletter.js', 'docs/assets/js/dx-marketing-newsletter.js'],
+  },
+  {
     source: 'public/assets/js/dexnotes.index.js',
     targets: ['assets/js/dexnotes.index.js', 'docs/assets/js/dexnotes.index.js'],
   },

@@ -96,6 +96,7 @@
     "call:sync": "node scripts/sync_runtime_css.mjs",
     "call:verify": "node scripts/verify_call_integrity.mjs",
     "call:all": "npm run call:extract && npm run call:build && npm run call:sync && npm run call:verify",
+    "newsletter:marketing:build": "node scripts/build-marketing-newsletter-site.mjs",
     "polls:build": "node scripts/build-polls.mjs",
     "polls:verify": "node scripts/verify_polls_contract.mjs",
     "polls:all": "npm run polls:build && npm run polls:verify",

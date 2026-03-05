@@ -6,6 +6,7 @@ const DEFAULT_MIN_DWELL_MS = 1200;
 const DEFAULT_SHORT_COOLDOWN_MS = 6000;
 const DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS = 90;
 const COOLDOWN_PREFIX = 'dx:marketing-newsletter:cooldown:';
+const TURNSTILE_API_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
 function toText(value, fallback = '', max = 500) {
   const text = String(value ?? '').trim();
@@ -197,16 +198,53 @@ function buildUserMessage(result) {
   return 'SUBSCRIBE FAILED. TRY AGAIN LATER.';
 }
 
+function ensureTurnstileScript() {
+  if (window.turnstile && typeof window.turnstile.render === 'function') {
+    return Promise.resolve(true);
+  }
+
+  if (window.__dxTurnstileLoadPromise && typeof window.__dxTurnstileLoadPromise.then === 'function') {
+    return window.__dxTurnstileLoadPromise;
+  }
+
+  const promise = new Promise((resolve) => {
+    const existing = document.querySelector(`script[src^="${TURNSTILE_API_SRC}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      window.setTimeout(() => resolve(false), 4500);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = TURNSTILE_API_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+    window.setTimeout(() => resolve(false), 4500);
+  });
+
+  window.__dxTurnstileLoadPromise = promise;
+  return promise;
+}
+
 function waitForTurnstileApi(timeoutMs = 3500) {
   if (window.turnstile && typeof window.turnstile.render === 'function') {
     return Promise.resolve(window.turnstile);
   }
   return new Promise((resolve) => {
     const startedAt = Date.now();
+    let loadStarted = false;
     const poll = () => {
       if (window.turnstile && typeof window.turnstile.render === 'function') {
         resolve(window.turnstile);
         return;
+      }
+      if (!loadStarted) {
+        loadStarted = true;
+        void ensureTurnstileScript();
       }
       if (Date.now() - startedAt >= timeoutMs) {
         resolve(null);
@@ -248,6 +286,7 @@ function createTurnstileController(container, config) {
 
   const ensureWidget = async () => {
     if (!siteKey) return null;
+    await ensureTurnstileScript();
     const api = await waitForTurnstileApi();
     if (!api) return null;
     if (widgetId !== null) return api;

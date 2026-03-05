@@ -142,6 +142,7 @@ function buildHead({
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
     <link rel="stylesheet" href="${escapeAttr(componentCss)}">
+    <link rel="stylesheet" href="/css/components/dx-marketing-newsletter.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
 <script src="/assets/vendor/auth0-spa-js.umd.min.js"></script>

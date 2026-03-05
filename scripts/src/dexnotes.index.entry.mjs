@@ -1,6 +1,7 @@
 import { animate } from 'framer-motion/dom';
 import Fuse from 'fuse.js';
 import { bindDexButtonMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -507,6 +508,33 @@ import { bindDexButtonMotion, prefersReducedMotion, revealStagger } from './shar
 
     controls.appendChild(drawer);
     app.appendChild(controls);
+
+    const newsletter = create('section', 'dx-dexnotes-surface dx-dexnotes-newsletter dx-dexnotes-reveal');
+    newsletter.appendChild(create('p', 'dx-dexnotes-kicker', 'Newsletter'));
+    newsletter.appendChild(create('h2', 'dx-dexnotes-list-title', 'Get new notes and releases in your inbox.'));
+    newsletter.appendChild(
+      create(
+        'p',
+        'dx-dexnotes-copy dx-dexnotes-newsletter-copy',
+        'Weekly digest with Dex Notes stories, release callouts, and upcoming opportunities.',
+      ),
+    );
+    const newsletterMount = create('div', 'dx-dexnotes-newsletter-mount');
+    newsletterMount.setAttribute('data-dx-marketing-newsletter-mount', 'dexnotes-index-page');
+    newsletter.appendChild(newsletterMount);
+    const newsletterPrivacy = create('a', 'dx-dexnotes-newsletter-privacy', 'Read privacy policy');
+    newsletterPrivacy.href = '/privacy/';
+    newsletter.appendChild(newsletterPrivacy);
+    app.appendChild(newsletter);
+    mountMarketingNewsletter(newsletterMount, {
+      source: 'dexnotes-index-page',
+      formClassName: 'dx-dexnotes-newsletter-form',
+      inputClassName: 'dx-dexnotes-newsletter-input',
+      submitClassName: 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-dexnotes-newsletter-submit',
+      feedbackClassName: 'dx-dexnotes-newsletter-feedback',
+      submitLabel: 'Subscribe',
+      submitBusyLabel: 'Submitting...',
+    });
 
     const listSection = create('section', 'dx-dexnotes-surface dx-dexnotes-list dx-dexnotes-reveal');
     listSection.appendChild(create('h2', 'dx-dexnotes-list-title', 'LATEST DEX NOTES'));

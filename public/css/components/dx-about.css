@@ -287,6 +287,32 @@ body[data-dx-route="about"] main#page .content .fluid-engine > .fe-block .dx-cod
   gap: 6px;
 }
 
+#dex-about .dx-about-newsletter {
+  margin: 0.5rem 0 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.46);
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+#dex-about .dx-about-newsletter h3 {
+  margin: 0;
+  font-family: var(--font-heading, 'Typefesse', sans-serif);
+  font-size: clamp(12px, 1vw, 13px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#dex-about .dx-about-newsletter p {
+  margin: 0;
+}
+
+#dex-about .dx-about-newsletter-mount {
+  margin-top: 0.25rem;
+}
+
 #dex-about .facts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

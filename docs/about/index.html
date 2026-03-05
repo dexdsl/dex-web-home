@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
     <link rel="stylesheet" href="/css/components/dx-about.css">
+    <link rel="stylesheet" href="/css/components/dx-marketing-newsletter.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
 <script defer src="/assets/vendor/auth0-spa-js.umd.min.js"></script>
@@ -46,6 +47,7 @@
 <script defer src="/assets/dex-auth.js"></script>
 <script defer src="/assets/js/header-slot.js"></script>
 <script defer src="/assets/js/dx-about.js"></script>
+<script defer src="/assets/js/dx-marketing-newsletter.js"></script>
 <script defer src="/assets/js/dx-scroll-dot.js"></script>
 <script defer src="/assets/js/interactive-hover.js"></script>
 <link rel="preconnect" href="https://use.fonthost.net" crossorigin>
@@ -1517,6 +1519,20 @@
         <div class="inner">
           <h2 class="p1">Contact</h2>
           <p>We’re a small team and read every message. For general questions, proposals, or rights inquiries, use the form or email us.</p>
+          <section class="dx-about-newsletter" aria-label="Newsletter signup">
+            <h3>Support updates</h3>
+            <p>Get mission updates, new releases, and open-call alerts.</p>
+            <div
+              class="dx-about-newsletter-mount"
+              data-dx-marketing-newsletter-mount="about-support-page"
+              data-dx-newsletter-form-class="dx-about-newsletter-form"
+              data-dx-newsletter-input-class="dx-about-newsletter-input"
+              data-dx-newsletter-submit-class="dx-button-element dx-button-size--sm dx-button-element--primary dx-about-newsletter-submit"
+              data-dx-newsletter-feedback-class="dx-about-newsletter-feedback"
+              data-dx-newsletter-submit-label="Subscribe"
+              data-dx-newsletter-submit-busy-label="Submitting..."
+            ></div>
+          </section>
           <ul>
             <li><b>General:</b> <a href="mailto:info@dexdsl.org">info@dexdsl.org</a></li>
             <li><b>Partnerships / Programs:</b> <a href="mailto:info@dexdsl.org">info@dexdsl.org</a></li>

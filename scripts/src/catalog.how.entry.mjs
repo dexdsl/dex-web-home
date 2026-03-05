@@ -1,4 +1,5 @@
 import { bindDexButtonMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -21,6 +22,47 @@ import { bindDexButtonMotion, revealStagger } from './shared/dx-motion.entry.mjs
 
   function clearNode(node) {
     while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function mountNewsletter(target) {
+    mountMarketingNewsletter(target, {
+      source: 'catalog-how-page',
+      formClassName: 'dx-catalog-how-newsletter-form',
+      inputClassName: 'dx-catalog-how-newsletter-input',
+      submitClassName: 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-how-newsletter-submit',
+      feedbackClassName: 'dx-catalog-how-newsletter-feedback',
+      submitLabel: 'Subscribe',
+      submitBusyLabel: 'Submitting...',
+    });
+  }
+
+  function bindNewsletterTrigger(guideShell, article, newsletterSection, newsletterMount) {
+    if (!(guideShell instanceof HTMLElement)) return;
+    if (!(article instanceof HTMLElement)) return;
+    if (!(newsletterSection instanceof HTMLElement)) return;
+    if (!(newsletterMount instanceof HTMLElement)) return;
+
+    let activated = false;
+
+    const activate = () => {
+      if (activated) return;
+      activated = true;
+      newsletterSection.hidden = false;
+      newsletterSection.setAttribute('aria-hidden', 'false');
+      mountNewsletter(newsletterMount);
+      window.removeEventListener('scroll', onScroll);
+    };
+
+    const onScroll = () => {
+      const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+      const ratio = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+      if (ratio >= 0.35) activate();
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    article.addEventListener('click', activate, { once: true });
+    article.addEventListener('input', activate, { once: true });
+    window.setTimeout(onScroll, 100);
   }
 
   function actionLink(href, label, variant = 'secondary') {
@@ -88,7 +130,28 @@ import { bindDexButtonMotion, revealStagger } from './shared/dx-motion.entry.mjs
     article.appendChild(body);
     shell.appendChild(article);
 
+    const newsletter = create('section', 'dx-catalog-how-surface dx-catalog-how-newsletter');
+    newsletter.hidden = true;
+    newsletter.setAttribute('aria-hidden', 'true');
+    newsletter.appendChild(create('p', 'dx-catalog-how-kicker', 'Newsletter'));
+    newsletter.appendChild(create('h2', 'dx-catalog-how-title', 'Get catalog updates in your inbox.'));
+    newsletter.appendChild(
+      create(
+        'p',
+        'dx-catalog-how-copy',
+        'Receive new catalog releases, Dex Notes coverage, and call-for-work windows.',
+      ),
+    );
+    const newsletterMount = create('div', 'dx-catalog-how-newsletter-mount');
+    newsletterMount.setAttribute('data-dx-marketing-newsletter-mount', 'catalog-how-page');
+    newsletter.appendChild(newsletterMount);
+    const privacy = create('a', 'dx-catalog-how-newsletter-privacy', 'Read privacy policy');
+    privacy.href = '/privacy/';
+    newsletter.appendChild(privacy);
+    shell.appendChild(newsletter);
+
     root.appendChild(shell);
+    bindNewsletterTrigger(shell, article, newsletter, newsletterMount);
 
     bindDexButtonMotion(root);
     revealStagger(root, '.dx-catalog-how-part, .dx-catalog-how-examples', {

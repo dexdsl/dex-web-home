@@ -1,6 +1,7 @@
 import { animate } from 'framer-motion/dom';
 import Fuse from 'fuse.js';
 import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -40,6 +41,8 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
   let seasonCarouselSeason = '';
   let seasonTeaserSeed = '';
   let favoritesSignalsBound = false;
+  let newsletterActivated = false;
+  let newsletterScrollListenerBound = false;
   const ZWNJ = '\u200C';
   const FAVORITES_STORAGE_PREFIX = 'dex:favorites:v2:';
   const FAVORITES_UI_STYLE_ID = 'dx-favorites-ui-style';
@@ -191,6 +194,44 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
 
   function clearNode(node) {
     while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function activateNewsletter() {
+    if (newsletterActivated) return false;
+    newsletterActivated = true;
+    return true;
+  }
+
+  function mountCatalogNewsletter(target) {
+    mountMarketingNewsletter(target, {
+      source: 'catalog-index-page',
+      formClassName: 'dx-catalog-index-newsletter-form',
+      inputClassName: 'dx-catalog-index-newsletter-input',
+      submitClassName: 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-catalog-index-newsletter-submit',
+      feedbackClassName: 'dx-catalog-index-newsletter-feedback',
+      submitLabel: 'Subscribe',
+      submitBusyLabel: 'Submitting...',
+    });
+  }
+
+  function bindNewsletterScrollThreshold() {
+    if (newsletterScrollListenerBound) return;
+    newsletterScrollListenerBound = true;
+    const onScroll = () => {
+      if (newsletterActivated) {
+        window.removeEventListener('scroll', onScroll);
+        return;
+      }
+      const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+      const ratio = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+      if (ratio < 0.32) return;
+      if (activateNewsletter()) {
+        render();
+      }
+      window.removeEventListener('scroll', onScroll);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.setTimeout(onScroll, 100);
   }
 
   function ensureFavoritesUiStyles() {
@@ -904,6 +945,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     search.placeholder = 'Search performer, title, lookup, instrument';
     search.value = state.q;
     search.addEventListener('input', (event) => {
+      activateNewsletter();
       state.q = event.currentTarget.value || '';
       writeUrlState();
       renderBrowse();
@@ -916,6 +958,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     filters.setAttribute('aria-expanded', drawerOpen ? 'true' : 'false');
     filters.setAttribute('aria-controls', 'dx-catalog-index-drawer');
     filters.addEventListener('click', () => {
+      activateNewsletter();
       drawerOpen = !drawerOpen;
       render();
     });
@@ -939,6 +982,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
         modeSelect.appendChild(option);
       });
       modeSelect.addEventListener('change', (event) => {
+        activateNewsletter();
         state.mode = canonicalMode(event.currentTarget.value);
         if (state.mode !== 'instrument') state.instrument = 'all';
         writeUrlState();
@@ -957,6 +1001,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
         seasonSelect.appendChild(option);
       });
       seasonSelect.addEventListener('change', (event) => {
+        activateNewsletter();
         state.season = event.currentTarget.value || 'all';
         writeUrlState();
         renderBrowse();
@@ -976,6 +1021,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
         });
       instrumentSelect.disabled = state.mode !== 'instrument';
       instrumentSelect.addEventListener('change', (event) => {
+        activateNewsletter();
         state.instrument = event.currentTarget.value || 'all';
         writeUrlState();
         renderBrowse();
@@ -997,6 +1043,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
         sortSelect.appendChild(option);
       });
       sortSelect.addEventListener('change', (event) => {
+        activateNewsletter();
         state.sort = canonicalSort(event.currentTarget.value);
         writeUrlState();
         renderBrowse();
@@ -1011,6 +1058,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       clear.type = 'button';
       // Keep current mode while resetting query/filter/sort to avoid disorienting mode jumps.
       clear.addEventListener('click', () => {
+        activateNewsletter();
         state = { ...DEFAULT_STATE, mode: state.mode };
         writeUrlState();
         render();
@@ -1422,6 +1470,31 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
     renderSpotlight(shell);
     renderControls(shell);
 
+    const newsletter = create('section', 'dx-catalog-index-surface dx-catalog-index-newsletter');
+    if (!newsletterActivated) {
+      newsletter.hidden = true;
+      newsletter.setAttribute('aria-hidden', 'true');
+    } else {
+      newsletter.setAttribute('aria-hidden', 'false');
+      newsletter.appendChild(create('p', 'dx-catalog-index-kicker', 'Newsletter'));
+      newsletter.appendChild(create('h2', 'dx-catalog-index-spotlight-title', 'Get catalog drops and call windows in your inbox.'));
+      newsletter.appendChild(
+        create(
+          'p',
+          'dx-catalog-index-copy',
+          'Curated release highlights, fresh catalog additions, and opportunities to contribute.',
+        ),
+      );
+      const mount = create('div', 'dx-catalog-index-newsletter-mount');
+      mount.setAttribute('data-dx-marketing-newsletter-mount', 'catalog-index-page');
+      newsletter.appendChild(mount);
+      const privacy = create('a', 'dx-catalog-index-newsletter-privacy', 'Read privacy policy');
+      privacy.href = '/privacy/';
+      newsletter.appendChild(privacy);
+      mountCatalogNewsletter(mount);
+    }
+    shell.appendChild(newsletter);
+
     const browseHost = create('div', 'dx-catalog-index-browse-host');
     browseHost.setAttribute('data-catalog-index-browse', 'true');
     shell.appendChild(browseHost);
@@ -1467,6 +1540,7 @@ import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, reveal
       fuse = buildFuse();
       writeUrlState();
       render();
+      bindNewsletterScrollThreshold();
     } catch (error) {
       renderError(error);
     }

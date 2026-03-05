@@ -40,6 +40,7 @@ files to download." />
     <link rel="stylesheet" href="/css/components/dx-surface.css">
     <link rel="stylesheet" href="/css/components/dx-controls.css">
     <link rel="stylesheet" href="/css/components/dx-nav.css">
+    <link rel="stylesheet" href="/css/components/dx-marketing-newsletter.css">
     <link rel="stylesheet" href="/assets/css/dex.css">
 <script type="application/ld+json">{"url":"https://dexdsl.org","name":"dex digital sample library","description":"","image":"/assets/img/cc33a50178c013c00896.png","@context":"http://schema.org","@type":"WebSite"}</script><script type="application/ld+json">{"address":"","image":"/assets/img/3b1476c230073f7589e3.jpg","openingHours":", , , , , , ","@context":"http://schema.org","@type":"LocalBusiness"}</script>
 
@@ -220,6 +221,7 @@ body {
 <script defer src="/assets/dex-auth.js"></script>
 <script defer src="/assets/js/header-slot.js"></script>
 <script defer src="/assets/js/dx-scroll-dot.js"></script>
+<script defer src="/assets/js/dx-marketing-newsletter.js"></script>
 <script defer src="/assets/js/interactive-hover.js"></script>
 <link rel="stylesheet" href="/css/fonts.css">
 </head>
@@ -4453,6 +4455,64 @@ Dex 2.0 • SIGN-UP FOR FR‎E‎E AC‎C‎E‎SS  (legacysite code-block)
   })();
   </script>
 </section>
+
+<section id="dex-home-newsletter" class="dx-home-newsletter-card" aria-label="Newsletter signup">
+  <p class="dx-home-newsletter-kicker">Newsletter</p>
+  <h2 class="dx-home-newsletter-title">Stay in the loop.</h2>
+  <p class="dx-home-newsletter-copy">Get release callouts, Dex Notes updates, and open-call windows.</p>
+  <div
+    class="dx-home-newsletter-mount"
+    data-dx-marketing-newsletter-mount="home-page-cta"
+    data-dx-newsletter-form-class="dx-home-newsletter-form"
+    data-dx-newsletter-input-class="dx-home-newsletter-input"
+    data-dx-newsletter-submit-class="dx-button-element dx-button-size--md dx-button-element--primary dx-home-newsletter-submit"
+    data-dx-newsletter-feedback-class="dx-home-newsletter-feedback"
+    data-dx-newsletter-submit-label="Subscribe"
+    data-dx-newsletter-submit-busy-label="Submitting..."
+  ></div>
+  <a class="dx-home-newsletter-privacy" href="/privacy/">Read privacy policy</a>
+</section>
+
+<style>
+  #dex-home-newsletter{
+    margin-top:12px;
+    border:1px solid rgba(255,255,255,.36);
+    border-radius:4px;
+    background:rgba(255,255,255,.46);
+    padding:14px;
+    box-shadow:0 10px 28px rgba(0,0,0,.1);
+  }
+  #dex-home-newsletter .dx-home-newsletter-kicker{
+    margin:0;
+    font:700 11px/1.1 var(--font-heading, system-ui);
+    letter-spacing:.11em;
+    text-transform:uppercase;
+  }
+  #dex-home-newsletter .dx-home-newsletter-title{
+    margin:6px 0 0;
+    font:700 clamp(20px,3vw,28px)/1.05 var(--font-heading, system-ui);
+    text-transform:uppercase;
+  }
+  #dex-home-newsletter .dx-home-newsletter-copy{
+    margin:8px 0 0;
+    font:400 14px/1.45 var(--font-body, system-ui);
+    color:#111;
+  }
+  #dex-home-newsletter .dx-home-newsletter-mount{
+    margin-top:10px;
+  }
+  #dex-home-newsletter .dx-home-newsletter-privacy{
+    display:inline-flex;
+    margin-top:8px;
+    font:400 12px/1.2 var(--font-body, system-ui);
+    color:#111;
+    text-decoration:none;
+    border-bottom:1px solid rgba(0,0,0,.28);
+  }
+  #dex-home-newsletter .dx-home-newsletter-privacy:hover{
+    border-bottom-color:rgba(255,25,16,.6);
+  }
+</style>
 
   
 </div>

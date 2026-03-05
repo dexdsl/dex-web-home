@@ -2354,11 +2354,78 @@
   align-items:center;
   justify-content:space-between;
   gap:8px;
+  flex-wrap:wrap;
 }
 #dex-settings #pane-notifs #notCard .dx-newsletter-head h3{
   margin:0;
   font:700 1rem/1.2 var(--font-heading,system-ui);
   letter-spacing:.01em;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-head .cta{
+  min-height:36px;
+  padding-inline:12px;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-meta{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+@media (max-width: 720px){
+  #dex-settings #pane-notifs #notCard .dx-newsletter-meta{
+    grid-template-columns:1fr;
+  }
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-meta-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid rgba(0,0,0,.12);
+  border-radius:8px;
+  background:rgba(255,255,255,.68);
+  font:600 12px/1.35 var(--font-body,system-ui);
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-meta-label{
+  color:var(--ink-2,#555);
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.16);
+  background:rgba(255,255,255,.92);
+  font:700 11px/1 var(--font-body,system-ui);
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="active"]{
+  background:rgba(228,255,238,.95);
+  border-color:rgba(18,124,66,.35);
+  color:#0f6d38;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="pending_confirmation"]{
+  background:rgba(255,247,222,.96);
+  border-color:rgba(176,122,0,.38);
+  color:#9a6400;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="paused"]{
+  background:rgba(234,243,255,.95);
+  border-color:rgba(46,102,179,.35);
+  color:#1c4b8f;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="suppressed"]{
+  background:rgba(255,236,236,.96);
+  border-color:rgba(164,32,32,.36);
+  color:#8f1717;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="unsubscribed"],
+#dex-settings #pane-notifs #notCard .dx-newsletter-state-badge[data-state="loading"]{
+  background:rgba(244,244,244,.96);
+  border-color:rgba(0,0,0,.15);
+  color:#3f3f3f;
 }
 #dex-settings #pane-notifs #notCard .dx-newsletter-actions{
   display:grid;
@@ -2380,10 +2447,22 @@
   border:1px solid var(--glass-brd);
   box-shadow:none;
 }
+#dex-settings #pane-notifs #notCard .dx-newsletter-actions .dx-newsletter-action--danger{
+  color:#7d1111;
+  border-color:rgba(148,27,27,.35);
+  background:rgba(255,240,240,.95);
+}
 @media (prefers-reduced-motion: no-preference){
   #dex-settings #pane-notifs #notCard .dx-newsletter-actions .cta-secondary:hover{
     box-shadow:0 8px 22px rgba(0,0,0,.12);
   }
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-links{
+  display:flex;
+  justify-content:flex-start;
+}
+#dex-settings #pane-notifs #notCard .dx-newsletter-links .cta{
+  min-height:40px;
 }
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
 #dex-settings #pane-notifs .list label.item[data-dx-tooltip]{
@@ -2839,20 +2918,37 @@
         <label class="item" data-dx-tooltip="Email me a weekly summary every Monday at 9:00 AM local time. Includes recent system notifications; inbox updates still appear immediately. This is separate from marketing/newsletter campaigns."><span>Weekly digest email</span><input id="notifDigest" type="checkbox"></label>
       </div>
 
-      <section class="dx-newsletter-block" aria-label="Newsletter controls">
+      <section id="notifNewsletterBlock" class="dx-newsletter-block" aria-label="Newsletter controls" data-dx-newsletter-state="loading">
         <div class="dx-newsletter-head">
           <h3>Newsletter</h3>
+          <button id="notifNewsletterRefresh" type="button" class="cta cta-secondary">Refresh status</button>
         </div>
         <p class="note">Marketing newsletter is separate from account notifications and weekly digest.</p>
-        <div class="dx-newsletter-identity">
-          <span class="dx-newsletter-identity-label">Account email</span>
-          <strong id="notifNewsletterEmailValue">Resolving…</strong>
+        <div class="dx-newsletter-meta">
+          <div class="dx-newsletter-meta-row">
+            <span class="dx-newsletter-meta-label">Account email</span>
+            <strong id="notifNewsletterEmailValue">Resolving…</strong>
+          </div>
+          <div class="dx-newsletter-meta-row">
+            <span class="dx-newsletter-meta-label">Status</span>
+            <span id="notifNewsletterStateBadge" class="dx-newsletter-state-badge" data-state="loading">Loading</span>
+          </div>
+          <div class="dx-newsletter-meta-row">
+            <span class="dx-newsletter-meta-label">Last action email</span>
+            <span id="notifNewsletterLastActionValue">—</span>
+          </div>
+          <div class="dx-newsletter-meta-row">
+            <span class="dx-newsletter-meta-label">Cooldown</span>
+            <span id="notifNewsletterCooldownValue">Ready</span>
+          </div>
+          <div class="dx-newsletter-meta-row">
+            <span class="dx-newsletter-meta-label">Last updated</span>
+            <span id="notifNewsletterUpdatedValue">—</span>
+          </div>
         </div>
-        <p class="note">We send links to your account email for confirmation, pause, and unsubscribe. No token entry needed in Settings.</p>
-        <div class="dx-newsletter-actions">
-          <button id="notifNewsletterSendLink" type="button" class="cta">Email confirmation/manage link</button>
-          <button id="notifNewsletterPauseLink" type="button" class="cta cta-secondary">Pause newsletter</button>
-          <button id="notifNewsletterUnsubscribeLink" type="button" class="cta cta-secondary">Unsubscribe</button>
+        <p class="note">Account state is fetched live and actions are contextual. No Turnstile challenge is required in authenticated Settings.</p>
+        <div id="notifNewsletterActions" class="dx-newsletter-actions" role="group" aria-label="Newsletter actions"></div>
+        <div class="dx-newsletter-links">
           <a class="cta cta-secondary" href="/entry/pressroom/">Submit release pitch</a>
         </div>
         <p id="notifNewsletterStatusLine" class="note" aria-live="polite"></p>
@@ -4964,6 +5060,61 @@ function hydrateProfile(me){
   const pane = document.getElementById('pane-notifs');
   if (!pane) return;
 
+  const NEWSLETTER_ENDPOINTS = Object.freeze({
+    status: '/newsletter/subscription',
+    action: '/newsletter/subscription/action',
+    legacySubscribe: '/newsletter/subscribe',
+  });
+  const NEWSLETTER_STATES = new Set([
+    'unsubscribed',
+    'pending_confirmation',
+    'active',
+    'paused',
+    'suppressed',
+  ]);
+  const NEWSLETTER_STATE_LABELS = Object.freeze({
+    loading: 'Loading',
+    unsubscribed: 'Unsubscribed',
+    pending_confirmation: 'Pending Confirmation',
+    active: 'Active',
+    paused: 'Paused',
+    suppressed: 'Suppressed',
+  });
+  const NEWSLETTER_ACTION_COOLDOWN_MS = 20 * 1000;
+  const NEWSLETTER_REFRESH_COOLDOWN_MS = 2500;
+  const NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS = 60;
+  const NEWSLETTER_ACTION_SOURCE = Object.freeze({
+    subscribe: 'settings-newsletter-subscribe',
+    'resend-confirmation': 'settings-newsletter-resend',
+    manage: 'settings-newsletter-manage',
+    pause: 'settings-newsletter-pause',
+    resume: 'settings-newsletter-resume',
+    unsubscribe: 'settings-newsletter-unsubscribe',
+  });
+  const NEWSLETTER_ACTION_LABELS = Object.freeze({
+    subscribe: 'Subscribe',
+    'resend-confirmation': 'Resend confirmation',
+    manage: 'Send manage link',
+    pause: 'Pause newsletter',
+    resume: 'Resume newsletter',
+    unsubscribe: 'Unsubscribe',
+  });
+  const NEWSLETTER_SUCCESS_MESSAGE = Object.freeze({
+    subscribe: 'Check your inbox to confirm your newsletter subscription.',
+    'resend-confirmation': 'Confirmation email sent. Check your inbox.',
+    manage: 'Manage-subscription link sent. Check your inbox.',
+    pause: 'Pause link sent. Check your inbox to pause newsletter delivery.',
+    resume: 'Resume link sent. Check your inbox to resume newsletter delivery.',
+    unsubscribe: 'Unsubscribe link sent. Check your inbox to complete removal.',
+  });
+  const NEWSLETTER_ACTIONS_BY_STATE = Object.freeze({
+    unsubscribed: ['subscribe', 'resend-confirmation'],
+    pending_confirmation: ['resend-confirmation', 'manage'],
+    active: ['manage', 'pause', 'unsubscribe'],
+    paused: ['resume', 'manage', 'unsubscribe'],
+    suppressed: ['manage', 'resend-confirmation'],
+  });
+
   const S = {
     notes: document.getElementById('notifDexNotes'),
     polls: document.getElementById('notifPolls'),
@@ -4972,80 +5123,57 @@ function hydrateProfile(me){
     sec: document.getElementById('notifSec'),
     status: document.getElementById('notifStatus'),
     subs: document.getElementById('notifSubs'),
-    dig:  document.getElementById('notifDigest'),
-    badge:document.getElementById('notStatus'),
+    dig: document.getElementById('notifDigest'),
+    badge: document.getElementById('notStatus'),
+    newsletterBlock: document.getElementById('notifNewsletterBlock'),
     newsletterEmailValue: document.getElementById('notifNewsletterEmailValue'),
-    newsletterSendLinkBtn: document.getElementById('notifNewsletterSendLink'),
-    newsletterPauseLinkBtn: document.getElementById('notifNewsletterPauseLink'),
-    newsletterUnsubscribeLinkBtn: document.getElementById('notifNewsletterUnsubscribeLink'),
+    newsletterStateBadge: document.getElementById('notifNewsletterStateBadge'),
+    newsletterLastActionValue: document.getElementById('notifNewsletterLastActionValue'),
+    newsletterCooldownValue: document.getElementById('notifNewsletterCooldownValue'),
+    newsletterUpdatedValue: document.getElementById('notifNewsletterUpdatedValue'),
+    newsletterActions: document.getElementById('notifNewsletterActions'),
+    newsletterRefreshBtn: document.getElementById('notifNewsletterRefresh'),
     newsletterStatusLine: document.getElementById('notifNewsletterStatusLine'),
   };
 
-  let to = null, debounceMs = 400;
-  let newsletterBusy = false;
-  const NEWSLETTER_ACTION_COOLDOWN_MS = 20 * 1000;
-  const newsletterActionCooldowns = new Map();
+  const newsletterModel = {
+    email: '',
+    state: 'unsubscribed',
+    lastActionAt: '',
+    lastActionLabel: '',
+    cooldownUntil: 0,
+    updatedAt: '',
+    requestId: '',
+    suppressedReason: '',
+  };
 
-  function setBadge(txt){
-    if (!S.badge) return;
-    if (txt){ S.badge.hidden = false; S.badge.textContent = txt; }
-    else { S.badge.hidden = true; }
-  }
+  let to = null;
+  const debounceMs = 400;
+  let newsletterBusy = false;
+  let newsletterRefreshBusy = false;
+  const newsletterActionCooldowns = new Map();
+  let newsletterCooldownTicker = 0;
 
   function notificationsApiBase() {
     return String((pane.closest('#dex-settings')?.dataset.api || '/api') || '/api').replace(/\/+$/, '');
   }
 
-  function normalizeEmail(value){
+  function normalizeEmail(value) {
     return String(value || '').trim().toLowerCase();
   }
 
-  function isLikelyEmail(value){
+  function isLikelyEmail(value) {
     const normalized = normalizeEmail(value);
     if (!normalized || normalized === '—') return '';
     return normalized.includes('@') ? normalized : '';
   }
 
-  function setNewsletterStatus(text){
-    if (!S.newsletterStatusLine) return;
-    S.newsletterStatusLine.textContent = String(text || '');
+  function normalizeNewsletterState(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return NEWSLETTER_STATES.has(normalized) ? normalized : 'unsubscribed';
   }
 
-  function cooldownKey(action){
-    return String(action || '').trim() || 'send-link';
-  }
-
-  function newsletterCooldownRemainingMs(action){
-    const key = cooldownKey(action);
-    const until = Number(newsletterActionCooldowns.get(key) || 0);
-    return Math.max(0, until - Date.now());
-  }
-
-  function formatWaitSeconds(ms){
-    const seconds = Math.max(1, Math.ceil((Number(ms) || 0) / 1000));
-    return String(seconds);
-  }
-
-  function setNewsletterCooldown(ms, action){
-    const nextMs = Math.max(0, Number(ms) || 0);
-    const key = cooldownKey(action);
-    if (nextMs <= 0) {
-      newsletterActionCooldowns.delete(key);
-      return;
-    }
-    newsletterActionCooldowns.set(key, Date.now() + nextMs);
-  }
-
-  function setNewsletterBusy(nextBusy){
-    newsletterBusy = !!nextBusy;
-    const email = isLikelyEmail(resolveNewsletterEmailFromUi());
-    const disabled = newsletterBusy || !email;
-    if (S.newsletterSendLinkBtn) S.newsletterSendLinkBtn.disabled = disabled;
-    if (S.newsletterPauseLinkBtn) S.newsletterPauseLinkBtn.disabled = disabled;
-    if (S.newsletterUnsubscribeLinkBtn) S.newsletterUnsubscribeLinkBtn.disabled = disabled;
-  }
-
-  function resolveTimezone(){
+  function resolveTimezone() {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return String(tz || '').trim() || 'UTC';
@@ -5054,29 +5182,248 @@ function hydrateProfile(me){
     }
   }
 
-  function resolveNewsletterEmailFromUi(){
-    const identityEmail = String(document.getElementById('profEmail')?.textContent || '').trim();
-    if (isLikelyEmail(identityEmail)) {
-      return identityEmail;
+  function toEpochMs(value) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value < 10_000_000_000 ? Math.floor(value * 1000) : Math.floor(value);
     }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return 0;
+      if (/^\d+(\.\d+)?$/.test(trimmed)) {
+        const parsed = Number(trimmed);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed < 10_000_000_000 ? Math.floor(parsed * 1000) : Math.floor(parsed);
+        }
+      }
+      const parsedDate = Date.parse(trimmed);
+      if (Number.isFinite(parsedDate) && parsedDate > 0) return Math.floor(parsedDate);
+    }
+    return 0;
+  }
+
+  function toIsoTime(value) {
+    const ms = toEpochMs(value);
+    if (!ms) return '';
+    return new Date(ms).toISOString();
+  }
+
+  function formatDateTime(value) {
+    const ms = toEpochMs(value);
+    if (!ms) return '—';
+    try {
+      return new Date(ms).toLocaleString();
+    } catch {
+      return new Date(ms).toISOString();
+    }
+  }
+
+  function formatWaitSeconds(ms) {
+    const seconds = Math.max(1, Math.ceil((Number(ms) || 0) / 1000));
+    return String(seconds);
+  }
+
+  function setBadge(txt) {
+    if (!S.badge) return;
+    if (txt) {
+      S.badge.hidden = false;
+      S.badge.textContent = txt;
+      return;
+    }
+    S.badge.hidden = true;
+  }
+
+  function setNewsletterStatus(text) {
+    if (!S.newsletterStatusLine) return;
+    S.newsletterStatusLine.textContent = String(text || '');
+  }
+
+  function cooldownKey(action) {
+    return String(action || '').trim().toLowerCase() || 'global';
+  }
+
+  function setNewsletterCooldown(action, ms) {
+    const key = cooldownKey(action);
+    const duration = Math.max(0, Number(ms) || 0);
+    if (!duration) {
+      newsletterActionCooldowns.delete(key);
+      return;
+    }
+    newsletterActionCooldowns.set(key, Date.now() + duration);
+  }
+
+  function pruneNewsletterCooldowns() {
+    const now = Date.now();
+    for (const [key, until] of newsletterActionCooldowns.entries()) {
+      if (!Number.isFinite(until) || until <= now) newsletterActionCooldowns.delete(key);
+    }
+  }
+
+  function newsletterActionCooldownUntil(action = '') {
+    pruneNewsletterCooldowns();
+    return Number(newsletterActionCooldowns.get(cooldownKey(action)) || 0);
+  }
+
+  function newsletterGlobalCooldownUntil() {
+    pruneNewsletterCooldowns();
+    const fromActionMap = [...newsletterActionCooldowns.values()].reduce((max, until) => Math.max(max, Number(until) || 0), 0);
+    return Math.max(fromActionMap, Number(newsletterModel.cooldownUntil || 0), Date.now());
+  }
+
+  function newsletterCooldownRemainingMs(action = '') {
+    const now = Date.now();
+    if (action) {
+      const actionUntil = newsletterActionCooldownUntil(action);
+      const modelUntil = Number(newsletterModel.cooldownUntil || 0);
+      return Math.max(0, Math.max(actionUntil, modelUntil) - now);
+    }
+    return Math.max(0, newsletterGlobalCooldownUntil() - now);
+  }
+
+  function syncNewsletterCooldownMeta() {
+    if (!(S.newsletterCooldownValue instanceof Element)) return;
+    const remainingMs = newsletterCooldownRemainingMs();
+    if (remainingMs <= 0) {
+      S.newsletterCooldownValue.textContent = 'Ready';
+      return;
+    }
+    S.newsletterCooldownValue.textContent = `${formatWaitSeconds(remainingMs)}s`;
+  }
+
+  function startNewsletterCooldownTicker() {
+    if (newsletterCooldownTicker) window.clearInterval(newsletterCooldownTicker);
+    newsletterCooldownTicker = window.setInterval(() => {
+      syncNewsletterCooldownMeta();
+      syncNewsletterActions();
+    }, 1000);
+  }
+
+  function syncNewsletterRefreshButton() {
+    if (!(S.newsletterRefreshBtn instanceof HTMLButtonElement)) return;
+    const refreshCooldown = newsletterCooldownRemainingMs('refresh');
+    S.newsletterRefreshBtn.disabled = newsletterBusy || newsletterRefreshBusy || refreshCooldown > 0;
+  }
+
+  function newsletterActionVariant(action) {
+    if (action === 'unsubscribe') return 'danger';
+    if (action === 'manage' || action === 'pause' || action === 'resend-confirmation') return 'secondary';
+    return 'primary';
+  }
+
+  function newsletterActionsForState(state) {
+    const normalized = normalizeNewsletterState(state);
+    return NEWSLETTER_ACTIONS_BY_STATE[normalized] || NEWSLETTER_ACTIONS_BY_STATE.unsubscribed;
+  }
+
+  function actionButtonId(action) {
+    return `notifNewsletterAction-${String(action || '').replace(/[^a-z0-9_-]/gi, '-')}`;
+  }
+
+  function syncNewsletterActions() {
+    if (!(S.newsletterActions instanceof Element)) return;
+
+    const desired = newsletterActionsForState(newsletterModel.state);
+    const current = Array.from(S.newsletterActions.querySelectorAll('[data-dx-newsletter-action]')).map((node) =>
+      String(node.getAttribute('data-dx-newsletter-action') || ''),
+    );
+    const needsRebuild =
+      desired.length !== current.length || desired.some((action, index) => action !== current[index]);
+
+    if (needsRebuild) {
+      S.newsletterActions.innerHTML = '';
+      desired.forEach((action) => {
+        const button = document.createElement('button');
+        const variant = newsletterActionVariant(action);
+        button.type = 'button';
+        button.id = actionButtonId(action);
+        button.setAttribute('data-dx-newsletter-action', action);
+        button.className = `cta dx-newsletter-action dx-newsletter-action--${variant}${variant === 'secondary' || variant === 'danger' ? ' cta-secondary' : ''}`;
+        button.textContent = NEWSLETTER_ACTION_LABELS[action] || 'Newsletter action';
+        S.newsletterActions.appendChild(button);
+      });
+    }
+
+    const email = isLikelyEmail(newsletterModel.email);
+    const globalCooldownMs = Math.max(0, Number(newsletterModel.cooldownUntil || 0) - Date.now());
+    S.newsletterActions.querySelectorAll('[data-dx-newsletter-action]').forEach((node) => {
+      if (!(node instanceof HTMLButtonElement)) return;
+      const action = String(node.getAttribute('data-dx-newsletter-action') || '').trim().toLowerCase();
+      const actionCooldownMs = newsletterCooldownRemainingMs(action);
+      node.disabled = newsletterBusy || newsletterRefreshBusy || !email || globalCooldownMs > 0 || actionCooldownMs > 0;
+    });
+    syncNewsletterRefreshButton();
+  }
+
+  function renderNewsletterMeta() {
+    if (S.newsletterBlock instanceof Element) {
+      S.newsletterBlock.setAttribute('data-dx-newsletter-state', normalizeNewsletterState(newsletterModel.state));
+    }
+    if (S.newsletterEmailValue instanceof Element) {
+      const email = isLikelyEmail(newsletterModel.email);
+      S.newsletterEmailValue.textContent = email || 'Sign in required';
+    }
+    if (S.newsletterStateBadge instanceof Element) {
+      const state = normalizeNewsletterState(newsletterModel.state);
+      S.newsletterStateBadge.setAttribute('data-state', state);
+      S.newsletterStateBadge.textContent = NEWSLETTER_STATE_LABELS[state] || NEWSLETTER_STATE_LABELS.unsubscribed;
+    }
+    if (S.newsletterLastActionValue instanceof Element) {
+      if (newsletterModel.lastActionAt) {
+        const actionLabel = String(newsletterModel.lastActionLabel || 'Action email');
+        S.newsletterLastActionValue.textContent = `${actionLabel} · ${formatDateTime(newsletterModel.lastActionAt)}`;
+      } else {
+        S.newsletterLastActionValue.textContent = '—';
+      }
+    }
+    if (S.newsletterUpdatedValue instanceof Element) {
+      S.newsletterUpdatedValue.textContent = newsletterModel.updatedAt ? formatDateTime(newsletterModel.updatedAt) : '—';
+    }
+    syncNewsletterCooldownMeta();
+    syncNewsletterActions();
+  }
+
+  function applyNewsletterModel(next = {}) {
+    const normalizedState = normalizeNewsletterState(next.state || newsletterModel.state || 'unsubscribed');
+    const nextEmail = isLikelyEmail(next.email || newsletterModel.email);
+    const nextLastActionAt = toIsoTime(next.lastActionAt || newsletterModel.lastActionAt);
+    const nextUpdatedAt = toIsoTime(next.updatedAt || newsletterModel.updatedAt);
+    const nextCooldownUntil = Math.max(
+      0,
+      toEpochMs(next.cooldownUntil || newsletterModel.cooldownUntil),
+    );
+
+    newsletterModel.state = normalizedState;
+    newsletterModel.email = nextEmail || newsletterModel.email || '';
+    newsletterModel.lastActionAt = nextLastActionAt || newsletterModel.lastActionAt || '';
+    newsletterModel.lastActionLabel = String(next.lastActionLabel || newsletterModel.lastActionLabel || '').trim();
+    newsletterModel.updatedAt = nextUpdatedAt || newsletterModel.updatedAt || '';
+    newsletterModel.cooldownUntil = nextCooldownUntil;
+    newsletterModel.requestId = String(next.requestId || newsletterModel.requestId || '').trim();
+    newsletterModel.suppressedReason = String(next.suppressedReason || newsletterModel.suppressedReason || '').trim();
+
+    renderNewsletterMeta();
+  }
+
+  function resolveNewsletterEmailFromUi() {
+    const identityEmail = String(document.getElementById('profEmail')?.textContent || '').trim();
+    if (isLikelyEmail(identityEmail)) return identityEmail;
     const fallbackAuthEmail = isLikelyEmail(window.AUTH0_USER?.email);
     if (fallbackAuthEmail) return fallbackAuthEmail;
     return '';
   }
 
-  async function withTimeout(promise, timeoutMs){
+  async function withTimeout(promise, timeoutMs) {
     if (!(promise && typeof promise.then === 'function')) return null;
     return Promise.race([
       promise.catch(() => null),
-      new Promise((resolve) => setTimeout(() => resolve(null), Math.max(250, Number(timeoutMs) || 1200)))
+      new Promise((resolve) => setTimeout(() => resolve(null), Math.max(250, Number(timeoutMs) || 1200))),
     ]);
   }
 
-  function emailFromUserCandidate(candidate){
+  function emailFromUserCandidate(candidate) {
     return isLikelyEmail(candidate && typeof candidate === 'object' ? candidate.email : '');
   }
 
-  async function resolveNewsletterEmailAsync(){
+  async function resolveNewsletterEmailAsync() {
     const uiEmail = isLikelyEmail(resolveNewsletterEmailFromUi());
     if (uiEmail) return uiEmail;
 
@@ -5096,9 +5443,9 @@ function hydrateProfile(me){
     }
 
     try {
-      const profile = await jfetch(notificationsApiBase() + '/me/profile', {
+      const profile = await jfetch(`${notificationsApiBase()}/me/profile`, {
         timeoutMs: 2500,
-        __skipAuthGuard: true
+        __skipAuthGuard: true,
       });
       const profileEmail = isLikelyEmail(profile?.email);
       if (profileEmail) return profileEmail;
@@ -5107,98 +5454,244 @@ function hydrateProfile(me){
     return '';
   }
 
-  function prefillNewsletterIdentity(email){
-    if (!(S.newsletterEmailValue instanceof Element)) return;
+  function prefillNewsletterIdentity(email) {
     const normalized = isLikelyEmail(email);
     if (normalized) {
-      S.newsletterEmailValue.textContent = normalized;
-      if (!newsletterBusy) setNewsletterBusy(false);
+      applyNewsletterModel({ email: normalized });
       return;
     }
-    S.newsletterEmailValue.textContent = 'Sign in required';
-    if (!newsletterBusy) setNewsletterBusy(false);
+    applyNewsletterModel({ email: '' });
   }
 
-  async function postNewsletter(path, payload){
+  function normalizeNewsletterResponse(payload, fallbackState, fallbackActionLabel) {
+    const body = payload && typeof payload === 'object' ? payload : {};
+    const retryAfterSeconds = Math.max(0, Math.min(7200, Number(body.retryAfterSeconds) || 0));
+    const retryCooldownUntil = retryAfterSeconds > 0 ? Date.now() + retryAfterSeconds * 1000 : 0;
+    return {
+      ok: body.ok !== false,
+      state: normalizeNewsletterState(body.state || fallbackState),
+      requestId: String(body.requestId || '').trim(),
+      message: String(body.message || '').trim(),
+      code: String(body.code || '').trim().toUpperCase(),
+      retryAfterSeconds,
+      cooldownUntil: Math.max(
+        0,
+        toEpochMs(body.cooldownUntil || body.cooldownEndsAt),
+        retryCooldownUntil,
+      ),
+      lastActionAt: toIsoTime(body.lastActionSentAt || body.lastActionAt || Date.now()),
+      updatedAt: toIsoTime(body.updatedAt || body.lastUpdatedAt || Date.now()),
+      suppressedReason: String(body.suppressedReason || body.reason || '').trim(),
+      lastActionLabel: fallbackActionLabel || '',
+    };
+  }
+
+  function newsletterActionResultState(action) {
+    if (action === 'subscribe' || action === 'resend-confirmation') return 'pending_confirmation';
+    if (action === 'resume') return 'active';
+    if (action === 'pause') return 'paused';
+    if (action === 'unsubscribe') return 'suppressed';
+    return newsletterModel.state || 'unsubscribed';
+  }
+
+  function parseNewsletterError(error) {
+    const status = Number(error?.status || 0);
+    const payload = parseErrorPayload(error) || {};
+    const code = String(payload.code || payload.error || '').trim().toUpperCase();
+    const retryAfterSeconds = Math.max(
+      0,
+      Math.min(
+        7200,
+        Number(payload.retryAfterSeconds || payload.retry_after || 0) || 0,
+      ),
+    );
+    return { status, code, retryAfterSeconds };
+  }
+
+  async function postNewsletter(path, payload) {
     return jfetch(`${notificationsApiBase()}${path}`, {
-      method:'POST',
+      method: 'POST',
       body: JSON.stringify(payload),
       timeoutMs: 12000,
-      __skipAuthGuard: true
+      __skipAuthGuard: true,
     });
   }
 
-  async function handleNewsletterAction(action){
-    if (newsletterBusy) return;
-    const cooldownMs = newsletterCooldownRemainingMs(action);
-    if (cooldownMs > 0) {
-      setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
-      setNewsletterBusy(false);
-      return;
+  function actionPayload(action, email) {
+    return {
+      action: String(action || '').trim(),
+      email,
+      source: NEWSLETTER_ACTION_SOURCE[action] || 'settings-newsletter',
+      timezone: resolveTimezone(),
+      auth0Sub: String(window.auth0Sub || ''),
+    };
+  }
+
+  function legacySubscribePayload(action, email) {
+    return {
+      email,
+      source: NEWSLETTER_ACTION_SOURCE[action] || 'settings-newsletter',
+      timezone: resolveTimezone(),
+      auth0Sub: String(window.auth0Sub || ''),
+    };
+  }
+
+  async function refreshNewsletterStatus(options = {}) {
+    const announce = options && options.announce === true;
+    const force = options && options.force === true;
+    const skipCooldown = options && options.skipCooldown === true;
+
+    if (newsletterRefreshBusy) return;
+    if (!force && !skipCooldown) {
+      const cooldownMs = newsletterCooldownRemainingMs('refresh');
+      if (cooldownMs > 0) {
+        if (announce) {
+          setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before refreshing newsletter status.`);
+        }
+        return;
+      }
     }
+
     try {
-      setNewsletterBusy(true);
-      if (action === 'send-link' || action === 'pause-link' || action === 'unsubscribe-link') {
-        const email = isLikelyEmail(await resolveNewsletterEmailAsync());
-        if (!email || !email.includes('@')) {
-          prefillNewsletterIdentity('');
-          setNewsletterStatus('Could not resolve your account email. Sign in and refresh, then try again.');
-          return;
-        }
-        const authToken = await token();
-        if (!authToken) {
-          setNewsletterStatus('Your session has expired. Refresh and sign in again, then retry newsletter actions.');
-          return;
-        }
-        prefillNewsletterIdentity(email);
-        const sourceMap = {
-          'send-link': 'settings-newsletter-manage',
-          'pause-link': 'settings-newsletter-pause',
-          'unsubscribe-link': 'settings-newsletter-unsubscribe'
-        };
-        const payload = await postNewsletter('/newsletter/subscribe', {
-          email,
-          source: sourceMap[action] || 'settings-newsletter',
-          timezone: resolveTimezone(),
-          auth0Sub: String(window.auth0Sub || '')
-        });
-        setNewsletterCooldown(NEWSLETTER_ACTION_COOLDOWN_MS, action);
-        const state = String(payload?.state || '').toLowerCase();
-        if (action === 'pause-link') {
-          setNewsletterStatus('Pause link sent. Check your inbox to pause newsletter delivery.');
-          return;
-        }
-        if (action === 'unsubscribe-link') {
-          setNewsletterStatus('Unsubscribe link sent. Check your inbox to remove this address from newsletter delivery.');
-          return;
-        }
-        if (state === 'pending_confirmation') {
-          setNewsletterStatus('Check your inbox to confirm your newsletter subscription.');
-        } else {
-          setNewsletterStatus('Manage-subscription link sent. Check your inbox.');
-        }
+      newsletterRefreshBusy = true;
+      syncNewsletterActions();
+      const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: false, timeoutMs: 2500 });
+      if (authGate?.status !== 'authenticated') {
+        prefillNewsletterIdentity('');
+        setNewsletterStatus('Sign in required to load newsletter subscription status.');
+        return;
+      }
+
+      const email = isLikelyEmail(await resolveNewsletterEmailAsync());
+      if (email) prefillNewsletterIdentity(email);
+
+      const payload = await jfetch(`${notificationsApiBase()}${NEWSLETTER_ENDPOINTS.status}`, {
+        timeoutMs: 9000,
+        __skipAuthGuard: true,
+      });
+
+      const normalized = normalizeNewsletterResponse(payload, newsletterModel.state, newsletterModel.lastActionLabel);
+      normalized.email = isLikelyEmail(payload?.email) || email || newsletterModel.email;
+      applyNewsletterModel(normalized);
+      setNewsletterCooldown('refresh', NEWSLETTER_REFRESH_COOLDOWN_MS);
+      if (announce) {
+        const label = NEWSLETTER_STATE_LABELS[normalizeNewsletterState(normalized.state)] || 'Updated';
+        setNewsletterStatus(`Newsletter status refreshed: ${label}.`);
       }
     } catch (error) {
-      const status = Number(error?.status || 0);
-      let detail = String(error?.message || '').trim();
-      if (detail) {
-        try {
-          const parsed = JSON.parse(detail);
-          if (parsed && typeof parsed.error === 'string') detail = parsed.error;
-        } catch {}
-      }
-      if (status === 429) {
-        setNewsletterCooldown(60 * 1000, action);
-        setNewsletterStatus('Too many requests right now. Please wait a minute and retry (provider protection can take up to 1 hour to fully clear).');
+      const parsed = parseNewsletterError(error);
+      if (isCompatFallbackStatus(error)) {
+        applyNewsletterModel({
+          email: newsletterModel.email || resolveNewsletterEmailFromUi(),
+          updatedAt: Date.now(),
+        });
+        if (announce) {
+          setNewsletterStatus('Newsletter status endpoint is not available yet. You can still request action links.');
+        }
+      } else if (parsed.status === 401 || parsed.status === 403) {
+        setNewsletterStatus('Your session has expired. Refresh and sign in again to load newsletter status.');
+      } else if (parsed.status === 429 || parsed.code === 'RATE_LIMIT') {
+        const retrySeconds = parsed.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
+        setNewsletterCooldown('refresh', retrySeconds * 1000);
+        newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
+        setNewsletterStatus(`Rate limited. Retry status refresh in ${retrySeconds}s.`);
       } else {
-        setNewsletterStatus(detail ? `Newsletter action failed: ${detail}` : 'Newsletter action failed. Try again.');
+        setNewsletterStatus('Could not refresh newsletter status right now. Try again.');
       }
     } finally {
-      setNewsletterBusy(false);
+      newsletterRefreshBusy = false;
+      syncNewsletterActions();
     }
   }
 
-  function read(){
+  async function handleNewsletterAction(action) {
+    const normalizedAction = String(action || '').trim().toLowerCase();
+    if (!normalizedAction || !NEWSLETTER_ACTION_SOURCE[normalizedAction]) return;
+    if (newsletterBusy) return;
+
+    const cooldownMs = newsletterCooldownRemainingMs(normalizedAction);
+    if (cooldownMs > 0) {
+      setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
+      syncNewsletterActions();
+      return;
+    }
+
+    try {
+      newsletterBusy = true;
+      syncNewsletterActions();
+
+      const email = isLikelyEmail(await resolveNewsletterEmailAsync());
+      if (!email) {
+        prefillNewsletterIdentity('');
+        setNewsletterStatus('Could not resolve your account email. Sign in and refresh, then try again.');
+        return;
+      }
+      prefillNewsletterIdentity(email);
+
+      const authToken = await token();
+      if (!authToken) {
+        setNewsletterStatus('Your session has expired. Refresh and sign in again, then retry newsletter actions.');
+        return;
+      }
+
+      let responsePayload;
+      try {
+        responsePayload = await postNewsletter(NEWSLETTER_ENDPOINTS.action, actionPayload(normalizedAction, email));
+      } catch (error) {
+        if (!isCompatFallbackStatus(error)) throw error;
+        responsePayload = await postNewsletter(
+          NEWSLETTER_ENDPOINTS.legacySubscribe,
+          legacySubscribePayload(normalizedAction, email),
+        );
+      }
+
+      const response = normalizeNewsletterResponse(
+        responsePayload,
+        newsletterActionResultState(normalizedAction),
+        NEWSLETTER_ACTION_LABELS[normalizedAction] || '',
+      );
+
+      if (response.ok === false) {
+        if (response.code === 'RATE_LIMIT') {
+          const retrySeconds = response.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
+          setNewsletterCooldown(normalizedAction, retrySeconds * 1000);
+          newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
+          setNewsletterStatus(`Too many requests right now. Retry in ${retrySeconds}s.`);
+          return;
+        }
+        setNewsletterStatus('Newsletter action failed. Try again.');
+        return;
+      }
+
+      setNewsletterCooldown(normalizedAction, NEWSLETTER_ACTION_COOLDOWN_MS);
+      applyNewsletterModel({
+        ...response,
+        email,
+        lastActionLabel: NEWSLETTER_ACTION_LABELS[normalizedAction] || '',
+      });
+      setNewsletterStatus(response.message || NEWSLETTER_SUCCESS_MESSAGE[normalizedAction] || 'Newsletter action completed.');
+      void refreshNewsletterStatus({ announce: false, force: true, skipCooldown: true });
+    } catch (error) {
+      const parsed = parseNewsletterError(error);
+      if (parsed.status === 401 || parsed.status === 403) {
+        setNewsletterStatus('Your session has expired. Refresh and sign in again, then retry newsletter actions.');
+      } else if (parsed.status === 429 || parsed.code === 'RATE_LIMIT') {
+        const retrySeconds = parsed.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
+        setNewsletterCooldown(normalizedAction, retrySeconds * 1000);
+        newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
+        setNewsletterStatus(`Too many requests right now. Retry in ${retrySeconds}s.`);
+      } else if (parsed.code === 'INVALID_EMAIL') {
+        setNewsletterStatus('Could not validate your account email for newsletter actions.');
+      } else {
+        setNewsletterStatus('Newsletter action failed. Try again.');
+      }
+    } finally {
+      newsletterBusy = false;
+      syncNewsletterActions();
+    }
+  }
+
+  function read() {
     const digestEnabled = !!S.dig?.checked;
     const timezone = (() => {
       try {
@@ -5213,7 +5706,7 @@ function hydrateProfile(me){
       version: 2,
       channels: {
         inbox: true,
-        digestEmail: digestEnabled
+        digestEmail: digestEnabled,
       },
       categories: {
         announcements: !!S.notes?.checked,
@@ -5223,22 +5716,21 @@ function hydrateProfile(me){
         billing: !!S.bill?.checked,
         security: !!S.sec?.checked,
         status: !!S.status?.checked,
-        submissions: !!S.subs?.checked
+        submissions: !!S.subs?.checked,
       },
       quietHours: {
         start: '',
         end: '',
-        timezone
+        timezone,
       },
       digest: {
         enabled: digestEnabled,
         cadence: 'weekly',
         day: 'monday',
-        localHour: 9
-      }
+        localHour: 9,
+      },
     };
 
-    // Keep legacy keys for backward compatibility while worker rollout catches up.
     return {
       announcements: v2.categories.releaseNotes,
       releases: v2.categories.releaseNotes,
@@ -5248,15 +5740,15 @@ function hydrateProfile(me){
       digestWeekly: v2.channels.digestEmail,
       quietStart: '',
       quietEnd: '',
-      ...v2
+      ...v2,
     };
   }
 
-  function hydrate(d={}){
-    const root = (d && typeof d === 'object') ? d : {};
-    const categories = (root.categories && typeof root.categories === 'object') ? root.categories : {};
-    const channels = (root.channels && typeof root.channels === 'object') ? root.channels : {};
-    const digest = (root.digest && typeof root.digest === 'object') ? root.digest : {};
+  function hydrate(d = {}) {
+    const root = d && typeof d === 'object' ? d : {};
+    const categories = root.categories && typeof root.categories === 'object' ? root.categories : {};
+    const channels = root.channels && typeof root.channels === 'object' ? root.channels : {};
+    const digest = root.digest && typeof root.digest === 'object' ? root.digest : {};
 
     if (S.notes) {
       const notesCandidates = [
@@ -5276,54 +5768,65 @@ function hydrateProfile(me){
     if (S.dig) S.dig.checked = !!(channels.digestEmail ?? digest.enabled ?? root.digestWeekly);
   }
 
-  async function load(){
+  async function load() {
     prefillNewsletterIdentity(resolveNewsletterEmailFromUi());
-    try{
+    try {
       const authGate = await requireProtectedAuth({ returnTo: currentReturnTo(), autoRedirect: false, timeoutMs: 2500 });
       if (authGate?.status !== 'authenticated') return;
-      const d = await jfetch(notificationsApiBase() + '/me/notifications');
-      hydrate(d||{});
+      const d = await jfetch(`${notificationsApiBase()}/me/notifications`);
+      hydrate(d || {});
       const email = await resolveNewsletterEmailAsync();
       prefillNewsletterIdentity(email || resolveNewsletterEmailFromUi());
-    }catch(_){ /* non-fatal */ }
-    finally { markSettingsCardReady('notCard'); }
+      await refreshNewsletterStatus({ announce: false, force: true, skipCooldown: true });
+    } catch (_) {
+      /* non-fatal */
+    } finally {
+      markSettingsCardReady('notCard');
+    }
   }
 
-  async function save(){
-    try{
+  async function save() {
+    try {
       setBadge('Saving…');
-      await jfetch(notificationsApiBase() + '/me/notifications', {
-        method:'PATCH',
-        body: JSON.stringify(read())
+      await jfetch(`${notificationsApiBase()}/me/notifications`, {
+        method: 'PATCH',
+        body: JSON.stringify(read()),
       });
       setBadge('Saved');
-      setTimeout(()=> setBadge(''), 1000);
-    }catch(_){
+      setTimeout(() => setBadge(''), 1000);
+    } catch (_) {
       setBadge('Pending…');
     }
   }
 
-  function schedule(){ clearTimeout(to); setBadge('Saving…'); to = setTimeout(save, debounceMs); }
+  function schedule() {
+    clearTimeout(to);
+    setBadge('Saving…');
+    to = setTimeout(save, debounceMs);
+  }
 
-  // Only listen inside the notifications pane
-  pane.addEventListener('change', e=>{
+  pane.addEventListener('change', (e) => {
     if (!(e.target instanceof HTMLInputElement)) return;
     if (e.target.type !== 'checkbox') return;
     schedule();
   });
 
-  pane.addEventListener('click', e=>{
-    const target = e.target instanceof Element ? e.target.closest('[data-dx-newsletter-action]') : null;
-    if (!target) return;
-    const action = String(target.getAttribute('data-dx-newsletter-action') || '').trim();
-    if (!action) return;
-    e.preventDefault();
-    void handleNewsletterAction(action);
-  });
+  pane.addEventListener('click', (e) => {
+    const actionTarget = e.target instanceof Element ? e.target.closest('[data-dx-newsletter-action]') : null;
+    if (actionTarget) {
+      const action = String(actionTarget.getAttribute('data-dx-newsletter-action') || '').trim();
+      if (!action) return;
+      e.preventDefault();
+      void handleNewsletterAction(action);
+      return;
+    }
 
-  S.newsletterSendLinkBtn?.setAttribute('data-dx-newsletter-action', 'send-link');
-  S.newsletterPauseLinkBtn?.setAttribute('data-dx-newsletter-action', 'pause-link');
-  S.newsletterUnsubscribeLinkBtn?.setAttribute('data-dx-newsletter-action', 'unsubscribe-link');
+    const refreshTarget = e.target instanceof Element ? e.target.closest('#notifNewsletterRefresh') : null;
+    if (refreshTarget) {
+      e.preventDefault();
+      void refreshNewsletterStatus({ announce: true, force: true });
+    }
+  });
 
   window.addEventListener('dx:settings:identity-hydrated', (event) => {
     const detail = event && typeof event === 'object' && 'detail' in event ? event.detail : null;
@@ -5331,7 +5834,8 @@ function hydrateProfile(me){
     prefillNewsletterIdentity(email || resolveNewsletterEmailFromUi());
   });
 
-  // hydrate without touching the global boot flow
+  startNewsletterCooldownTicker();
+  renderNewsletterMeta();
   load();
 })();
 

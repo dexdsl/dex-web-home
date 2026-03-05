@@ -62,7 +62,7 @@ skill." />
   window.DEX_MARKETING_NEWSLETTER = Object.assign({
     source: 'call-page',
     turnstileAction: 'newsletter_subscribe',
-    turnstileSiteKey: window.DEX_TURNSTILE_SITE_KEY || ''
+    turnstileSiteKey: window.DEX_NEWSLETTER_TURNSTILE_SITE_KEY || window.DEX_TURNSTILE_SITE_KEY || ''
   }, window.DEX_MARKETING_NEWSLETTER || {});
 </script>
 <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>

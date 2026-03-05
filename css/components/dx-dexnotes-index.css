@@ -233,6 +233,35 @@
   font-size: 13px;
 }
 
+.dx-dexnotes-newsletter {
+  padding: clamp(1.05rem, 1.9vw, 1.45rem);
+}
+
+.dx-dexnotes-newsletter-copy {
+  margin-top: 0.56rem;
+}
+
+.dx-dexnotes-newsletter-mount {
+  margin-top: 0.72rem;
+}
+
+.dx-dexnotes-newsletter-privacy {
+  display: inline-flex;
+  margin-top: 0.62rem;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--dx-dexnotes-muted);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(24, 30, 42, 0.26);
+}
+
+.dx-dexnotes-newsletter-privacy:hover,
+.dx-dexnotes-newsletter-privacy:focus-visible {
+  color: var(--dx-dexnotes-ink);
+  border-bottom-color: rgba(255, 25, 16, 0.46);
+}
+
 .dx-dexnotes-card-grid {
   margin-top: 0.84rem;
   display: grid;

@@ -239,6 +239,10 @@ async function stubMessagesApi(
   actionHits: string[] = [],
   newsletterHits: string[] = [],
 ): Promise<void> {
+  let newsletterState = 'active';
+  let newsletterLastActionSentAt = '2026-02-26T09:40:00.000Z';
+  let newsletterUpdatedAt = '2026-02-26T09:40:00.000Z';
+
   await page.route('https://dex-api.spring-fog-8edd.workers.dev/**', async (route) => {
     const request = route.request();
     const method = request.method().toUpperCase();
@@ -385,6 +389,51 @@ async function stubMessagesApi(
         headers: CORS_HEADERS,
         contentType: 'application/json',
         body: JSON.stringify({ count: 2 }),
+      });
+      return;
+    }
+
+    if (pathname === '/newsletter/subscription' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          email: 'messages-e2e@example.com',
+          state: newsletterState,
+          lastActionSentAt: newsletterLastActionSentAt,
+          updatedAt: newsletterUpdatedAt,
+          cooldownUntil: 0,
+          requestId: 'newsletter-status-req',
+        }),
+      });
+      return;
+    }
+
+    if (pathname === '/newsletter/subscription/action' && method === 'POST') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const action = String(body.action || '').trim().toLowerCase();
+      const email = String(body.email || '');
+      newsletterHits.push(`action:${action}:${email}`);
+      if (action === 'subscribe' || action === 'resend-confirmation') newsletterState = 'pending_confirmation';
+      if (action === 'pause') newsletterState = 'paused';
+      if (action === 'resume') newsletterState = 'active';
+      if (action === 'unsubscribe') newsletterState = 'suppressed';
+      newsletterLastActionSentAt = '2026-02-26T10:00:00.000Z';
+      newsletterUpdatedAt = '2026-02-26T10:00:00.000Z';
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          email,
+          state: newsletterState,
+          requestId: `newsletter-action-${action || 'unknown'}`,
+          lastActionSentAt: newsletterLastActionSentAt,
+          updatedAt: newsletterUpdatedAt,
+        }),
       });
       return;
     }
@@ -611,22 +660,32 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
   await expect(page.locator('#notifNewsletterConfirmToken')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterUnsubToken')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterEmailValue')).toContainText('messages-e2e@example.com');
-  await expect(page.locator('#notifNewsletterSendLink')).toBeVisible();
-  await expect(page.locator('#notifNewsletterPauseLink')).toBeVisible();
-  await expect(page.locator('#notifNewsletterUnsubscribeLink')).toBeVisible();
-  await expect(page.locator('#notifNewsletterSendLink')).toHaveClass(/cta/);
-  await expect(page.locator('#notifNewsletterPauseLink')).toHaveClass(/cta-secondary/);
-  await expect(page.locator('#notifNewsletterUnsubscribeLink')).toHaveClass(/cta-secondary/);
+  await expect(page.locator('#notifNewsletterStateBadge')).toContainText(/active/i);
+  await expect(page.locator('#notifNewsletterActions [data-dx-newsletter-action="manage"]')).toBeVisible();
+  await expect(page.locator('#notifNewsletterActions [data-dx-newsletter-action="pause"]')).toBeVisible();
+  await expect(page.locator('#notifNewsletterActions [data-dx-newsletter-action="unsubscribe"]')).toBeVisible();
+  await expect(page.locator('#notifNewsletterRefresh')).toBeVisible();
 
-  await page.click('#notifNewsletterSendLink');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/manage-subscription link sent|check your inbox|newsletter email sent/i);
-  await expect.poll(() => newsletterHits.includes('subscribe:messages-e2e@example.com')).toBe(true);
+  await page.click('#notifNewsletterActions [data-dx-newsletter-action="manage"]');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/manage-subscription link sent|check your inbox/i);
+  await expect.poll(() => newsletterHits.includes('action:manage:messages-e2e@example.com')).toBe(true);
 
-  await page.click('#notifNewsletterPauseLink');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/pause link sent/i);
+  await page.click('#notifNewsletterActions [data-dx-newsletter-action="pause"]');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/pause link sent|check your inbox/i);
+  await expect(page.locator('#notifNewsletterStateBadge')).toContainText(/paused/i);
+  await expect(page.locator('#notifNewsletterActions [data-dx-newsletter-action="resume"]')).toBeVisible();
 
-  await page.click('#notifNewsletterUnsubscribeLink');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribe link sent/i);
+  await page.click('#notifNewsletterActions [data-dx-newsletter-action="resume"]');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/resume link sent|check your inbox/i);
+  await expect(page.locator('#notifNewsletterStateBadge')).toContainText(/active/i);
+
+  await page.click('#notifNewsletterActions [data-dx-newsletter-action="unsubscribe"]');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/unsubscribe link sent|check your inbox/i);
+  await expect(page.locator('#notifNewsletterStateBadge')).toContainText(/suppressed/i);
+
+  await expect.poll(() => page.locator('#notifNewsletterRefresh').isDisabled()).toBe(false);
+  await page.click('#notifNewsletterRefresh');
+  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/status refreshed/i);
 });
 
 test('settings tab underline stays aligned through hash restore, tab switches, and resize', async ({ page }) => {

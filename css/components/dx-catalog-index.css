@@ -153,6 +153,31 @@
   gap: 1rem;
 }
 
+.dx-catalog-index-newsletter {
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.dx-catalog-index-newsletter-mount {
+  margin-top: 0.8rem;
+}
+
+.dx-catalog-index-newsletter-privacy {
+  display: inline-flex;
+  margin-top: 0.62rem;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--dx-catalog-index-muted);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(24, 30, 42, 0.26);
+}
+
+.dx-catalog-index-newsletter-privacy:hover,
+.dx-catalog-index-newsletter-privacy:focus-visible {
+  color: var(--dx-catalog-index-ink);
+  border-bottom-color: rgba(255, 25, 16, 0.46);
+}
+
 .dx-catalog-index-hero {
   display: grid;
   gap: 0.72rem;

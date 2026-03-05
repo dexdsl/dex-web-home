@@ -64,6 +64,70 @@ async function verifyCallRuntime() {
   ]);
 }
 
+async function verifyMarketingMountCoverage() {
+  const homeRel = 'docs/index.html';
+  const homeHtml = await readText(homeRel);
+  assertIncludes(homeRel, homeHtml, [
+    'data-dx-marketing-newsletter-mount="home-page-cta"',
+    '/css/components/dx-marketing-newsletter.css',
+    '/assets/js/dx-marketing-newsletter.js',
+  ]);
+
+  const aboutRel = 'docs/about/index.html';
+  const aboutHtml = await readText(aboutRel);
+  assertIncludes(aboutRel, aboutHtml, [
+    'data-dx-marketing-newsletter-mount="about-support-page"',
+    '/css/components/dx-marketing-newsletter.css',
+    '/assets/js/dx-marketing-newsletter.js',
+  ]);
+
+  const catalogIndexRel = 'docs/catalog/index.html';
+  const catalogIndexHtml = await readText(catalogIndexRel);
+  assertIncludes(catalogIndexRel, catalogIndexHtml, [
+    '/css/components/dx-marketing-newsletter.css',
+  ]);
+
+  const catalogHowRel = 'docs/catalog/how/index.html';
+  const catalogHowHtml = await readText(catalogHowRel);
+  assertIncludes(catalogHowRel, catalogHowHtml, [
+    '/css/components/dx-marketing-newsletter.css',
+  ]);
+
+  const dexnotesRenderRel = 'scripts/render_dexnotes_pages.mjs';
+  const dexnotesRenderSource = await readText(dexnotesRenderRel);
+  assertIncludes(dexnotesRenderRel, dexnotesRenderSource, [
+    '/css/components/dx-marketing-newsletter.css',
+  ]);
+
+  const dexnotesIndexRuntimeRel = 'scripts/src/dexnotes.index.entry.mjs';
+  const dexnotesIndexRuntime = await readText(dexnotesIndexRuntimeRel);
+  assertIncludes(dexnotesIndexRuntimeRel, dexnotesIndexRuntime, [
+    'data-dx-marketing-newsletter-mount',
+    'dexnotes-index-page',
+  ]);
+
+  const dexnotesEntryRuntimeRel = 'scripts/src/dexnotes.entry.entry.mjs';
+  const dexnotesEntryRuntime = await readText(dexnotesEntryRuntimeRel);
+  assertIncludes(dexnotesEntryRuntimeRel, dexnotesEntryRuntime, [
+    'data-dx-marketing-newsletter-mount',
+    'dexnotes-article-page',
+  ]);
+
+  const catalogIndexRuntimeRel = 'scripts/src/catalog.index.entry.mjs';
+  const catalogIndexRuntime = await readText(catalogIndexRuntimeRel);
+  assertIncludes(catalogIndexRuntimeRel, catalogIndexRuntime, [
+    'data-dx-marketing-newsletter-mount',
+    'catalog-index-page',
+  ]);
+
+  const catalogHowRuntimeRel = 'scripts/src/catalog.how.entry.mjs';
+  const catalogHowRuntime = await readText(catalogHowRuntimeRel);
+  assertIncludes(catalogHowRuntimeRel, catalogHowRuntime, [
+    'data-dx-marketing-newsletter-mount',
+    'catalog-how-page',
+  ]);
+}
+
 async function verifyRoutePages() {
   const confirmRel = 'docs/newsletter/confirm/index.html';
   const confirmHtml = await readText(confirmRel);
@@ -83,21 +147,24 @@ async function verifyRoutePages() {
 }
 
 async function verifyLegacyRemoval() {
-  const indexRel = 'docs/index.html';
-  const indexHtml = await readText(indexRel);
-  assertExcludes(indexRel, indexHtml, ['chimpstatic.com', 'id="mcjs"']);
+  const marketingPages = [
+    'docs/index.html',
+    'docs/call/index.html',
+    'docs/about/index.html',
+    'docs/catalog/index.html',
+    'docs/catalog/how/index.html',
+    'docs/dexnotes/index.html',
+    'docs/favorites/index.html',
+  ];
 
-  const favoritesRel = 'docs/favorites/index.html';
-  const favoritesHtml = await readText(favoritesRel);
-  assertExcludes(favoritesRel, favoritesHtml, ['chimpstatic.com', 'id="mcjs"']);
-
-  const callRel = 'docs/call/index.html';
-  const callHtml = await readText(callRel);
-  assertExcludes(callRel, callHtml, [
-    'chimpstatic.com',
-    'id="mcjs"',
-    "Y.use('legacysite-form-submit'",
-  ]);
+  for (const rel of marketingPages) {
+    const html = await readText(rel);
+    assertExcludes(rel, html, [
+      'chimpstatic.com',
+      'id="mcjs"',
+      "Y.use('legacysite-form-submit'",
+    ]);
+  }
 }
 
 async function verifyCliWiring() {
@@ -157,6 +224,7 @@ async function verifyTemplateStack() {
 
 async function main() {
   await verifyCallRuntime();
+  await verifyMarketingMountCoverage();
   await verifyRoutePages();
   await verifyLegacyRemoval();
   await verifyCliWiring();
