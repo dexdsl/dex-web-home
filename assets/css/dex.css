@@ -2223,15 +2223,16 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
 @media (min-width: 901px) {
   body.dx-route-profile-protected #dex-settings {
     --dx-settings-shell-gap: var(--dx-profile-home-header-gap) !important;
+    --dx-settings-footer-gap: var(--dx-settings-shell-gap) !important;
     --pad: var(--dx-settings-shell-gap) !important;
     --gap: var(--dx-settings-shell-gap) !important;
-    padding-top: var(--dx-profile-home-header-gap) !important;
-    padding-bottom: var(--dx-profile-home-header-gap) !important;
+    padding-top: var(--dx-settings-shell-gap) !important;
+    padding-bottom: var(--dx-settings-footer-gap) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
-    scroll-padding-top: var(--dx-profile-home-header-gap) !important;
-    scroll-padding-bottom: var(--dx-profile-home-header-gap) !important;
+    scroll-padding-top: var(--dx-settings-shell-gap) !important;
+    scroll-padding-bottom: var(--dx-settings-footer-gap) !important;
     scrollbar-gutter: stable both-edges !important;
   }
 
@@ -2283,7 +2284,7 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
       calc(100vh - (var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 2))
     ) !important;
     overflow: visible !important;
-    margin-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
+    margin-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
   }
 
   #dex-settings[data-dx-settings-pane="membership"] #settingsMembershipAsideRail,
@@ -2296,7 +2297,7 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
     scrollbar-gutter: stable both-edges !important;
-    padding-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap)) !important;
+    padding-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
     padding-right: 4px !important;
     scrollbar-width: thin !important;
     scrollbar-color: rgba(0, 0, 0, 0.24) rgba(255, 255, 255, 0.08) !important;
@@ -2324,6 +2325,115 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
+    padding-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
+  }
+
+  #dex-settings[data-dx-settings-pane="notifs"] #pane-notifs #notCard .dx-not-scroll {
+    padding-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] .grid,
+  #dex-settings[data-dx-settings-pane="profile"] .grid {
+    min-height: 0 !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] .grid > main,
+  #dex-settings[data-dx-settings-pane="profile"] .grid > main,
+  #dex-settings[data-fit-profile="1"] #pane-profile,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile {
+    min-height: 0 !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .twocol,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .twocol {
+    height: min(
+      var(--dx-profile-pin-max-h, calc(100vh - 180px)),
+      calc(100vh - (var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 2))
+    ) !important;
+    max-height: min(
+      var(--dx-profile-pin-max-h, calc(100vh - 180px)),
+      calc(100vh - (var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 2))
+    ) !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .profile-col,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col {
+    min-height: 0 !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-left,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-left {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain !important;
+    scrollbar-gutter: stable both-edges !important;
+    padding-right: 4px !important;
+    padding-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.24) rgba(255, 255, 255, 0.08) !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-left::-webkit-scrollbar,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-left::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-left::-webkit-scrollbar-thumb,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-left::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.64);
+    background: rgba(0, 0, 0, 0.24);
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-right,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-right {
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    gap: var(--gap) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding-bottom: var(--dx-settings-footer-gap, var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap))) !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile #securityCard,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard {
+    min-height: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile #securityCard .list,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard .list {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain !important;
+    scrollbar-gutter: stable both-edges !important;
+    padding-right: 4px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.24) rgba(255, 255, 255, 0.08) !important;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile #securityCard .list::-webkit-scrollbar,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard .list::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile #securityCard .list::-webkit-scrollbar-thumb,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard .list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.64);
+    background: rgba(0, 0, 0, 0.24);
+  }
+
+  #dex-settings[data-fit-profile="1"] #pane-profile #dangerCard,
+  #dex-settings[data-dx-settings-pane="profile"] #pane-profile #dangerCard {
+    align-self: start !important;
+    margin-top: 0 !important;
   }
 }
 
