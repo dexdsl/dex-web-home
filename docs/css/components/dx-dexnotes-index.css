@@ -222,7 +222,7 @@ select.dx-dexnotes-select {
   min-height: var(--dx-dexnotes-control-h) !important;
   height: var(--dx-dexnotes-control-h);
   border-radius: var(--dx-dexnotes-control-radius) !important;
-  border: 1px solid var(--dx-btn-secondary-border, rgba(32, 32, 32, 0.22)) !important;
+  border: 0 !important;
   background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
   color: #000 !important;
   box-shadow: none !important;
@@ -239,7 +239,6 @@ select.dx-dexnotes-select {
 .dx-dexnotes-filter-toggle:focus-visible,
 .dx-dexnotes-filter-actions .dx-button-element:hover,
 .dx-dexnotes-filter-actions .dx-button-element:focus-visible {
-  border-color: rgba(32, 32, 32, 0.32) !important;
   color: #000 !important;
 }
 

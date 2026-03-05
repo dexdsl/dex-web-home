@@ -561,7 +561,7 @@ select.dx-catalog-index-select {
   height: var(--dx-catalog-index-control-h);
   min-width: clamp(9rem, 13vw, 12rem);
   border-radius: var(--dx-catalog-index-control-radius) !important;
-  border: 1px solid var(--dx-btn-secondary-border, rgba(32, 32, 32, 0.22)) !important;
+  border: 0 !important;
   background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
   color: #000 !important;
   box-shadow: none !important;
@@ -574,7 +574,7 @@ select.dx-catalog-index-select {
   min-height: var(--dx-catalog-index-control-h) !important;
   height: var(--dx-catalog-index-control-h);
   border-radius: var(--dx-catalog-index-control-radius) !important;
-  border: 1px solid var(--dx-btn-secondary-border, rgba(32, 32, 32, 0.22)) !important;
+  border: 0 !important;
   background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
   color: #000 !important;
   box-shadow: none !important;
@@ -586,7 +586,6 @@ select.dx-catalog-index-select {
 .dx-catalog-index-filters-toggle:focus-visible,
 .dx-catalog-index-drawer-actions .dx-button-element:hover,
 .dx-catalog-index-drawer-actions .dx-button-element:focus-visible {
-  border-color: rgba(32, 32, 32, 0.32) !important;
   color: #000 !important;
 }
 
