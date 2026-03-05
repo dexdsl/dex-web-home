@@ -73,6 +73,22 @@ async function waitBeginReady(page: Page) {
   return begin;
 }
 
+async function completeLicenseStep(page: Page, signature = 'Seb Solis'): Promise<void> {
+  const step = page.locator('[data-dx-submit-step="license"]');
+  await expect(step).toBeVisible();
+  await step.locator('[data-dx-submit-license-signature]').fill(signature);
+
+  const licenseAccept = step.locator('[data-dx-submit-license-accept]');
+  if (!(await licenseAccept.isChecked())) {
+    await licenseAccept.check();
+  }
+
+  const rightsAck = step.locator('[data-dx-submit-rights-ack]');
+  if (!(await rightsAck.isChecked())) {
+    await rightsAck.check();
+  }
+}
+
 type PitchSystemValue = '12-tet' | '24-tet' | 'ji' | 'atonal' | 'non-pitched';
 
 type PitchSubmitScenario = {
@@ -141,7 +157,7 @@ async function submitSampleWithPitch(page: Page, scenario: PitchSubmitScenario):
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
   await expect(page.locator('[data-dx-submit-step="license"]')).toBeVisible();
-
+  await completeLicenseStep(page);
   await page.getByRole('button', { name: 'Continue to upload' }).click();
   await expect(page.locator('[data-dx-submit-step="upload"]')).toBeVisible();
   const uploadStep = page.locator('[data-dx-submit-step="upload"]');
@@ -374,7 +390,7 @@ test('submit wizard enforces required fields and keeps payload key contract on s
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
   await expect(page.locator('[data-dx-submit-step="license"]')).toBeVisible();
-
+  await completeLicenseStep(page, 'Jane Doe');
   await page.getByRole('button', { name: 'Continue to upload' }).click();
   await expect(page.locator('[data-dx-submit-step="upload"]')).toBeVisible();
 
@@ -411,6 +427,9 @@ test('submit wizard enforces required fields and keeps payload key contract on s
       'outputTypes',
       'services',
       'license',
+      'licenseAccepted',
+      'rightsAcknowledged',
+      'digitalSignatureName',
       'link',
       'notes',
       'submissionYear',
@@ -430,6 +449,9 @@ test('submit wizard enforces required fields and keeps payload key contract on s
   expect(submitParams.pitchDescriptor).toBe('C♯/D♭');
   expect(submitParams.keyCenter).toBe('12-TET: C♯/D♭');
   expect(submitParams.collectionType).toBe('A');
+  expect(submitParams.licenseAccepted).toBe('yes');
+  expect(submitParams.rightsAcknowledged).toBe('yes');
+  expect(submitParams.digitalSignatureName).toBe('Jane Doe');
   expect(submitParams.link).toBe('https://drive.google.com/mock-source');
 
   const lookupText = String(await page.locator('[data-dx-submit-step="done"] .dx-submit-pill--accent').first().textContent() || '').trim();
@@ -479,6 +501,7 @@ test('submit services chips use custom tooltip contract and sidebar guidance fol
   await expect(page.locator('.dx-submit-command')).toContainText('Instrument guidance');
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
+  await completeLicenseStep(page);
   await page.getByRole('button', { name: 'Continue to upload' }).click();
   await expect(page.locator('[data-dx-submit-step="upload"]')).toBeVisible();
 
@@ -563,6 +586,7 @@ test('submit quota JSONP timeout never throws late callback reference errors', a
   await step.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
+  await completeLicenseStep(page);
   await page.getByRole('button', { name: 'Continue to upload' }).click();
   const uploadStep = page.locator('[data-dx-submit-step="upload"]');
   await uploadStep.locator('.dx-submit-field', { hasText: 'Public source link' }).locator('input').fill('https://drive.google.com/mock-source');
@@ -703,6 +727,7 @@ test('submit flow locks controls, shows fetching sheen, then proceeds to done', 
   await metaStep.locator('.dx-submit-badge', { hasText: 'A - Audio' }).click();
 
   await page.getByRole('button', { name: 'Continue to license' }).click();
+  await completeLicenseStep(page);
   await page.getByRole('button', { name: 'Continue to upload' }).click();
   const uploadStep = page.locator('[data-dx-submit-step="upload"]');
   await expect(uploadStep).toBeVisible();

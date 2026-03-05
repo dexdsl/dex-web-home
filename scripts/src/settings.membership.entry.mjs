@@ -502,6 +502,7 @@
       this.mounted = false;
       this.cache = {};
       this.railSyncRaf = 0;
+      this.viewSwapTimer = 0;
       this.resizeObserver = null;
       this.paneObserver = null;
       this.onViewportChange = this.queueRailSync.bind(this);
@@ -517,46 +518,60 @@
         + '    </div>'
         + '    <span class="dx-memv3-state-chip" id="dxMemV3StateChip">Loading…</span>'
         + '  </header>'
-        + '  <section class="dx-memv3-status-grid">'
-        + '    <div class="dx-memv3-status" aria-live="polite">'
-        + '      <div class="dx-memv3-status-row"><span>Plan</span><strong id="dxMemV3Plan">Loading…</strong></div>'
-        + '      <div class="dx-memv3-status-row"><span>Renews</span><strong id="dxMemV3Renew">—</strong></div>'
-        + '      <div class="dx-memv3-status-row"><span>Payment method</span><strong id="dxMemV3Pay">—</strong></div>'
-        + '      <div class="dx-memv3-status-row"><span>Cancellation</span><strong id="dxMemV3Cancel">None scheduled</strong></div>'
-        + '    </div>'
-        + '  </section>'
-        + '  <section class="dx-memv3-plan-panel" data-dx-tier-panel>'
-        + '    <h3 id="dxMemV3SupportHeading" class="dx-memv3-support-heading" hidden>Want to support?</h3>'
-        + '    <div id="dxMemV3TierComposer" class="dx-memv3-tier-composer" data-open="false" hidden>'
-        + '      <header class="dx-memv3-plan-head">'
-        + '        <h3>Choose your support tier</h3>'
-        + '        <div class="dx-memv3-interval-shell">'
-        + '          <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
-        + '            <span class="dx-memv3-interval-thumb" aria-hidden="true"></span>'
-        + '            <button type="button" data-interval="month" data-interval-index="0" aria-pressed="true">Monthly</button>'
-        + '            <button type="button" data-interval="year" data-interval-index="1" aria-pressed="false">Annual</button>'
-        + '          </div>'
-        + '          <p id="dxMemV3AnnualHint" class="dx-memv3-annual-hint">Switch to annual for lower effective pricing.</p>'
+        + '  <div id="dxMemV3ViewSurface" class="dx-memv3-view-surface" data-dx-membership-view="summary">'
+        + '    <section id="dxMemV3SummaryView" class="dx-memv3-view dx-memv3-view--summary">'
+        + '      <section class="dx-memv3-status-grid">'
+        + '        <div class="dx-memv3-status" aria-live="polite">'
+        + '          <div class="dx-memv3-status-row"><span>Plan</span><strong id="dxMemV3Plan">Loading…</strong></div>'
+        + '          <div class="dx-memv3-status-row"><span>Renews</span><strong id="dxMemV3Renew">—</strong></div>'
+        + '          <div class="dx-memv3-status-row"><span>Payment method</span><strong id="dxMemV3Pay">—</strong></div>'
+        + '          <div class="dx-memv3-status-row"><span>Cancellation</span><strong id="dxMemV3Cancel">None scheduled</strong></div>'
         + '        </div>'
-        + '      </header>'
-        + '      <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
-        + '      <div class="dx-memv3-plan-summary">'
-        + '        <p id="dxMemV3Selection" class="dx-memv3-selection">Selected: Steward · Monthly · $6.99</p>'
-        + '        <label id="dxMemV3CoverWrap" class="dx-memv3-cover">'
-        + '          <input id="dxMemV3Cover" type="checkbox" />'
-        + '          <span>Cover fees (+2.9% + $0.30)</span>'
-        + '        </label>'
-        + '        <button type="button" id="dxMemV3ComposerCheckout" class="cta dx-memv3-composer-checkout">Start membership</button>'
-        + '        <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
-        + '      </div>'
-        + '    </div>'
-        + '    <div class="dx-memv3-actions">'
-        + '      <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>View membership</button>'
-        + '      <button type="button" id="dxMemV3Secondary" class="cta-primary" hidden>Manage billing</button>'
-        + '      <button type="button" id="dxMemV3PauseResume" class="btn" hidden></button>'
-        + '    </div>'
-        + '    <p id="dxMemV3Error" class="dx-memv3-error" hidden></p>'
-        + '  </section>'
+        + '      </section>'
+        + '      <section class="dx-memv3-plan-panel" data-dx-tier-panel>'
+        + '        <h3 id="dxMemV3SupportHeading" class="dx-memv3-support-heading" hidden>Want to support?</h3>'
+        + '        <div class="dx-memv3-actions">'
+        + '          <button type="button" id="dxMemV3Primary" class="cta" data-dx-billing-cta-primary>View membership</button>'
+        + '          <button type="button" id="dxMemV3Secondary" class="cta-primary" hidden>Manage billing</button>'
+        + '          <button type="button" id="dxMemV3PauseResume" class="btn" hidden></button>'
+        + '        </div>'
+        + '      </section>'
+        + '    </section>'
+        + '    <section id="dxMemV3ComposerView" class="dx-memv3-view dx-memv3-view--composer" hidden aria-hidden="true">'
+        + '      <section class="dx-memv3-plan-panel dx-memv3-plan-panel--composer">'
+        + '        <div class="dx-memv3-back-row">'
+        + '          <button type="button" id="dxMemV3Back" class="btn dx-memv3-back" aria-label="Back to membership overview">'
+        + '            <span aria-hidden="true" class="dx-memv3-back-icon">←</span>'
+        + '            <span>Back</span>'
+        + '          </button>'
+        + '        </div>'
+        + '        <div id="dxMemV3TierComposer" class="dx-memv3-tier-composer" data-open="false" hidden>'
+        + '          <header class="dx-memv3-plan-head">'
+        + '            <h3>Choose your support tier</h3>'
+        + '            <div class="dx-memv3-interval-shell">'
+        + '              <div class="dx-memv3-interval" role="radiogroup" aria-label="Billing interval">'
+        + '                <span class="dx-memv3-interval-thumb" aria-hidden="true"></span>'
+        + '                <button type="button" data-interval="month" data-interval-index="0" aria-pressed="true">Monthly</button>'
+        + '                <button type="button" data-interval="year" data-interval-index="1" aria-pressed="false">Annual</button>'
+        + '              </div>'
+        + '              <p id="dxMemV3AnnualHint" class="dx-memv3-annual-hint">Switch to annual for lower effective pricing.</p>'
+        + '            </div>'
+        + '          </header>'
+        + '          <div class="dx-memv3-tier-grid" id="dxMemV3TierGrid"></div>'
+        + '          <div class="dx-memv3-plan-summary">'
+        + '            <p id="dxMemV3Selection" class="dx-memv3-selection">Selected: Steward · Monthly · $6.99</p>'
+        + '            <label id="dxMemV3CoverWrap" class="dx-memv3-cover">'
+        + '              <input id="dxMemV3Cover" type="checkbox" />'
+        + '              <span>Cover fees (+2.9% + $0.30)</span>'
+        + '            </label>'
+        + '            <button type="button" id="dxMemV3ComposerCheckout" class="cta dx-memv3-composer-checkout">Start membership</button>'
+        + '            <p class="note">Change interval, switch tiers, or cancel at period end anytime in Customer Portal.</p>'
+        + '          </div>'
+        + '        </div>'
+        + '      </section>'
+        + '    </section>'
+        + '  </div>'
+        + '  <p id="dxMemV3Error" class="dx-memv3-error" hidden></p>'
         + '</article>'
         + '<article class="card dx-memv3-card" id="dxBillingHistoryV3Card" data-dx-fetch-state="loading" aria-busy="true">'
         + '  <header class="dx-memv3-ledger-head">'
@@ -584,6 +599,10 @@
       this.cache = {
         membershipCard: $('#dxMembershipV3Card', this.root),
         billingCard: $('#dxBillingHistoryV3Card', this.root),
+        viewSurface: $('#dxMemV3ViewSurface', this.root),
+        summaryView: $('#dxMemV3SummaryView', this.root),
+        composerView: $('#dxMemV3ComposerView', this.root),
+        backBtn: $('#dxMemV3Back', this.root),
         stateChip: $('#dxMemV3StateChip', this.root),
         planEl: $('#dxMemV3Plan', this.root),
         renewEl: $('#dxMemV3Renew', this.root),
@@ -614,16 +633,17 @@
       this.root.setAttribute('data-dx-membership-state', 'loading');
       this.root.setAttribute('data-dx-membership-cta-mode', 'view-membership');
       this.root.setAttribute('data-dx-interval', this.interval);
+      this.root.setAttribute('data-dx-membership-view', 'summary');
       this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
       this.bindEvents();
       this.bindViewportObservers();
       this.renderTierCards();
-      this.setTierComposerOpen(this.tiersOpen);
+      this.setTierComposerOpen(this.tiersOpen, { animate: false });
       this.renderSelection();
       this.queueRailSync();
     }
 
-    setTierComposerOpen(nextOpen) {
+    setTierComposerOpen(nextOpen, options = {}) {
       this.tiersOpen = Boolean(nextOpen);
       if (this.cache.tierComposer instanceof HTMLElement) {
         this.cache.tierComposer.dataset.open = this.tiersOpen ? 'true' : 'false';
@@ -631,7 +651,74 @@
         this.cache.tierComposer.setAttribute('aria-hidden', this.tiersOpen ? 'false' : 'true');
       }
       this.root.setAttribute('data-dx-tier-panel-open', this.tiersOpen ? 'true' : 'false');
+      this.setMembershipView(this.tiersOpen ? 'composer' : 'summary', options);
       this.queueRailSync();
+    }
+
+    shouldReduceMotion() {
+      if (typeof window.matchMedia !== 'function') return false;
+      try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch {
+        return false;
+      }
+    }
+
+    applyMembershipView(nextView) {
+      const view = nextView === 'composer' ? 'composer' : 'summary';
+      const summaryVisible = view !== 'composer';
+
+      if (this.cache.summaryView instanceof HTMLElement) {
+        this.cache.summaryView.hidden = !summaryVisible;
+        this.cache.summaryView.setAttribute('aria-hidden', summaryVisible ? 'false' : 'true');
+      }
+      if (this.cache.composerView instanceof HTMLElement) {
+        this.cache.composerView.hidden = summaryVisible;
+        this.cache.composerView.setAttribute('aria-hidden', summaryVisible ? 'true' : 'false');
+      }
+
+      if (this.cache.viewSurface instanceof HTMLElement) {
+        this.cache.viewSurface.setAttribute('data-dx-membership-view', view);
+      }
+      this.root.setAttribute('data-dx-membership-view', view);
+    }
+
+    setMembershipView(nextView, options = {}) {
+      const view = nextView === 'composer' ? 'composer' : 'summary';
+      const animate = options.animate !== false;
+      const card = this.cache.membershipCard;
+      const shouldAnimate = (
+        animate
+        && card instanceof HTMLElement
+        && this.cache.viewSurface instanceof HTMLElement
+        && !this.shouldReduceMotion()
+      );
+
+      if (this.viewSwapTimer) {
+        clearTimeout(this.viewSwapTimer);
+        this.viewSwapTimer = 0;
+      }
+      if (card instanceof HTMLElement) {
+        card.classList.remove('dx-memv3-card--view-swapping');
+      }
+
+      if (!shouldAnimate) {
+        this.applyMembershipView(view);
+        return;
+      }
+
+      card.classList.add('dx-memv3-card--view-swapping');
+      this.viewSwapTimer = window.setTimeout(() => {
+        this.applyMembershipView(view);
+        this.queueRailSync();
+        requestAnimationFrame(() => {
+          if (card instanceof HTMLElement) {
+            card.classList.remove('dx-memv3-card--view-swapping');
+          }
+          this.queueRailSync();
+        });
+        this.viewSwapTimer = 0;
+      }, 150);
     }
 
     readCoverFeesSelection() {
@@ -698,6 +785,7 @@
         this.cache.primaryCta,
         this.cache.secondaryCta,
         this.cache.pauseResumeBtn,
+        this.cache.backBtn,
         this.cache.portalHistoryBtn,
         this.cache.ledgerRetry,
       ];
@@ -1043,6 +1131,16 @@
         this.cache.primaryCta.addEventListener('click', async () => {
           if (this.busy) return;
           await this.handlePrimaryAction();
+        });
+      }
+
+      if (this.cache.backBtn instanceof HTMLButtonElement) {
+        this.cache.backBtn.addEventListener('click', () => {
+          if (this.busy) return;
+          this.restoreComposerFromBaseline();
+          this.setTierComposerOpen(false);
+          this.renderSummary();
+          this.setError('');
         });
       }
 

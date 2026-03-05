@@ -183,7 +183,7 @@ import { animate } from 'framer-motion/dom';
   const STEP_GUIDANCE = {
     intro: 'Review the process and quality targets before you start.',
     metadata: 'Provide enough context for fast review and routing.',
-    license: 'Choose your licensing mode before upload handoff.',
+    license: 'Choose your licensing mode and complete rights attestation before upload handoff.',
     upload: 'Paste a public link and select optional post-production.',
     done: 'Track status in your inbox submission timeline.',
   };
@@ -247,6 +247,15 @@ import { animate } from 'framer-motion/dom';
       title: 'Agreement guidance',
       body: 'Confirm agreement before continuing. Unchecked state blocks progression to upload.',
     },
+    rightsConfirmed: {
+      title: 'Rights attestation guidance',
+      body:
+        'Confirm this submission is your own work or work you are authorized to represent, and is not a repost of third-party public-domain material.',
+    },
+    signatureName: {
+      title: 'Digital signature guidance',
+      body: 'Type your full name as a digital signature to confirm this legal acknowledgment.',
+    },
     link: {
       title: 'Source link guidance',
       body:
@@ -297,6 +306,9 @@ import { animate } from 'framer-motion/dom';
       authUser: null,
       meta: createInitialMeta(),
       licenseType: 'joint',
+      licenseConfirmed: false,
+      rightsConfirmed: false,
+      signatureName: '',
       lastSubmissionRow: '000',
       lastSubmissionLookup: '',
       focusedField: '',
@@ -1424,7 +1436,8 @@ import { animate } from 'framer-motion/dom';
     const agree = create('label', 'dx-submit-checkbox');
     const checkbox = create('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = true;
+    checkbox.checked = !!state.licenseConfirmed;
+    checkbox.setAttribute('data-dx-submit-license-accept', 'true');
     checkbox.addEventListener('change', () => {
       state.licenseConfirmed = checkbox.checked;
     });
@@ -1433,7 +1446,37 @@ import { animate } from 'framer-motion/dom';
     agree.append(checkbox, agreeText);
     section.appendChild(agree);
 
-    state.licenseConfirmed = checkbox.checked;
+    const rights = create('label', 'dx-submit-checkbox');
+    const rightsCheckbox = create('input');
+    rightsCheckbox.type = 'checkbox';
+    rightsCheckbox.checked = !!state.rightsConfirmed;
+    rightsCheckbox.setAttribute('data-dx-submit-rights-ack', 'true');
+    rightsCheckbox.addEventListener('change', () => {
+      state.rightsConfirmed = rightsCheckbox.checked;
+    });
+    bindFieldFocus(rightsCheckbox, 'rightsConfirmed');
+    const rightsText = create(
+      'span',
+      '',
+      'I confirm this submission is my own original work, or work I am authorized to represent (for example, my band\'s own work), and is not a repost of third-party public-domain material.',
+    );
+    rights.append(rightsCheckbox, rightsText);
+    section.appendChild(rights);
+
+    const signatureField = wrapField('Digital signature (typed full name)', true);
+    const signatureInput = create('input', 'dx-submit-input');
+    signatureInput.type = 'text';
+    signatureInput.maxLength = 140;
+    signatureInput.autocomplete = 'name';
+    signatureInput.placeholder = 'Type your full name';
+    signatureInput.value = text(state.signatureName);
+    signatureInput.setAttribute('data-dx-submit-license-signature', 'true');
+    signatureInput.addEventListener('input', (event) => {
+      state.signatureName = event.target.value;
+    });
+    bindFieldFocus(signatureInput, 'signatureName');
+    signatureField.appendChild(signatureInput);
+    section.appendChild(signatureField);
 
     const actions = create('div', 'dx-submit-stage-actions');
     const back = create('button', 'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary', 'Back');
@@ -1449,6 +1492,14 @@ import { animate } from 'framer-motion/dom';
       if (!guardQuotaForProgression(true)) return;
       if (!state.licenseConfirmed) {
         showToast('Please confirm license acceptance.', true);
+        return;
+      }
+      if (!state.rightsConfirmed) {
+        showToast('Please confirm ownership/representation acknowledgment.', true);
+        return;
+      }
+      if (text(state.signatureName).length < 2) {
+        showToast('Enter your full name as digital signature.', true);
         return;
       }
       state.step = 3;
@@ -1569,7 +1620,9 @@ import { animate } from 'framer-motion/dom';
       state.step = 0;
       state.meta = createInitialMeta();
       state.licenseType = 'joint';
-      state.licenseConfirmed = true;
+      state.licenseConfirmed = false;
+      state.rightsConfirmed = false;
+      state.signatureName = '';
       state.lastSubmissionLookup = '';
       render();
     });
@@ -1821,6 +1874,9 @@ import { animate } from 'framer-motion/dom';
       outputTypes: (Array.isArray(state.meta.outputTypes) ? state.meta.outputTypes : []).join(','),
       services: (Array.isArray(state.meta.services) ? state.meta.services : []).join(','),
       license: text(state.licenseType, 'joint'),
+      licenseAccepted: state.licenseConfirmed ? 'yes' : 'no',
+      rightsAcknowledged: state.rightsConfirmed ? 'yes' : 'no',
+      digitalSignatureName: text(state.signatureName),
       link: text(state.meta.link),
       notes: text(state.meta.notes),
       submissionYear: String(new Date().getFullYear()),

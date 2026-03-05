@@ -2457,12 +2457,27 @@
     box-shadow:0 8px 22px rgba(0,0,0,.12);
   }
 }
-#dex-settings #pane-notifs #notCard .dx-newsletter-links{
-  display:flex;
-  justify-content:flex-start;
+#dex-settings #pane-notifs #notCard .dx-newsletter-toast{
+  position:fixed;
+  left:50%;
+  bottom:20px;
+  transform:translate(-50%,12px);
+  z-index:42;
+  max-width:min(560px, calc(100vw - 32px));
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,.24);
+  background:rgba(14,14,14,.94);
+  color:#fff;
+  font:700 12px/1.35 var(--font-body,system-ui);
+  box-shadow:0 14px 30px rgba(0,0,0,.24);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
 }
-#dex-settings #pane-notifs #notCard .dx-newsletter-links .cta{
-  min-height:40px;
+#dex-settings #pane-notifs #notCard .dx-newsletter-toast.is-visible{
+  opacity:1;
+  transform:translate(-50%,0);
 }
 #dex-settings #pane-notifs .list label.item { cursor: pointer; }
 #dex-settings #pane-notifs .list label.item[data-dx-tooltip]{
@@ -2938,19 +2953,11 @@
             <span id="notifNewsletterLastActionValue">—</span>
           </div>
           <div class="dx-newsletter-meta-row">
-            <span class="dx-newsletter-meta-label">Cooldown</span>
-            <span id="notifNewsletterCooldownValue">Ready</span>
-          </div>
-          <div class="dx-newsletter-meta-row">
             <span class="dx-newsletter-meta-label">Last updated</span>
             <span id="notifNewsletterUpdatedValue">—</span>
           </div>
         </div>
-        <p class="note">Account state is fetched live and actions are contextual. No Turnstile challenge is required in authenticated Settings.</p>
         <div id="notifNewsletterActions" class="dx-newsletter-actions" role="group" aria-label="Newsletter actions"></div>
-        <div class="dx-newsletter-links">
-          <a class="cta cta-secondary" href="/entry/pressroom/">Submit release pitch</a>
-        </div>
         <p id="notifNewsletterStatusLine" class="note" aria-live="polite"></p>
       </section>
     </div>
@@ -5082,6 +5089,7 @@ function hydrateProfile(me){
   });
   const NEWSLETTER_ACTION_COOLDOWN_MS = 20 * 1000;
   const NEWSLETTER_REFRESH_COOLDOWN_MS = 2500;
+  const NEWSLETTER_TOAST_DURATION_MS = 2600;
   const NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS = 60;
   const NEWSLETTER_ACTION_SOURCE = Object.freeze({
     subscribe: 'settings-newsletter-subscribe',
@@ -5129,7 +5137,6 @@ function hydrateProfile(me){
     newsletterEmailValue: document.getElementById('notifNewsletterEmailValue'),
     newsletterStateBadge: document.getElementById('notifNewsletterStateBadge'),
     newsletterLastActionValue: document.getElementById('notifNewsletterLastActionValue'),
-    newsletterCooldownValue: document.getElementById('notifNewsletterCooldownValue'),
     newsletterUpdatedValue: document.getElementById('notifNewsletterUpdatedValue'),
     newsletterActions: document.getElementById('notifNewsletterActions'),
     newsletterRefreshBtn: document.getElementById('notifNewsletterRefresh'),
@@ -5152,7 +5159,7 @@ function hydrateProfile(me){
   let newsletterBusy = false;
   let newsletterRefreshBusy = false;
   const newsletterActionCooldowns = new Map();
-  let newsletterCooldownTicker = 0;
+  let newsletterToastTimer = 0;
 
   function notificationsApiBase() {
     return String((pane.closest('#dex-settings')?.dataset.api || '/api') || '/api').replace(/\/+$/, '');
@@ -5237,6 +5244,41 @@ function hydrateProfile(me){
     S.newsletterStatusLine.textContent = String(text || '');
   }
 
+  function ensureNewsletterToastNode() {
+    if (!(S.newsletterBlock instanceof Element)) return null;
+    const existing = S.newsletterBlock.querySelector('.dx-newsletter-toast');
+    if (existing instanceof HTMLElement) return existing;
+
+    const toast = document.createElement('div');
+    toast.className = 'dx-newsletter-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.hidden = true;
+    S.newsletterBlock.appendChild(toast);
+    return toast;
+  }
+
+  function showNewsletterToast(message) {
+    const text = String(message || '').trim();
+    if (!text) return;
+    const toast = ensureNewsletterToastNode();
+    if (!(toast instanceof HTMLElement)) return;
+
+    toast.textContent = text;
+    toast.hidden = false;
+    toast.classList.remove('is-visible');
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
+
+    if (newsletterToastTimer) window.clearTimeout(newsletterToastTimer);
+    newsletterToastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      window.setTimeout(() => {
+        if (!toast.classList.contains('is-visible')) toast.hidden = true;
+      }, 220);
+    }, NEWSLETTER_TOAST_DURATION_MS);
+  }
+
   function cooldownKey(action) {
     return String(action || '').trim().toLowerCase() || 'global';
   }
@@ -5280,27 +5322,12 @@ function hydrateProfile(me){
   }
 
   function syncNewsletterCooldownMeta() {
-    if (!(S.newsletterCooldownValue instanceof Element)) return;
-    const remainingMs = newsletterCooldownRemainingMs();
-    if (remainingMs <= 0) {
-      S.newsletterCooldownValue.textContent = 'Ready';
-      return;
-    }
-    S.newsletterCooldownValue.textContent = `${formatWaitSeconds(remainingMs)}s`;
-  }
-
-  function startNewsletterCooldownTicker() {
-    if (newsletterCooldownTicker) window.clearInterval(newsletterCooldownTicker);
-    newsletterCooldownTicker = window.setInterval(() => {
-      syncNewsletterCooldownMeta();
-      syncNewsletterActions();
-    }, 1000);
+    // Cooldown stays enforced in logic, but is not rendered as static UI.
   }
 
   function syncNewsletterRefreshButton() {
     if (!(S.newsletterRefreshBtn instanceof HTMLButtonElement)) return;
-    const refreshCooldown = newsletterCooldownRemainingMs('refresh');
-    S.newsletterRefreshBtn.disabled = newsletterBusy || newsletterRefreshBusy || refreshCooldown > 0;
+    S.newsletterRefreshBtn.disabled = newsletterBusy || newsletterRefreshBusy;
   }
 
   function newsletterActionVariant(action) {
@@ -5343,12 +5370,9 @@ function hydrateProfile(me){
     }
 
     const email = isLikelyEmail(newsletterModel.email);
-    const globalCooldownMs = Math.max(0, Number(newsletterModel.cooldownUntil || 0) - Date.now());
     S.newsletterActions.querySelectorAll('[data-dx-newsletter-action]').forEach((node) => {
       if (!(node instanceof HTMLButtonElement)) return;
-      const action = String(node.getAttribute('data-dx-newsletter-action') || '').trim().toLowerCase();
-      const actionCooldownMs = newsletterCooldownRemainingMs(action);
-      node.disabled = newsletterBusy || newsletterRefreshBusy || !email || globalCooldownMs > 0 || actionCooldownMs > 0;
+      node.disabled = newsletterBusy || newsletterRefreshBusy || !email;
     });
     syncNewsletterRefreshButton();
   }
@@ -5546,7 +5570,7 @@ function hydrateProfile(me){
       const cooldownMs = newsletterCooldownRemainingMs('refresh');
       if (cooldownMs > 0) {
         if (announce) {
-          setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before refreshing newsletter status.`);
+          showNewsletterToast(`Please wait ${formatWaitSeconds(cooldownMs)}s before refreshing newsletter status.`);
         }
         return;
       }
@@ -5594,7 +5618,9 @@ function hydrateProfile(me){
         const retrySeconds = parsed.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
         setNewsletterCooldown('refresh', retrySeconds * 1000);
         newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
-        setNewsletterStatus(`Rate limited. Retry status refresh in ${retrySeconds}s.`);
+        const message = `Rate limited. Retry status refresh in ${retrySeconds}s.`;
+        setNewsletterStatus(message);
+        showNewsletterToast(message);
       } else {
         setNewsletterStatus('Could not refresh newsletter status right now. Try again.');
       }
@@ -5611,8 +5637,7 @@ function hydrateProfile(me){
 
     const cooldownMs = newsletterCooldownRemainingMs(normalizedAction);
     if (cooldownMs > 0) {
-      setNewsletterStatus(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
-      syncNewsletterActions();
+      showNewsletterToast(`Please wait ${formatWaitSeconds(cooldownMs)}s before requesting another newsletter email.`);
       return;
     }
 
@@ -5656,7 +5681,9 @@ function hydrateProfile(me){
           const retrySeconds = response.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
           setNewsletterCooldown(normalizedAction, retrySeconds * 1000);
           newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
-          setNewsletterStatus(`Too many requests right now. Retry in ${retrySeconds}s.`);
+          const message = `Too many requests right now. Retry in ${retrySeconds}s.`;
+          setNewsletterStatus(message);
+          showNewsletterToast(message);
           return;
         }
         setNewsletterStatus('Newsletter action failed. Try again.');
@@ -5679,7 +5706,9 @@ function hydrateProfile(me){
         const retrySeconds = parsed.retryAfterSeconds || NEWSLETTER_DEFAULT_RATE_LIMIT_SECONDS;
         setNewsletterCooldown(normalizedAction, retrySeconds * 1000);
         newsletterModel.cooldownUntil = Date.now() + retrySeconds * 1000;
-        setNewsletterStatus(`Too many requests right now. Retry in ${retrySeconds}s.`);
+        const message = `Too many requests right now. Retry in ${retrySeconds}s.`;
+        setNewsletterStatus(message);
+        showNewsletterToast(message);
       } else if (parsed.code === 'INVALID_EMAIL') {
         setNewsletterStatus('Could not validate your account email for newsletter actions.');
       } else {
@@ -5824,7 +5853,7 @@ function hydrateProfile(me){
     const refreshTarget = e.target instanceof Element ? e.target.closest('#notifNewsletterRefresh') : null;
     if (refreshTarget) {
       e.preventDefault();
-      void refreshNewsletterStatus({ announce: true, force: true });
+      void refreshNewsletterStatus({ announce: true });
     }
   });
 
@@ -5834,7 +5863,6 @@ function hydrateProfile(me){
     prefillNewsletterIdentity(email || resolveNewsletterEmailFromUi());
   });
 
-  startNewsletterCooldownTicker();
   renderNewsletterMeta();
   load();
 })();

@@ -71,6 +71,12 @@ function verifySubmitRuntime() {
     'data-dx-submit-shell',
     'data-dx-submit-step',
     'data-dx-submit-progress',
+    'data-dx-submit-license-signature',
+    'data-dx-submit-rights-ack',
+    'Digital signature (typed full name)',
+    'not a repost of third-party public-domain material',
+    'rightsAcknowledged',
+    'digitalSignatureName',
     'status: \'pending\'',
   ]);
 
@@ -85,6 +91,8 @@ function verifySubmitRuntime() {
       'pitchSystem',
       'pitchDescriptor',
       'data-dx-submit-shell',
+      'rightsAcknowledged',
+      'digitalSignatureName',
       'status:"pending"',
     ]);
   }

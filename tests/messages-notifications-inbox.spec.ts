@@ -655,7 +655,8 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
   }
 
   await expect(page.locator('#pane-notifs .list label.item[data-dx-tooltip]')).toHaveCount(8);
-  await expect(page.locator('a[href="/entry/pressroom/"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/entry/pressroom/"]')).toHaveCount(0);
+  await expect(page.locator('#notifNewsletterCooldownValue')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterEmail')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterConfirmToken')).toHaveCount(0);
   await expect(page.locator('#notifNewsletterUnsubToken')).toHaveCount(0);
@@ -669,6 +670,8 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
   await page.click('#notifNewsletterActions [data-dx-newsletter-action="manage"]');
   await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/manage-subscription link sent|check your inbox/i);
   await expect.poll(() => newsletterHits.includes('action:manage:messages-e2e@example.com')).toBe(true);
+  await page.click('#notifNewsletterActions [data-dx-newsletter-action="manage"]');
+  await expect(page.locator('#notifNewsletterBlock .dx-newsletter-toast')).toContainText(/please wait .* before requesting another newsletter email/i);
 
   await page.click('#notifNewsletterActions [data-dx-newsletter-action="pause"]');
   await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/pause link sent|check your inbox/i);
@@ -685,7 +688,9 @@ test('settings notifications exposes newsletter controls, tooltips, and internal
 
   await expect.poll(() => page.locator('#notifNewsletterRefresh').isDisabled()).toBe(false);
   await page.click('#notifNewsletterRefresh');
-  await expect(page.locator('#notifNewsletterStatusLine')).toContainText(/status refreshed/i);
+  await expect(page.locator('#notifNewsletterBlock .dx-newsletter-toast')).toContainText(
+    /please wait .* before refreshing newsletter status/i,
+  );
 });
 
 test('settings tab underline stays aligned through hash restore, tab switches, and resize', async ({ page }) => {
@@ -791,14 +796,19 @@ test('settings membership v3 renders trust-first status and production billing l
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'false');
   await page.locator('#dxMembershipV3Root [data-dx-billing-cta-primary]').click();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'cancel-composer');
-  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Cancel');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SummaryView')).toBeHidden();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerView')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Back')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Back')).toContainText('Back');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-tier-panel-open', 'true');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerCheckout')).toContainText('Start membership');
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-interval-thumb')).toBeVisible();
-  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await page.locator('#dxMembershipV3Root #dxMemV3Back').click();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'view-membership');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3SummaryView')).toBeVisible();
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3ComposerView')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('View membership');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
   await expect(page.locator('#dxMembershipV3Root .dx-memv3-impact')).toHaveCount(0);
@@ -867,14 +877,14 @@ test('settings membership v3 shows current-membership actions for active and pay
 
   await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'cancel-composer');
-  await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Cancel');
+  await expect(page.locator('#dxMembershipV3Root #dxMemV3Back')).toBeVisible();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeVisible();
   await page.locator('#dxMembershipV3Root [data-interval="year"]').click();
   await page.locator('#dxMembershipV3Root [data-tier="S"]').click();
   await page.locator('#dxMembershipV3Root #dxMemV3Cover').check();
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Steward');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Selection')).toContainText('Annual');
-  await page.locator('#dxMembershipV3Root #dxMemV3Primary').click();
+  await page.locator('#dxMembershipV3Root #dxMemV3Back').click();
   await expect(page.locator('#dxMembershipV3Root')).toHaveAttribute('data-dx-membership-cta-mode', 'view-membership');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3Primary')).toContainText('Change plan');
   await expect(page.locator('#dxMembershipV3Root #dxMemV3TierComposer')).toBeHidden();
