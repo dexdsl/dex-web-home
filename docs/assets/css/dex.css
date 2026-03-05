@@ -2078,6 +2078,38 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 
 /* Keep profile footer pinned for desktop/tablet profile routes (>900px). */
 @media (min-width: 901px) and (max-width: 1200px) {
+  body.dx-route-profile-protected :is(#dex-submit, #dex-msg, #dex-press, #dex-settings) {
+    height: var(--dx-profile-shell-height) !important;
+    min-height: var(--dx-profile-shell-height) !important;
+    max-height: var(--dx-profile-shell-height) !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .dx-block:has(#dex-submit),
+    .dx-block:has(#dex-msg),
+    .dx-block:has(#dex-press),
+    .dx-block:has(#dex-settings)
+  ) {
+    height: var(--dx-profile-shell-height) !important;
+    max-height: var(--dx-profile-shell-height) !important;
+  }
+
+  body.dx-route-profile-protected :is(
+    .dx-block-content:has(#dex-submit),
+    .dx-block-content:has(#dex-msg),
+    .dx-block-content:has(#dex-press),
+    .dx-block-content:has(#dex-settings),
+    .dx-code-container:has(#dex-submit),
+    .dx-code-container:has(#dex-msg),
+    .dx-code-container:has(#dex-press),
+    .dx-code-container:has(#dex-settings)
+  ) {
+    height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
   body.dx-route-profile-protected #footer-sections {
     position: static !important;
     margin: 0 !important;
@@ -2125,6 +2157,11 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   body.dx-route-profile-protected :is(#dex-submit, #dex-msg, #dex-press, #dex-settings) {
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
+  }
+
+  body.dx-route-profile-protected #dxMembershipV3Root[data-dx-membership-rail-scrollable="true"] {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 }
 
