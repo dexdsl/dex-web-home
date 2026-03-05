@@ -409,6 +409,11 @@
 
   function normalizeProfileRoutePath(pathname) {
     let normalized = normalizePathname(pathname);
+    if (normalized === '/docs') {
+      normalized = '/';
+    } else if (normalized.startsWith('/docs/')) {
+      normalized = normalizePathname(normalized.slice('/docs'.length) || '/');
+    }
     const decodedViewPath = decodeViewRoutePath(normalized);
     if (decodedViewPath) normalized = normalizePathname(decodedViewPath);
     if (normalized !== '/' && normalized.toLowerCase().endsWith('/index.html')) {

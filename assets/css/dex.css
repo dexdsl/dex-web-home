@@ -2165,6 +2165,15 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
   }
 }
 
+/* Settings route should pin as a single shell and scroll internally above mobile breakpoints. */
+@media (min-width: 901px) {
+  body.dx-route-profile-protected #dex-settings {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain !important;
+  }
+}
+
 // Product Variant Button (Just Text Style- Ghost //
 
 .ProductItem-details .variant-radiobtn-wrapper label {
