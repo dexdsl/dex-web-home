@@ -1764,6 +1764,30 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 }
 
 @supports selector(.fluid-engine:has(#dex-favorites)) {
+  /* Settings host wrappers: keep surrounding section chrome fully transparent. */
+  body.dx-route-profile-protected .page-section:has(#dex-settings),
+  body.dx-route-profile-protected .page-section:has(#dex-settings) .content-wrapper,
+  body.dx-route-profile-protected .page-section:has(#dex-settings) .content,
+  body.dx-route-profile-protected .fluid-engine:has(#dex-settings),
+  body.dx-route-profile-protected .fluid-engine > .fe-block:has(#dex-settings),
+  body.dx-route-profile-protected .dx-block:has(#dex-settings),
+  body.dx-route-profile-protected .dx-block-content:has(#dex-settings),
+  body.dx-route-profile-protected .dx-code-container:has(#dex-settings) {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body.dx-route-profile-protected .page-section:has(#dex-settings) .section-background,
+  body.dx-route-profile-protected .page-section:has(#dex-settings) .section-border {
+    display: none !important;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
   body.dx-route-profile-protected :is(
     .page-section:has(#dex-favorites),
     .page-section:has(#dex-msg),
@@ -2168,9 +2192,23 @@ body.dx-route-show-mesh #gooey-mesh-wrapper {
 /* Settings route should pin as a single shell and scroll internally above mobile breakpoints. */
 @media (min-width: 901px) {
   body.dx-route-profile-protected #dex-settings {
+    padding-top: var(--dx-profile-home-header-gap) !important;
+    padding-bottom: var(--dx-profile-home-header-gap) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
+    scroll-padding-top: var(--dx-profile-home-header-gap) !important;
+    scroll-padding-bottom: var(--dx-profile-home-header-gap) !important;
+    scrollbar-gutter: stable both-edges !important;
+  }
+
+  body.dx-route-profile-protected #dex-settings #dxMembershipV3Root {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  body.dx-route-profile-protected #dex-settings #dxMembershipV3Root[data-dx-membership-rail-scrollable="true"] {
+    overflow: visible !important;
   }
 }
 
