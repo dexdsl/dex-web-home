@@ -419,6 +419,43 @@
   gap: 0.62rem;
 }
 
+/* Guardrail: preserve Dex Notes article card spacing against global reset collisions. */
+main.dx-dexnotes-page .dx-dexnotes-entry-shell {
+  gap: clamp(0.92rem, 1.6vw, 1.35rem) !important;
+}
+
+main.dx-dexnotes-page :is(
+  .dx-dexnotes-entry-mast,
+  .dx-dexnotes-entry-content,
+  .dx-dexnotes-entry-pagination,
+  .dx-dexnotes-entry-comments,
+  .dx-dexnotes-entry-newsletter
+) {
+  padding: clamp(1.05rem, 1.9vw, 1.45rem) !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-entry-layout,
+main.dx-dexnotes-page .dx-dexnotes-entry-body-wrap {
+  gap: 1.05rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-entry-rail {
+  gap: 0.72rem !important;
+  padding: 0.88rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-entry-related-list {
+  gap: 0.48rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-entry-related-item {
+  padding: 0.62rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-entry-pagination-row {
+  gap: 0.62rem !important;
+}
+
 .dx-dexnotes-comments-fallback {
   margin-top: 0.7rem;
   border: 1px dashed rgba(24, 30, 42, 0.2);

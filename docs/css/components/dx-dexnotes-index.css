@@ -346,6 +346,28 @@
   margin-top: 0.26rem;
 }
 
+/* Guardrail: preserve Dex Notes card spacing against global reset collisions. */
+main.dx-dexnotes-page .dx-dexnotes-index-shell {
+  gap: clamp(0.92rem, 1.6vw, 1.35rem) !important;
+}
+
+main.dx-dexnotes-page :is(.dx-dexnotes-controls, .dx-dexnotes-newsletter, .dx-dexnotes-list) {
+  padding: clamp(1.05rem, 1.9vw, 1.45rem) !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-card-grid {
+  gap: 0.84rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-card {
+  gap: 0.72rem !important;
+  padding: 0.72rem !important;
+}
+
+main.dx-dexnotes-page .dx-dexnotes-card-body {
+  gap: 0.56rem !important;
+}
+
 .dx-dexnotes-meta-rail {
   display: flex;
   flex-wrap: wrap;
