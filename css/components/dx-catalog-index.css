@@ -566,8 +566,8 @@ select.dx-catalog-index-select {
   background: var(--dx-btn-secondary-bg, linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 255, 0.52))) !important;
   color: #000 !important;
   box-shadow: none !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
   padding-inline: clamp(0.92rem, 1.6vw, 1.26rem) !important;
 }
 
