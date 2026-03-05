@@ -122,6 +122,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-about.css', 'docs/css/components/dx-about.css'],
   },
   {
+    source: 'public/css/components/dx-donate.css',
+    targets: ['css/components/dx-donate.css', 'docs/css/components/dx-donate.css'],
+  },
+  {
     source: 'public/css/components/dx-dexnotes-index.css',
     targets: ['css/components/dx-dexnotes-index.css', 'docs/css/components/dx-dexnotes-index.css'],
   },
@@ -188,6 +192,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/dx-about.js',
     targets: ['assets/js/dx-about.js', 'docs/assets/js/dx-about.js'],
+  },
+  {
+    source: 'public/assets/js/donate.js',
+    targets: ['assets/js/donate.js', 'docs/assets/js/donate.js'],
   },
   {
     source: 'public/assets/css/dex.css',
