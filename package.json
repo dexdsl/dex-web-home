@@ -102,6 +102,8 @@
     "call:all": "npm run call:data && npm run call:build && npm run call:sync && npm run call:verify",
     "about:build": "node scripts/build-about.mjs",
     "about:all": "npm run about:build && node scripts/sync_runtime_css.mjs && npm run verify:about",
+    "contact:build": "node scripts/build-contact.mjs",
+    "contact:all": "npm run contact:build && node scripts/sync_runtime_css.mjs && npm run verify:header-slot",
     "donate:build": "node scripts/build-donate.mjs",
     "verify:donate": "node scripts/verify_donate_integrity.mjs",
     "newsletter:marketing:build": "node scripts/build-marketing-newsletter-site.mjs",
