@@ -711,6 +711,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     const timeline = create('div', 'dx-call-timeline');
     (past.entries || []).forEach((entry) => {
       const item = create('article', 'dx-call-timeline-item');
+      item.setAttribute('data-dx-hover-variant', 'magnetic');
       item.appendChild(create('h3', 'dx-call-timeline-title', text(entry.cycle_raw || '')));
       appendOptionalText(item, entry.prompt_raw, 'dx-call-copy');
       appendOptionalText(item, entry.outcome_raw, 'dx-call-copy');
