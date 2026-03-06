@@ -208,6 +208,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     if (!rendered) return '';
 
     const ZWNJ = '\u200C';
+    const ZWJ = '\u200D';
     let out = '';
     let canonicalIndex = 0;
 
@@ -216,7 +217,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       const next = rendered[index + 1] || '';
       out += current;
 
-      if (!next || current === ZWNJ || next === ZWNJ) continue;
+      if (!next || current === ZWNJ || current === ZWJ || next === ZWNJ || next === ZWJ) continue;
 
       const currentIsLetter = current.toLowerCase() !== current.toUpperCase();
       const nextIsLetter = next.toLowerCase() !== next.toUpperCase();
@@ -233,7 +234,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
       const canonicalNext = canonical.charAt(canonicalIndex);
       const isCanonicalDuplicate = canonicalNext && canonicalNext.toLowerCase() === current.toLowerCase();
-      if (isCanonicalDuplicate) out += ZWNJ;
+      out += isCanonicalDuplicate ? ZWNJ : ZWJ;
     }
 
     return out;
@@ -737,7 +738,11 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       TOPIC_ORDER.forEach((topicId) => {
         const topic = TOPICS[topicId];
         if (!topic) return;
-        const button = create('button', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-contact-topic-button', topic.label);
+        const button = create(
+          'button',
+          'dx-button-element dx-button-size--sm dx-button-element--secondary dx-contact-topic-button',
+          renderCanonicalText(topic.label),
+        );
         button.type = 'button';
         button.dataset.topic = topic.id;
         button.setAttribute('aria-pressed', 'false');
