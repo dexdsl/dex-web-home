@@ -17,9 +17,11 @@ import { animate } from 'framer-motion/dom';
   const FETCH_STATE_ERROR = 'error';
   const DX_MIN_SHEEN_MS = 120;
   const AUTH_TIMEOUT_MS = 3200;
+  const TOKEN_TIMEOUT_MS = 2600;
   const SUBMIT_TIMEOUT_MS = 15000;
   const SUBMIT_QUOTA_VERIFY_TIMEOUT_MS = 8000;
   const SUBMIT_MIN_LOADING_MS = 420;
+  const ACHIEVEMENTS_REFRESH_TIMEOUT_MS = 5000;
   const JSONP_TIMEOUT_MS = 8000;
   const PREFETCH_SWR_MS = 60000;
   const QUOTA_RETRY_DELAY_MS = 220;
@@ -1714,6 +1716,68 @@ import { animate } from 'framer-motion/dom';
     }, 2600);
   }
 
+  async function resolveAccessTokenMaybe(timeoutMs = TOKEN_TIMEOUT_MS) {
+    const auth = window.DEX_AUTH || window.dexAuth || null;
+    if (!auth || typeof auth.getAccessToken !== 'function') return '';
+    try {
+      if (typeof auth.resolve === 'function') {
+        await withTimeout(() => auth.resolve(Math.min(timeoutMs, 2400)), Math.min(timeoutMs, 2400), null);
+      } else if (auth.ready && typeof auth.ready.then === 'function') {
+        await withTimeout(auth.ready, Math.min(timeoutMs, 2400), null);
+      }
+    } catch {}
+    const token = await withTimeout(() => auth.getAccessToken(), timeoutMs, '');
+    return text(token, '');
+  }
+
+  async function refreshAchievementsAfterSubmit() {
+    if (!state || !text(state.auth0Sub) || !text(state.apiBase)) return;
+    const token = await resolveAccessTokenMaybe(Math.min(ACHIEVEMENTS_REFRESH_TIMEOUT_MS, 2400));
+    if (!token) return;
+
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = window.setTimeout(() => {
+      if (controller) controller.abort();
+    }, ACHIEVEMENTS_REFRESH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`${state.apiBase}/me/achievements/summary`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'x-dx-request-id': `submit_achv_${Date.now()}`,
+        },
+        signal: controller ? controller.signal : undefined,
+      });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => null);
+      if (!payload || payload.ok !== true) return;
+      const newly = Array.isArray(payload.newlyUnlocked) ? payload.newlyUnlocked : [];
+      if (!newly.length) return;
+      const firstId = text((newly[0] && newly[0].id) || newly[0], '');
+      showToast(newly.length > 1 ? `New achievements unlocked (${newly.length})` : 'New achievement unlocked');
+      try {
+        if (firstId) {
+          window.sessionStorage.setItem('dex:achievements:focus-badge', firstId);
+        }
+      } catch {}
+      try {
+        window.dispatchEvent(new CustomEvent('dx:achievements:updated', { detail: payload }));
+        for (const item of newly) {
+          const badgeId = text((item && item.id) || item, '');
+          if (!badgeId) continue;
+          window.dispatchEvent(new CustomEvent('dx:achievements:unlocked', { detail: { badgeId } }));
+        }
+      } catch {}
+    } catch {
+      // Ignore unlock-check errors; submission already succeeded.
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
   function laneLabel(laneId) {
     const lane = getCallLaneSchema(laneId);
     if (lane && text(lane.label)) return text(lane.label);
@@ -3305,6 +3369,7 @@ import { animate } from 'framer-motion/dom';
           state.step = 4;
           render();
           showToast(state.flow === FLOW_CALL ? 'Call submitted' : 'Submitted');
+          void refreshAchievementsAfterSubmit();
         } else {
           state.submitError = describeSubmitFailure(responsePayload, failureCode);
           render();

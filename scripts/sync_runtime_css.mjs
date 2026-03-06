@@ -82,6 +82,14 @@ const SYNC_MAP = [
     targets: ['data/about.data.json', 'docs/data/about.data.json'],
   },
   {
+    source: 'data/achievements.registry.json',
+    targets: ['public/data/achievements.registry.json', 'docs/data/achievements.registry.json'],
+  },
+  {
+    source: 'public/data/achievements.data.json',
+    targets: ['data/achievements.data.json', 'docs/data/achievements.data.json'],
+  },
+  {
     source: 'public/data/profile-taxonomy.json',
     targets: ['data/profile-taxonomy.json', 'docs/data/profile-taxonomy.json'],
   },
@@ -152,6 +160,10 @@ const SYNC_MAP = [
   {
     source: 'public/css/components/dx-contact.css',
     targets: ['css/components/dx-contact.css', 'docs/css/components/dx-contact.css'],
+  },
+  {
+    source: 'public/css/components/dx-achievements.css',
+    targets: ['css/components/dx-achievements.css', 'docs/css/components/dx-achievements.css'],
   },
   {
     source: 'public/css/components/dx-dexnotes-index.css',
@@ -232,6 +244,10 @@ const SYNC_MAP = [
   {
     source: 'public/assets/js/contact.js',
     targets: ['assets/js/contact.js', 'docs/assets/js/contact.js'],
+  },
+  {
+    source: 'public/assets/js/achievements.js',
+    targets: ['assets/js/achievements.js', 'docs/assets/js/achievements.js'],
   },
   {
     source: 'public/assets/css/dex.css',

@@ -6,8 +6,13 @@
   const LEGACY_PREFIX = 'dex:favorites:';
   const CHANGE_EVENT = 'dx:favorites:changed';
   const DEFAULT_SCOPE = 'anon';
+  const SNAPSHOT_ENDPOINT = '/me/favorites/snapshot';
+  const SNAPSHOT_DEBOUNCE_MS = 900;
+  const AUTH_READY_TIMEOUT_MS = 2400;
+  const TOKEN_TIMEOUT_MS = 2400;
   const subscribers = new Set();
   const memoryStore = new Map();
+  const snapshotTimers = new Map();
 
   function toText(value) {
     return String(value ?? '');
@@ -217,6 +222,111 @@
     try {
       window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: payload }));
     } catch {}
+    scheduleSnapshotSync(payload.scope);
+  }
+
+  function getApiBase() {
+    const raw = toText(window.DEX_API_BASE_URL || window.DEX_API_ORIGIN || 'https://dex-api.spring-fog-8edd.workers.dev').trim();
+    return raw.replace(/\/+$/, '');
+  }
+
+  function withTimeout(promiseLike, timeoutMs, fallback = null) {
+    let timer = null;
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), Math.max(1, timeoutMs));
+    });
+    return Promise.race([
+      Promise.resolve(typeof promiseLike === 'function' ? promiseLike() : promiseLike).catch(() => fallback),
+      timeout,
+    ]).finally(() => {
+      if (timer !== null) clearTimeout(timer);
+    });
+  }
+
+  async function resolveAccessToken(scope) {
+    if (normalizeScope(scope) === DEFAULT_SCOPE) return '';
+    const auth = window.DEX_AUTH || window.dexAuth || null;
+    if (!auth) return '';
+
+    try {
+      if (typeof auth.resolve === 'function') {
+        await withTimeout(() => auth.resolve(AUTH_READY_TIMEOUT_MS), AUTH_READY_TIMEOUT_MS, null);
+      } else if (auth.ready && typeof auth.ready.then === 'function') {
+        await withTimeout(auth.ready, AUTH_READY_TIMEOUT_MS, null);
+      }
+    } catch {}
+
+    let authenticated = false;
+    try {
+      if (typeof auth.isAuthenticated === 'function') {
+        authenticated = Boolean(await withTimeout(() => auth.isAuthenticated(), AUTH_READY_TIMEOUT_MS, false));
+      } else {
+        authenticated = true;
+      }
+    } catch {
+      authenticated = false;
+    }
+    if (!authenticated) return '';
+
+    if (typeof auth.getAccessToken !== 'function') return '';
+    const token = await withTimeout(() => auth.getAccessToken(), TOKEN_TIMEOUT_MS, '');
+    return toText(token).trim();
+  }
+
+  function toSnapshotItem(record) {
+    const row = normalizeRecord(record, { keepMissingAddedAt: true });
+    return {
+      key: row.key,
+      kind: row.kind,
+      entryHref: row.entryHref || '',
+      lookupNumber: row.lookupNumber || '',
+      entryLookupNumber: row.entryLookupNumber || '',
+      bucket: row.bucket || '',
+      formatKey: row.formatKey || '',
+      fileId: row.fileId || '',
+      addedAt: row.addedAt || '',
+    };
+  }
+
+  async function pushSnapshot(scope) {
+    const normalizedScope = normalizeScope(scope);
+    const token = await resolveAccessToken(normalizedScope);
+    if (!token) return;
+
+    const rows = readRecords(normalizedScope);
+    const payload = {
+      scope: normalizedScope,
+      itemCount: rows.length,
+      items: rows.map(toSnapshotItem),
+      updatedAt: isoNow(),
+      source: 'favorites-runtime',
+    };
+
+    try {
+      await fetch(`${getApiBase()}${SNAPSHOT_ENDPOINT}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {}
+  }
+
+  function scheduleSnapshotSync(scope) {
+    const normalizedScope = normalizeScope(scope);
+    if (normalizedScope === DEFAULT_SCOPE) return;
+    const existing = snapshotTimers.get(normalizedScope);
+    if (existing) {
+      clearTimeout(existing);
+    }
+    const timer = setTimeout(() => {
+      snapshotTimers.delete(normalizedScope);
+      void pushSnapshot(normalizedScope);
+    }, SNAPSHOT_DEBOUNCE_MS);
+    snapshotTimers.set(normalizedScope, timer);
   }
 
   function list(options = {}) {

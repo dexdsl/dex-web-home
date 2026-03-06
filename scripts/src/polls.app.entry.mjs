@@ -9,6 +9,7 @@
   window.__dxPollsAppLoaded = true;
 
   const DX_MIN_SHEEN_MS = 120;
+  const ACHIEVEMENTS_REFRESH_TIMEOUT_MS = 4500;
   const STYLE_ID = 'dx-polls-app-style';
   const PAGE_SIZE_OPEN = 12;
   const PAGE_SIZE_CLOSED = 8;
@@ -64,9 +65,13 @@
       .dx-poll-row-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--font-body);font-size:.82rem;color:var(--dx-color-text-muted,#5e6270)}
       .dx-polls-empty{margin:0;padding:14px;border-radius:var(--dx-radius-sm,8px);border:1px solid rgba(38,42,52,.16);background:rgba(255,255,255,.4);font-family:var(--font-body);color:var(--dx-color-text-muted,#5e6270)}
       .dx-polls-error{margin:0;padding:14px;border-radius:var(--dx-radius-sm,8px);border:1px solid rgba(175,29,23,.25);background:rgba(175,29,23,.08);font-family:var(--font-body);color:#611313}
+      .dx-polls-toast-stack{position:fixed;right:20px;bottom:20px;display:grid;gap:8px;z-index:30;pointer-events:none}
+      .dx-polls-toast{margin:0;padding:8px 10px;border-radius:var(--dx-radius-sm,8px);background:rgba(19,24,34,.86);color:#fff;font-family:var(--font-body);font-size:.82rem;box-shadow:0 10px 20px rgba(0,0,0,.25)}
+      .dx-polls-toast.is-error{background:rgba(137,25,25,.9)}
       @media (max-width: 980px){
         .dx-polls-shell{width:var(--dx-header-frame-width);max-width:var(--dx-header-frame-width)}
         .dx-polls-layout{grid-template-columns:1fr}
+        .dx-polls-toast-stack{right:12px;left:12px;bottom:12px}
       }
     `;
     document.head.appendChild(style);
@@ -369,6 +374,75 @@
       status: response.status,
       data: payload,
     };
+  }
+
+  function ensurePollToastStack() {
+    let stack = document.querySelector('.dx-polls-toast-stack');
+    if (stack instanceof HTMLElement) return stack;
+    stack = document.createElement('div');
+    stack.className = 'dx-polls-toast-stack';
+    document.body.appendChild(stack);
+    return stack;
+  }
+
+  function showPollToast(message, isError = false) {
+    const stack = ensurePollToastStack();
+    const toast = document.createElement('p');
+    toast.className = `dx-polls-toast${isError ? ' is-error' : ''}`;
+    toast.textContent = String(message || '').trim();
+    stack.appendChild(toast);
+    window.setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+
+  async function refreshAchievementsAfterVote(authSnapshot, pollId = '') {
+    if (!authSnapshot || !authSnapshot.authenticated || !authSnapshot.token) return;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = window.setTimeout(() => {
+      if (controller) controller.abort();
+    }, ACHIEVEMENTS_REFRESH_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${getApiBase()}/me/achievements/summary`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {
+          authorization: `Bearer ${authSnapshot.token}`,
+          'x-dx-request-id': `poll_achv_${Date.now()}`,
+        },
+        signal: controller ? controller.signal : undefined,
+      });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => null);
+      if (!payload || payload.ok !== true) return;
+      const newly = Array.isArray(payload.newlyUnlocked) ? payload.newlyUnlocked : [];
+      if (!newly.length) return;
+      const firstBadge = String((newly[0] && newly[0].id) || newly[0] || '').trim();
+      showPollToast(
+        newly.length > 1
+          ? `New achievements unlocked (${newly.length})`
+          : 'New achievement unlocked',
+      );
+      try {
+        if (firstBadge) {
+          window.sessionStorage.setItem('dex:achievements:focus-badge', firstBadge);
+          window.sessionStorage.setItem('dex:achievements:from', String(pollId || 'poll'));
+        }
+      } catch {}
+      try {
+        window.dispatchEvent(new CustomEvent('dx:achievements:updated', { detail: payload }));
+        for (const item of newly) {
+          const badgeId = String((item && item.id) || item || '').trim();
+          if (!badgeId) continue;
+          window.dispatchEvent(new CustomEvent('dx:achievements:unlocked', { detail: { badgeId } }));
+        }
+      } catch {}
+    } catch {
+      // ignore refresh errors
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function normalizeListPayload(raw, fallbackPage = 1) {
@@ -734,6 +808,7 @@
 
             saveState = 'saved';
             await renderWithResults();
+            void refreshAchievementsAfterVote(authSnapshot, poll.id);
             window.setTimeout(() => {
               saveState = 'idle';
               renderWithResults().catch(() => {});

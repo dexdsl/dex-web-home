@@ -1,0 +1,359 @@
+#dex-achv .dx-achievements-shell {
+  width: 100%;
+  min-height: 100%;
+}
+
+#dex-achv .dx-achievements-panel {
+  display: grid;
+  gap: clamp(10px, 1.5vw, 16px);
+  padding: clamp(16px, 1.8vw, 24px);
+  border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 12px));
+  background: var(--dx-header-glass-bg);
+  border: 1px solid var(--dx-header-glass-rim);
+  box-shadow: var(--dx-header-glass-shadow);
+}
+
+#dex-achv .dx-achievements-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+#dex-achv .dx-achievements-kicker {
+  margin: 0;
+  font-family: var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--dx-color-text-muted, #5f6370);
+}
+
+#dex-achv .dx-achievements-header h1 {
+  margin: 4px 0 0 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.65rem, 2.8vw, 2.3rem);
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievements-sub {
+  margin: 8px 0 0 0;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--dx-color-text-muted, #5f6370);
+}
+
+#dex-achv .dx-achievements-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#dex-achv .dx-achievements-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--dx-radius-sm, 8px);
+  border: 1px solid rgba(175, 29, 23, 0.25);
+  background: rgba(175, 29, 23, 0.08);
+  color: #621817;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+}
+
+#dex-achv .dx-achievements-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#dex-achv .dx-achievements-page {
+  min-height: 200px;
+}
+
+#dex-achv .dx-achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: clamp(10px, 1.4vw, 16px);
+}
+
+#dex-achv .dx-achievement-card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 12px));
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.24));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 14px 26px rgba(20, 26, 37, 0.12);
+  transition: transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1), box-shadow 220ms cubic-bezier(0.22, 0.8, 0.24, 1), border-color 220ms ease;
+}
+
+#dex-achv .dx-achievement-card--locked {
+  opacity: 0.86;
+}
+
+#dex-achv .dx-achievement-card--progress {
+  border-color: rgba(255, 111, 0, 0.5);
+}
+
+#dex-achv .dx-achievement-card--unlocked {
+  border-color: rgba(14, 149, 78, 0.5);
+  box-shadow: 0 14px 30px rgba(14, 149, 78, 0.12);
+}
+
+#dex-achv .dx-achievement-card--new {
+  border-color: rgba(255, 77, 26, 0.58);
+  box-shadow: 0 14px 32px rgba(255, 77, 26, 0.2);
+  animation: dx-achievement-unlock-pulse 2.2s ease-out infinite;
+}
+
+#dex-achv .dx-achievement-card--focus {
+  outline: 2px solid rgba(255, 77, 26, 0.7);
+  outline-offset: 2px;
+}
+
+#dex-achv .dx-achievement-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+#dex-achv .dx-achievement-tier {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  min-height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 37, 50, 0.2);
+  background: rgba(255, 255, 255, 0.56);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievement-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: linear-gradient(96deg, #ff3a18, #ff7e19);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievement-glyph-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+#dex-achv .dx-achievement-glyph-svg {
+  width: 52px;
+  height: 52px;
+  color: #1d2431;
+  position: relative;
+  z-index: 1;
+}
+
+#dex-achv .dx-achievement-glyph-svg.is-silhouette {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+#dex-achv .dx-achievement-progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 52px;
+  height: 52px;
+  transform: rotate(-90deg);
+  z-index: 0;
+}
+
+#dex-achv .dx-achievement-progress-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+#dex-achv .dx-achievement-progress-ring circle:first-child {
+  stroke: rgba(31, 36, 49, 0.15);
+}
+
+#dex-achv .dx-achievement-progress-ring circle:last-child {
+  stroke: #ff5b1f;
+  stroke-linecap: round;
+}
+
+#dex-achv .dx-achievement-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1rem, 1.3vw, 1.22rem);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievement-desc {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--dx-color-text-muted, #5f6370);
+  line-height: 1.45;
+}
+
+#dex-achv .dx-achievement-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+#dex-achv .dx-achievement-claim {
+  width: max-content;
+}
+
+#dex-achv .dx-achievements-vault-note {
+  margin: 0 0 8px 0;
+  font-family: var(--font-body);
+  color: var(--dx-color-text-muted, #5f6370);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+#dex-achv .dx-achievements-history {
+  display: grid;
+  gap: 10px;
+}
+
+#dex-achv .dx-achievement-history-item {
+  padding: 12px;
+  border-radius: var(--dx-radius-sm, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+#dex-achv .dx-achievement-history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#dex-achv .dx-achievement-history-head h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievement-history-head span {
+  font-family: var(--font-body);
+  color: var(--dx-color-text-muted, #5f6370);
+  font-size: 0.78rem;
+}
+
+#dex-achv .dx-achievement-history-item p {
+  margin: 8px 0 0 0;
+  font-family: var(--font-body);
+  color: var(--dx-color-text-muted, #5f6370);
+}
+
+#dex-achv .dx-achievements-history-actions {
+  margin-top: 10px;
+}
+
+#dex-achv .dx-achievements-empty,
+#dex-achv .dx-achievements-empty-text {
+  margin: 0;
+  padding: 14px;
+  border-radius: var(--dx-radius-sm, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.4);
+  font-family: var(--font-body);
+}
+
+#dex-achv .dx-achievements-empty h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+#dex-achv .dx-achievements-empty p {
+  margin: 8px 0 12px 0;
+  color: var(--dx-color-text-muted, #5f6370);
+}
+
+#dex-achv .dx-achievements-toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: grid;
+  gap: 8px;
+  z-index: 30;
+  pointer-events: none;
+}
+
+#dex-achv .dx-achievements-toast {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--dx-radius-sm, 8px);
+  background: rgba(19, 24, 34, 0.86);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+}
+
+#dex-achv .dx-achievements-toast--error {
+  background: rgba(137, 25, 25, 0.9);
+}
+
+@keyframes dx-achievement-unlock-pulse {
+  0% {
+    box-shadow: 0 14px 32px rgba(255, 77, 26, 0.18);
+  }
+  50% {
+    box-shadow: 0 14px 34px rgba(255, 77, 26, 0.28);
+  }
+  100% {
+    box-shadow: 0 14px 32px rgba(255, 77, 26, 0.18);
+  }
+}
+
+@media (max-width: 980px) {
+  #dex-achv .dx-achievements-panel {
+    padding: 14px;
+  }
+
+  #dex-achv .dx-achievements-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #dex-achv .dx-achievements-toast-stack {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #dex-achv .dx-achievement-card,
+  #dex-achv .dx-achievements-toast,
+  #dex-achv .dx-achievement-progress-ring circle {
+    transition: none !important;
+    animation: none !important;
+  }
+}

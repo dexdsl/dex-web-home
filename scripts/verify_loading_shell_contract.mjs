@@ -7,6 +7,8 @@ const ROOT = process.cwd();
 const FILES = {
   baseCss: path.join(ROOT, 'public', 'css', 'base.css'),
   dexCss: path.join(ROOT, 'public', 'assets', 'css', 'dex.css'),
+  achievementsRuntime: path.join(ROOT, 'scripts', 'src', 'achievements.entry.mjs'),
+  achievementsRuntimeBuilt: path.join(ROOT, 'public', 'assets', 'js', 'achievements.js'),
   pollsRuntime: path.join(ROOT, 'public', 'assets', 'js', 'polls.app.js'),
   pollsRuntimeSource: path.join(ROOT, 'scripts', 'src', 'polls.app.entry.mjs'),
   submitRuntime: path.join(ROOT, 'public', 'assets', 'js', 'submit.samples.js'),
@@ -62,14 +64,12 @@ const REQUIRED_FETCH_CLASS_MARKERS = [
   '@keyframes dx-fetch-sheen',
 ];
 
-const ACHIEVEMENTS_TIMEOUT_MARKERS = [
-  'const AUTH_READY_TIMEOUT_MS = 2500;',
-  'const JSONP_TIMEOUT_MS = 7000;',
-  'const VOTES_TIMEOUT_MS = 5000;',
-  'withTimeout(',
-  'jsonpWithTimeout(',
-  'AbortController',
-  'await finalizeFetchState(finalState);',
+const ACHIEVEMENTS_RUNTIME_TIMEOUT_MARKERS = [
+  'AUTH_READY_TIMEOUT_MS',
+  'API_TIMEOUT_MS',
+  'DX_MIN_SHEEN_MS = 120',
+  '/me/achievements/summary',
+  'setFetchState(root, FETCH_STATE_READY)',
 ];
 
 function readText(filePath) {
@@ -131,8 +131,22 @@ function verifyRouteContracts(failures) {
         || (fs.existsSync(FILES.pressroomRuntimeSource)
           && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.pressroomRuntimeSource)))
       );
+    const minSheenInAchievementsRuntime = contract.file === 'docs/entry/achievements/index.html'
+      && (
+        (fs.existsSync(FILES.achievementsRuntimeBuilt)
+          && /DX_MIN_SHEEN_MS(?:\s*=\s*120\b|=120\b)/.test(readText(FILES.achievementsRuntimeBuilt)))
+        || (fs.existsSync(FILES.achievementsRuntime)
+          && /DX_MIN_SHEEN_MS\s*=\s*120\b/.test(readText(FILES.achievementsRuntime)))
+      );
 
-    if (!minSheenInHtml && !minSheenInPollsRuntime && !minSheenInSubmitRuntime && !minSheenInMessagesRuntime && !minSheenInPressroomRuntime) {
+    if (
+      !minSheenInHtml
+      && !minSheenInPollsRuntime
+      && !minSheenInSubmitRuntime
+      && !minSheenInMessagesRuntime
+      && !minSheenInPressroomRuntime
+      && !minSheenInAchievementsRuntime
+    ) {
       failures.push(`${relPath} missing DX_MIN_SHEEN_MS = 120 contract`);
     }
 
@@ -164,13 +178,16 @@ function verifyCssContract(cssPath, cssLabel, failures) {
   }
 }
 
-function verifyAchievementsTimeoutContract(failures) {
-  const achievementsPath = path.join(ROOT, 'docs', 'entry', 'achievements', 'index.html');
-  const achievementsHtml = readText(achievementsPath);
-
-  for (const marker of ACHIEVEMENTS_TIMEOUT_MARKERS) {
-    if (!achievementsHtml.includes(marker)) {
-      failures.push(`docs/entry/achievements/index.html missing timeout marker: ${marker}`);
+function verifyAchievementsRuntimeTimeoutContract(failures) {
+  const source = fs.existsSync(FILES.achievementsRuntime) ? readText(FILES.achievementsRuntime) : "";
+  const built = fs.existsSync(FILES.achievementsRuntimeBuilt) ? readText(FILES.achievementsRuntimeBuilt) : "";
+  if (!source && !built) {
+    failures.push("achievements runtime missing in scripts/src and public/assets/js");
+    return;
+  }
+  for (const marker of ACHIEVEMENTS_RUNTIME_TIMEOUT_MARKERS) {
+    if (!source.includes(marker) && !built.includes(marker)) {
+      failures.push(`achievements runtime missing timeout marker: ${marker}`);
     }
   }
 }
@@ -199,7 +216,7 @@ function main() {
   const failures = [];
 
   verifyRouteContracts(failures);
-  verifyAchievementsTimeoutContract(failures);
+  verifyAchievementsRuntimeTimeoutContract(failures);
   verifyEntrySidebarFetchContract(failures);
   verifyCssContract(FILES.baseCss, 'public/css/base.css', failures);
   verifyCssContract(FILES.dexCss, 'public/assets/css/dex.css', failures);

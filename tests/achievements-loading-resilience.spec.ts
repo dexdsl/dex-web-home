@@ -1,30 +1,122 @@
 import { expect, test, type Page } from 'playwright/test';
 
-type AuthMode = 'signed-out' | 'hang-token' | 'token-ready';
-type VoteApiMode = 'success' | 'failure';
+type AuthMode = 'signed-out' | 'token-ready';
+type SummaryMode = 'success' | 'warning' | 'failure';
 
-const SUBMISSION_ROWS = [
-  { status: 'Released', license: 'CC0' },
-  { status: 'Released', license: 'Joint' },
-  { status: 'Rejected', license: 'CC0' },
-];
+function summaryPayload(warnings: string[] = []) {
+  return {
+    ok: true,
+    requestId: 'achv_test_req',
+    catalogVersion: '2026.03.v1',
+    totals: {
+      unlocked: 3,
+      total: 6,
+      points: 120,
+    },
+    metrics: {
+      submissionsTotal: 4,
+      releasesTotal: 2,
+      pollVotes: 12,
+      favoritesCount: 7,
+    },
+    badges: [
+      {
+        id: 'first-submission',
+        title: 'First Submission',
+        description: 'Send your first Dex submission.',
+        category: 'submissions',
+        tier: 'bronze',
+        glyph: 'submission',
+        threshold: 1,
+        progress: 1,
+        points: 10,
+        secret: false,
+        unlocked: true,
+      },
+      {
+        id: 'first-poll-vote',
+        title: 'First Poll Vote',
+        description: 'Vote in your first poll.',
+        category: 'polls',
+        tier: 'bronze',
+        glyph: 'poll',
+        threshold: 1,
+        progress: 1,
+        points: 10,
+        secret: false,
+        unlocked: true,
+      },
+      {
+        id: 'poll-votes-10',
+        title: 'Ten Poll Votes',
+        description: 'Cast ten poll votes.',
+        category: 'polls',
+        tier: 'silver',
+        glyph: 'poll',
+        threshold: 10,
+        progress: 10,
+        points: 35,
+        secret: false,
+        unlocked: true,
+      },
+      {
+        id: 'favorites-10',
+        title: 'Favorites x10',
+        description: 'Save ten favorites.',
+        category: 'favorites',
+        tier: 'silver',
+        glyph: 'favorite',
+        threshold: 10,
+        progress: 7,
+        points: 30,
+        secret: false,
+        unlocked: false,
+      },
+      {
+        id: 'vault-easter-egg',
+        title: 'Vault Visitor',
+        description: 'Claim the vault easter egg.',
+        category: 'secret',
+        tier: 'silver',
+        glyph: 'vault',
+        threshold: 1,
+        progress: 0,
+        points: 50,
+        secret: true,
+        clueGrowlix: '@@@ find the hidden claim @@@',
+        unlocked: false,
+      },
+      {
+        id: 'releases-20-secret',
+        title: 'Twenty Releases',
+        description: 'Reach twenty releases.',
+        category: 'secret',
+        tier: 'legend',
+        glyph: 'secret-release',
+        threshold: 20,
+        progress: 2,
+        points: 220,
+        secret: true,
+        clueGrowlix: '!!! catalog architect !!!',
+        unlocked: false,
+      },
+    ],
+    newlyUnlocked: [{ id: 'poll-votes-10' }],
+    warnings,
+  };
+}
 
 async function stubDexAuthRuntime(page: Page, mode: AuthMode): Promise<void> {
   const script = `
     (() => {
       const mode = ${JSON.stringify(mode)};
       const user = mode === 'signed-out' ? null : { sub: 'auth0|achievements-e2e', name: 'Achievements E2E' };
-      const never = () => new Promise(() => {});
       const auth = {
         ready: Promise.resolve({ isAuthenticated: mode !== 'signed-out' }),
         resolve: () => Promise.resolve({ authenticated: mode !== 'signed-out' }),
         isAuthenticated: () => Promise.resolve(mode !== 'signed-out'),
         getUser: () => Promise.resolve(user),
-        getAccessToken: () => {
-          if (mode === 'hang-token') return never();
-          if (mode === 'signed-out') return Promise.resolve('');
-          return Promise.resolve('stub-access-token');
-        },
+        getAccessToken: () => Promise.resolve(mode === 'signed-out' ? '' : 'stub-access-token'),
         signIn: () => Promise.resolve(),
         signOut: () => Promise.resolve(),
         guard: () => Promise.resolve({ status: mode === 'signed-out' ? 'blocked' : 'authenticated' }),
@@ -51,37 +143,8 @@ async function stubDexAuthRuntime(page: Page, mode: AuthMode): Promise<void> {
   });
 }
 
-async function stubSubmissionsJsonp(page: Page): Promise<void> {
-  await page.route('https://script.google.com/macros/**', async (route) => {
-    const url = new URL(route.request().url());
-    const callback = String(url.searchParams.get('callback') || '').trim();
-    const action = String(url.searchParams.get('action') || '').trim();
-
-    if (!callback) {
-      await route.fulfill({ status: 400, contentType: 'text/plain', body: 'Missing callback' });
-      return;
-    }
-
-    let payload: unknown = { status: 'error', rows: [] };
-    if (action === 'list') {
-      payload = {
-        status: 'ok',
-        rows: SUBMISSION_ROWS,
-      };
-    } else if (action === 'ack') {
-      payload = { status: 'ok' };
-    }
-
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/javascript',
-      body: `${callback}(${JSON.stringify(payload)});`,
-    });
-  });
-}
-
-async function stubVotesSummary(page: Page, mode: VoteApiMode, payload?: { voteCount: number; currentStreak: number }): Promise<void> {
-  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/polls/votes/summary', async (route) => {
+async function stubAchievementsApi(page: Page, mode: SummaryMode): Promise<void> {
+  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/achievements/summary', async (route) => {
     const method = route.request().method().toUpperCase();
     const corsHeaders = {
       'access-control-allow-origin': '*',
@@ -90,10 +153,7 @@ async function stubVotesSummary(page: Page, mode: VoteApiMode, payload?: { voteC
     };
 
     if (method === 'OPTIONS') {
-      await route.fulfill({
-        status: 204,
-        headers: corsHeaders,
-      });
+      await route.fulfill({ status: 204, headers: corsHeaders });
       return;
     }
 
@@ -102,8 +162,33 @@ async function stubVotesSummary(page: Page, mode: VoteApiMode, payload?: { voteC
         status: 503,
         contentType: 'application/json',
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'SERVICE_UNAVAILABLE' }),
+        body: JSON.stringify({ ok: false, code: 'TEMPORARY_UNAVAILABLE' }),
       });
+      return;
+    }
+
+    const payload = mode === 'warning'
+      ? summaryPayload(['Partial backend outage: vote streak service degraded.'])
+      : summaryPayload();
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: corsHeaders,
+      body: JSON.stringify(payload),
+    });
+  });
+
+  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/achievements/history**', async (route) => {
+    const method = route.request().method().toUpperCase();
+    const corsHeaders = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'GET,OPTIONS',
+      'access-control-allow-headers': 'authorization,content-type',
+    };
+
+    if (method === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: corsHeaders });
       return;
     }
 
@@ -111,7 +196,37 @@ async function stubVotesSummary(page: Page, mode: VoteApiMode, payload?: { voteC
       status: 200,
       contentType: 'application/json',
       headers: corsHeaders,
-      body: JSON.stringify(payload || { voteCount: 12, currentStreak: 4 }),
+      body: JSON.stringify({
+        ok: true,
+        requestId: 'achv_hist_req',
+        events: [
+          {
+            id: 'evt_1',
+            badgeId: 'poll-votes-10',
+            badgeTitle: 'Ten Poll Votes',
+            eventType: 'unlocked',
+            createdAt: new Date('2026-03-05T10:00:00.000Z').toISOString(),
+            detail: 'Unlocked via poll vote milestones.',
+          },
+        ],
+        nextCursor: '',
+      }),
+    });
+  });
+
+  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/achievements/seen', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, requestId: 'seen_req', seenCount: 1 }),
+    });
+  });
+
+  await page.route('https://dex-api.spring-fog-8edd.workers.dev/me/achievements/secret-claim', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, requestId: 'claim_req', state: 'not_eligible' }),
     });
   });
 }
@@ -138,47 +253,48 @@ async function waitForAchievementsReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
-test('soft navigation recovers when token lookup hangs and avoids stuck loading state', async ({ page }) => {
-  await stubDexAuthRuntime(page, 'hang-token');
-  await stubSubmissionsJsonp(page);
-  await softNavigateToAchievements(page);
-  await waitForAchievementsReady(page);
-
-  await expect(page.locator('#dex-achv h1', { hasText: 'Your Achievements' })).toBeVisible();
-  await expect(page.locator('#achv-warning')).toContainText('Poll vote metrics are temporarily unavailable.');
-  expect(await page.locator('#dex-achv .badge-card').count()).toBeGreaterThan(0);
-});
-
-test('renders partial achievements and warning when vote summary endpoint fails', async ({ page }) => {
+test('signed-in summary renders canonical v2 cards and secret vault', async ({ page }) => {
   await stubDexAuthRuntime(page, 'token-ready');
-  await stubSubmissionsJsonp(page);
-  await stubVotesSummary(page, 'failure');
+  await stubAchievementsApi(page, 'success');
   await softNavigateToAchievements(page);
   await waitForAchievementsReady(page);
 
-  await expect(page.locator('#achv-warning')).toContainText('Poll vote metrics are temporarily unavailable.');
-  expect(await page.locator('#dex-achv .badge-card').count()).toBeGreaterThan(0);
+  await expect(page.locator('#dex-achv [data-dx-achievements-app="v2"]')).toBeVisible();
+  await expect(page.locator('#dex-achv [data-dx-achievement-id="first-poll-vote"]')).toBeVisible();
+  await expect(page.locator('#dex-achv [data-dx-achievement-id="first-poll-vote"]')).toHaveAttribute('data-dx-achievement-state', /unlocked|new/);
+
+  await page.locator('#dex-achv [data-dx-achievements-page="secret-vault"]').click();
+  await expect(page.locator('#dex-achv [data-dx-achievement-id="vault-easter-egg"]')).toBeVisible();
+  await expect(page.locator('#dex-achv [data-dx-achievement-id="vault-easter-egg"]')).toHaveAttribute('data-dx-achievement-secret', 'true');
 });
 
-test('renders full achievements without warning when summary endpoint succeeds', async ({ page }) => {
+test('summary warnings render without blocking cards', async ({ page }) => {
   await stubDexAuthRuntime(page, 'token-ready');
-  await stubSubmissionsJsonp(page);
-  await stubVotesSummary(page, 'success', { voteCount: 12, currentStreak: 4 });
+  await stubAchievementsApi(page, 'warning');
   await softNavigateToAchievements(page);
   await waitForAchievementsReady(page);
 
-  await expect(page.locator('#achv-warning')).toBeHidden();
-  const voteCard = page.locator('#dex-achv .badge-card', { hasText: 'First Poll Vote' }).first();
-  await expect(voteCard).toBeVisible();
-  await expect(voteCard).not.toHaveClass(/locked/);
+  await expect(page.locator('#dex-achv [data-dx-achievements-warning]')).toContainText('Partial backend outage');
+  await expect(page.locator('#dex-achv [data-dx-achievement-id="first-submission"]')).toBeVisible();
 });
 
-test('signed-out users see sign-in prompt and fetch-state exits loading', async ({ page }) => {
+test('signed-out users get deterministic sign-in-required state', async ({ page }) => {
   await stubDexAuthRuntime(page, 'signed-out');
-  await stubSubmissionsJsonp(page);
+  await stubAchievementsApi(page, 'success');
   await softNavigateToAchievements(page);
   await waitForAchievementsReady(page);
 
-  await expect(page.locator('#dex-achv')).toContainText('Please sign');
-  await expect(page.locator('#achv-warning')).toBeHidden();
+  await expect(page.locator('#dex-achv')).toContainText('SIGN IN REQUIRED');
+  await expect(page.locator('#dex-achv [data-dx-achievements-app="v2"]')).toHaveAttribute('data-dx-achievements-state', 'signed-out');
+});
+
+test('summary failure exits loading and shows deterministic error state', async ({ page }) => {
+  await stubDexAuthRuntime(page, 'token-ready');
+  await stubAchievementsApi(page, 'failure');
+  await softNavigateToAchievements(page);
+
+  const root = page.locator('#dex-achv');
+  await expect(root).toBeVisible();
+  await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('error');
+  await expect(root).toContainText('Unable to load achievements');
 });

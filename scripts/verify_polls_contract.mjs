@@ -54,6 +54,14 @@ function verifyGasRemoval() {
       FAILURES.push(`docs/entry/achievements/index.html still contains legacy polls marker: ${marker}`);
     }
   }
+
+  const achievementsRuntime = readText('scripts/src/achievements.entry.mjs');
+  if (!achievementsRuntime.includes('/me/achievements/summary')) {
+    FAILURES.push('scripts/src/achievements.entry.mjs missing /me/achievements/summary integration marker');
+  }
+  if (!achievementsRuntime.includes('pollVotes')) {
+    FAILURES.push('scripts/src/achievements.entry.mjs missing pollVotes metric consumption marker');
+  }
 }
 
 function verifyGeneratedDetailPages(pollIds) {
@@ -115,9 +123,6 @@ async function main() {
   verifyGeneratedDetailPages(pollIds);
   verifyPublicPollRouteNotProtected();
   verifyAuthNonBlockingMarkers();
-
-  const achievements = readText('docs/entry/achievements/index.html');
-  assert(achievements.includes('/me/polls/votes/summary'), 'achievements route must consume /me/polls/votes/summary');
 
   if (FAILURES.length > 0) {
     console.error(`verify:polls failed with ${FAILURES.length} issue(s):`);
