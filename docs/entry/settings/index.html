@@ -2434,13 +2434,10 @@
 }
 #dex-settings #pane-notifs #notCard .dx-newsletter-actions{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(0,1fr);
   gap:8px;
-}
-@media (max-width: 720px){
-  #dex-settings #pane-notifs #notCard .dx-newsletter-actions{
-    grid-template-columns:1fr;
-  }
+  align-items:stretch;
 }
 #dex-settings #pane-notifs #notCard .dx-newsletter-actions .cta{
   width:100%;
@@ -2656,7 +2653,7 @@
 <!-- Settings UI -->
   <!-- Header (no chips / no manage button) -->
   <header class="hdr" aria-label="Account settings">
-    <h1 id="dexs-title" data-dx-heading-duplicate-exclude-letters="G,S,N,I">Settings</h1>
+    <h1 id="dexs-title" data-dx-heading-duplicate-exclude-letters="G,S,N,I">Set‌tings</h1>
     <p class="sub">Manage your profile, membership, and notifications.</p>
   </header>
 

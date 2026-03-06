@@ -54,12 +54,18 @@
     '/entry/messages/submission',
   ]);
   const PROFILE_SHOW_MESH_ROUTES = new Set([
+    '/favorites',
+    '/settings',
+    '/achievements',
     '/submit',
     '/messages',
+    '/entry/favorites',
     '/entry/submit',
     '/entry/messages',
     '/entry/messages/submission',
     '/entry/pressroom',
+    '/entry/settings',
+    '/entry/achievements',
     '/entry/bag',
   ]);
 

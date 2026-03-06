@@ -2286,7 +2286,7 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     min-height: 0 !important;
     align-items: stretch !important;
     row-gap: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
-    column-gap: calc(var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) + 2px) !important;
+    column-gap: calc(var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 1.35) !important;
   }
 
   #dex-settings .grid > main,
@@ -2315,7 +2315,8 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
     scrollbar-gutter: stable both-edges !important;
-    padding-right: 6px !important;
+    padding-left: 2px !important;
+    padding-right: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
     padding-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
     scrollbar-width: thin !important;
     scrollbar-color: rgba(0, 0, 0, 0.24) rgba(255, 255, 255, 0.08) !important;
@@ -2433,12 +2434,16 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
 
   #dex-settings[data-fit-profile="1"] #pane-profile .profile-col,
   #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col {
+    height: 100% !important;
     min-height: 0 !important;
+    max-height: 100% !important;
     box-sizing: border-box !important;
   }
 
   #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-left,
   #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-left {
+    height: 100% !important;
+    max-height: 100% !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
@@ -2463,9 +2468,11 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
 
   #dex-settings[data-fit-profile="1"] #pane-profile .profile-col-right,
   #dex-settings[data-dx-settings-pane="profile"] #pane-profile .profile-col-right {
-    display: flex !important;
-    flex-direction: column !important;
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
     gap: var(--gap) !important;
+    height: 100% !important;
+    max-height: 100% !important;
     min-height: 0 !important;
     overflow: hidden !important;
     padding-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
@@ -2475,7 +2482,8 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
   #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard {
     margin: 0 !important;
     min-height: 0 !important;
-    flex: 1 1 auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -2483,7 +2491,8 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
 
   #dex-settings[data-fit-profile="1"] #pane-profile #securityCard .list,
   #dex-settings[data-dx-settings-pane="profile"] #pane-profile #securityCard .list {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
+    max-height: 100% !important;
     min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
@@ -2511,6 +2520,7 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     flex: 0 0 auto !important;
     align-self: stretch !important;
     margin: 0 !important;
+    max-height: none !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
