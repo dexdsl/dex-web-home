@@ -37,8 +37,12 @@ function verifySubmitRuntime() {
     'parseRouteFlowState',
     "data-dx-submit-flow",
     "data-dx-submit-lane",
+    "data-dx-submit-has-active-call",
+    "data-dx-submit-active-call-count",
     'quota_call',
     'submit_call',
+    'CALLS_REGISTRY_URL',
+    'applyCallsRegistryContract',
     'buildCallMetadataStep',
   ]);
 }

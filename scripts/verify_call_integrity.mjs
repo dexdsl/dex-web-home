@@ -5,6 +5,7 @@ import path from 'node:path';
 const ROOT = process.cwd();
 
 const DATA_PATH = path.join(ROOT, 'public', 'data', 'call.data.json');
+const REGISTRY_PATH = path.join(ROOT, 'data', 'calls.registry.json');
 const JS_PATH = path.join(ROOT, 'public', 'assets', 'js', 'call.editorial.js');
 const CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-call-editorial.css');
 const NEWSLETTER_CSS_PATH = path.join(ROOT, 'public', 'css', 'components', 'dx-marketing-newsletter.css');
@@ -51,15 +52,36 @@ function main() {
   if (!fs.existsSync(NEWSLETTER_CSS_PATH)) failures.push(`missing stylesheet ${path.relative(ROOT, NEWSLETTER_CSS_PATH)}`);
   if (!fs.existsSync(JS_PATH)) failures.push(`missing runtime bundle ${path.relative(ROOT, JS_PATH)}`);
 
+  const registry = readJson(REGISTRY_PATH);
   const model = readJson(DATA_PATH);
+
+  if (registry?.version !== 'calls-registry-v1') failures.push('calls registry version mismatch');
+  if (registry?.sequenceGroup !== 'inDex') failures.push('calls registry sequenceGroup must be inDex');
+  if (!Array.isArray(registry?.calls) || registry.calls.length < 2) failures.push('calls registry must include at least two calls');
+  const activeCalls = Array.isArray(registry?.calls) ? registry.calls.filter((call) => String(call?.status || '').trim() === 'active') : [];
+  if (activeCalls.length !== 1) failures.push(`calls registry must include exactly one active call; found ${activeCalls.length}`);
+  if (!String(registry?.activeCallId || '').trim()) failures.push('calls registry missing activeCallId');
+  if (String(registry?.activeCallId || '').trim() && !activeCalls.some((call) => call.id === registry.activeCallId)) {
+    failures.push('calls registry activeCallId must match the active call id');
+  }
+  const seenSequences = new Set();
+  for (const call of Array.isArray(registry?.calls) ? registry.calls : []) {
+    const sequence = Number(call?.sequence || 0);
+    if (!Number.isFinite(sequence) || sequence < 1) {
+      failures.push(`calls registry call ${call?.id || '(unknown)'} has invalid sequence`);
+      continue;
+    }
+    if (seenSequences.has(sequence)) failures.push(`calls registry has duplicate sequence ${sequence}`);
+    seenSequences.add(sequence);
+  }
 
   if (!model?.hero?.heading_raw) failures.push('call data missing hero.heading_raw');
   if (!Array.isArray(model?.lanes) || model.lanes.length < 4) failures.push('call data lanes must contain at least four items');
   if (!model?.active_call?.cycle_raw) failures.push('call data missing active_call.cycle_raw');
-  if (!Array.isArray(model?.active_call?.subcalls) || model.active_call.subcalls.length < 3) failures.push('call data missing active_call subcalls');
-  if (!model?.mini_call?.cycle_raw) failures.push('call data missing mini_call.cycle_raw');
+  if (!Array.isArray(model?.calls) || model.calls.length < 2) failures.push('call data missing canonical calls array');
+  if (!model?.registry?.activeCallId) failures.push('call data missing registry.activeCallId');
   if (!Array.isArray(model?.requirements?.items_raw) || model.requirements.items_raw.length < 4) failures.push('call data missing requirements items');
-  if (!Array.isArray(model?.past_calls?.entries) || model.past_calls.entries.length < 2) failures.push('call data missing past call entries');
+  if (!Array.isArray(model?.past_calls?.entries) || model.past_calls.entries.length < 1) failures.push('call data missing past call entries');
   if (!model?.newsletter?.prompt_raw) failures.push('call data missing newsletter prompt');
 
   const pageHtml = readText(PAGE_PATH);

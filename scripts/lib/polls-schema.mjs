@@ -7,6 +7,15 @@ const isoDateString = z.string().refine((value) => Number.isFinite(Date.parse(va
   message: 'Invalid ISO timestamp',
 });
 
+const callRefSchema = z.object({
+  group: z.literal('inDex'),
+  lane: z.literal('in-dex-c'),
+  year: z.number().int().min(1900).max(9999),
+  sequence: z.number().int().min(1).max(9999),
+  cycleCode: z.string().trim().min(1).max(64),
+  cycleLabel: z.string().trim().min(1).max(120),
+});
+
 const pollSchema = z.object({
   id: z.string().trim().min(1).max(128),
   slug: z.string().trim().min(1).max(160).optional(),
@@ -17,6 +26,7 @@ const pollSchema = z.object({
   closeAt: isoDateString,
   manualClose: z.boolean(),
   visibility: z.enum(POLL_VISIBILITY),
+  callRef: callRefSchema,
 });
 
 const pollsFileSchema = z.object({
@@ -54,6 +64,20 @@ function normalizePoll(input) {
     throw new Error(`Poll ${input.id} must include at least two unique options.`);
   }
 
+  const callRef = input.callRef && typeof input.callRef === 'object' ? input.callRef : {};
+  const callRefYear = Number(callRef.year || 0);
+  const callRefSequence = Number(callRef.sequence || 0);
+  const callCycleCode = String(callRef.cycleCode || '').trim().toUpperCase();
+  const expectedCode = `C${callRefYear}.${callRefSequence}`;
+  const expectedLabel = `IN DEX ${expectedCode}`;
+  if (callCycleCode !== expectedCode) {
+    throw new Error(`Poll ${input.id} callRef.cycleCode must equal ${expectedCode}.`);
+  }
+  const callCycleLabel = String(callRef.cycleLabel || '').trim().toUpperCase();
+  if (callCycleLabel !== expectedLabel) {
+    throw new Error(`Poll ${input.id} callRef.cycleLabel must equal ${expectedLabel}.`);
+  }
+
   return {
     id: normalizeText(input.id),
     slug: input.slug ? normalizeText(input.slug) : undefined,
@@ -64,6 +88,14 @@ function normalizePoll(input) {
     createdAt: new Date(createdAtMs).toISOString(),
     closeAt: new Date(closeAtMs).toISOString(),
     manualClose: Boolean(input.manualClose),
+    callRef: {
+      group: 'inDex',
+      lane: 'in-dex-c',
+      year: callRefYear,
+      sequence: callRefSequence,
+      cycleCode: expectedCode,
+      cycleLabel: expectedLabel,
+    },
   };
 }
 

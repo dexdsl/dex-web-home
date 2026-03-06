@@ -66,6 +66,22 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+async function stubNoActiveCallsRegistry(page: Page): Promise<void> {
+  await page.route('**/data/calls.registry.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 'calls-registry-v1',
+        updatedAt: '2026-03-05T00:00:00.000Z',
+        sequenceGroup: 'inDex',
+        activeCallId: '',
+        calls: [],
+      }),
+    });
+  });
+}
+
 async function ensureSamplePipeline(page: Page): Promise<void> {
   const gate = page.locator('[data-dx-submit-step="flow-gate"]');
   if (await gate.count()) {
@@ -82,6 +98,21 @@ async function waitBeginReady(page: Page) {
   await expect.poll(async () => begin.isDisabled()).toBe(false);
   return begin;
 }
+
+test('submit bypasses Screen 0 when no active call exists', async ({ page }) => {
+  await stubHeaderRuntimes(page);
+  await stubDexAuthRuntime(page);
+  await stubApiBaseline(page);
+  await stubNoActiveCallsRegistry(page);
+
+  await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
+  await waitReady(page);
+
+  await expect(page.locator('#dex-submit')).toHaveAttribute('data-dx-submit-has-active-call', 'false');
+  await expect(page.locator('[data-dx-submit-step=\"flow-gate\"]')).toHaveCount(0);
+  await expect(page.locator('[data-dx-submit-step=\"intro\"]')).toBeVisible();
+  await expect(page.locator('#dex-submit')).toHaveAttribute('data-dx-submit-flow', 'sample');
+});
 
 async function completeLicenseStep(page: Page, signature = 'Seb Solis'): Promise<void> {
   const step = page.locator('[data-dx-submit-step="license"]');

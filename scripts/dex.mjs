@@ -337,6 +337,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'polls', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'call') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'call', rest: args.slice(idx + 1) };
+  }
   if (firstNonFlag === 'newsletter') {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'newsletter', rest: args.slice(idx + 1) };
@@ -486,6 +490,8 @@ async function runPollsCommand(rest = []) {
     upsertPoll,
     setPollStatus,
   } = await import('./lib/polls-store.mjs');
+  const { readCallsRegistry } = await import('./lib/calls-store.mjs');
+  const { allocateNextInDexSequence, buildPollCallRef, normalizeCallRef } = await import('./lib/call-lookup.mjs');
   const { validatePollsFile } = await import('./lib/polls-schema.mjs');
   const { publishPolls } = await import('./lib/polls-publish.mjs');
   const { runPollsScreen } = await import('./ui/polls-screen.mjs');
@@ -537,10 +543,17 @@ async function runPollsCommand(rest = []) {
   const { data } = await readPollsFile(flags.get('--file'));
 
   if (subcommand === 'create') {
+    const { data: callsData } = await readCallsRegistry(flags.get('--calls-file'));
+    const nextSequence = allocateNextInDexSequence({
+      calls: callsData.calls,
+      polls: data.polls,
+    });
+    const pollYear = Number(flags.get('--call-year')) || new Date().getUTCFullYear();
     const draft = createPollDraft(data, {
       question: flags.get('--question') || 'New poll question',
       visibility: flags.get('--visibility') || 'public',
       status: flags.get('--status') || 'draft',
+      callRef: buildPollCallRef({ year: pollYear, sequence: nextSequence }),
     });
     const next = upsertPoll(data, draft);
     await writePollsFile(next, flags.get('--file'));
@@ -566,7 +579,15 @@ async function runPollsCommand(rest = []) {
       manualClose: flags.has('--manualClose')
         ? flags.get('--manualClose') === 'true'
         : existing.manualClose,
+      callRef: normalizeCallRef(existing.callRef || {}),
     };
+
+    if (flags.has('--call-sequence') || flags.has('--call-year')) {
+      const nextSequence = Number(flags.get('--call-sequence') || updated.callRef.sequence || 0);
+      const nextYear = Number(flags.get('--call-year') || updated.callRef.year || new Date().getUTCFullYear());
+      updated.callRef = buildPollCallRef({ year: nextYear, sequence: nextSequence });
+    }
+
     const next = upsertPoll(data, updated);
     await writePollsFile(next, flags.get('--file'));
     console.log(`polls:edit wrote ${pollId}`);
@@ -586,6 +607,24 @@ async function runPollsCommand(rest = []) {
   }
 
   throw new Error(`Unknown polls command: ${subcommand}`);
+}
+
+async function runCallCommand(rest = []) {
+  const [subcommand = ''] = rest;
+  if (!subcommand && process.stdout.isTTY && process.stdin.isTTY) {
+    const { runDashboard } = await import('./ui/dashboard.mjs');
+    await runDashboard(dashboardContext({
+      initialMode: 'calls',
+      version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+    }));
+    return;
+  }
+  const { runCallCommand: runCommand, printCallUsage } = await import('./lib/calls-cli.mjs');
+  if (!subcommand) {
+    printCallUsage();
+    return;
+  }
+  await runCommand(rest);
 }
 
 async function runCatalogCommand(rest = []) {
@@ -1597,6 +1636,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'view') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'polls') {
   await runPollsCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'call') {
+  await runCallCommand(topLevel.rest);
   process.exit(0);
 }
 

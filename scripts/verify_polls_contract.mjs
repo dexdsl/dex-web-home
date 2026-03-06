@@ -100,6 +100,17 @@ async function main() {
     ? data.polls.map((poll) => String(poll.id || '').trim()).filter(Boolean)
     : [];
 
+  for (const poll of Array.isArray(data.polls) ? data.polls : []) {
+    const callRef = poll && typeof poll.callRef === 'object' ? poll.callRef : null;
+    assert(!!callRef, `poll ${poll.id} missing callRef`);
+    assert(String(callRef?.group || '') === 'inDex', `poll ${poll.id} callRef.group must be inDex`);
+    assert(String(callRef?.lane || '') === 'in-dex-c', `poll ${poll.id} callRef.lane must be in-dex-c`);
+    assert(Number.isFinite(Number(callRef?.year || 0)), `poll ${poll.id} callRef.year must be numeric`);
+    assert(Number.isFinite(Number(callRef?.sequence || 0)) && Number(callRef?.sequence || 0) > 0, `poll ${poll.id} callRef.sequence must be > 0`);
+    assert(String(callRef?.cycleCode || '').startsWith('C'), `poll ${poll.id} callRef.cycleCode must start with C`);
+    assert(String(callRef?.cycleLabel || '').startsWith('IN DEX C'), `poll ${poll.id} callRef.cycleLabel must start with IN DEX C`);
+  }
+
   verifyGasRemoval();
   verifyGeneratedDetailPages(pollIds);
   verifyPublicPollRouteNotProtected();

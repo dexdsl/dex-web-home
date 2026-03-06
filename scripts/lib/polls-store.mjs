@@ -55,6 +55,29 @@ function ensureUnique(base, existingSet) {
   return `${base}-${index}`;
 }
 
+function resolvePollCallSequence(data = {}) {
+  let max = 0;
+  for (const poll of Array.isArray(data.polls) ? data.polls : []) {
+    const value = Number(poll?.callRef?.sequence || 0);
+    if (Number.isFinite(value) && value > max) max = value;
+  }
+  return max + 1;
+}
+
+function createDefaultPollCallRef(sequence, year = new Date().getUTCFullYear()) {
+  const safeSequence = Math.max(1, Math.trunc(Number(sequence) || 1));
+  const safeYear = Math.max(1900, Math.min(9999, Math.trunc(Number(year) || new Date().getUTCFullYear())));
+  const cycleCode = `C${safeYear}.${safeSequence}`;
+  return {
+    group: 'inDex',
+    lane: 'in-dex-c',
+    year: safeYear,
+    sequence: safeSequence,
+    cycleCode,
+    cycleLabel: `IN DEX ${cycleCode}`,
+  };
+}
+
 export function createPollDraft(existingData, input = {}) {
   const data = normalizePollsFile(existingData);
   const now = new Date();
@@ -67,6 +90,9 @@ export function createPollDraft(existingData, input = {}) {
 
   const baseSlug = slugify(input.slug || input.question || id);
   const slug = ensureUnique(baseSlug, existingSlugs);
+  const nextSequence = resolvePollCallSequence(data);
+  const suppliedCallRef = input.callRef && typeof input.callRef === 'object' ? input.callRef : null;
+  const callRef = suppliedCallRef || createDefaultPollCallRef(nextSequence, now.getUTCFullYear());
 
   return {
     id,
@@ -80,6 +106,7 @@ export function createPollDraft(existingData, input = {}) {
     createdAt: now.toISOString(),
     closeAt: close.toISOString(),
     manualClose: Boolean(input.manualClose),
+    callRef,
   };
 }
 
@@ -88,10 +115,15 @@ export function upsertPoll(existingData, nextPollInput) {
   const pollId = String(nextPollInput?.id || '').trim();
   if (!pollId) throw new Error('Poll id is required for upsert.');
 
+  const current = data.polls.find((poll) => poll.id === pollId) || null;
+  const callRef = nextPollInput?.callRef && typeof nextPollInput.callRef === 'object'
+    ? nextPollInput.callRef
+    : (current?.callRef || createDefaultPollCallRef(resolvePollCallSequence(data)));
+
   const normalizedCandidate = normalizePollsFile({
     version: data.version,
     updatedAt: data.updatedAt,
-    polls: [nextPollInput],
+    polls: [{ ...nextPollInput, callRef }],
   }).polls[0];
 
   const index = data.polls.findIndex((poll) => poll.id === pollId);

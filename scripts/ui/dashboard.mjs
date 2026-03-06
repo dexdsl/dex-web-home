@@ -12,6 +12,7 @@ import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
 import { computeWindow } from './rolodex.mjs';
 import { startViewer } from '../lib/viewer-server.mjs';
 import { PollsManager } from './polls-manager.mjs';
+import { CallsManager } from './calls-manager.mjs';
 import { StatusManager } from './status-manager.mjs';
 import { NewsletterManager } from './newsletter-manager.mjs';
 import { CatalogManager } from './catalog-manager.mjs';
@@ -39,6 +40,7 @@ const MENU_SECTIONS = [
       { id: 'home', label: 'Home', description: 'Manage featured home entries and live publish controls' },
       { id: 'notes', label: 'Notes', description: 'Manage Dex Notes markdown pages and editorial build flow' },
       { id: 'polls', label: 'Polls', description: 'Inspect in-repo polls catalog (Esc to return)' },
+      { id: 'calls', label: 'Calls', description: 'Manage canonical IN DEX calls registry and active state' },
       { id: 'newsletter', label: 'Newsletter', description: 'Manage newsletter drafts, segments, sends, and stats' },
     ],
   },
@@ -54,7 +56,7 @@ const MENU_SECTIONS = [
   },
 ];
 const MENU_ITEMS = MENU_SECTIONS.flatMap((section) => section.items);
-const MODE_ITEMS = new Set(['init', 'update', 'doctor', 'entry-audit', 'polls', 'catalog', 'home', 'notes', 'assets', 'status', 'newsletter']);
+const MODE_ITEMS = new Set(['init', 'update', 'doctor', 'entry-audit', 'polls', 'calls', 'catalog', 'home', 'notes', 'assets', 'status', 'newsletter']);
 const PALETTE_ITEMS = MENU_ITEMS.map((item) => item.id);
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
@@ -305,6 +307,12 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
               })
             : mode === 'polls'
               ? React.createElement(PollsManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
+              : mode === 'calls'
+              ? React.createElement(CallsManager, {
                 onExit: () => setMode('menu'),
                 width: Math.max(60, cols - 8),
                 height: Math.max(12, workspaceHeight - 2),

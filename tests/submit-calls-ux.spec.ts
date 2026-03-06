@@ -43,6 +43,33 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+async function stubCallsRegistry(page: Page): Promise<void> {
+  await page.route('**/data/calls.registry.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 'calls-registry-v1',
+        updatedAt: '2026-03-05T00:00:00.000Z',
+        sequenceGroup: 'inDex',
+        activeCallId: 'in-dex-a-2026-9',
+        calls: [
+          {
+            id: 'in-dex-a-2026-9',
+            status: 'active',
+            lane: 'in-dex-a',
+            year: 2026,
+            sequence: 9,
+            cycleCode: 'A2026.9',
+            cycleLabel: 'IN DEX A2026.9',
+            title: 'Test Active A lane',
+          },
+        ],
+      }),
+    });
+  });
+}
+
 async function completeLicenseStep(page: Page, signature = 'Call Submitter'): Promise<void> {
   const step = page.locator('[data-dx-submit-step="license"]');
   await expect(step).toBeVisible();
@@ -62,6 +89,7 @@ async function completeLicenseStep(page: Page, signature = 'Call Submitter'): Pr
 test('call deep link boots call flow and submits via quota_call + submit_call actions', async ({ page }) => {
   await stubHeaderRuntimes(page);
   await stubDexAuthRuntime(page);
+  await stubCallsRegistry(page);
 
   const seenActions: string[] = [];
   let submitParams: Record<string, string> | null = null;
@@ -103,7 +131,7 @@ test('call deep link boots call flow and submits via quota_call + submit_call ac
     });
   });
 
-  await page.goto('/entry/submit/?flow=call&lane=in-dex-a&subcall=b&cycle=IN%20DEX%20A2024.4&via=call', { waitUntil: 'domcontentloaded' });
+  await page.goto('/entry/submit/?flow=call&lane=in-dex-a&subcall=b&cycle=IN%20DEX%20A2026.9&via=call', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
   await expect(page.locator('#dex-submit')).toHaveAttribute('data-dx-submit-flow', 'call');
@@ -140,7 +168,7 @@ test('call deep link boots call flow and submits via quota_call + submit_call ac
   expect(submitParams.action).toBe('submit_call');
   expect(submitParams.callLane).toBe('in-dex-a');
   expect(submitParams.callSubcall).toBe('b');
-  expect(submitParams.callCycle).toBe('IN DEX A2024.4');
+  expect(submitParams.callCycle).toBe('IN DEX A2026.9');
   expect(submitParams.sourceType).toBe('call');
   expect(submitParams.submissionKind).toBe('call');
   expect(submitParams.licenseAccepted).toBe('yes');

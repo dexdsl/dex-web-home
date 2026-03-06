@@ -31,6 +31,7 @@ import { animate } from 'framer-motion/dom';
   const FLOW_SAMPLE = 'sample';
   const FLOW_CALL = 'call';
   const CALL_SCHEMA_URL = '/data/submit.call.schema.json';
+  const CALLS_REGISTRY_URL = '/data/calls.registry.json';
   const LANE_IDS = new Set(['in-dex-a', 'in-dex-b', 'in-dex-c', 'mini-dex']);
   const SUBCALL_IDS = new Set(['a', 'b', 'c']);
 
@@ -469,6 +470,68 @@ import { animate } from 'framer-motion/dom';
     return SUBCALL_IDS.has(subcall) ? subcall : '';
   }
 
+  function deriveLaneFromCycle(value) {
+    const cycle = text(value, '').toLowerCase();
+    if (!cycle) return '';
+    if (cycle.includes('mini-dex') || cycle.includes('minidex')) return 'mini-dex';
+    const match = cycle.match(/in dex\\s*([abc])/i) || cycle.match(/^([abc])\\d{4}\\./i);
+    if (match?.[1]) return normalizeLane(`in-dex-${String(match[1]).toLowerCase()}`);
+    return '';
+  }
+
+  function normalizeCallRegistryEntry(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const lane = normalizeLane(entry.lane) || deriveLaneFromCycle(entry.cycleLabel) || deriveLaneFromCycle(entry.cycleCode);
+    const status = text(entry.status, '').toLowerCase();
+    if (!lane || (status !== 'active' && status !== 'past' && status !== 'draft')) return null;
+    return {
+      id: text(entry.id),
+      lane,
+      status,
+      cycle: text(entry.cycleLabel || entry.cycleCode),
+      sequence: number(entry.sequence, 0),
+    };
+  }
+
+  function normalizeActiveCallsFromRegistry(payload) {
+    const list = Array.isArray(payload?.calls)
+      ? payload.calls.map((item) => normalizeCallRegistryEntry(item)).filter(Boolean)
+      : [];
+    const active = list.filter((item) => item.status === 'active');
+    const activeId = text(payload?.activeCallId, '');
+    if (activeId) {
+      const picked = active.find((item) => item.id === activeId);
+      if (picked) return [picked];
+    }
+    if (active.length <= 1) return active;
+    return [...active].sort((left, right) => right.sequence - left.sequence).slice(0, 1);
+  }
+
+  function buildRouteFlowHref({ flow, lane = '', subcall = '', cycle = '', via = '' }) {
+    const params = new URLSearchParams();
+    params.set('flow', normalizeFlow(flow));
+    const safeLane = normalizeLane(lane);
+    const safeSubcall = normalizeSubcall(subcall);
+    if (safeLane) params.set('lane', safeLane);
+    if (safeSubcall && safeLane === 'in-dex-a') params.set('subcall', safeSubcall);
+    if (text(cycle)) params.set('cycle', text(cycle));
+    if (text(via)) params.set('via', text(via));
+    return `/entry/submit/?${params.toString()}`;
+  }
+
+  function replaceRouteFlowQuery(input = {}) {
+    try {
+      const next = buildRouteFlowHref({
+        flow: input.flow,
+        lane: input.lane,
+        subcall: input.subcall,
+        cycle: input.cycle,
+        via: input.via,
+      });
+      window.history.replaceState({}, '', next);
+    } catch {}
+  }
+
   function parseRouteFlowState() {
     try {
       const url = new URL(String(window.location.href || ''), window.location.origin);
@@ -540,11 +603,25 @@ import { animate } from 'framer-motion/dom';
       profileDefaultsAutoApplied: false,
       flow: startingFlow,
       pipelineChosen: !!routeFlow.explicitFlow,
+      routeFlowExplicit: !!routeFlow.explicitFlow,
+      routeFlowRequested: {
+        flow: routeFlow.flow,
+        lane: routeFlow.lane,
+        subcall: routeFlow.subcall,
+        cycle: routeFlow.cycle,
+      },
       flowDrafts: {
         [FLOW_SAMPLE]: sampleDraft,
         [FLOW_CALL]: callDraft,
       },
       callSchema: DEFAULT_CALL_SCHEMA,
+      callsRegistryLoaded: false,
+      hasActiveCall: false,
+      activeCallCount: 0,
+      activeCallLanes: [],
+      activeCallCycleByLane: {},
+      callLaneLocked: false,
+      hasShownInactiveRouteToast: false,
       via: routeFlow.via,
       meta: cloneMeta(activeDraft.meta),
       licenseType: activeDraft.licenseType,
@@ -636,8 +713,118 @@ import { animate } from 'framer-motion/dom';
         ...payload,
         lanes: payload.lanes,
       };
+      if (state.__callsRegistryPayload) {
+        applyCallsRegistryContract(state.__callsRegistryPayload, { announce: false, updateUrl: false });
+      }
       if (state.flow === FLOW_CALL && state.step === 1) render();
     } catch {}
+  }
+
+  function getAvailableCallLanes() {
+    const lanes = Array.isArray(state?.callSchema?.lanes) ? state.callSchema.lanes : DEFAULT_CALL_SCHEMA.lanes;
+    if (!state?.hasActiveCall) return [];
+    const activeSet = new Set(Array.isArray(state.activeCallLanes) ? state.activeCallLanes.map((lane) => normalizeLane(lane)).filter(Boolean) : []);
+    return lanes.filter((lane) => activeSet.has(normalizeLane(lane?.id)));
+  }
+
+  function applyCallsRegistryContract(payload, options = {}) {
+    if (!state) return;
+    const opts = options && typeof options === 'object' ? options : {};
+    const activeCalls = normalizeActiveCallsFromRegistry(payload);
+    const cycleByLane = {};
+    const laneOrder = [];
+    activeCalls.forEach((entry) => {
+      const lane = normalizeLane(entry.lane);
+      if (!lane) return;
+      if (!laneOrder.includes(lane)) laneOrder.push(lane);
+      cycleByLane[lane] = text(entry.cycle);
+    });
+
+    state.__callsRegistryPayload = payload;
+    state.callsRegistryLoaded = true;
+    state.activeCallCount = activeCalls.length;
+    state.hasActiveCall = activeCalls.length > 0;
+    state.activeCallLanes = laneOrder;
+    state.activeCallCycleByLane = cycleByLane;
+    state.callLaneLocked = laneOrder.length === 1;
+
+    if (!state.hasActiveCall) {
+      state.meta.callLane = '';
+      state.meta.callSubcall = '';
+      state.meta.callCycle = '';
+      state.callLaneLocked = false;
+
+      if (!state.routeFlowExplicit) {
+        state.pipelineChosen = true;
+        if (state.flow !== FLOW_SAMPLE) applyFlowDraft(FLOW_SAMPLE);
+      } else if (state.flow === FLOW_CALL) {
+        if (!state.hasShownInactiveRouteToast && opts.announce !== false) {
+          showToast('No active IN DEX call right now. Starting sample pipeline.', true);
+          state.hasShownInactiveRouteToast = true;
+        }
+        state.pipelineChosen = true;
+        applyFlowDraft(FLOW_SAMPLE);
+        if (opts.updateUrl !== false) {
+          replaceRouteFlowQuery({
+            flow: FLOW_SAMPLE,
+            via: text(state.via),
+          });
+        }
+      }
+      return;
+    }
+
+    const activeSet = new Set(laneOrder);
+    const fallbackLane = laneOrder[0] || '';
+    if (state.flow === FLOW_CALL) {
+      let nextLane = normalizeLane(state.meta.callLane);
+      if (state.callLaneLocked && fallbackLane) {
+        nextLane = fallbackLane;
+      } else if (!nextLane || !activeSet.has(nextLane)) {
+        nextLane = fallbackLane;
+      }
+
+      const laneChanged = normalizeLane(state.meta.callLane) !== nextLane;
+      state.meta.callLane = nextLane;
+      if (nextLane !== 'in-dex-a') state.meta.callSubcall = '';
+      if (cycleByLane[nextLane]) {
+        state.meta.callCycle = cycleByLane[nextLane];
+      }
+
+      if (laneChanged && state.routeFlowExplicit && opts.announce !== false && !state.hasShownInactiveRouteToast) {
+        showToast('Requested call lane is not active. Switched to the current active lane.', true);
+        state.hasShownInactiveRouteToast = true;
+      }
+
+      if (opts.updateUrl !== false && nextLane) {
+        replaceRouteFlowQuery({
+          flow: FLOW_CALL,
+          lane: nextLane,
+          subcall: nextLane === 'in-dex-a' ? normalizeSubcall(state.meta.callSubcall) : '',
+          cycle: text(state.meta.callCycle),
+          via: text(state.via, 'call'),
+        });
+      }
+    }
+  }
+
+  async function loadCallsRegistry() {
+    try {
+      const response = await fetch(CALLS_REGISTRY_URL, { method: 'GET' });
+      if (!response.ok) {
+        state.callsRegistryLoaded = true;
+        state.hasActiveCall = false;
+        state.activeCallCount = 0;
+        return;
+      }
+      const payload = await response.json();
+      applyCallsRegistryContract(payload, { announce: true, updateUrl: true });
+      if (state.flow === FLOW_CALL && state.step === 1) render();
+    } catch {
+      state.callsRegistryLoaded = true;
+      state.hasActiveCall = false;
+      state.activeCallCount = 0;
+    }
   }
 
   function flowDisplayLabel(flowKey) {
@@ -1546,9 +1733,17 @@ import { animate } from 'framer-motion/dom';
   }
 
   function validateCallMeta() {
+    if (!state.hasActiveCall) {
+      showToast('No active call lane is currently open.', true);
+      return false;
+    }
     const lane = normalizeLane(state.meta.callLane);
     if (!lane) {
       showToast('Choose a call lane.', true);
+      return false;
+    }
+    if (!Array.isArray(state.activeCallLanes) || !state.activeCallLanes.includes(lane)) {
+      showToast('Selected call lane is not currently active.', true);
       return false;
     }
     if (!text(state.meta.title)) {
@@ -1663,6 +1858,16 @@ import { animate } from 'framer-motion/dom';
 
   function choosePipeline(flowKey) {
     if (!state) return;
+    if (normalizeFlow(flowKey) === FLOW_CALL && !state.hasActiveCall) {
+      showToast('No active IN DEX call right now. Use Sample Submission.', true);
+      state.pipelineChosen = true;
+      setActiveFlow(FLOW_SAMPLE, {
+        force: true,
+        resetStep: true,
+        refreshQuota: true,
+      });
+      return;
+    }
     state.pipelineChosen = true;
     setActiveFlow(flowKey, {
       force: true,
@@ -1701,12 +1906,23 @@ import { animate } from 'framer-motion/dom';
       'IN DEX Call Submission',
     );
     call.type = 'button';
+    if (!state.hasActiveCall) {
+      call.disabled = true;
+      call.classList.add('is-disabled');
+    }
     call.addEventListener('click', () => {
       choosePipeline(FLOW_CALL);
     });
 
     actions.append(sample, call);
     section.appendChild(actions);
+    if (!state.hasActiveCall) {
+      section.appendChild(create(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'No active IN DEX call is open right now. Sample Submission remains available.',
+      ));
+    }
     return section;
   }
 
@@ -1919,7 +2135,7 @@ import { animate } from 'framer-motion/dom';
 
     const laneField = wrapField('Call lane', true);
     const laneGroup = create('div', 'dx-submit-badge-group');
-    const lanes = Array.isArray(state?.callSchema?.lanes) ? state.callSchema.lanes : DEFAULT_CALL_SCHEMA.lanes;
+    const lanes = getAvailableCallLanes();
     lanes.forEach((lane) => {
       const laneId = normalizeLane(lane?.id);
       if (!laneId) return;
@@ -1928,12 +2144,17 @@ import { animate } from 'framer-motion/dom';
           text(lane?.label, laneId),
           laneId === normalizeLane(state.meta.callLane),
           () => updateCallMetaValue('callLane', laneId),
-          false,
+          !!state.callLaneLocked,
           { focusKey: 'callLane' },
         ),
       );
     });
     laneField.appendChild(laneGroup);
+    if (!lanes.length) {
+      laneField.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', 'No active call lanes are available right now.'));
+    } else if (state.callLaneLocked && lanes.length === 1) {
+      laneField.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', `Locked to active lane: ${text(lanes[0]?.label, 'IN DEX')}.`));
+    }
     grid.appendChild(laneField);
 
     const titleField = wrapField('Proposal title', true);
@@ -1968,6 +2189,11 @@ import { animate } from 'framer-motion/dom';
     cycleInput.maxLength = 120;
     cycleInput.placeholder = 'Ex: IN DEX A2024.4';
     cycleInput.value = text(state.meta.callCycle);
+    if (state.callLaneLocked && !!text(state.meta.callCycle)) {
+      cycleInput.readOnly = true;
+      cycleInput.disabled = true;
+      cycleInput.classList.add('is-disabled');
+    }
     cycleInput.addEventListener('input', (event) => {
       state.meta.callCycle = event.target.value;
     });
@@ -2830,6 +3056,8 @@ import { animate } from 'framer-motion/dom';
     shell.setAttribute('data-dx-submit-pipeline-choice', pipelineChosen ? 'selected' : 'pending');
     shell.setAttribute('data-dx-submit-flow', normalizeFlow(state.flow));
     shell.setAttribute('data-dx-submit-lane', normalizeLane(state.meta?.callLane || ''));
+    shell.setAttribute('data-dx-submit-has-active-call', state.hasActiveCall ? 'true' : 'false');
+    shell.setAttribute('data-dx-submit-active-call-count', String(Math.max(0, Number(state.activeCallCount || 0))));
     if (normalizeSubcall(state.meta?.callSubcall || '')) {
       shell.setAttribute('data-dx-submit-subcall', normalizeSubcall(state.meta.callSubcall));
     }
@@ -3119,6 +3347,8 @@ import { animate } from 'framer-motion/dom';
     liveRoot.setAttribute('data-dx-submit-pipeline-choice', state.pipelineChosen ? 'selected' : 'pending');
     liveRoot.setAttribute('data-dx-submit-flow', flow);
     liveRoot.setAttribute('data-dx-submit-lane', lane);
+    liveRoot.setAttribute('data-dx-submit-has-active-call', state.hasActiveCall ? 'true' : 'false');
+    liveRoot.setAttribute('data-dx-submit-active-call-count', String(Math.max(0, Number(state.activeCallCount || 0))));
     if (subcall) liveRoot.setAttribute('data-dx-submit-subcall', subcall);
     else liveRoot.removeAttribute('data-dx-submit-subcall');
   }
@@ -3231,7 +3461,10 @@ import { animate } from 'framer-motion/dom';
       state.auth0Sub = text(window.auth0Sub, '');
       setQuotaSource('none');
       render();
-      loadCallSchema().catch(() => {});
+      const schemaPromise = loadCallSchema().catch(() => {});
+      const callsRegistryPromise = loadCallsRegistry().catch(() => {});
+      await Promise.all([schemaPromise, callsRegistryPromise]);
+      render();
       hydrateAuthAndQuota({ forceLive: false }).catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
       root.setAttribute('data-dx-submit-mounted', 'true');

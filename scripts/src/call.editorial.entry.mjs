@@ -10,7 +10,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
   const APP_SELECTOR = '[data-call-editorial-app]';
   const DATA_URL = '/data/call.data.json';
   const DEFAULT_NEWSLETTER_API = 'https://dex-api.spring-fog-8edd.workers.dev';
-  const SECTION_STEPS = [
+  const BASE_SECTION_STEPS = [
     ['call-hero', 'PROGRAM BRIEF'],
     ['call-status', 'CURRENT STATUS'],
     ['call-lanes', 'LANE MODULES'],
@@ -196,7 +196,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
   function deriveLaneFromCycle(cycleRaw) {
     const normalized = text(cycleRaw, '').toLowerCase();
-    if (normalized.includes('mini-dex')) return 'mini-dex';
+    if (normalized.includes('mini-dex') || normalized.includes('minidex')) return 'mini-dex';
     const match = normalized.match(/in dex\s*([abc])/i);
     if (match?.[1]) return normalizeLaneId(`in-dex-${match[1].toLowerCase()}`);
     return '';
@@ -262,7 +262,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return 'DEADLINE PASSED';
   }
 
-  function wireProgressNav(root) {
+  function wireProgressNav(root, sectionSteps) {
     const nav = root.querySelector('[data-call-progress-nav]');
     if (!nav) return;
 
@@ -297,7 +297,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       });
     };
 
-    const first = SECTION_STEPS[0]?.[0];
+    const first = sectionSteps[0]?.[0];
     if (first) activate(first);
 
     if (!('IntersectionObserver' in window)) return;
@@ -318,13 +318,109 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       },
     );
 
-    SECTION_STEPS.forEach(([id]) => {
+    sectionSteps.forEach(([id]) => {
       const node = document.getElementById(id);
       if (node) observer.observe(node);
     });
   }
 
-  function buildProgress(model) {
+  function buildSectionSteps(model) {
+    const mini = model?.mini_call || {};
+    const steps = [...BASE_SECTION_STEPS];
+    const miniIndex = steps.findIndex((step) => step[0] === 'call-mini');
+    if (miniIndex >= 0 && !text(mini.cycle_raw)) {
+      steps.splice(miniIndex, 1);
+    }
+    return steps;
+  }
+
+  function mapRegistryCallToRuntime(call, defaultStatusLabel = 'ACTIVE CALL:') {
+    if (!call || typeof call !== 'object') return {};
+    return {
+      id: text(call.id),
+      lane: normalizeLaneId(text(call.lane)),
+      status: text(call.status),
+      status_label_raw: text(call.status_label_raw || defaultStatusLabel),
+      cycle_raw: text(call.cycle_raw || call.cycleLabel || call.cycleCode),
+      title_raw: text(call.title_raw || call.title),
+      deadline_label_raw: text(call.deadline_label_raw || call.deadlineLabel),
+      notification_label_raw: text(call.notification_label_raw || call.notificationLabel),
+      deadline_iso: text(call.deadline_iso || call.deadlineIso),
+      structure_raw: text(call.structure_raw || call.structure),
+      summary_raw: text(call.summary_raw || call.summary),
+      submit_cta: {
+        label_raw: text(call?.submit_cta?.label_raw || call?.submitCta?.label || 'SUBMIT'),
+        href: text(call?.submit_cta?.href || call?.submitCta?.href || '#'),
+      },
+      image_src: text(call.image_src || call.imageSrc),
+      related_heading_raw: text(call.related_heading_raw || call.relatedHeading || 'RELATED LINKS'),
+      subcalls: Array.isArray(call.subcalls)
+        ? call.subcalls.map((subcall) => ({
+          heading_raw: text(subcall.heading_raw || subcall.heading),
+          body_raw: Array.isArray(subcall.body_raw || subcall.body)
+            ? (subcall.body_raw || subcall.body).map((line) => text(line)).filter(Boolean)
+            : [],
+        })).filter((subcall) => subcall.heading_raw)
+        : [],
+      related_links: Array.isArray(call.related_links || call.relatedLinks)
+        ? (call.related_links || call.relatedLinks).map((link) => ({
+          label_raw: text(link.label_raw || link.label),
+          href: text(link.href),
+        })).filter((link) => link.label_raw && link.href)
+        : [],
+      related_note_raw: text(call.related_note_raw || call.relatedNote),
+      subcalls_image_src: text(call.subcalls_image_src || call.subcallsImageSrc),
+      body_raw: Array.isArray(call.body_raw || call.body)
+        ? (call.body_raw || call.body).map((line) => text(line)).filter(Boolean)
+        : [],
+      past_prompt_raw: text(call.past_prompt_raw || call.pastPrompt),
+      past_outcome_raw: text(call.past_outcome_raw || call.pastOutcome),
+      past_date_range_raw: text(call.past_date_range_raw || call.pastDateRange),
+      is_active: text(call.status || '').toLowerCase() === 'active',
+    };
+  }
+
+  function resolveEditorialModel(rawModel) {
+    const model = rawModel && typeof rawModel === 'object' ? rawModel : {};
+
+    if (Array.isArray(model.calls) && model.calls.length > 0) {
+      const activeId = text(model?.registry?.activeCallId || model?.activeCallId || '');
+      const fromRegistry = model.calls.map((call) => mapRegistryCallToRuntime(call, model?.defaults?.status_label_raw));
+      const active = fromRegistry.find((call) => call.id === activeId && call.status === 'active')
+        || fromRegistry.find((call) => call.status === 'active')
+        || fromRegistry[0]
+        || {};
+      const mini = fromRegistry.find((call) => call.lane === 'mini-dex' && call.id !== active.id) || {};
+      const pastEntries = fromRegistry
+        .filter((call) => call.id && call.id !== active.id && call.status !== 'draft')
+        .sort((left, right) => {
+          const leftSequence = Number.parseInt(text(left.cycle_raw).split('.').pop() || '0', 10);
+          const rightSequence = Number.parseInt(text(right.cycle_raw).split('.').pop() || '0', 10);
+          if (rightSequence !== leftSequence) return rightSequence - leftSequence;
+          return text(right.cycle_raw).localeCompare(text(left.cycle_raw));
+        })
+        .map((call) => ({
+          cycle_raw: text(call.cycle_raw),
+          prompt_raw: text(call.past_prompt_raw || call.summary_raw || call.title_raw),
+          outcome_raw: text(call.past_outcome_raw || call.title_raw),
+          date_raw: text(call.past_date_range_raw || call.date_range_raw || call.deadline_label_raw || ''),
+        }));
+
+      return {
+        ...model,
+        active_call: active,
+        mini_call: mini,
+        past_calls: {
+          ...(model.past_calls || {}),
+          entries: pastEntries.length > 0 ? pastEntries : (Array.isArray(model?.past_calls?.entries) ? model.past_calls.entries : []),
+        },
+      };
+    }
+
+    return model;
+  }
+
+  function buildProgress(model, sectionSteps) {
     const active = model?.active_call || {};
     const mini = model?.mini_call || {};
     const requirements = model?.requirements || {};
@@ -340,7 +436,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     progress.appendChild(title);
 
     const list = create('ul', 'dx-call-progress-list');
-    SECTION_STEPS.forEach(([id, label]) => {
+    sectionSteps.forEach(([id, label]) => {
       const item = create('li', 'dx-call-progress-item');
       const link = create('a', 'dx-call-progress-link', label);
       link.href = `#${id}`;
@@ -370,12 +466,14 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
         via: 'call-sidebar',
       });
       actions.appendChild(createLinkButton(active.submit_cta?.label_raw || 'SUBMIT', activeSubmitHref, 'primary', 'sm'));
-      const miniSubmitHref = buildSubmitCallHref({
-        lane: deriveLaneFromCycle(mini.cycle_raw) || 'mini-dex',
-        cycle: text(mini.cycle_raw),
-        via: 'call-sidebar-mini',
-      });
-      actions.appendChild(createLinkButton(mini.submit_cta?.label_raw || 'SUBMIT MINI-DEX', miniSubmitHref, 'secondary', 'sm'));
+      if (mini?.is_active && text(mini.cycle_raw)) {
+        const miniSubmitHref = buildSubmitCallHref({
+          lane: deriveLaneFromCycle(mini.cycle_raw) || 'mini-dex',
+          cycle: text(mini.cycle_raw),
+          via: 'call-sidebar-mini',
+        });
+        actions.appendChild(createLinkButton(mini.submit_cta?.label_raw || 'SUBMIT MINI-DEX', miniSubmitHref, 'secondary', 'sm'));
+      }
       if (requirements.contact_link?.href) {
         actions.appendChild(createLinkButton(requirements.contact_link.label_raw, requirements.contact_link.href, 'secondary', 'sm'));
       }
@@ -487,24 +585,31 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       }
     }
 
-    const subcallList = create('div', 'dx-call-subcall-list');
-    (active.subcalls || []).forEach((subcall) => {
-      const card = create('article', 'dx-call-subcall-card');
-      card.appendChild(create('h3', 'dx-call-subcall-title', text(subcall.heading_raw || '')));
-      (subcall.body_raw || []).forEach((line) => appendOptionalText(card, line, 'dx-call-copy'));
-      const subcallId = deriveSubcallFromHeading(subcall.heading_raw);
-      if (subcallId && activeLane === 'in-dex-a') {
-        const subcallHref = buildSubmitCallHref({
-          lane: activeLane,
-          subcall: subcallId,
-          cycle: text(active.cycle_raw),
-          via: 'call-subcall',
-        });
-        card.appendChild(createLinkButton(`SUBMIT ${subcallId.toUpperCase()}`, subcallHref, 'secondary', 'sm'));
-      }
-      subcallList.appendChild(card);
-    });
-    content.appendChild(subcallList);
+    const subcalls = Array.isArray(active.subcalls) ? active.subcalls : [];
+    if (subcalls.length > 0) {
+      const subcallList = create('div', 'dx-call-subcall-list');
+      subcalls.forEach((subcall) => {
+        const card = create('article', 'dx-call-subcall-card');
+        card.appendChild(create('h3', 'dx-call-subcall-title', text(subcall.heading_raw || '')));
+        (subcall.body_raw || []).forEach((line) => appendOptionalText(card, line, 'dx-call-copy'));
+        const subcallId = deriveSubcallFromHeading(subcall.heading_raw);
+        if (subcallId && activeLane === 'in-dex-a') {
+          const subcallHref = buildSubmitCallHref({
+            lane: activeLane,
+            subcall: subcallId,
+            cycle: text(active.cycle_raw),
+            via: 'call-subcall',
+          });
+          card.appendChild(createLinkButton(`SUBMIT ${subcallId.toUpperCase()}`, subcallHref, 'secondary', 'sm'));
+        }
+        subcallList.appendChild(card);
+      });
+      content.appendChild(subcallList);
+    } else if (Array.isArray(active.body_raw) && active.body_raw.length > 0) {
+      const prose = create('div', 'dx-call-subcall-list');
+      active.body_raw.forEach((line) => appendOptionalText(prose, line, 'dx-call-copy'));
+      content.appendChild(prose);
+    }
 
     layout.appendChild(content);
 
@@ -696,23 +801,27 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
     clearNode(root);
 
+    const resolvedModel = resolveEditorialModel(model);
+    const sectionSteps = buildSectionSteps(resolvedModel);
     const shell = create('div', 'dx-call-shell');
     const column = create('div', 'dx-call-column');
 
-    column.appendChild(buildHero(model));
-    column.appendChild(buildStatus(model));
-    column.appendChild(buildLanes(model));
-    column.appendChild(buildActive(model));
-    column.appendChild(buildMini(model));
-    column.appendChild(buildRequirements(model));
-    column.appendChild(buildPast(model));
-    column.appendChild(buildNewsletter(model));
+    column.appendChild(buildHero(resolvedModel));
+    column.appendChild(buildStatus(resolvedModel));
+    column.appendChild(buildLanes(resolvedModel));
+    column.appendChild(buildActive(resolvedModel));
+    if (text(resolvedModel?.mini_call?.cycle_raw)) {
+      column.appendChild(buildMini(resolvedModel));
+    }
+    column.appendChild(buildRequirements(resolvedModel));
+    column.appendChild(buildPast(resolvedModel));
+    column.appendChild(buildNewsletter(resolvedModel));
 
-    shell.appendChild(buildProgress(model));
+    shell.appendChild(buildProgress(resolvedModel, sectionSteps));
     shell.appendChild(column);
     root.appendChild(shell);
 
-    wireProgressNav(root);
+    wireProgressNav(root, sectionSteps);
     revealStagger(root, '.dx-call-reveal', {
       key: 'call-editorial-reveal',
       y: 14,

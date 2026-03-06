@@ -70,6 +70,14 @@ const SYNC_MAP = [
     targets: ['data/call.data.json', 'docs/data/call.data.json'],
   },
   {
+    source: 'data/calls.registry.json',
+    targets: ['public/data/calls.registry.json', 'docs/data/calls.registry.json'],
+  },
+  {
+    source: 'public/data/call.editorial.copy.json',
+    targets: ['data/call.editorial.copy.json', 'docs/data/call.editorial.copy.json'],
+  },
+  {
     source: 'public/data/about.data.json',
     targets: ['data/about.data.json', 'docs/data/about.data.json'],
   },

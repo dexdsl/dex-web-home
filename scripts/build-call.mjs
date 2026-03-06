@@ -36,6 +36,7 @@ function runNodeScript(relativePath) {
 }
 
 async function main() {
+  runNodeScript('scripts/build-call-data-from-registry.mjs');
   await ensureDir(publicOut);
 
   await build({
