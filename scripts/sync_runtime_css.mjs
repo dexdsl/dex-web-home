@@ -78,6 +78,10 @@ const SYNC_MAP = [
     targets: ['data/profile-taxonomy.json', 'docs/data/profile-taxonomy.json'],
   },
   {
+    source: 'public/data/submit.call.schema.json',
+    targets: ['data/submit.call.schema.json', 'docs/data/submit.call.schema.json'],
+  },
+  {
     source: 'public/data/hdr.media-manifest.json',
     targets: ['data/hdr.media-manifest.json', 'docs/data/hdr.media-manifest.json'],
   },

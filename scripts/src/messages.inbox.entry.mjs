@@ -410,6 +410,11 @@
     return 'system';
   }
 
+  function normalizeSubmissionKind(value) {
+    const kind = String(value || '').trim().toLowerCase();
+    return kind === 'call' ? 'call' : 'sample';
+  }
+
   function normalizeCategory(value) {
     const category = String(value || '').trim();
     return category || 'general';
@@ -621,11 +626,17 @@
         || normalizedRow?.submission_title,
         '',
       );
+      const submissionKind = normalizeSubmissionKind(
+        normalizedRow?.submissionKind
+        || normalizedRow?.submission_kind
+        || normalizedRow?.sourceType
+        || normalizedRow?.source_type,
+      );
       const sourceLink = toSafeText(normalizedRow?.sourceLink || normalizedRow?.source_link || normalizedRow?.link, '');
       return {
         id,
         sourceType: 'submission',
-        category: 'submissions',
+        category: submissionKind === 'call' ? 'calls' : 'submissions',
         severity: severityFromSubmissionStatus(status),
         title: composeSubmissionCardTitle(submissionTitle, lookup, `Submission ${index + 1}`),
         body: toSafeText(normalizedRow?.latestPublicNote || normalizedRow?.latest_public_note || normalizedRow?.notes || normalizedRow?.note, ''),
@@ -639,6 +650,7 @@
           license: normalizedRow?.license,
           collectionType: normalizedRow?.collectionType || normalizedRow?.collection_type,
           lookup,
+          submissionKind,
           submissionTitle,
           sourceLink,
           submissionLookupNumber: sanitizeLookupValue(normalizedRow?.submissionLookupNumber || normalizedRow?.submission_lookup_number),
@@ -689,6 +701,12 @@
         merged.title || merged.submissionTitle || merged.submission_title,
         '',
       );
+      const submissionKind = normalizeSubmissionKind(
+        merged.submissionKind
+        || merged.submission_kind
+        || merged.sourceType
+        || merged.source_type,
+      );
       const title = composeSubmissionCardTitle(submissionTitle, lookup, `Submission ${index + 1}`);
       const sourceRow = merged.sourceRow || merged.source_row || merged.row || '';
       const readAt = toSafeText(merged.acknowledgedAt || merged.acknowledged_at || state.readAt, '');
@@ -697,7 +715,7 @@
       return {
         id,
         sourceType: 'submission',
-        category: 'submissions',
+        category: submissionKind === 'call' ? 'calls' : 'submissions',
         severity: severityFromSubmissionStatus(status),
         title,
         body: toSafeText(merged.latestPublicNote || merged.latest_public_note || merged.notes || merged.note, ''),
@@ -711,6 +729,7 @@
           license: toSafeText(merged.license, ''),
           collectionType: toSafeText(merged.collectionType || merged.collection_type, ''),
           lookup,
+          submissionKind,
           submissionTitle,
           sourceLink,
           submissionLookupNumber: sanitizeLookupValue(merged.submissionLookupNumber || merged.submission_lookup_number),
@@ -1179,6 +1198,10 @@
             : record.sourceType === 'pressroom'
               ? 'Pressroom'
               : 'System';
+          const submissionKind = record.sourceType === 'submission'
+            ? normalizeSubmissionKind(record.metadata?.submissionKind)
+            : '';
+          const submissionKindLabel = submissionKind === 'call' ? 'Call' : submissionKind === 'sample' ? 'Sample' : '';
           const readFlag = record.readAt ? 'true' : 'false';
           const archivedFlag = record.archivedAt ? 'true' : 'false';
           const markAction = record.readAt ? 'unread' : 'read';
@@ -1202,7 +1225,7 @@
             <article class="dx-msg-item" data-dx-msg-item data-source-type="${escapeHtml(record.sourceType)}" data-record-id="${escapeHtml(record.id)}" data-dx-msg-read="${readFlag}" data-dx-msg-archived="${archivedFlag}">
               <div class="dx-msg-row">
                 <div>
-                  <p class="dx-msg-kicker">${escapeHtml(sourceLabel)} · ${escapeHtml(record.category)}</p>
+                  <p class="dx-msg-kicker">${escapeHtml(sourceLabel)}${submissionKindLabel ? ` · ${escapeHtml(submissionKindLabel)}` : ''} · ${escapeHtml(record.category)}</p>
                   <h3 class="dx-msg-heading">${escapeHtml(record.title)}</h3>
                 </div>
                 <p class="dx-msg-time">${escapeHtml(formatDateTime(record.createdAt))}</p>

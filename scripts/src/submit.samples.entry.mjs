@@ -27,6 +27,117 @@ import { animate } from 'framer-motion/dom';
   const DEFAULT_WEBAPP_URL =
     'https://script.google.com/macros/s/AKfycbyh5TPML3_y5-j1QoOKfju_MayO1_0JErwvVkH3Eba195q_EmWGCEu3CdFFeohWes3Qzw/exec';
   const DEFAULT_WEEKLY_LIMIT = 4;
+  const DEFAULT_FLOW = 'sample';
+  const FLOW_SAMPLE = 'sample';
+  const FLOW_CALL = 'call';
+  const CALL_SCHEMA_URL = '/data/submit.call.schema.json';
+  const LANE_IDS = new Set(['in-dex-a', 'in-dex-b', 'in-dex-c', 'mini-dex']);
+  const SUBCALL_IDS = new Set(['a', 'b', 'c']);
+
+  const DEFAULT_CALL_SCHEMA = {
+    version: 1,
+    lanes: [
+      {
+        id: 'in-dex-a',
+        label: 'IN DEX A',
+        helper: 'Commissioned performance/proposal calls.',
+        fields: [
+          {
+            key: 'callSubcall',
+            label: 'Subcall',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'a', label: 'A.a Talks + discussions' },
+              { value: 'b', label: 'A.b Acts' },
+              { value: 'c', label: 'A.c Vendors' },
+            ],
+          },
+          {
+            key: 'proposalFormat',
+            label: 'Proposal format',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'talk', label: 'Talk / panel' },
+              { value: 'act', label: 'Performance / act' },
+              { value: 'vendor', label: 'Vendor / installation' },
+            ],
+          },
+          { key: 'runtimeMinutes', label: 'Runtime minutes', type: 'number', required: false, min: 1, max: 180 },
+          { key: 'availabilityWindow', label: 'Availability window', type: 'text', required: false, maxLength: 120 },
+          { key: 'portfolioUrl', label: 'Portfolio URL', type: 'url', required: false, maxLength: 600 },
+        ],
+      },
+      {
+        id: 'in-dex-b',
+        label: 'IN DEX B',
+        helper: 'Culling/composite/edit-oriented contribution calls.',
+        fields: [
+          {
+            key: 'proposalFormat',
+            label: 'Proposal format',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'edit', label: 'Edit/composite proposal' },
+              { value: 'cull', label: 'Cull + sequence proposal' },
+            ],
+          },
+          { key: 'runtimeMinutes', label: 'Runtime minutes', type: 'number', required: true, min: 1, max: 240 },
+          { key: 'availabilityWindow', label: 'Availability window', type: 'text', required: false, maxLength: 120 },
+          { key: 'portfolioUrl', label: 'Portfolio URL', type: 'url', required: false, maxLength: 600 },
+        ],
+      },
+      {
+        id: 'in-dex-c',
+        label: 'IN DEX C',
+        helper: 'Community feedback, polls, and forum collaboration.',
+        fields: [
+          {
+            key: 'proposalFormat',
+            label: 'Contribution mode',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'poll', label: 'Poll contribution' },
+              { value: 'forum', label: 'Forum moderation / response' },
+              { value: 'feedback', label: 'Feedback thread' },
+            ],
+          },
+          { key: 'availabilityWindow', label: 'Availability window', type: 'text', required: true, maxLength: 120 },
+          { key: 'portfolioUrl', label: 'Reference URL', type: 'url', required: false, maxLength: 600 },
+        ],
+      },
+      {
+        id: 'mini-dex',
+        label: 'MINI-DEX',
+        helper: 'Short volunteer call entries with quick turnaround.',
+        fields: [
+          {
+            key: 'proposalFormat',
+            label: 'Contribution format',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'field-recording', label: 'Field recording' },
+              { value: 'voice-note', label: 'Voice note / spoken' },
+              { value: 'other', label: 'Other material' },
+            ],
+          },
+          { key: 'runtimeMinutes', label: 'Runtime minutes', type: 'number', required: false, min: 1, max: 30 },
+          { key: 'portfolioUrl', label: 'Reference URL', type: 'url', required: false, maxLength: 600 },
+        ],
+      },
+    ],
+    limits: {
+      proposalFormat: 80,
+      runtimeMinutes: 240,
+      availabilityWindow: 120,
+      portfolioUrl: 600,
+      notes: 2000,
+    },
+  };
 
   const STEPS = [
     { key: 'intro', title: 'Program Brief', short: 'Brief' },
@@ -200,6 +311,34 @@ import { animate } from 'framer-motion/dom';
       body:
         'List credited performers exactly as they should appear publicly. Submission lookup performer token still comes from your account surname.',
     },
+    callLane: {
+      title: 'Call lane guidance',
+      body: 'Choose the lane matching this proposal. Lane selection drives queue routing and reviewer context.',
+    },
+    callSubcall: {
+      title: 'Subcall guidance',
+      body: 'IN DEX A requires subcall selection (A.a, A.b, or A.c) so the proposal reaches the correct panel.',
+    },
+    proposalFormat: {
+      title: 'Proposal format guidance',
+      body: 'Specify the proposal format clearly to reduce follow-up cycles and speed assignment.',
+    },
+    runtimeMinutes: {
+      title: 'Runtime guidance',
+      body: 'When applicable, provide realistic runtime in minutes for scheduling and review planning.',
+    },
+    availabilityWindow: {
+      title: 'Availability guidance',
+      body: 'Share a clear availability window so call scheduling can proceed without additional back-and-forth.',
+    },
+    portfolioUrl: {
+      title: 'Reference guidance',
+      body: 'Optional but useful: add a relevant portfolio/reference link that helps adjudicators evaluate fit.',
+    },
+    callCycle: {
+      title: 'Call cycle guidance',
+      body: 'Cycle is prefilled from deep links when available. Keep it aligned with the active call window.',
+    },
     category: {
       title: 'Category guidance',
       body: 'Choose the closest instrument family code. It sets the lookup instrument type prefix.',
@@ -294,7 +433,96 @@ import { animate } from 'framer-motion/dom';
     };
   }
 
+  function createInitialCallMeta() {
+    return {
+      title: '',
+      creator: '',
+      link: '',
+      notes: '',
+      callLane: '',
+      callSubcall: '',
+      callCycle: '',
+      proposalFormat: '',
+      runtimeMinutes: '',
+      availabilityWindow: '',
+      portfolioUrl: '',
+    };
+  }
+
+  function cloneMeta(meta) {
+    if (!meta || typeof meta !== 'object') return {};
+    return { ...meta };
+  }
+
+  function normalizeFlow(value) {
+    const flow = text(value, '').toLowerCase();
+    return flow === FLOW_CALL ? FLOW_CALL : FLOW_SAMPLE;
+  }
+
+  function normalizeLane(value) {
+    const lane = text(value, '').toLowerCase();
+    return LANE_IDS.has(lane) ? lane : '';
+  }
+
+  function normalizeSubcall(value) {
+    const subcall = text(value, '').toLowerCase();
+    return SUBCALL_IDS.has(subcall) ? subcall : '';
+  }
+
+  function parseRouteFlowState() {
+    try {
+      const url = new URL(String(window.location.href || ''), window.location.origin);
+      const flow = normalizeFlow(url.searchParams.get('flow'));
+      return {
+        flow,
+        lane: normalizeLane(url.searchParams.get('lane')),
+        subcall: normalizeSubcall(url.searchParams.get('subcall')),
+        cycle: text(url.searchParams.get('cycle')),
+        via: text(url.searchParams.get('via')),
+      };
+    } catch {
+      return { flow: FLOW_SAMPLE, lane: '', subcall: '', cycle: '', via: '' };
+    }
+  }
+
+  function baseFlowDraft(flowKey) {
+    if (flowKey === FLOW_CALL) {
+      return {
+        meta: createInitialCallMeta(),
+        licenseType: 'joint',
+        licenseConfirmed: false,
+        rightsConfirmed: false,
+        signatureName: '',
+      };
+    }
+    return {
+      meta: createInitialMeta(),
+      licenseType: 'joint',
+      licenseConfirmed: false,
+      rightsConfirmed: false,
+      signatureName: '',
+    };
+  }
+
+  function getCallLaneSchema(laneId) {
+    const safeLane = normalizeLane(laneId);
+    const lanes = Array.isArray(state?.callSchema?.lanes) ? state.callSchema.lanes : DEFAULT_CALL_SCHEMA.lanes;
+    return lanes.find((entry) => normalizeLane(entry?.id) === safeLane) || null;
+  }
+
+  function getFlowText() {
+    return state?.flow === FLOW_CALL ? 'call' : 'sample';
+  }
+
   function makeState(config) {
+    const routeFlow = parseRouteFlowState();
+    const sampleDraft = baseFlowDraft(FLOW_SAMPLE);
+    const callDraft = baseFlowDraft(FLOW_CALL);
+    if (routeFlow.lane) callDraft.meta.callLane = routeFlow.lane;
+    if (routeFlow.subcall) callDraft.meta.callSubcall = routeFlow.subcall;
+    if (routeFlow.cycle) callDraft.meta.callCycle = routeFlow.cycle;
+    const startingFlow = routeFlow.flow === FLOW_CALL ? FLOW_CALL : FLOW_SAMPLE;
+    const activeDraft = startingFlow === FLOW_CALL ? callDraft : sampleDraft;
     return {
       step: 0,
       prevProgress: 1 / STEPS.length,
@@ -309,18 +537,118 @@ import { animate } from 'framer-motion/dom';
       profileDefaults: null,
       profileDefaultsLoaded: false,
       profileDefaultsAutoApplied: false,
-      meta: createInitialMeta(),
-      licenseType: 'joint',
-      licenseConfirmed: false,
-      rightsConfirmed: false,
-      signatureName: '',
+      flow: startingFlow,
+      flowDrafts: {
+        [FLOW_SAMPLE]: sampleDraft,
+        [FLOW_CALL]: callDraft,
+      },
+      callSchema: DEFAULT_CALL_SCHEMA,
+      via: routeFlow.via,
+      meta: cloneMeta(activeDraft.meta),
+      licenseType: activeDraft.licenseType,
+      licenseConfirmed: activeDraft.licenseConfirmed,
+      rightsConfirmed: activeDraft.rightsConfirmed,
+      signatureName: activeDraft.signatureName,
       lastSubmissionRow: '000',
       lastSubmissionLookup: '',
+      lastSubmissionId: '',
       focusedField: '',
       submitting: false,
       submitTicket: 0,
       submitError: '',
     };
+  }
+
+  function getFlowDraft(flowKey = DEFAULT_FLOW) {
+    if (!state || !state.flowDrafts || typeof state.flowDrafts !== 'object') {
+      return baseFlowDraft(flowKey);
+    }
+    const safeFlow = normalizeFlow(flowKey);
+    const draft = state.flowDrafts[safeFlow];
+    if (!draft || typeof draft !== 'object') {
+      const fallback = baseFlowDraft(safeFlow);
+      state.flowDrafts[safeFlow] = fallback;
+      return fallback;
+    }
+    return draft;
+  }
+
+  function persistActiveFlowDraft() {
+    if (!state) return;
+    const safeFlow = normalizeFlow(state.flow);
+    const draft = getFlowDraft(safeFlow);
+    draft.meta = cloneMeta(state.meta);
+    draft.licenseType = text(state.licenseType, 'joint');
+    draft.licenseConfirmed = !!state.licenseConfirmed;
+    draft.rightsConfirmed = !!state.rightsConfirmed;
+    draft.signatureName = text(state.signatureName, '');
+  }
+
+  function applyFlowDraft(flowKey) {
+    if (!state) return;
+    const safeFlow = normalizeFlow(flowKey);
+    const draft = getFlowDraft(safeFlow);
+    state.flow = safeFlow;
+    state.meta = cloneMeta(draft.meta);
+    state.licenseType = text(draft.licenseType, 'joint');
+    state.licenseConfirmed = !!draft.licenseConfirmed;
+    state.rightsConfirmed = !!draft.rightsConfirmed;
+    state.signatureName = text(draft.signatureName, '');
+    state.submitError = '';
+    state.focusedField = '';
+    if (state.step > 3) state.step = 0;
+    if (safeFlow === FLOW_CALL) {
+      state.meta.callLane = normalizeLane(state.meta.callLane);
+      state.meta.callSubcall = normalizeSubcall(state.meta.callSubcall);
+    }
+  }
+
+  function setActiveFlow(flowKey, options = {}) {
+    if (!state) return;
+    const safeFlow = normalizeFlow(flowKey);
+    const opts = options && typeof options === 'object' ? options : {};
+    if (state.flow === safeFlow && !opts.force) return;
+    persistActiveFlowDraft();
+    applyFlowDraft(safeFlow);
+    if (opts.resetStep !== false) state.step = 0;
+    state.lastSubmissionRow = '000';
+    state.lastSubmissionLookup = '';
+    state.quotaResolved = false;
+    state.weeklyUsed = 0;
+    state.quotaLeft = 0;
+    setQuotaSource('none');
+    if (opts.refreshQuota !== false) {
+      hydrateAuthAndQuota({ forceLive: true }).catch(() => {});
+    }
+    render();
+  }
+
+  async function loadCallSchema() {
+    try {
+      const response = await fetch(CALL_SCHEMA_URL, { method: 'GET' });
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (!payload || typeof payload !== 'object' || !Array.isArray(payload.lanes)) return;
+      state.callSchema = {
+        ...DEFAULT_CALL_SCHEMA,
+        ...payload,
+        lanes: payload.lanes,
+      };
+      if (state.flow === FLOW_CALL && state.step === 1) render();
+    } catch {}
+  }
+
+  function flowDisplayLabel(flowKey) {
+    const safeFlow = normalizeFlow(flowKey);
+    return safeFlow === FLOW_CALL ? 'Call submission' : 'Sample submission';
+  }
+
+  function activeQuotaAction() {
+    return state?.flow === FLOW_CALL ? 'quota_call' : 'quota';
+  }
+
+  function activeSubmitAction() {
+    return state?.flow === FLOW_CALL ? 'submit_call' : 'submit';
   }
 
   let state = null;
@@ -917,10 +1245,11 @@ import { animate } from 'framer-motion/dom';
     return runtime;
   }
 
-  function getQuotaPrefetchKey(auth0Sub) {
+  function getQuotaPrefetchKey(auth0Sub, flow = DEFAULT_FLOW) {
     const safeSub = text(auth0Sub, '');
     if (!safeSub) return '';
-    return `quota:${safeSub}`;
+    const safeFlow = normalizeFlow(flow);
+    return `quota:${safeFlow}:${safeSub}`;
   }
 
   function setQuotaSource(source) {
@@ -958,18 +1287,18 @@ import { animate } from 'framer-motion/dom';
     return true;
   }
 
-  function readCachedQuota(auth0Sub) {
+  function readCachedQuota(auth0Sub, flow = DEFAULT_FLOW) {
     const prefetch = getPrefetchRuntime();
-    const key = getQuotaPrefetchKey(auth0Sub);
+    const key = getQuotaPrefetchKey(auth0Sub, flow);
     if (!prefetch || !key) return null;
     const cached = prefetch.getFresh(key, PREFETCH_SWR_MS);
     if (!cached || !cached.payload) return null;
     return parseQuotaPayload(cached.payload);
   }
 
-  function writeCachedQuota(auth0Sub, quotaPayload) {
+  function writeCachedQuota(auth0Sub, quotaPayload, flow = DEFAULT_FLOW) {
     const prefetch = getPrefetchRuntime();
-    const key = getQuotaPrefetchKey(auth0Sub);
+    const key = getQuotaPrefetchKey(auth0Sub, flow);
     if (!prefetch || !key) return;
     const parsed = parseQuotaPayload(quotaPayload);
     if (!parsed) return;
@@ -977,14 +1306,28 @@ import { animate } from 'framer-motion/dom';
   }
 
   function quotaSummaryText() {
-    if (!state?.quotaResolved) return 'Weekly uploads available: checking your account quota…';
-    return `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`;
+    if (!state?.quotaResolved) {
+      return state?.flow === FLOW_CALL
+        ? 'Weekly call submissions available: checking your account quota…'
+        : 'Weekly uploads available: checking your account quota…';
+    }
+    return state?.flow === FLOW_CALL
+      ? `Weekly call submissions available: ${state.quotaLeft} / ${state.weeklyLimit}`
+      : `Weekly uploads available: ${state.quotaLeft} / ${state.weeklyLimit}`;
   }
 
   function getQuotaLockReason() {
     if (!state) return '';
-    if (!text(state.auth0Sub)) return 'Sign in required to verify weekly upload quota.';
-    if (state.quotaResolved && state.quotaLeft <= 0) return `Weekly upload limit reached (${state.weeklyLimit}/${state.weeklyLimit}).`;
+    if (!text(state.auth0Sub)) {
+      return state.flow === FLOW_CALL
+        ? 'Sign in required to verify weekly call submission quota.'
+        : 'Sign in required to verify weekly upload quota.';
+    }
+    if (state.quotaResolved && state.quotaLeft <= 0) {
+      return state.flow === FLOW_CALL
+        ? `Weekly call submission limit reached (${state.weeklyLimit}/${state.weeklyLimit}).`
+        : `Weekly upload limit reached (${state.weeklyLimit}/${state.weeklyLimit}).`;
+    }
     return '';
   }
 
@@ -1062,9 +1405,10 @@ import { animate } from 'framer-motion/dom';
       setQuotaSource('none');
       return false;
     }
+    const flow = normalizeFlow(state.flow);
 
     if (useCache && !forceLive) {
-      const cached = readCachedQuota(state.auth0Sub);
+      const cached = readCachedQuota(state.auth0Sub, flow);
       if (cached && applyQuotaPayload(cached)) {
         setQuotaSource('cache');
         refreshQuotaCopy();
@@ -1074,7 +1418,7 @@ import { animate } from 'framer-motion/dom';
     const fetchLiveQuota = async () => {
       const response = await jsonpRequest(
         state.webappUrl,
-        { action: 'quota', auth0Sub: state.auth0Sub },
+        { action: activeQuotaAction(), auth0Sub: state.auth0Sub },
         timeoutMs,
       );
       const ok = applyQuotaPayload(response);
@@ -1082,7 +1426,7 @@ import { animate } from 'framer-motion/dom';
         lastQuotaFetchError = 'quota response missing expected fields';
         return false;
       }
-      writeCachedQuota(state.auth0Sub, response);
+      writeCachedQuota(state.auth0Sub, response, flow);
       setQuotaSource('live');
       return true;
     };
@@ -1109,11 +1453,19 @@ import { animate } from 'framer-motion/dom';
 
   function describeQuotaFailure() {
     const detail = text(lastQuotaFetchError, '');
-    if (!detail) return 'Could not verify weekly quota right now. Please retry in a moment.';
-    if (detail.toLowerCase().includes('timeout')) {
-      return `Could not verify weekly quota right now. Timeout after ${SUBMIT_QUOTA_VERIFY_TIMEOUT_MS / 1000}s.`;
+    if (!detail) {
+      return state?.flow === FLOW_CALL
+        ? 'Could not verify weekly call-submission quota right now. Please retry in a moment.'
+        : 'Could not verify weekly quota right now. Please retry in a moment.';
     }
-    return `Could not verify weekly quota right now. Detail: ${detail}.`;
+    if (detail.toLowerCase().includes('timeout')) {
+      return state?.flow === FLOW_CALL
+        ? `Could not verify weekly call-submission quota right now. Timeout after ${SUBMIT_QUOTA_VERIFY_TIMEOUT_MS / 1000}s.`
+        : `Could not verify weekly quota right now. Timeout after ${SUBMIT_QUOTA_VERIFY_TIMEOUT_MS / 1000}s.`;
+    }
+    return state?.flow === FLOW_CALL
+      ? `Could not verify weekly call-submission quota right now. Detail: ${detail}.`
+      : `Could not verify weekly quota right now. Detail: ${detail}.`;
   }
 
   function describeSubmitFailure(responsePayload, failureCode = '') {
@@ -1125,9 +1477,11 @@ import { animate } from 'framer-motion/dom';
       const weeklyUsed = parsePositiveInt(responsePayload.weeklyUsed, null);
       if (payloadStatus === 'error' && payloadCode === 'weekly_limit_reached') {
         if (weeklyLimit !== null && weeklyUsed !== null) {
-          return `Weekly upload limit reached (${Math.min(weeklyUsed, weeklyLimit)}/${weeklyLimit}).`;
+          return state?.flow === FLOW_CALL
+            ? `Weekly call submission limit reached (${Math.min(weeklyUsed, weeklyLimit)}/${weeklyLimit}).`
+            : `Weekly upload limit reached (${Math.min(weeklyUsed, weeklyLimit)}/${weeklyLimit}).`;
         }
-        return 'Weekly upload limit reached.';
+        return state?.flow === FLOW_CALL ? 'Weekly call submission limit reached.' : 'Weekly upload limit reached.';
       }
       if (payloadMessage) return `Submission failed: ${payloadMessage}`;
       if (payloadCode) return `Submission failed: ${payloadCode}`;
@@ -1171,7 +1525,13 @@ import { animate } from 'framer-motion/dom';
     }, 2600);
   }
 
-  function validateMeta() {
+  function laneLabel(laneId) {
+    const lane = getCallLaneSchema(laneId);
+    if (lane && text(lane.label)) return text(lane.label);
+    return text(laneId, 'call lane').toUpperCase();
+  }
+
+  function validateSampleMeta() {
     const required = ['title', 'creator', 'instrument', 'category', 'collectionType'];
     for (const key of required) {
       const value = state.meta[key];
@@ -1181,6 +1541,62 @@ import { animate } from 'framer-motion/dom';
       }
     }
     return true;
+  }
+
+  function validateCallMeta() {
+    const lane = normalizeLane(state.meta.callLane);
+    if (!lane) {
+      showToast('Choose a call lane.', true);
+      return false;
+    }
+    if (!text(state.meta.title)) {
+      showToast('Missing title', true);
+      return false;
+    }
+    if (!text(state.meta.creator)) {
+      showToast('Missing creator', true);
+      return false;
+    }
+
+    const laneSchema = getCallLaneSchema(lane);
+    const fields = Array.isArray(laneSchema?.fields) ? laneSchema.fields : [];
+    for (const field of fields) {
+      if (!field || typeof field !== 'object') continue;
+      if (!field.required) continue;
+      const fieldKey = text(field.key, '');
+      if (!fieldKey) continue;
+      const value = state.meta[fieldKey];
+      if (!text(value)) {
+        showToast(`Missing ${text(field.label, fieldKey)}`, true);
+        return false;
+      }
+      if (text(field.type, '').toLowerCase() === 'number') {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+          showToast(`Invalid ${text(field.label, fieldKey)}`, true);
+          return false;
+        }
+        const min = Number.isFinite(Number(field.min)) ? Number(field.min) : null;
+        const max = Number.isFinite(Number(field.max)) ? Number(field.max) : null;
+        if (min !== null && parsed < min) {
+          showToast(`${text(field.label, fieldKey)} must be at least ${min}.`, true);
+          return false;
+        }
+        if (max !== null && parsed > max) {
+          showToast(`${text(field.label, fieldKey)} must be at most ${max}.`, true);
+          return false;
+        }
+      }
+    }
+    if (lane === 'in-dex-a' && !normalizeSubcall(state.meta.callSubcall)) {
+      showToast('Choose an IN DEX A subcall.', true);
+      return false;
+    }
+    return true;
+  }
+
+  function validateMeta() {
+    return state.flow === FLOW_CALL ? validateCallMeta() : validateSampleMeta();
   }
 
   function toBadge(label, selected, onClick, disabled = false, options = null) {
@@ -1247,27 +1663,81 @@ import { animate } from 'framer-motion/dom';
     const section = create('section', 'dx-submit-stage-card');
     section.setAttribute('data-dx-submit-step', 'intro');
 
+    const isCallFlow = state.flow === FLOW_CALL;
     section.appendChild(create('p', 'dx-submit-kicker', 'Submission Program'));
-    section.appendChild(create('h2', 'dx-submit-title', 'Share source media. We track the journey end-to-end.'));
+    section.appendChild(
+      create(
+        'h2',
+        'dx-submit-title',
+        isCallFlow
+          ? 'Join an IN DEX call. We track routing and decisions end-to-end.'
+          : 'Share source media. We track the journey end-to-end.',
+      ),
+    );
 
     const lead = create(
       'p',
       'dx-submit-copy',
-      'Upload a public master-link and metadata. Dex reviews within 7 days, then routes to revision, acceptance, or release.',
+      isCallFlow
+        ? 'Select your call lane, attach proposal context, and submit one link. Dex reviews within 7 days and posts timeline notes in Messages.'
+        : 'Upload a public master-link and metadata. Dex reviews within 7 days, then routes to revision, acceptance, or release.',
     );
     section.appendChild(lead);
 
+    const chooser = create('div', 'dx-submit-badge-group');
+    chooser.append(
+      toBadge(
+        'Sample pipeline',
+        state.flow === FLOW_SAMPLE,
+        () => setActiveFlow(FLOW_SAMPLE),
+        false,
+        { focusKey: 'flow' },
+      ),
+      toBadge(
+        'IN DEX call pipeline',
+        state.flow === FLOW_CALL,
+        () => setActiveFlow(FLOW_CALL),
+        false,
+        { focusKey: 'flow' },
+      ),
+    );
+    section.appendChild(chooser);
+
+    if (isCallFlow) {
+      const routePills = create('div', 'dx-submit-pill-group');
+      const laneId = normalizeLane(state.meta.callLane);
+      if (laneId) routePills.appendChild(create('span', 'dx-submit-pill dx-submit-pill--accent', laneLabel(laneId)));
+      if (laneId === 'in-dex-a' && normalizeSubcall(state.meta.callSubcall)) {
+        routePills.appendChild(create('span', 'dx-submit-pill', `Subcall ${String(state.meta.callSubcall).toUpperCase()}`));
+      }
+      if (text(state.meta.callCycle)) {
+        routePills.appendChild(create('span', 'dx-submit-pill', text(state.meta.callCycle)));
+      }
+      if (routePills.childElementCount > 0) section.appendChild(routePills);
+    }
+
     const list = create('ul', 'dx-submit-list');
-    [
-      'Sent: your source link + metadata received.',
-      'Received/Reviewing: staff validates format and attribution.',
-      'Accepted/Rejected: decision + note appears in your timeline.',
-      'In library: final release links appear when published.',
-    ].forEach((item) => list.appendChild(create('li', 'dx-submit-list-item', item)));
+    const introPoints = isCallFlow
+      ? [
+        'Sent: your call lane proposal + source link received.',
+        'Received/Reviewing: staff validates fit for current call cycle.',
+        'Accepted/Rejected: decision + note appears in your timeline.',
+        'In library: release or follow-up links post when published.',
+      ]
+      : [
+        'Sent: your source link + metadata received.',
+        'Received/Reviewing: staff validates format and attribution.',
+        'Accepted/Rejected: decision + note appears in your timeline.',
+        'In library: final release links appear when published.',
+      ];
+    introPoints.forEach((item) => list.appendChild(create('li', 'dx-submit-list-item', item)));
     section.appendChild(list);
 
     const specs = create('div', 'dx-submit-pill-group');
-    ['4K/24fps preferred', '48kHz / 24-bit WAV preferred', 'Original work only', 'Lower-res accepted'].forEach((pill) => {
+    (isCallFlow
+      ? ['Lane-specific review', 'Status updates in Messages', 'Original work only', 'One link per submission']
+      : ['4K/24fps preferred', '48kHz / 24-bit WAV preferred', 'Original work only', 'Lower-res accepted']
+    ).forEach((pill) => {
       specs.appendChild(create('span', 'dx-submit-pill', pill));
     });
     section.appendChild(specs);
@@ -1283,7 +1753,11 @@ import { animate } from 'framer-motion/dom';
       quotaSummaryText(),
     );
     quota.setAttribute('data-dx-submit-quota', 'true');
-    const begin = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Begin');
+    const begin = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--md dx-button-element--primary',
+      isCallFlow ? 'Begin call submission' : 'Begin',
+    );
     begin.type = 'button';
     begin.setAttribute('data-dx-submit-begin', 'true');
     const quotaLocked = isQuotaLocked();
@@ -1307,11 +1781,193 @@ import { animate } from 'framer-motion/dom';
   function buildQuotaActionCard() {
     const actionCard = create('article', 'dx-submit-action-card');
     actionCard.appendChild(create('p', 'dx-submit-action-kicker', 'Action required'));
-    actionCard.appendChild(create('p', 'dx-submit-action-copy', 'Weekly upload limit reached for this account.'));
+    actionCard.appendChild(
+      create(
+        'p',
+        'dx-submit-action-copy',
+        state?.flow === FLOW_CALL
+          ? 'Weekly call submission limit reached for this account.'
+          : 'Weekly upload limit reached for this account.',
+      ),
+    );
     return actionCard;
   }
 
+  function updateCallMetaValue(fieldKey, nextValue) {
+    if (!state || !state.meta) return;
+    state.meta[fieldKey] = nextValue;
+    if (fieldKey === 'callLane') {
+      const safeLane = normalizeLane(nextValue);
+      state.meta.callLane = safeLane;
+      const laneSchema = getCallLaneSchema(safeLane);
+      const hasSubcall = Array.isArray(laneSchema?.fields)
+        && laneSchema.fields.some((entry) => text(entry?.key) === 'callSubcall');
+      if (!hasSubcall) state.meta.callSubcall = '';
+      if (!safeLane) {
+        state.meta.proposalFormat = '';
+        state.meta.runtimeMinutes = '';
+        state.meta.availabilityWindow = '';
+        state.meta.portfolioUrl = '';
+      }
+      render();
+    }
+  }
+
+  function buildCallDynamicField(fieldSchema) {
+    const schema = fieldSchema && typeof fieldSchema === 'object' ? fieldSchema : {};
+    const fieldKey = text(schema.key, '');
+    if (!fieldKey) return null;
+    const label = text(schema.label, fieldKey);
+    const required = !!schema.required;
+    const field = wrapField(label, required);
+    const type = text(schema.type, 'text').toLowerCase();
+    const currentValue = text(state.meta[fieldKey], '');
+
+    if (type === 'select') {
+      const select = create('select', 'dx-submit-input');
+      const prompt = create('option', '', `Choose ${label.toLowerCase()}`);
+      prompt.value = '';
+      select.appendChild(prompt);
+      const options = Array.isArray(schema.options) ? schema.options : [];
+      options.forEach((entry) => {
+        const value = text(entry?.value, '');
+        if (!value) return;
+        const option = create('option', '', text(entry?.label, value));
+        option.value = value;
+        select.appendChild(option);
+      });
+      select.value = currentValue;
+      select.addEventListener('change', (event) => {
+        updateCallMetaValue(fieldKey, event.target.value);
+      });
+      bindFieldFocus(select, fieldKey);
+      field.appendChild(select);
+      return field;
+    }
+
+    const input = create(type === 'number' ? 'input' : 'input', 'dx-submit-input');
+    if (input instanceof HTMLInputElement) {
+      input.type = type === 'url' ? 'url' : type === 'number' ? 'number' : 'text';
+      if (Number.isFinite(Number(schema.maxLength))) input.maxLength = Math.max(1, Number(schema.maxLength));
+      if (type === 'number') {
+        if (Number.isFinite(Number(schema.min))) input.min = String(Math.floor(Number(schema.min)));
+        if (Number.isFinite(Number(schema.max))) input.max = String(Math.floor(Number(schema.max)));
+        input.step = '1';
+      }
+      input.value = currentValue;
+      input.addEventListener('input', (event) => {
+        updateCallMetaValue(fieldKey, event.target.value);
+      });
+      bindFieldFocus(input, fieldKey);
+    }
+    field.appendChild(input);
+    return field;
+  }
+
+  function buildCallMetadataStep() {
+    const section = create('section', 'dx-submit-stage-card');
+    section.setAttribute('data-dx-submit-step', 'metadata');
+
+    section.appendChild(create('p', 'dx-submit-kicker', 'Step 2'));
+    section.appendChild(create('h2', 'dx-submit-title', 'Call lane metadata for routing and review'));
+
+    const grid = create('div', 'dx-submit-grid');
+
+    const laneField = wrapField('Call lane', true);
+    const laneGroup = create('div', 'dx-submit-badge-group');
+    const lanes = Array.isArray(state?.callSchema?.lanes) ? state.callSchema.lanes : DEFAULT_CALL_SCHEMA.lanes;
+    lanes.forEach((lane) => {
+      const laneId = normalizeLane(lane?.id);
+      if (!laneId) return;
+      laneGroup.appendChild(
+        toBadge(
+          text(lane?.label, laneId),
+          laneId === normalizeLane(state.meta.callLane),
+          () => updateCallMetaValue('callLane', laneId),
+          false,
+          { focusKey: 'callLane' },
+        ),
+      );
+    });
+    laneField.appendChild(laneGroup);
+    grid.appendChild(laneField);
+
+    const titleField = wrapField('Proposal title', true);
+    const titleInput = create('input', 'dx-submit-input');
+    titleInput.type = 'text';
+    titleInput.maxLength = 100;
+    titleInput.placeholder = 'Ex: dexFest panel proposal';
+    titleInput.value = state.meta.title;
+    titleInput.addEventListener('input', (event) => {
+      state.meta.title = event.target.value;
+    });
+    bindFieldFocus(titleInput, 'title');
+    titleField.appendChild(titleInput);
+    grid.appendChild(titleField);
+
+    const creatorField = wrapField('Proposer / creator', true);
+    const creatorInput = create('input', 'dx-submit-input');
+    creatorInput.type = 'text';
+    creatorInput.maxLength = 2000;
+    creatorInput.placeholder = 'Ex: Jane Doe';
+    creatorInput.value = state.meta.creator;
+    creatorInput.addEventListener('input', (event) => {
+      state.meta.creator = event.target.value;
+    });
+    bindFieldFocus(creatorInput, 'creator');
+    creatorField.appendChild(creatorInput);
+    grid.appendChild(creatorField);
+
+    const cycleField = wrapField('Call cycle');
+    const cycleInput = create('input', 'dx-submit-input');
+    cycleInput.type = 'text';
+    cycleInput.maxLength = 120;
+    cycleInput.placeholder = 'Ex: IN DEX A2024.4';
+    cycleInput.value = text(state.meta.callCycle);
+    cycleInput.addEventListener('input', (event) => {
+      state.meta.callCycle = event.target.value;
+    });
+    bindFieldFocus(cycleInput, 'callCycle');
+    cycleField.appendChild(cycleInput);
+    grid.appendChild(cycleField);
+
+    const laneSchema = getCallLaneSchema(state.meta.callLane);
+    if (laneSchema && text(laneSchema.helper)) {
+      grid.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', text(laneSchema.helper)));
+    }
+    const laneFields = Array.isArray(laneSchema?.fields) ? laneSchema.fields : [];
+    laneFields.forEach((fieldSchema) => {
+      const field = buildCallDynamicField(fieldSchema);
+      if (field) grid.appendChild(field);
+    });
+
+    section.appendChild(grid);
+
+    const actions = create('div', 'dx-submit-stage-actions');
+    const back = create('button', 'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary', 'Back');
+    back.type = 'button';
+    back.addEventListener('click', () => {
+      state.step = 0;
+      render();
+    });
+
+    const next = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Continue to license');
+    next.type = 'button';
+    next.addEventListener('click', () => {
+      if (!guardQuotaForProgression(true)) return;
+      if (!validateMeta()) return;
+      state.step = 2;
+      render();
+    });
+
+    actions.append(back, next);
+    section.appendChild(actions);
+
+    return section;
+  }
+
   function buildMetadataStep() {
+    if (state.flow === FLOW_CALL) return buildCallMetadataStep();
     const section = create('section', 'dx-submit-stage-card');
     section.setAttribute('data-dx-submit-step', 'metadata');
 
@@ -1671,7 +2327,64 @@ import { animate } from 'framer-motion/dom';
     return section;
   }
 
+  function buildCallUploadStep() {
+    const section = create('section', 'dx-submit-stage-card');
+    section.setAttribute('data-dx-submit-step', 'upload');
+
+    section.appendChild(create('p', 'dx-submit-kicker', 'Step 4'));
+    section.appendChild(create('h2', 'dx-submit-title', 'Submit materials link and notes for this call lane'));
+
+    const linkField = wrapField('Public materials link', true);
+    const linkInput = create('input', 'dx-submit-input');
+    linkInput.type = 'url';
+    linkInput.placeholder = 'https://drive.google.com/...';
+    linkInput.value = state.meta.link;
+    linkInput.addEventListener('input', (event) => {
+      state.meta.link = event.target.value;
+    });
+    bindFieldFocus(linkInput, 'link');
+    linkField.appendChild(linkInput);
+    section.appendChild(linkField);
+
+    const notesField = wrapField('Notes for Dex team');
+    const notesInput = create('textarea', 'dx-submit-input dx-submit-notes');
+    notesInput.rows = 5;
+    notesInput.placeholder = 'Any constraints, context, or timing notes for this call submission';
+    notesInput.value = state.meta.notes;
+    notesInput.addEventListener('input', (event) => {
+      state.meta.notes = event.target.value;
+    });
+    bindFieldFocus(notesInput, 'notes');
+    notesField.appendChild(notesInput);
+    section.appendChild(notesField);
+
+    if (text(state.submitError)) {
+      section.appendChild(create('p', 'dx-submit-copy dx-submit-copy--compact', state.submitError));
+    }
+
+    const actions = create('div', 'dx-submit-stage-actions');
+    const back = create('button', 'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary', 'Back');
+    back.type = 'button';
+    back.addEventListener('click', () => {
+      state.step = 2;
+      render();
+    });
+
+    const submit = create('button', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', state.submitting ? 'Submitting…' : 'Submit call');
+    submit.type = 'button';
+    submit.disabled = state.submitting;
+    submit.addEventListener('click', () => {
+      submitPayload();
+    });
+
+    actions.append(back, submit);
+    section.appendChild(actions);
+
+    return section;
+  }
+
   function buildUploadStep() {
+    if (state.flow === FLOW_CALL) return buildCallUploadStep();
     const section = create('section', 'dx-submit-stage-card');
     section.setAttribute('data-dx-submit-step', 'upload');
 
@@ -1749,39 +2462,69 @@ import { animate } from 'framer-motion/dom';
     const section = create('section', 'dx-submit-stage-card');
     section.setAttribute('data-dx-submit-step', 'done');
 
-    section.appendChild(create('p', 'dx-submit-kicker', 'Submission sent'));
-    section.appendChild(create('h2', 'dx-submit-title', 'Submission received. Timeline is now active.'));
+    const isCallFlow = state.flow === FLOW_CALL;
+    section.appendChild(create('p', 'dx-submit-kicker', isCallFlow ? 'Call submission sent' : 'Submission sent'));
+    section.appendChild(
+      create(
+        'h2',
+        'dx-submit-title',
+        isCallFlow
+          ? 'Call submission received. Timeline is now active.'
+          : 'Submission received. Timeline is now active.',
+      ),
+    );
 
     const lookup = text(state.lastSubmissionLookup, buildGeneratedSubmissionLookup(state.lastSubmissionRow));
 
     const badgeRow = create('div', 'dx-submit-pill-group');
-    badgeRow.append(
-      create('span', 'dx-submit-pill dx-submit-pill--accent', lookup),
-      create('span', 'dx-submit-pill', 'Pending review'),
-    );
+    if (lookup) {
+      badgeRow.appendChild(create('span', 'dx-submit-pill dx-submit-pill--accent', lookup));
+    }
+    if (isCallFlow) {
+      const lane = normalizeLane(state.meta.callLane);
+      if (lane) badgeRow.appendChild(create('span', 'dx-submit-pill', laneLabel(lane)));
+      if (lane === 'in-dex-a' && normalizeSubcall(state.meta.callSubcall)) {
+        badgeRow.appendChild(create('span', 'dx-submit-pill', `Subcall ${String(state.meta.callSubcall).toUpperCase()}`));
+      }
+    }
+    badgeRow.appendChild(create('span', 'dx-submit-pill', 'Pending review'));
     section.appendChild(badgeRow);
 
     section.appendChild(
       create(
         'p',
         'dx-submit-copy',
-        'Open Messages to follow sent/received/reviewing/accepted states, timeline notes, and publish links when released.',
+        isCallFlow
+          ? 'Open Messages to follow sent/received/reviewing/accepted states, call notes, and publish links when released.'
+          : 'Open Messages to follow sent/received/reviewing/accepted states, timeline notes, and publish links when released.',
       ),
     );
 
     const actions = create('div', 'dx-submit-stage-actions');
-    const inbox = create('a', 'cta-btn dx-button-element dx-button-size--md dx-button-element--primary', 'Open submission messages');
+    const inbox = create(
+      'a',
+      'cta-btn dx-button-element dx-button-size--md dx-button-element--primary',
+      isCallFlow ? 'Open call messages' : 'Open submission messages',
+    );
     inbox.href = '/entry/messages/';
 
-    const restart = create('button', 'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary', 'Start another submission');
+    const restart = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary',
+      isCallFlow ? 'Start another call submission' : 'Start another submission',
+    );
     restart.type = 'button';
     restart.addEventListener('click', () => {
       state.step = 0;
-      state.meta = createInitialMeta();
-      state.licenseType = 'joint';
-      state.licenseConfirmed = false;
-      state.rightsConfirmed = false;
-      state.signatureName = '';
+      const resetDraft = baseFlowDraft(state.flow);
+      state.flowDrafts[state.flow] = resetDraft;
+      state.meta = cloneMeta(resetDraft.meta);
+      state.licenseType = resetDraft.licenseType;
+      state.licenseConfirmed = resetDraft.licenseConfirmed;
+      state.rightsConfirmed = resetDraft.rightsConfirmed;
+      state.signatureName = resetDraft.signatureName;
+      state.lastSubmissionId = '';
+      state.lastSubmissionRow = '000';
       state.lastSubmissionLookup = '';
       render();
     });
@@ -1802,13 +2545,21 @@ import { animate } from 'framer-motion/dom';
 
   function buildChecklist() {
     const list = create('ul', 'dx-submit-checklist');
-    const checks = [
-      ['Title', text(state.meta.title).length > 0],
-      ['Creator', text(state.meta.creator).length > 0],
-      ['Category', text(state.meta.category).length > 0],
-      ['Instrument', text(state.meta.instrument).length > 0],
-      ['Collection type', text(state.meta.collectionType).length > 0],
-    ];
+    const checks = state.flow === FLOW_CALL
+      ? [
+        ['Title', text(state.meta.title).length > 0],
+        ['Creator', text(state.meta.creator).length > 0],
+        ['Call lane', text(state.meta.callLane).length > 0],
+        ['Proposal format', text(state.meta.proposalFormat).length > 0],
+        ['Source link', text(state.meta.link).length > 0],
+      ]
+      : [
+        ['Title', text(state.meta.title).length > 0],
+        ['Creator', text(state.meta.creator).length > 0],
+        ['Category', text(state.meta.category).length > 0],
+        ['Instrument', text(state.meta.instrument).length > 0],
+        ['Collection type', text(state.meta.collectionType).length > 0],
+      ];
 
     checks.forEach(([label, ok]) => {
       const item = createSidebarText('li', 'dx-submit-check-item', label);
@@ -1823,19 +2574,27 @@ import { animate } from 'framer-motion/dom';
     const byField = FIELD_GUIDANCE[state.focusedField];
     if (byField) return byField;
     const stepKey = STEPS[state.step]?.key || 'intro';
+    const callStepGuidance = {
+      intro: 'Choose pipeline, lane context, and call cycle before beginning.',
+      metadata: 'Provide lane-fit metadata so adjudication can route without clarification loops.',
+      license: 'Rights acknowledgment and digital signature are required for call submissions.',
+      upload: 'Submit one stable materials link plus notes for adjudicators.',
+      done: 'Track call decisions and notes from your Messages timeline.',
+    };
     return {
       title: `Step guidance: ${STEPS[state.step]?.title || 'Submission'}`,
-      body: STEP_GUIDANCE[stepKey] || '',
+      body: state.flow === FLOW_CALL ? callStepGuidance[stepKey] || '' : STEP_GUIDANCE[stepKey] || '',
     };
   }
 
   function buildCommandPanel() {
     const aside = create('aside', 'dx-submit-command dx-submit-surface');
+    const isCallFlow = state.flow === FLOW_CALL;
 
     const cycle = create('section', 'dx-submit-command-card');
     cycle.append(
       createSidebarText('p', 'dx-submit-kicker', 'Review SLA'),
-      createSidebarText('h3', 'dx-submit-command-title', 'Typical review within 7 days'),
+      createSidebarText('h3', 'dx-submit-command-title', isCallFlow ? 'Call review target: within 7 days' : 'Typical review within 7 days'),
       createSidebarText(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
@@ -1851,16 +2610,32 @@ import { animate } from 'framer-motion/dom';
       createSidebarText('p', 'dx-submit-copy dx-submit-copy--compact', license.summary),
     );
 
-    const pitchCard = create('section', 'dx-submit-command-card');
-    pitchCard.append(
-      createSidebarText('p', 'dx-submit-kicker', 'Pitch profile'),
-      createSidebarText('h3', 'dx-submit-command-title', summarizePitch(state.meta)),
-      createSidebarText(
-        'p',
-        'dx-submit-copy dx-submit-copy--compact',
-        'Use the pitch-root dropdown for 12-TET and 24-TET, or describe JI context. Atonal and non-pitched are first-class options.',
-      ),
-    );
+    const modeCard = create('section', 'dx-submit-command-card');
+    if (isCallFlow) {
+      const lane = normalizeLane(state.meta.callLane);
+      const laneName = lane ? laneLabel(lane) : 'Select lane';
+      modeCard.append(
+        createSidebarText('p', 'dx-submit-kicker', 'Call lane'),
+        createSidebarText('h3', 'dx-submit-command-title', laneName),
+        createSidebarText(
+          'p',
+          'dx-submit-copy dx-submit-copy--compact',
+          lane && lane === 'in-dex-a' && normalizeSubcall(state.meta.callSubcall)
+            ? `Subcall ${String(state.meta.callSubcall).toUpperCase()} selected.`
+            : 'Use lane-specific fields to clarify call fit.',
+        ),
+      );
+    } else {
+      modeCard.append(
+        createSidebarText('p', 'dx-submit-kicker', 'Pitch profile'),
+        createSidebarText('h3', 'dx-submit-command-title', summarizePitch(state.meta)),
+        createSidebarText(
+          'p',
+          'dx-submit-copy dx-submit-copy--compact',
+          'Use the pitch-root dropdown for 12-TET and 24-TET, or describe JI context. Atonal and non-pitched are first-class options.',
+        ),
+      );
+    }
 
     const checklist = create('section', 'dx-submit-command-card');
     checklist.append(
@@ -1870,11 +2645,13 @@ import { animate } from 'framer-motion/dom';
 
     const quality = create('section', 'dx-submit-command-card');
     quality.append(
-      createSidebarText('p', 'dx-submit-kicker', 'Capture targets'),
+      createSidebarText('p', 'dx-submit-kicker', isCallFlow ? 'Call intake targets' : 'Capture targets'),
       createSidebarText(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
-        'Video: 3840×2160, H.265, 24fps. Audio: 48kHz, 24-bit WAV. Lower-res accepted.',
+        isCallFlow
+          ? 'Use one stable link, clear format/runtime context, and notes staff can action immediately.'
+          : 'Video: 3840×2160, H.265, 24fps. Audio: 48kHz, 24-bit WAV. Lower-res accepted.',
       ),
     );
 
@@ -1886,7 +2663,7 @@ import { animate } from 'framer-motion/dom';
       createSidebarText('p', 'dx-submit-copy dx-submit-copy--compact', focused.body),
     );
 
-    aside.append(cycle, licenseCard, pitchCard, checklist, quality, guide);
+    aside.append(cycle, licenseCard, modeCard, checklist, quality, guide);
     return aside;
   }
 
@@ -1967,13 +2744,25 @@ import { animate } from 'framer-motion/dom';
     const shell = create('div', 'dx-submit-shell');
     shell.setAttribute('data-dx-submit-shell', 'true');
     shell.setAttribute('data-dx-submit-current-step', STEPS[state.step]?.key || 'intro');
+    shell.setAttribute('data-dx-submit-flow', normalizeFlow(state.flow));
+    shell.setAttribute('data-dx-submit-lane', normalizeLane(state.meta?.callLane || ''));
+    if (normalizeSubcall(state.meta?.callSubcall || '')) {
+      shell.setAttribute('data-dx-submit-subcall', normalizeSubcall(state.meta.callSubcall));
+    }
 
     const main = create('section', 'dx-submit-main dx-submit-surface');
     const heading = create('header', 'dx-submit-heading');
+    const isCallFlow = state.flow === FLOW_CALL;
     heading.append(
-      create('p', 'dx-submit-kicker', 'Submit Samples'),
+      create('p', 'dx-submit-kicker', isCallFlow ? 'Submit Calls' : 'Submit Samples'),
       create('h1', 'dx-submit-heading-title', 'Intake + Tracker'),
-      create('p', 'dx-submit-copy dx-submit-copy--compact', 'Upload once. Follow status from sent to in-library in Messages.'),
+      create(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        isCallFlow
+          ? 'Submit lane-ready call proposals. Follow status from sent to in-library in Messages.'
+          : 'Upload once. Follow status from sent to in-library in Messages.',
+      ),
     );
 
     const progress = buildProgressHeader();
@@ -2013,11 +2802,61 @@ import { animate } from 'framer-motion/dom';
   }
 
   function buildPayload() {
-    syncLegacyPitchFields(state.meta);
     const estimatedCounter = Math.max(1, Number(state.weeklyUsed || 0) + 1);
     const generatedLookup = buildGeneratedSubmissionLookup(estimatedCounter);
+    const lane = normalizeLane(state.meta.callLane);
+    const laneToCategory = {
+      'in-dex-a': 'V - Voice + Body',
+      'in-dex-b': 'E - Electronics',
+      'in-dex-c': 'X - Other',
+      'mini-dex': 'W - Winds',
+    };
+    const laneToInstrument = {
+      'in-dex-a': 'Call Proposal',
+      'in-dex-b': 'Composite Proposal',
+      'in-dex-c': 'Community Contribution',
+      'mini-dex': 'Field Recording',
+    };
+
+    if (state.flow === FLOW_CALL) {
+      return {
+        action: activeSubmitAction(),
+        auth0Sub: text(state.auth0Sub),
+        title: text(state.meta.title),
+        creator: text(state.meta.creator),
+        category: laneToCategory[lane] || 'X - Other',
+        instrument: laneToInstrument[lane] || 'Call Submission',
+        collectionType: 'O',
+        license: text(state.licenseType, 'joint'),
+        licenseAccepted: state.licenseConfirmed ? 'yes' : 'no',
+        rightsAcknowledged: state.rightsConfirmed ? 'yes' : 'no',
+        digitalSignatureName: text(state.signatureName),
+        link: text(state.meta.link),
+        notes: text(state.meta.notes),
+        submissionYear: String(new Date().getFullYear()),
+        performerToken: parsePerformerToken(),
+        submissionLookupNumber: generatedLookup,
+        finalLookupNumber: '',
+        status: 'pending',
+        sourceRoute: '/entry/submit',
+        sourceType: 'call',
+        submissionKind: 'call',
+        callLane: lane,
+        callSubcall: normalizeSubcall(state.meta.callSubcall),
+        callCycle: text(state.meta.callCycle),
+        proposalFormat: text(state.meta.proposalFormat),
+        runtimeMinutes: text(state.meta.runtimeMinutes),
+        availabilityWindow: text(state.meta.availabilityWindow),
+        portfolioUrl: text(state.meta.portfolioUrl),
+        clientRequestId: typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `dxcall_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`,
+      };
+    }
+
+    syncLegacyPitchFields(state.meta);
     return {
-      action: 'submit',
+      action: activeSubmitAction(),
       auth0Sub: text(state.auth0Sub),
       title: text(state.meta.title),
       creator: text(state.meta.creator),
@@ -2043,6 +2882,8 @@ import { animate } from 'framer-motion/dom';
       submissionLookupNumber: generatedLookup,
       finalLookupNumber: '',
       status: 'pending',
+      submissionKind: 'sample',
+      sourceType: 'sample',
     };
   }
 
@@ -2105,6 +2946,17 @@ import { animate } from 'framer-motion/dom';
           const rowNumber = responsePayload && typeof responsePayload === 'object'
             ? (responsePayload.row ?? responsePayload.sourceRow ?? '')
             : '';
+          state.lastSubmissionId = responsePayload && typeof responsePayload === 'object'
+            ? text(responsePayload.submissionId ?? responsePayload.submission_id, '')
+            : '';
+          if (state.lastSubmissionId) {
+            window.__dxPendingSubmissionSid = state.lastSubmissionId;
+            window.__dxPendingMessageThread = { kind: 'submission', sid: state.lastSubmissionId };
+            try {
+              window.sessionStorage.setItem('dex:messages:pending-submission-sid', state.lastSubmissionId);
+              window.sessionStorage.setItem('dex:messages:pending-thread:v1', JSON.stringify({ kind: 'submission', sid: state.lastSubmissionId }));
+            } catch {}
+          }
           state.lastSubmissionRow = String(rowNumber || '').padStart(3, '0') || '000';
           state.lastSubmissionLookup = resolveLookupFromSubmitResponse(responsePayload, rowNumber || state.lastSubmissionRow);
           const payloadWeeklyLimit = parsePositiveInt(
@@ -2135,7 +2987,7 @@ import { animate } from 'framer-motion/dom';
           state.quotaResolved = true;
           state.step = 4;
           render();
-          showToast('Submitted');
+          showToast(state.flow === FLOW_CALL ? 'Call submitted' : 'Submitted');
         } else {
           state.submitError = describeSubmitFailure(responsePayload, failureCode);
           render();
@@ -2170,9 +3022,22 @@ import { animate } from 'framer-motion/dom';
     }, SUBMIT_TIMEOUT_MS);
   }
 
+  function syncRootFlowAttrs() {
+    if (!(liveRoot instanceof HTMLElement) || !state) return;
+    const flow = normalizeFlow(state.flow);
+    const lane = normalizeLane(state.meta?.callLane || '');
+    const subcall = normalizeSubcall(state.meta?.callSubcall || '');
+    liveRoot.setAttribute('data-dx-submit-flow', flow);
+    liveRoot.setAttribute('data-dx-submit-lane', lane);
+    if (subcall) liveRoot.setAttribute('data-dx-submit-subcall', subcall);
+    else liveRoot.removeAttribute('data-dx-submit-subcall');
+  }
+
   function render() {
     if (!(liveRoot instanceof HTMLElement) || !state) return;
 
+    persistActiveFlowDraft();
+    syncRootFlowAttrs();
     hideSubmitTooltip();
     liveRoot.innerHTML = '';
     liveRoot.appendChild(buildLayout());
@@ -2276,6 +3141,7 @@ import { animate } from 'framer-motion/dom';
       state.auth0Sub = text(window.auth0Sub, '');
       setQuotaSource('none');
       render();
+      loadCallSchema().catch(() => {});
       hydrateAuthAndQuota({ forceLive: false }).catch(() => {});
       await finalizeFetchState(root, startTs, FETCH_STATE_READY);
       root.setAttribute('data-dx-submit-mounted', 'true');
@@ -2308,8 +3174,8 @@ import { animate } from 'framer-motion/dom';
     if (!state) return;
     const detail = event && typeof event.detail === 'object' ? event.detail : null;
     const key = text(detail?.key, '');
-    if (!key || key !== getQuotaPrefetchKey(state.auth0Sub)) return;
-    const cached = readCachedQuota(state.auth0Sub);
+    if (!key || key !== getQuotaPrefetchKey(state.auth0Sub, state.flow)) return;
+    const cached = readCachedQuota(state.auth0Sub, state.flow);
     if (!cached) return;
     if (applyQuotaPayload(cached)) {
       setQuotaSource('cache');

@@ -182,6 +182,45 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return base;
   }
 
+  function normalizeLaneId(value) {
+    const lane = text(value, '').toLowerCase();
+    if (lane === 'in-dex-a' || lane === 'in-dex-b' || lane === 'in-dex-c' || lane === 'mini-dex') return lane;
+    return '';
+  }
+
+  function normalizeSubcallId(value) {
+    const subcall = text(value, '').toLowerCase();
+    if (subcall === 'a' || subcall === 'b' || subcall === 'c') return subcall;
+    return '';
+  }
+
+  function deriveLaneFromCycle(cycleRaw) {
+    const normalized = text(cycleRaw, '').toLowerCase();
+    if (normalized.includes('mini-dex')) return 'mini-dex';
+    const match = normalized.match(/in dex\s*([abc])/i);
+    if (match?.[1]) return normalizeLaneId(`in-dex-${match[1].toLowerCase()}`);
+    return '';
+  }
+
+  function deriveSubcallFromHeading(headingRaw) {
+    const normalized = text(headingRaw, '');
+    const match = normalized.match(/\.(a|b|c)\b/i);
+    if (match?.[1]) return normalizeSubcallId(match[1]);
+    return '';
+  }
+
+  function buildSubmitCallHref({ lane = '', subcall = '', cycle = '', via = 'call' } = {}) {
+    const safeLane = normalizeLaneId(lane);
+    const safeSubcall = normalizeSubcallId(subcall);
+    const params = new URLSearchParams();
+    params.set('flow', 'call');
+    if (safeLane) params.set('lane', safeLane);
+    if (safeSubcall) params.set('subcall', safeSubcall);
+    if (text(cycle)) params.set('cycle', text(cycle));
+    if (text(via)) params.set('via', text(via));
+    return `/entry/submit/?${params.toString()}`;
+  }
+
   function createLinkButton(label, href, variant = 'secondary', size = 'md') {
     const anchor = create('a', `dx-button-element dx-button-size--${size} dx-button-element--${variant} dx-call-cta`);
     anchor.href = text(href || '#');
@@ -325,12 +364,18 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       if (chips.childNodes.length > 0) utility.appendChild(chips);
 
       const actions = create('div', 'dx-call-sidebar-actions');
-      if (active.submit_cta?.href) {
-        actions.appendChild(createLinkButton(active.submit_cta.label_raw, active.submit_cta.href, 'primary', 'sm'));
-      }
-      if (mini.submit_cta?.href) {
-        actions.appendChild(createLinkButton(mini.submit_cta.label_raw, mini.submit_cta.href, 'secondary', 'sm'));
-      }
+      const activeSubmitHref = buildSubmitCallHref({
+        lane: deriveLaneFromCycle(active.cycle_raw) || 'in-dex-a',
+        cycle: text(active.cycle_raw),
+        via: 'call-sidebar',
+      });
+      actions.appendChild(createLinkButton(active.submit_cta?.label_raw || 'SUBMIT', activeSubmitHref, 'primary', 'sm'));
+      const miniSubmitHref = buildSubmitCallHref({
+        lane: deriveLaneFromCycle(mini.cycle_raw) || 'mini-dex',
+        cycle: text(mini.cycle_raw),
+        via: 'call-sidebar-mini',
+      });
+      actions.appendChild(createLinkButton(mini.submit_cta?.label_raw || 'SUBMIT MINI-DEX', miniSubmitHref, 'secondary', 'sm'));
       if (requirements.contact_link?.href) {
         actions.appendChild(createLinkButton(requirements.contact_link.label_raw, requirements.contact_link.href, 'secondary', 'sm'));
       }
@@ -393,9 +438,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     appendOptionalText(section, active.structure_raw, 'dx-call-copy');
     appendOptionalText(section, active.summary_raw, 'dx-call-copy');
 
-    if (active.submit_cta?.href) {
-      section.appendChild(createLinkButton(active.submit_cta.label_raw, active.submit_cta.href, 'primary', 'md'));
-    }
+    const submitHref = buildSubmitCallHref({
+      lane: deriveLaneFromCycle(active.cycle_raw) || 'in-dex-a',
+      cycle: text(active.cycle_raw),
+      via: 'call-status',
+    });
+    section.appendChild(createLinkButton(active.submit_cta?.label_raw || 'SUBMIT', submitHref, 'primary', 'md'));
 
     return section;
   }
@@ -420,6 +468,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
   function buildActive(model) {
     const active = model?.active_call || {};
+    const activeLane = normalizeLaneId(deriveLaneFromCycle(active.cycle_raw) || 'in-dex-a');
     const section = create('section', 'dx-call-surface dx-call-active dx-call-reveal');
     section.id = 'call-active';
 
@@ -443,6 +492,16 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       const card = create('article', 'dx-call-subcall-card');
       card.appendChild(create('h3', 'dx-call-subcall-title', text(subcall.heading_raw || '')));
       (subcall.body_raw || []).forEach((line) => appendOptionalText(card, line, 'dx-call-copy'));
+      const subcallId = deriveSubcallFromHeading(subcall.heading_raw);
+      if (subcallId && activeLane === 'in-dex-a') {
+        const subcallHref = buildSubmitCallHref({
+          lane: activeLane,
+          subcall: subcallId,
+          cycle: text(active.cycle_raw),
+          via: 'call-subcall',
+        });
+        card.appendChild(createLinkButton(`SUBMIT ${subcallId.toUpperCase()}`, subcallHref, 'secondary', 'sm'));
+      }
       subcallList.appendChild(card);
     });
     content.appendChild(subcallList);
@@ -453,9 +512,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     const railCard = create('div', 'dx-call-active-rail-card');
     railCard.appendChild(create('p', 'dx-call-rail-title', 'RELATTED LINKS'));
 
-    if (active.submit_cta?.href) {
-      railCard.appendChild(createLinkButton(active.submit_cta.label_raw, active.submit_cta.href, 'primary', 'md'));
-    }
+    const submitHref = buildSubmitCallHref({
+      lane: activeLane || 'in-dex-a',
+      cycle: text(active.cycle_raw),
+      via: 'call-active',
+    });
+    railCard.appendChild(createLinkButton(active.submit_cta?.label_raw || 'SUBMIT', submitHref, 'primary', 'md'));
 
     (active.related_links || []).forEach((link) => {
       railCard.appendChild(createLinkButton(link.label_raw, link.href, 'secondary', 'md'));
@@ -471,6 +533,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
   function buildMini(model) {
     const mini = model?.mini_call || {};
+    const miniLane = normalizeLaneId(deriveLaneFromCycle(mini.cycle_raw) || 'mini-dex');
     const section = create('section', 'dx-call-surface dx-call-mini dx-call-reveal');
     section.id = 'call-mini';
 
@@ -491,9 +554,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       }
     }
 
-    if (mini.submit_cta?.href) {
-      section.appendChild(createLinkButton(mini.submit_cta.label_raw, mini.submit_cta.href, 'primary', 'md'));
-    }
+    const submitHref = buildSubmitCallHref({
+      lane: miniLane || 'mini-dex',
+      cycle: text(mini.cycle_raw),
+      via: 'call-mini',
+    });
+    section.appendChild(createLinkButton(mini.submit_cta?.label_raw || 'SUBMIT', submitHref, 'primary', 'md'));
 
     return section;
   }
