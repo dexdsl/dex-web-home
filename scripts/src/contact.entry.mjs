@@ -172,6 +172,81 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return fallback;
   }
 
+  function randomizeHeadingBase(text, options = {}) {
+    const canonical = toText(text, '', 220).toUpperCase();
+    if (!canonical) return '';
+
+    try {
+      const headingFx = window.__dxHeadingFx;
+      if (headingFx && typeof headingFx.renderHeadingText === 'function') {
+        const rendered = headingFx.renderHeadingText(canonical, { ...options, uppercase: true });
+        const normalized = toText(rendered, '', 220).toUpperCase();
+        if (normalized) return normalized;
+      }
+    } catch {
+      // Ignore heading effect runtime errors and fall through.
+    }
+
+    try {
+      if (typeof window.randomizeTitle === 'function') {
+        const rendered = window.randomizeTitle(canonical, options);
+        const normalized = toText(rendered, '', 220).toUpperCase();
+        if (normalized) return normalized;
+      }
+    } catch {
+      // Ignore randomizeTitle runtime errors and fall through.
+    }
+
+    return canonical;
+  }
+
+  function injectDuplicateJoiners(renderedText, canonicalText) {
+    const rendered = toText(renderedText, '', 320);
+    const canonical = toText(canonicalText, '', 320)
+      .replace(/\u200C/g, '')
+      .replace(/\u200D/g, '');
+    if (!rendered) return '';
+
+    const ZWNJ = '\u200C';
+    const ZWJ = '\u200D';
+    let out = '';
+    let canonicalIndex = 0;
+
+    for (let index = 0; index < rendered.length; index += 1) {
+      const current = rendered[index];
+      const next = rendered[index + 1] || '';
+      out += current;
+
+      if (!next || current === ZWNJ || current === ZWJ || next === ZWNJ || next === ZWJ) continue;
+
+      const currentIsLetter = current.toLowerCase() !== current.toUpperCase();
+      const nextIsLetter = next.toLowerCase() !== next.toUpperCase();
+      if (!currentIsLetter || !nextIsLetter) {
+        const canonicalCurrent = canonical.charAt(canonicalIndex);
+        if (canonicalCurrent && canonicalCurrent.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
+        continue;
+      }
+
+      const canonicalCurrent = canonical.charAt(canonicalIndex);
+      if (canonicalCurrent && canonicalCurrent.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
+
+      if (current.toLowerCase() !== next.toLowerCase()) continue;
+
+      const canonicalNext = canonical.charAt(canonicalIndex);
+      const isCanonicalDuplicate = canonicalNext && canonicalNext.toLowerCase() === current.toLowerCase();
+      out += isCanonicalDuplicate ? ZWNJ : ZWJ;
+    }
+
+    return out;
+  }
+
+  function renderHeadingText(text, options = {}) {
+    const canonical = toText(text, '', 220).toUpperCase();
+    if (!canonical) return '';
+    const randomized = randomizeHeadingBase(canonical, options);
+    return injectDuplicateJoiners(randomized, canonical);
+  }
+
   function create(tag, className, textValue = null) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -416,7 +491,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     hero.setAttribute('data-dx-glass-card', 'true');
     hero.setAttribute('data-dx-hover-variant', 'magnetic');
     hero.appendChild(create('p', 'dx-contact-kicker', 'CONTACT'));
-    hero.appendChild(create('h1', 'dx-contact-title', 'Reach the right Dex team in one message.'));
+    hero.appendChild(create('h1', 'dx-contact-title', renderHeadingText('Reach the right Dex team in one message.')));
     hero.appendChild(create('p', 'dx-contact-copy', 'Choose a lane, share context, and we route your message with full metadata for faster triage.'));
     root.appendChild(hero);
 
@@ -430,7 +505,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     chooserCard.setAttribute('data-dx-glass-card', 'true');
     chooserCard.setAttribute('data-dx-hover-variant', 'magnetic');
     chooserCard.appendChild(create('p', 'dx-contact-kicker', 'STEP 1'));
-    chooserCard.appendChild(create('h2', 'dx-contact-section-title', 'What do you need help with?'));
+    chooserCard.appendChild(create('h2', 'dx-contact-section-title', renderHeadingText('What do you need help with?')));
     const chooserLead = create('p', 'dx-contact-copy');
     chooserCard.appendChild(chooserLead);
     const topicRow = create('div', 'dx-contact-topic-row');
@@ -441,7 +516,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     formCard.setAttribute('data-dx-glass-card', 'true');
     formCard.setAttribute('data-dx-hover-variant', 'magnetic');
     formCard.appendChild(create('p', 'dx-contact-kicker', 'STEP 2'));
-    formCard.appendChild(create('h2', 'dx-contact-section-title', 'Send your message'));
+    formCard.appendChild(create('h2', 'dx-contact-section-title', renderHeadingText('Send your message')));
     const topicContext = create('p', 'dx-contact-copy');
     formCard.appendChild(topicContext);
 
@@ -529,7 +604,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     statusCard.setAttribute('data-dx-glass-card', 'true');
     statusCard.setAttribute('data-dx-hover-variant', 'magnetic');
     statusCard.appendChild(create('p', 'dx-contact-kicker', 'DELIVERY'));
-    statusCard.appendChild(create('h3', 'dx-contact-rail-title', 'Routing and response windows'));
+    statusCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Routing and response windows')));
     const responseList = create('ul', 'dx-contact-rail-list');
     responseList.append(
       create('li', 'dx-contact-rail-item', 'General, partnerships, and rights requests are triaged by topic.'),
@@ -545,7 +620,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     linksCard.setAttribute('data-dx-glass-card', 'true');
     linksCard.setAttribute('data-dx-hover-variant', 'magnetic');
     linksCard.appendChild(create('p', 'dx-contact-kicker', 'SHORTCUTS'));
-    linksCard.appendChild(create('h3', 'dx-contact-rail-title', 'Common routes'));
+    linksCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Common routes')));
     const links = create('div', 'dx-contact-link-grid');
     const quickLinks = [
       { href: '/call/', label: 'ACTIVE CALLS' },
@@ -566,7 +641,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     newsletterCard.setAttribute('data-dx-glass-card', 'true');
     newsletterCard.setAttribute('data-dx-hover-variant', 'magnetic');
     newsletterCard.appendChild(create('p', 'dx-contact-kicker', 'NEWSLETTER'));
-    newsletterCard.appendChild(create('h3', 'dx-contact-rail-title', 'Get updates without sending a ticket'));
+    newsletterCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Get updates without sending a ticket')));
     newsletterCard.appendChild(create('p', 'dx-contact-copy', 'Subscribe for release notes, open calls, and route-level updates.'));
     const newsletterMount = create('div', 'dx-contact-newsletter-mount');
     newsletterMount.setAttribute('data-dx-marketing-newsletter-mount', config.newsletterSource);

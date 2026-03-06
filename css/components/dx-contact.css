@@ -49,6 +49,7 @@
   margin: 0;
   font-family: var(--font-heading, 'Stretch Pro', sans-serif);
   letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: rgba(17, 24, 39, 0.95);
 }
 
