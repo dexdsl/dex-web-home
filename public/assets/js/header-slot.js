@@ -625,7 +625,7 @@
   function syncProfileProtectedRouteState(pathname) {
     const isProtected = isProfileProtectedPath(pathname);
     const isStandardChrome = isProfileStandardChromePath(pathname);
-    const showMesh = isProfileShowMeshPath(pathname);
+    const showMesh = isProfileShowMeshPath(pathname) || isProtected;
     document.body.classList.toggle(PROFILE_PROTECTED_ROUTE_CLASS, isProtected);
     document.body.classList.toggle(PROFILE_STANDARD_CHROME_ROUTE_CLASS, isStandardChrome);
     document.body.classList.toggle(PROFILE_SHOW_MESH_ROUTE_CLASS, showMesh);

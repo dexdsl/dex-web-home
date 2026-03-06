@@ -1747,6 +1747,9 @@ body.dx-route-profile-protected :is(
 }
 
 body.dx-route-profile-protected #gooey-mesh-wrapper {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   z-index: var(--dx-layer-gooey) !important;
   pointer-events: none !important;
 }
@@ -2282,11 +2285,12 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
   }
 
   #dex-settings .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(372px, 0.44fr) !important;
     height: var(--dx-settings-content-h) !important;
     min-height: 0 !important;
     align-items: stretch !important;
     row-gap: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
-    column-gap: calc(var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 1.35) !important;
+    column-gap: calc(var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) * 1.55) !important;
   }
 
   #dex-settings .grid > main,
@@ -2315,7 +2319,7 @@ body.dx-route-profile-protected [data-dx-settings-host-section="true"] .section-
     overflow-x: hidden !important;
     overscroll-behavior-y: contain !important;
     scrollbar-gutter: stable both-edges !important;
-    padding-left: 2px !important;
+    padding-left: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
     padding-right: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
     padding-bottom: var(--dx-settings-shell-gap, var(--dx-profile-home-header-gap, 14px)) !important;
     scrollbar-width: thin !important;
