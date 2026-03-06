@@ -1,6 +1,6 @@
 {
   "source": "calls-registry",
-  "generated_at": "2026-03-06T05:45:08.267Z",
+  "generated_at": "2026-03-06T05:53:28.750Z",
   "registry": {
     "activeCallId": "in-dex-minidex-2023-2",
     "sequenceGroup": "inDex",
@@ -62,14 +62,15 @@
       "cycleCode": "B2025.5",
       "cycleLabel": "IN DEX B2025.5",
       "title": "Peabody partnership: music for new media internship",
-      "summary": "Internal partnership call for music-for-new-media students: internship with Dex for academic credit, with guest-at-the-helm collaboration responsibilities.",
+      "summary": "Submission window is closed. We are in interview stages now, no interns have been announced yet, and we expect to place 1-2 interns for the fall credit cycle.",
       "deadlineIso": "2025-08-15",
       "deadlineLabel": "",
       "notificationLabel": "NOTIFICATION BY 08/29",
       "structure": "",
       "body": [
         "Partnership-focused B-lane call for student editors/compositors to cull and shape documented performances into publishable sample narratives.",
-        "Selected interns worked alongside Dex staff for credit-bearing cycles and guest curation responsibilities."
+        "Submission is now closed and interviews are currently underway.",
+        "No interns have been announced yet. Target placement is 1-2 interns for a fall, credit-bearing Dex internship cycle."
       ],
       "subcalls": [],
       "relatedLinks": [],
@@ -77,8 +78,8 @@
       "imageSrc": "",
       "subcallsImageSrc": "",
       "pastPrompt": "peabody partnership for music-for-new-media students; internship with dex for credit",
-      "pastOutcome": "internal cohort completed internship cycle with Dex production leads",
-      "pastDateRange": "JUL 2025 - SEP 2025",
+      "pastOutcome": "submissions closed; interview stage in progress; interns not announced yet (target: 1-2 for fall cycle)",
+      "pastDateRange": "SUBMISSIONS CLOSED · INTERVIEWS IN PROGRESS",
       "internalMeta": {
         "source": "internal"
       }
@@ -237,7 +238,7 @@
   "hero": {
     "heading_raw": "in dex series",
     "subtitle_raw": "your way to join the library collection",
-    "credit_raw": "submission from Arlo Tomecek",
+    "credit_raw": "LANE MODULES: IN DEX A · IN DEX B · IN DEX C · MINI-DEX",
     "framing_raw": "what it is: throughout the year, we host calls for several needs.",
     "categories_intro_raw": "they are sorted into four categories:",
     "image_src": "/assets/img/b67920ca9214ffb7e1e2.png"
@@ -319,8 +320,8 @@
       {
         "cycle_raw": "IN DEX B2025.5",
         "prompt_raw": "peabody partnership for music-for-new-media students; internship with dex for credit",
-        "outcome_raw": "internal cohort completed internship cycle with Dex production leads",
-        "date_raw": "JUL 2025 - SEP 2025"
+        "outcome_raw": "submissions closed; interview stage in progress; interns not announced yet (target: 1-2 for fall cycle)",
+        "date_raw": "SUBMISSIONS CLOSED · INTERVIEWS IN PROGRESS"
       },
       {
         "cycle_raw": "IN DEX A2024.4",

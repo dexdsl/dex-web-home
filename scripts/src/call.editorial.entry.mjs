@@ -15,7 +15,6 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
   const BASE_SECTION_STEPS = [
     ['call-hero', 'PROGRAM BRIEF'],
     ['call-status', 'CURRENT STATUS'],
-    ['call-lanes', 'LANE MODULES'],
     ['call-active', 'ACTIVE CALL MODULE'],
     ['call-mini', 'MINI-DEX MODULE'],
     ['call-requireements', 'REQUIREMENT CHECKLIST'],
@@ -548,24 +547,6 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return section;
   }
 
-  function buildLanes(model) {
-    const section = create('section', 'dx-call-surface dx-call-lanes dx-call-reveal');
-    section.id = 'call-lanes';
-
-    section.appendChild(create('p', 'dx-call-kicker', 'LANE MODULES'));
-
-    const list = create('div', 'dx-call-lane-grid');
-    (model?.lanes || []).forEach((lane) => {
-      const card = create('article', 'dx-call-lane-card');
-      card.appendChild(create('h3', 'dx-call-lane-title', text(lane.code_raw || '')));
-      appendOptionalText(card, lane.body_raw, 'dx-call-copy');
-      list.appendChild(card);
-    });
-
-    section.appendChild(list);
-    return section;
-  }
-
   function buildActive(model) {
     const active = model?.active_call || {};
     const activeLane = normalizeLaneId(deriveLaneFromCycle(active.cycle_raw) || 'in-dex-a');
@@ -797,7 +778,6 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
     column.appendChild(buildHero(resolvedModel));
     column.appendChild(buildStatus(resolvedModel));
-    column.appendChild(buildLanes(resolvedModel));
     column.appendChild(buildActive(resolvedModel));
     if (text(resolvedModel?.mini_call?.cycle_raw)) {
       column.appendChild(buildMini(resolvedModel));
