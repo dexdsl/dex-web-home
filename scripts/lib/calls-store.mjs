@@ -16,6 +16,8 @@ import {
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(SCRIPT_DIR, '..', '..');
 const DEFAULT_CALLS_REGISTRY_PATH = path.join(ROOT, 'data', 'calls.registry.json');
+const PUBLIC_CALLS_REGISTRY_PATH = path.join(ROOT, 'public', 'data', 'calls.registry.json');
+const DOCS_CALLS_REGISTRY_PATH = path.join(ROOT, 'docs', 'data', 'calls.registry.json');
 
 function toText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -62,6 +64,17 @@ export async function writeCallsRegistry(data, customPath) {
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
+
+  if (!customPath || path.resolve(customPath) === DEFAULT_CALLS_REGISTRY_PATH) {
+    const mirrorTargets = [PUBLIC_CALLS_REGISTRY_PATH, DOCS_CALLS_REGISTRY_PATH];
+    await Promise.all(
+      mirrorTargets.map(async (targetPath) => {
+        await fs.mkdir(path.dirname(targetPath), { recursive: true });
+        await fs.writeFile(targetPath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
+      }),
+    );
+  }
+
   return {
     filePath,
     data: normalized,

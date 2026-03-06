@@ -9,6 +9,8 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
 
   const APP_SELECTOR = '[data-call-editorial-app]';
   const DATA_URL = '/data/call.data.json';
+  const REGISTRY_URL = '/data/calls.registry.json';
+  const EDITORIAL_COPY_URL = '/data/call.editorial.copy.json';
   const DEFAULT_NEWSLETTER_API = 'https://dex-api.spring-fog-8edd.workers.dev';
   const BASE_SECTION_STEPS = [
     ['call-hero', 'PROGRAM BRIEF'],
@@ -733,19 +735,6 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       timeline.appendChild(item);
     });
 
-    if (past.image_src) {
-      const image = createImage(past.image_src, headingText, 'dx-call-past-image');
-      if (image) {
-        const media = create('div', 'dx-call-past-media');
-        media.appendChild(image);
-        timeline.appendChild(media);
-      }
-    }
-
-    if (past.spotlight_link?.href) {
-      timeline.appendChild(createLinkButton(past.spotlight_link.label_raw, past.spotlight_link.href, 'secondary', 'sm'));
-    }
-
     section.appendChild(timeline);
     return section;
   }
@@ -856,9 +845,43 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return await response.json();
   }
 
+  function composeModelFromRegistry(registryRaw, editorialCopyRaw) {
+    const registry = registryRaw && typeof registryRaw === 'object' ? registryRaw : {};
+    const editorialCopy = editorialCopyRaw && typeof editorialCopyRaw === 'object' ? editorialCopyRaw : {};
+    return {
+      source: 'calls-registry-live',
+      registry: {
+        activeCallId: text(registry.activeCallId),
+        sequenceGroup: text(registry.sequenceGroup || 'inDex'),
+      },
+      calls: Array.isArray(registry.calls) ? registry.calls : [],
+      hero: editorialCopy.hero || {},
+      lanes: Array.isArray(editorialCopy.lanes) ? editorialCopy.lanes : [],
+      defaults: editorialCopy.defaults || {},
+      requirements: editorialCopy.requirements || {},
+      past_calls: {
+        ...(editorialCopy.past_calls || {}),
+      },
+      newsletter: editorialCopy.newsletter || {},
+    };
+  }
+
+  async function loadModel() {
+    try {
+      const [registry, editorialCopy] = await Promise.all([
+        loadJson(REGISTRY_URL),
+        loadJson(EDITORIAL_COPY_URL),
+      ]);
+      return composeModelFromRegistry(registry, editorialCopy);
+    } catch (registryError) {
+      const legacyModel = await loadJson(DATA_URL);
+      return legacyModel;
+    }
+  }
+
   async function boot() {
     try {
-      const model = await loadJson(DATA_URL);
+      const model = await loadModel();
       render(model);
     } catch (error) {
       renderError(error);

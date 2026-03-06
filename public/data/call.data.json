@@ -1,6 +1,6 @@
 {
   "source": "calls-registry",
-  "generated_at": "2026-03-06T05:38:00.518Z",
+  "generated_at": "2026-03-06T05:45:08.267Z",
   "registry": {
     "activeCallId": "in-dex-minidex-2023-2",
     "sequenceGroup": "inDex",
@@ -315,11 +315,6 @@
       "CALLS FOR",
       "COLLABORATION"
     ],
-    "spotlight_link": {
-      "label_raw": "Arlo Tomecek",
-      "href": "/entry/bassoon-and-electronics/"
-    },
-    "image_src": "/assets/img/8e67c54d3d6f5ead2a79.jpg",
     "entries": [
       {
         "cycle_raw": "IN DEX B2025.5",
