@@ -495,16 +495,17 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     section.appendChild(create('p', 'dx-call-kicker', 'IN DEX PROGRAM BRIEF'));
     section.appendChild(create('h1', 'dx-call-title', text(heroData.heading_raw || 'in dex series')));
     appendOptionalText(section, heroData.subtitle_raw, 'dx-call-subtitle');
-    appendOptionalText(section, heroData.credit_raw, 'dx-call-credit');
     appendOptionalText(section, heroData.framing_raw, 'dx-call-copy');
     appendOptionalText(section, heroData.categories_intro_raw, 'dx-call-copy');
 
-    const media = createImage(heroData.image_src, heroData.heading_raw || '', 'dx-call-hero-image');
-    if (media) {
-      const mediaWrap = create('div', 'dx-call-hero-media');
-      mediaWrap.appendChild(media);
-      section.appendChild(mediaWrap);
-    }
+    const laneGrid = create('div', 'dx-call-lane-grid');
+    (model?.lanes || []).forEach((lane) => {
+      const laneCard = create('article', 'dx-call-lane-card');
+      laneCard.appendChild(create('h3', 'dx-call-lane-title', text(lane.code_raw || '')));
+      appendOptionalText(laneCard, lane.body_raw, 'dx-call-copy');
+      laneGrid.appendChild(laneCard);
+    });
+    if (laneGrid.childElementCount > 0) section.appendChild(laneGrid);
 
     return section;
   }

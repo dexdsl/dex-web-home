@@ -139,16 +139,17 @@
       "cycleCode": "B2025.5",
       "cycleLabel": "IN DEX B2025.5",
       "title": "Peabody partnership: music for new media internship",
-      "summary": "Submission window is closed. We are in interview stages now, no interns have been announced yet, and we expect to place 1-2 interns for the fall credit cycle.",
+      "summary": "Submission is closed and we are currently in interview stages. No interns have been announced yet; the internship placement will be in the fall for 1-2 students.",
       "deadlineIso": "2025-08-15",
       "notificationLabel": "NOTIFICATION BY 08/29",
       "body": [
         "Partnership-focused B-lane call for student editors/compositors to cull and shape documented performances into publishable sample narratives.",
-        "Submission is now closed and interviews are currently underway.",
-        "No interns have been announced yet. Target placement is 1-2 interns for a fall, credit-bearing Dex internship cycle."
+        "Submission is closed and interviews are in progress.",
+        "No interns have been announced yet.",
+        "Internship placement will run in the fall for 1-2 students."
       ],
       "pastPrompt": "peabody partnership for music-for-new-media students; internship with dex for credit",
-      "pastOutcome": "submissions closed; interview stage in progress; interns not announced yet (target: 1-2 for fall cycle)",
+      "pastOutcome": "submissions closed; interview stage in progress; interns not announced yet",
       "pastDateRange": "SUBMISSIONS CLOSED · INTERVIEWS IN PROGRESS",
       "internalMeta": {
         "source": "internal"
