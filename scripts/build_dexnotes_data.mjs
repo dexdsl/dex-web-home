@@ -38,6 +38,24 @@ const DEFAULT_COMMENTS_CONFIG = {
   fallback_message_raw: 'Comments unavailable right now. Check back soon.',
 };
 
+const POLL_SHORTCODE_RE = /\[dx-poll\s+id=(?:"([^"]+)"|'([^']+)'|([^\]\s]+))\s*\]/gi;
+
+function normalizePollEmbedId(raw) {
+  const value = toText(raw).trim();
+  if (!value) return '';
+  const normalized = value.replace(/[^a-zA-Z0-9._:-]/g, '');
+  return normalized.slice(0, 128);
+}
+
+function replacePollShortcodes(body) {
+  const source = String(body || '');
+  return source.replace(POLL_SHORTCODE_RE, (_match, dq, sq, bare) => {
+    const id = normalizePollEmbedId(dq || sq || bare || '');
+    if (!id) return '';
+    return `<div data-dx-poll-embed="true" data-dx-poll-mode="compact" data-dx-poll-id="${id}"></div>`;
+  });
+}
+
 function ensureFrontmatter(frontmatter, sourcePath) {
   for (const key of REQUIRED_FRONTMATTER_KEYS) {
     if (!(key in frontmatter)) {
@@ -72,7 +90,8 @@ function buildEntryFromMarkdown(filePath) {
 
   const bodyMode = toText(frontmatter.body_mode).trim();
   const rawBody = parsed.body;
-  const bodyHtml = bodyMode === 'raw_html' ? rawBody : compileMarkdownToHtml(rawBody);
+  const transformedBody = replacePollShortcodes(rawBody);
+  const bodyHtml = bodyMode === 'raw_html' ? transformedBody : compileMarkdownToHtml(transformedBody);
 
   const publishedIso = toText(frontmatter.published_at_iso).trim();
   const publishedTs = parseDateIsoToTimestamp(publishedIso);
@@ -104,7 +123,7 @@ function buildEntryFromMarkdown(filePath) {
     legacy_prev_slug_raw: toText(frontmatter.legacy_prev_slug_raw || '').trim(),
     legacy_next_slug_raw: toText(frontmatter.legacy_next_slug_raw || '').trim(),
     source_file_raw: path.relative(ROOT, filePath),
-    body_raw: rawBody,
+    body_raw: transformedBody,
     body_html: bodyHtml,
     route_path: `/dexnotes/${toText(frontmatter.slug).trim()}/`,
     published_ts: publishedTs,

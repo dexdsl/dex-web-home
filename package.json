@@ -111,6 +111,8 @@
     "newsletter:marketing:build": "node scripts/build-marketing-newsletter-site.mjs",
     "polls:build": "node scripts/build-polls.mjs",
     "polls:verify": "node scripts/verify_polls_contract.mjs",
+    "verify:polls-embed": "node scripts/verify_polls_embed_contract.mjs",
+    "verify:polls-cli": "node scripts/verify_polls_cli_contract.mjs",
     "polls:all": "npm run polls:build && npm run polls:verify",
     "assets:validate": "node scripts/dex.mjs assets validate",
     "assets:diff": "node scripts/dex.mjs assets diff --env test",
@@ -169,7 +171,8 @@
     "ref:tokens": "node scripts/reference_tokens.mjs",
     "ref:visual": "PLAYWRIGHT_SKIP_WEBSERVER=1 LOCAL_BASE_URL=http://127.0.0.1:4173 playwright test tests/visual-reference.spec.ts",
     "baseline:from-ref": "npm run ref:capture && npm run ref:tokens && npm run ref:visual",
-    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:settings-membership-ui && npm run verify:catalog-editorial && npm run verify:catalog-seasons && npm run verify:home-featured && npm run verify:entry-catalog-linkage && npm run verify:entry-runtime-readiness && npm run verify:entry-sidebar && npm run verify:protected-assets && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:recording-index-token && npm run test:credits-links-compile && npm run test:dex-workspace-config && npm run test:download-tree-plot-model && npm run test:entry-sidebar-downloads && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual"
+    "phase0-2:all": "npm run vendor:auth0 && npm run repo:discover && npm run sanitize:scan && npm run sanitize:assets && npm run verify:no-legacy-cdn-images && npm run verify:no-dead-static-refs && npm run verify:assets && npm run verify:hdr && npm run verify:settings-membership-ui && npm run verify:catalog-editorial && npm run verify:catalog-seasons && npm run verify:home-featured && npm run verify:entry-catalog-linkage && npm run verify:entry-runtime-readiness && npm run verify:entry-sidebar && npm run verify:protected-assets && npm run verify:submission-tracker && npm run verify:submission-lookup && npm run verify:submit-ui && npm run verify:pressroom-ui && npm run verify:newsletter && npm run verify:heading-zwnj && npm run verify:mobile-viewport && npm run verify:hover-motion && npm run phase2:all && npm run test:protected-assets && npm run test:asset-ref && npm run test:recording-index-token && npm run test:credits-links-compile && npm run test:dex-workspace-config && npm run test:download-tree-plot-model && npm run test:entry-sidebar-downloads && npm run test:input-guard-paste && npm run test:entry-runtime-audit && npm run test:entry-catalog-linkage && npm run test:entry-link-command && npm run test:update && npm run test:dex-catalog-cli && npm run test:dex-home-featured-cli && npm run test:dex-notes-cli && npm run test:net && npm run test:polls-routing && npm run test:achievements-loading && npm run test:favorites-lookup && npm run test:catalog-season-unannounced && npm run test:messages-notifications && npm run test:submission-tracker && npm run test:submission-lookup && npm run test:submit-samples-ux && npm run test:pressroom-ux && npm run test:newsletter && npm run test:error-support && npm run test:heading-zwnj && npm run test:hover-motion && npm run test:profile-mobile-shell && npm run test:visual",
+    "test:dex-links-cli": "node scripts/test-dex-links-cli.mjs"
   },
   "bin": {
     "dex": "scripts/dex.mjs"
@@ -191,6 +194,7 @@
     "framer-motion": "12.23.24",
     "fuse.js": "^7.1.0",
     "ink": "^6.8.0",
+    "kuva": "github:Psy-Fer/kuva",
     "prompts": "^2.4.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

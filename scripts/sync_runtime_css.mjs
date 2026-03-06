@@ -126,6 +126,10 @@ const SYNC_MAP = [
     targets: ['css/components/dx-marketing-newsletter.css', 'docs/css/components/dx-marketing-newsletter.css'],
   },
   {
+    source: 'public/css/components/dx-polls-embed.css',
+    targets: ['css/components/dx-polls-embed.css', 'docs/css/components/dx-polls-embed.css'],
+  },
+  {
     source: 'public/css/components/dx-submit-samples.css',
     targets: ['css/components/dx-submit-samples.css', 'docs/css/components/dx-submit-samples.css'],
   },

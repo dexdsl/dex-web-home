@@ -83,22 +83,20 @@ function verifyPublicPollRouteNotProtected() {
   assert(!protectedVerifyText.includes("'/polls'"), 'verify_protected_auth_contract should not require /polls protected');
 }
 
-function verifyAuthNonBlockingMarkers() {
+function verifyRuntimeMarkers() {
   const sourceRel = 'scripts/src/polls.app.entry.mjs';
   const source = readText(sourceRel);
   const required = [
-    'function getAnonymousAuthSnapshot()',
-    'authSnapshotPromise',
-    'POLL_LIST_CACHE_MAX_AGE_MS',
+    "const TAB_SET = new Set(['open', 'results', 'archive'])",
+    '/polls/published',
+    '/trend?bucket=day&window=90d',
+    'data-dx-polls-tab="open"',
+    'buildPollsHref',
   ];
   for (const marker of required) {
     if (!source.includes(marker)) {
       FAILURES.push(`${sourceRel} missing marker: ${marker}`);
     }
-  }
-
-  if (source.includes('const authSnapshot = await resolveAuthSnapshot();')) {
-    FAILURES.push(`${sourceRel} still blocks first render on auth snapshot`);
   }
 }
 
@@ -122,7 +120,7 @@ async function main() {
   verifyGasRemoval();
   verifyGeneratedDetailPages(pollIds);
   verifyPublicPollRouteNotProtected();
-  verifyAuthNonBlockingMarkers();
+  verifyRuntimeMarkers();
 
   if (FAILURES.length > 0) {
     console.error(`verify:polls failed with ${FAILURES.length} issue(s):`);

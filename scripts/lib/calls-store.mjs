@@ -23,6 +23,19 @@ function toText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
+function toRegistryInput(data) {
+  const input = data && typeof data === 'object' && !Array.isArray(data)
+    ? data
+    : {};
+  return {
+    version: CALLS_REGISTRY_VERSION,
+    updatedAt: toText(input.updatedAt) || new Date().toISOString(),
+    sequenceGroup: 'inDex',
+    activeCallId: toText(input.activeCallId),
+    calls: Array.isArray(input.calls) ? input.calls : [],
+  };
+}
+
 function slugify(value) {
   return toText(value)
     .toLowerCase()
@@ -88,7 +101,7 @@ export function findCallById(data, callId) {
 }
 
 export function setActiveCall(data, callId) {
-  const normalized = normalizeCallsRegistry(data || defaultCallsRegistryData());
+  const normalized = normalizeCallsRegistry(toRegistryInput(data));
   const targetId = toText(callId);
   const target = normalized.calls.find((call) => call.id === targetId);
   if (!target) throw new Error(`call not found: ${targetId}`);
@@ -107,7 +120,7 @@ export function setActiveCall(data, callId) {
 }
 
 export function clearActiveCall(data) {
-  const normalized = normalizeCallsRegistry(data || defaultCallsRegistryData());
+  const normalized = normalizeCallsRegistry(toRegistryInput(data));
   const calls = normalized.calls.map((call) => (call.status === 'active' ? { ...call, status: 'past' } : call));
   return normalizeCallsRegistry({
     ...normalized,
@@ -117,7 +130,7 @@ export function clearActiveCall(data) {
 }
 
 export function upsertCall(data, callInput) {
-  const normalized = normalizeCallsRegistry(data || defaultCallsRegistryData());
+  const normalized = normalizeCallsRegistry(toRegistryInput(data));
   const nextCall = { ...(callInput || {}) };
   const id = toText(nextCall.id);
   if (!id) throw new Error('call id is required');
@@ -153,7 +166,7 @@ export function createCallDraft(data, {
   deadlineIso = '',
   notificationLabel = '',
 } = {}) {
-  const normalized = normalizeCallsRegistry(data || defaultCallsRegistryData());
+  const normalized = normalizeCallsRegistry(toRegistryInput(data));
   const safeLane = normalizeCallLane(lane);
   if (!safeLane) throw new Error(`invalid lane: ${lane}`);
   const safeYear = Number(year);
@@ -199,7 +212,7 @@ export function createCallDraft(data, {
 }
 
 export function listCalls(data, { status = 'all' } = {}) {
-  const normalized = normalizeCallsRegistry(data || defaultCallsRegistryData());
+  const normalized = normalizeCallsRegistry(toRegistryInput(data));
   const calls = sortCallsBySequenceDesc(normalized.calls);
   if (status === 'active' || status === 'past' || status === 'draft') {
     return calls.filter((call) => call.status === status);

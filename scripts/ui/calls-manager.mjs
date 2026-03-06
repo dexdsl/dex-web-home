@@ -31,17 +31,18 @@ export function CallsManager({ onExit, width = 100, height = 24 }) {
   const [statusLine, setStatusLine] = useState('Loading calls registry…');
   const [showDetails, setShowDetails] = useState(false);
 
-  const calls = useMemo(() => listCalls(registry || { calls: [] }, { status: 'all' }), [registry]);
+  const calls = useMemo(() => listCalls(registry, { status: 'all' }), [registry]);
   const selectedCall = calls[selectedIndex] || null;
 
   const reload = useCallback(async ({ keepId } = {}) => {
     setBusy(true);
     try {
       const { data, filePath: nextPath } = await readCallsRegistry();
+      const nextCalls = listCalls(data, { status: 'all' });
       setRegistry(data);
       setFilePath(nextPath);
-      if (Array.isArray(data.calls) && data.calls.length) {
-        const keepIndex = keepId ? calls.findIndex((call) => call.id === keepId) : -1;
+      if (nextCalls.length) {
+        const keepIndex = keepId ? nextCalls.findIndex((call) => call.id === keepId) : -1;
         setSelectedIndex(keepIndex >= 0 ? keepIndex : 0);
       } else {
         setSelectedIndex(0);
@@ -52,7 +53,7 @@ export function CallsManager({ onExit, width = 100, height = 24 }) {
     } finally {
       setBusy(false);
     }
-  }, [calls]);
+  }, []);
 
   useEffect(() => {
     reload().catch(() => {});

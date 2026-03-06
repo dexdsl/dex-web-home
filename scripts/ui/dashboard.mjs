@@ -20,6 +20,7 @@ import { HomeFeaturedManager } from './home-featured-manager.mjs';
 import { DexNotesManager } from './dex-notes-manager.mjs';
 import { ProtectedAssetsManager } from './protected-assets-manager.mjs';
 import { EntryAuditManager } from './entry-audit-manager.mjs';
+import { LinksManager } from './links-manager.mjs';
 
 const MENU_SECTIONS = [
   {
@@ -48,6 +49,7 @@ const MENU_SECTIONS = [
     id: 'infrastructure',
     label: 'Infrastructure Commands',
     items: [
+      { id: 'links', label: 'Links', description: 'Open staff operational links in your default browser' },
       { id: 'assets', label: 'Assets', description: 'Validate/publish protected asset lookups (Esc to return)' },
       { id: 'status', label: 'Status', description: 'Manage status incidents and generate incident pages' },
       { id: 'deploy', label: 'Deploy', description: 'Push current branch to origin (staff shortcut)' },
@@ -56,7 +58,7 @@ const MENU_SECTIONS = [
   },
 ];
 const MENU_ITEMS = MENU_SECTIONS.flatMap((section) => section.items);
-const MODE_ITEMS = new Set(['init', 'update', 'doctor', 'entry-audit', 'polls', 'calls', 'catalog', 'home', 'notes', 'assets', 'status', 'newsletter']);
+const MODE_ITEMS = new Set(['init', 'update', 'doctor', 'entry-audit', 'polls', 'calls', 'catalog', 'home', 'notes', 'links', 'assets', 'status', 'newsletter']);
 const PALETTE_ITEMS = MENU_ITEMS.map((item) => item.id);
 const LOGO = [
   '██████╗ ███████╗██╗  ██╗',
@@ -331,6 +333,12 @@ function DashboardApp({ initialPaletteOpen, initialMode = 'menu', version, noAni
               })
               : mode === 'notes'
               ? React.createElement(DexNotesManager, {
+                onExit: () => setMode('menu'),
+                width: Math.max(60, cols - 8),
+                height: Math.max(12, workspaceHeight - 2),
+              })
+              : mode === 'links'
+              ? React.createElement(LinksManager, {
                 onExit: () => setMode('menu'),
                 width: Math.max(60, cols - 8),
                 height: Math.max(12, workspaceHeight - 2),

@@ -1,5 +1,6 @@
 import { bindDexButtonMotion, bindPaginationMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
+import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined') return;
@@ -484,6 +485,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     tuneBodyLinks(app);
     bindProgress();
     scheduleProgressUpdate();
+    Promise.resolve().then(() => mountPollEmbeds({ root: app })).catch(() => {});
   }
 
   async function loadJson(url) {

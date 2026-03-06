@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { runCallCommand } from './lib/calls-cli.mjs';
+import { listCalls } from './lib/calls-store.mjs';
 
 const ROOT = process.cwd();
 const CALLS_PATH = path.join(ROOT, 'data', 'calls.registry.json');
@@ -15,6 +16,10 @@ async function readJson(filePath) {
 }
 
 async function main() {
+  const safeList = listCalls({ calls: [] }, { status: 'all' });
+  assert(Array.isArray(safeList), 'listCalls should accept partial registry inputs');
+  assert.equal(safeList.length, 0, 'listCalls partial registry should return empty array');
+
   const originalCalls = await fs.readFile(CALLS_PATH, 'utf8');
   const originalPolls = await fs.readFile(POLLS_PATH, 'utf8');
   await fs.mkdir(path.dirname(TMP_CALLS_PATH), { recursive: true });

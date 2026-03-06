@@ -265,8 +265,8 @@ async function main() {
     const pollId = String(poll.id || '').trim();
     if (!pollId) continue;
     const detailMeta = {
-      title: `${poll.question} — Dex Poll`,
-      description: poll.question,
+      title: `${String(poll.question || 'Poll detail').trim()} — Dex Polls`,
+      description: `Dex poll detail for ${String(poll.question || pollId).trim()}.`,
       canonicalPath: `/polls/${encodeURIComponent(pollId)}/`,
       imageSrc: '/assets/img/7142b356c8cfe9d18b7c.png',
     };

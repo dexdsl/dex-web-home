@@ -1,0 +1,110 @@
+.dx-polls-embed-card {
+  display: grid;
+  gap: 10px;
+  padding: clamp(12px, 1.5vw, 16px);
+  border-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
+  background: var(--dx-header-glass-bg);
+  border: 1px solid var(--dx-header-glass-rim);
+  box-shadow: var(--dx-header-glass-shadow);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .dx-polls-embed-card {
+    -webkit-backdrop-filter: var(--dx-header-glass-backdrop);
+    backdrop-filter: var(--dx-header-glass-backdrop);
+  }
+}
+
+.dx-polls-embed-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dx-polls-embed-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid rgba(38, 42, 52, 0.24);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dx-polls-embed-chip.is-members {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(18, 22, 30, 0.9);
+}
+
+.dx-polls-embed-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.02rem, 1.3vw, 1.2rem);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.dx-polls-embed-meta,
+.dx-polls-embed-lock,
+.dx-polls-embed-error {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--dx-color-text-muted, #5e6270);
+}
+
+.dx-polls-embed-error {
+  color: #681212;
+}
+
+.dx-polls-embed-options {
+  display: grid;
+  gap: 8px;
+}
+
+.dx-polls-embed-option {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: var(--dx-radius-sm, 8px);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dx-polls-embed-option[disabled] {
+  opacity: 0.84;
+  cursor: default;
+}
+
+.dx-polls-embed-option.is-selected {
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 26, 0.45);
+}
+
+.dx-polls-embed-option-label {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--dx-color-text, #1e2129);
+}
+
+.dx-polls-embed-option-value {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--dx-color-text-muted, #5e6270);
+}
+
+.dx-polls-embed-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

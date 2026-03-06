@@ -20,6 +20,7 @@ import { runDeployShortcut } from './lib/deploy.mjs';
 import { writeEntryFromData } from './lib/entry-run.mjs';
 import { ensureWorkspaceConfig, runDexSetup } from './lib/dex-setup.mjs';
 import { isSupportedRepoKey, resolveRepoRoot } from './lib/dex-workspace-config.mjs';
+import { listStaffLinkGroups, normalizeLinkToken } from './lib/staff-links.mjs';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 
@@ -377,6 +378,10 @@ function parseTopLevelMode(argv) {
     const idx = args.indexOf(firstNonFlag);
     return { mode: 'direct-command', paletteOpen: false, command: 'setup', rest: args.slice(idx + 1) };
   }
+  if (firstNonFlag === 'links') {
+    const idx = args.indexOf(firstNonFlag);
+    return { mode: 'direct-command', paletteOpen: false, command: 'links', rest: args.slice(idx + 1) };
+  }
   return { mode: 'legacy', paletteOpen: false, command: null, rest: args };
 }
 
@@ -494,6 +499,19 @@ async function runPollsCommand(rest = []) {
   const { allocateNextInDexSequence, buildPollCallRef, normalizeCallRef } = await import('./lib/call-lookup.mjs');
   const { validatePollsFile } = await import('./lib/polls-schema.mjs');
   const { publishPolls } = await import('./lib/polls-publish.mjs');
+  const {
+    getAdminPollOverview,
+    getAdminPollLive,
+    getAdminPollTrend,
+    getAdminPollSnapshots,
+    publishAdminPollSnapshot,
+    promoteAdminPollSnapshot,
+  } = await import('./lib/polls-admin-api.mjs');
+  const {
+    renderLineTrend,
+    renderStackedOptionTrend,
+    renderVelocityTrend,
+  } = await import('./lib/polls-kuva.mjs');
   const { runPollsScreen } = await import('./ui/polls-screen.mjs');
 
   const parsed = parsePollsCommandArgs(rest);
@@ -518,7 +536,7 @@ async function runPollsCommand(rest = []) {
         return;
       }
     }
-    console.log('Usage: dex polls <validate|create|edit|close|open|publish> [args]');
+    console.log('Usage: dex polls <validate|create|edit|close|open|publish|overview|live|trend|snapshots|publish-results|promote-results> [args]');
     return;
   }
 
@@ -537,6 +555,205 @@ async function runPollsCommand(rest = []) {
       ? ` events sent=${result.events.sent || 0} failed=${result.events.failed || 0} skipped=${result.events.skipped || 0}`
       : '';
     console.log(`polls:publish (${result.env}) synced ${result.count} polls -> ${result.apiBase}${eventSummary}`);
+    return;
+  }
+
+  const printVoteRows = (options = [], countsRaw = {}, totalRaw = 0) => {
+    const total = Math.max(0, Number(totalRaw) || 0);
+    const counts = countsRaw && typeof countsRaw === 'object' ? countsRaw : {};
+    options.forEach((label, index) => {
+      const count = Math.max(0, Number(counts[String(index)] ?? counts[index] ?? 0) || 0);
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      console.log(`  ${String(index + 1).padStart(2)}. ${String(label || '').padEnd(42)} ${String(count).padStart(5)} (${String(pct).padStart(3)}%)`);
+    });
+  };
+
+  const toTrendSeries = (payload) => {
+    const trend = payload?.trend && typeof payload.trend === 'object' ? payload.trend : payload;
+    const candidates = [
+      trend?.series,
+      trend?.totals,
+      trend?.points,
+      trend?.rows,
+      trend?.trend,
+    ];
+    const list = candidates.find((item) => Array.isArray(item)) || [];
+    return list.map((row) => ({
+      t: String(row?.t || row?.bucket || row?.timestamp || row?.date || row?.label || '').trim(),
+      value: Number(row?.value ?? row?.count ?? row?.total ?? 0) || 0,
+    })).filter((row) => row.t);
+  };
+
+  const toTrendSeriesByOption = (payload) => {
+    const trend = payload?.trend && typeof payload.trend === 'object' ? payload.trend : payload;
+    const out = {};
+    if (trend?.seriesByOption && typeof trend.seriesByOption === 'object' && !Array.isArray(trend.seriesByOption)) {
+      for (const [key, value] of Object.entries(trend.seriesByOption)) {
+        if (!Array.isArray(value)) continue;
+        out[key] = value.map((row) => ({
+          t: String(row?.t || row?.bucket || row?.timestamp || row?.date || row?.label || '').trim(),
+          value: Number(row?.value ?? row?.count ?? row?.total ?? 0) || 0,
+        })).filter((row) => row.t);
+      }
+      return out;
+    }
+    if (Array.isArray(trend?.options)) {
+      for (const option of trend.options) {
+        const key = String(option?.label || option?.name || option?.option || option?.index || '').trim();
+        const points = Array.isArray(option?.series) ? option.series : [];
+        if (!key || !points.length) continue;
+        out[key] = points.map((row) => ({
+          t: String(row?.t || row?.bucket || row?.timestamp || row?.date || row?.label || '').trim(),
+          value: Number(row?.value ?? row?.count ?? row?.total ?? 0) || 0,
+        })).filter((row) => row.t);
+      }
+    }
+    return out;
+  };
+
+  const readSummaryFile = async (summaryFile) => {
+    const absolute = path.resolve(summaryFile);
+    const content = await fs.readFile(absolute, 'utf8');
+    const trimmed = String(content || '').trim();
+    if (!trimmed) throw new Error(`Summary file is empty: ${absolute}`);
+    return trimmed;
+  };
+
+  if (subcommand === 'overview') {
+    const env = flags.get('--env') || 'test';
+    const windowValue = flags.get('--window') || '30d';
+    const { payload, apiBase } = await getAdminPollOverview({ env, window: windowValue });
+    const overview = payload?.overview && typeof payload.overview === 'object' ? payload.overview : payload;
+    console.log(`polls:overview (${env}) via ${apiBase}`);
+    if (overview?.totals && typeof overview.totals === 'object') {
+      const totals = overview.totals;
+      console.log(`  open=${totals.open ?? 0} closed=${totals.closed ?? 0} draft=${totals.draft ?? 0} votes=${totals.votes ?? 0}`);
+    }
+    const rows = Array.isArray(overview?.polls) ? overview.polls : [];
+    if (!rows.length) {
+      console.log('  no poll rows returned.');
+      return;
+    }
+    for (const row of rows) {
+      const id = String(row?.pollId || row?.id || '').trim() || '(unknown)';
+      const status = String(row?.status || '-').padEnd(6);
+      const votes = String(Math.max(0, Number(row?.votes ?? row?.totalVotes ?? 0) || 0)).padStart(5);
+      const closeAt = String(row?.closeAt || row?.close_at || '').slice(0, 10) || 'n/a';
+      console.log(`  ${id.padEnd(40)} ${status} votes:${votes} close:${closeAt}`);
+    }
+    return;
+  }
+
+  if (subcommand === 'live') {
+    const env = flags.get('--env') || 'test';
+    const pollId = values[0] || flags.get('--id');
+    if (!pollId) throw new Error('polls:live requires a poll id');
+    const { payload, apiBase } = await getAdminPollLive({ pollId, env });
+    const live = payload?.live && typeof payload.live === 'object' ? payload.live : payload;
+    const poll = live?.poll || {};
+    const options = Array.isArray(poll?.options) ? poll.options : [];
+    const counts = live?.counts && typeof live.counts === 'object' ? live.counts : {};
+    const total = Number(live?.total ?? live?.totalVotes ?? 0) || 0;
+    console.log(`polls:live (${env}) ${pollId} via ${apiBase}`);
+    console.log(`  question: ${String(poll?.question || 'n/a')}`);
+    console.log(`  status: ${String(poll?.status || 'n/a')} visibility: ${String(poll?.visibility || 'n/a')} total:${total}`);
+    printVoteRows(options, counts, total);
+    return;
+  }
+
+  if (subcommand === 'trend') {
+    const env = flags.get('--env') || 'test';
+    const pollId = values[0] || flags.get('--id');
+    const windowValue = flags.get('--window') || '90d';
+    const bucket = flags.get('--bucket') || 'day';
+    const chart = (flags.get('--chart') || 'line').toLowerCase();
+    if (!pollId) throw new Error('polls:trend requires a poll id');
+
+    const { payload, apiBase } = await getAdminPollTrend({
+      pollId,
+      env,
+      window: windowValue,
+      bucket,
+    });
+    if (flags.has('--json')) {
+      console.log(JSON.stringify(payload, null, 2));
+      return;
+    }
+    const series = toTrendSeries(payload);
+    const seriesByOption = toTrendSeriesByOption(payload);
+    let chartText = '';
+    if (chart === 'stack' || chart === 'stacked') {
+      chartText = await renderStackedOptionTrend(seriesByOption, {
+        title: `polls:trend ${pollId} (${windowValue}/${bucket})`,
+      });
+    } else if (chart === 'velocity') {
+      chartText = await renderVelocityTrend(series, {
+        title: `polls:trend velocity ${pollId} (${windowValue}/${bucket})`,
+      });
+    } else {
+      chartText = await renderLineTrend(series, {
+        title: `polls:trend ${pollId} (${windowValue}/${bucket})`,
+      });
+    }
+    console.log(`polls:trend (${env}) ${pollId} via ${apiBase}`);
+    console.log(chartText);
+    return;
+  }
+
+  if (subcommand === 'snapshots') {
+    const env = flags.get('--env') || 'test';
+    const pollId = values[0] || flags.get('--id');
+    if (!pollId) throw new Error('polls:snapshots requires a poll id');
+    const { payload, apiBase } = await getAdminPollSnapshots({ pollId, env });
+    const snapshots = Array.isArray(payload?.snapshots) ? payload.snapshots : (Array.isArray(payload?.items) ? payload.items : []);
+    console.log(`polls:snapshots (${env}) ${pollId} via ${apiBase}`);
+    if (!snapshots.length) {
+      console.log('  no snapshots');
+      return;
+    }
+    for (const item of snapshots) {
+      const version = Number(item?.version || 0);
+      const state = String(item?.state || 'draft');
+      const publishedAt = String(item?.publishedAt || item?.published_at || '').slice(0, 19) || '-';
+      const createdAt = String(item?.createdAt || item?.created_at || '').slice(0, 19) || '-';
+      const headline = String(item?.headline || '').trim();
+      console.log(`  v${String(version).padStart(2)}  ${state.padEnd(9)}  created:${createdAt}  published:${publishedAt}${headline ? `  ${headline}` : ''}`);
+    }
+    return;
+  }
+
+  if (subcommand === 'publish-results') {
+    const env = flags.get('--env') || 'test';
+    const pollId = values[0] || flags.get('--id');
+    const summaryFile = flags.get('--summary-file');
+    const headline = flags.get('--headline') || '';
+    const draft = flags.has('--draft');
+    if (!pollId) throw new Error('polls:publish-results requires a poll id');
+    if (!summaryFile) throw new Error('polls:publish-results requires --summary-file <path>');
+    const summaryMarkdown = await readSummaryFile(summaryFile);
+    const { payload, apiBase } = await publishAdminPollSnapshot({
+      pollId,
+      env,
+      summaryMarkdown,
+      headline,
+      publish: !draft,
+      trendWindow: flags.get('--window') || '90d',
+      idempotencyKey: flags.get('--idempotency-key') || '',
+    });
+    console.log(`polls:publish-results (${env}) ${pollId} via ${apiBase}`);
+    console.log(`  version: ${payload?.version ?? '-'} state: ${payload?.state ?? '-'} publishedAt: ${payload?.publishedAt ?? '-'}`);
+    return;
+  }
+
+  if (subcommand === 'promote-results') {
+    const env = flags.get('--env') || 'test';
+    const pollId = values[0] || flags.get('--id');
+    const version = Number(flags.get('--version') || values[1] || 0);
+    if (!pollId) throw new Error('polls:promote-results requires a poll id');
+    if (!Number.isFinite(version) || version <= 0) throw new Error('polls:promote-results requires --version <n>');
+    const { payload, apiBase } = await promoteAdminPollSnapshot({ pollId, version, env });
+    console.log(`polls:promote-results (${env}) ${pollId} via ${apiBase}`);
+    console.log(`  version: ${payload?.version ?? version} state: ${payload?.state ?? '-'} updatedAt: ${payload?.publishedAt || payload?.updatedAt || '-'}`);
     return;
   }
 
@@ -679,6 +896,95 @@ async function runNotesCommand(rest = []) {
     return;
   }
   await runDexNotesCommand(rest);
+}
+
+function printLinksUsage() {
+  console.log('Usage: dex links [list] [group] [--group <id>] [--json]');
+  console.log('  dex links');
+  console.log('  dex links sheets');
+  console.log('  dex links --group admin');
+  console.log('  dex links --json');
+}
+
+function parseLinksCommandArgs(rest = []) {
+  let subcommand = '';
+  const flags = new Map();
+  const values = [];
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = String(rest[index] || '');
+    if (arg.startsWith('--')) {
+      const [name, inlineValue] = arg.split('=', 2);
+      if (inlineValue !== undefined) {
+        flags.set(name, inlineValue);
+        continue;
+      }
+      const next = String(rest[index + 1] || '');
+      if (next && !next.startsWith('--')) {
+        flags.set(name, next);
+        index += 1;
+        continue;
+      }
+      flags.set(name, 'true');
+      continue;
+    }
+    if (!subcommand) {
+      subcommand = arg;
+      continue;
+    }
+    values.push(arg);
+  }
+  return { subcommand, flags, values };
+}
+
+async function runLinksCommand(rest = []) {
+  const parsed = parseLinksCommandArgs(rest);
+  const { subcommand, flags, values } = parsed;
+  if (!subcommand && flags.size === 0 && values.length === 0 && process.stdout.isTTY && process.stdin.isTTY) {
+    const { runDashboard } = await import('./ui/dashboard.mjs');
+    await runDashboard(dashboardContext({
+      initialMode: 'links',
+      version: JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8')).version || 'dev',
+    }));
+    return;
+  }
+  const actionToken = normalizeLinkToken(subcommand);
+
+  if (actionToken === 'help' || actionToken === '--help' || actionToken === '-h' || flags.has('--help')) {
+    printLinksUsage();
+    return;
+  }
+
+  const action = !actionToken || actionToken === 'list' ? 'list' : 'group';
+  const groupToken = action === 'list'
+    ? normalizeLinkToken(flags.get('--group') || values[0] || '')
+    : actionToken;
+
+  const groups = listStaffLinkGroups(groupToken);
+  if (!groups.length) {
+    throw new Error(`links: unknown group "${groupToken}"`);
+  }
+
+  const asJson = flags.has('--json');
+  if (asJson) {
+    console.log(JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      groups: groups.map((group) => ({
+        id: group.id,
+        label: group.label,
+        links: group.links,
+      })),
+    }, null, 2));
+    return;
+  }
+
+  console.log('DEX staff links');
+  console.log('--------------');
+  for (const group of groups) {
+    console.log(`\n[${group.label}]`);
+    for (const link of group.links) {
+      console.log(`- ${link.label}: ${link.url}`);
+    }
+  }
 }
 
 function parseBooleanFlag(value, fallback = false) {
@@ -1681,6 +1987,11 @@ if (topLevel.mode === 'direct-command' && topLevel.command === 'deploy') {
 
 if (topLevel.mode === 'direct-command' && topLevel.command === 'release') {
   await runReleaseCommand(topLevel.rest);
+  process.exit(0);
+}
+
+if (topLevel.mode === 'direct-command' && topLevel.command === 'links') {
+  await runLinksCommand(topLevel.rest);
   process.exit(0);
 }
 
