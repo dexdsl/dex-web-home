@@ -247,6 +247,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return injectDuplicateJoiners(randomized, canonical);
   }
 
+  function renderCanonicalText(text) {
+    const canonical = toText(text, '', 220).toUpperCase();
+    if (!canonical) return '';
+    return injectDuplicateJoiners(canonical, canonical);
+  }
+
   function create(tag, className, textValue = null) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -571,7 +577,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     const extraGrid = create('div', 'dx-contact-extra-grid');
 
     const submitRow = create('div', 'dx-contact-submit-row');
-    const submitBtn = create('button', 'dx-button-element dx-button-size--md dx-button-element--primary dx-contact-submit', 'SEND MESSAGE');
+    const submitBtn = create('button', 'dx-button-element dx-button-size--md dx-button-element--primary dx-contact-submit', renderCanonicalText('SEND MESSAGE'));
     submitBtn.type = 'submit';
     submitBtn.setAttribute('data-dx-hover-variant', 'magnetic');
     const submitMeta = create('p', 'dx-contact-submit-meta', 'Spam checks are active.');
@@ -623,10 +629,10 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     linksCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Common routes')));
     const links = create('div', 'dx-contact-link-grid');
     const quickLinks = [
-      { href: '/call/', label: 'ACTIVE CALLS' },
-      { href: '/entry/submit/', label: 'SUBMIT WORK' },
-      { href: '/entry/messages/', label: 'MESSAGES' },
-      { href: '/privacy/', label: 'PRIVACY' },
+      { href: '/call/', label: renderCanonicalText('ACTIVE CALLS') },
+      { href: '/entry/submit/', label: renderCanonicalText('SUBMIT WORK') },
+      { href: '/entry/messages/', label: renderCanonicalText('MESSAGES') },
+      { href: '/privacy/', label: renderCanonicalText('PRIVACY') },
     ];
     quickLinks.forEach((item) => {
       const link = create('a', 'dx-button-element dx-button-size--sm dx-button-element--secondary dx-contact-link', item.label);
@@ -659,7 +665,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
       state.sending = Boolean(active);
       form.setAttribute('aria-busy', state.sending ? 'true' : 'false');
       submitBtn.disabled = state.sending;
-      submitBtn.textContent = state.sending ? 'SENDING...' : 'SEND MESSAGE';
+      submitBtn.textContent = state.sending ? renderCanonicalText('SENDING...') : renderCanonicalText('SEND MESSAGE');
     }
 
     function getActiveTopic() {
