@@ -23,6 +23,10 @@
   gap: clamp(10px, 1.35vw, 18px);
 }
 
+#dex-submit .dx-submit-shell.is-flow-gate {
+  grid-template-columns: minmax(0, 3.4fr) minmax(240px, 1.1fr);
+}
+
 #dex-submit .dx-submit-surface {
   border: 1px solid var(--dx-submit-rim);
   border-radius: var(--dx-submit-radius);
@@ -96,6 +100,11 @@
   gap: clamp(10px, 1.2vw, 16px);
   padding: clamp(14px, 1.9vw, 24px);
   overflow: hidden;
+}
+
+#dex-submit .dx-submit-shell.is-flow-gate .dx-submit-main {
+  grid-template-rows: auto 1fr;
+  gap: clamp(10px, 1.6vw, 18px);
 }
 
 #dex-submit .dx-submit-heading {
@@ -239,6 +248,13 @@
   padding-right: 2px;
 }
 
+#dex-submit .dx-submit-shell.is-flow-gate .dx-submit-stage {
+  display: grid;
+  align-items: center;
+  overflow: visible;
+  padding-right: 0;
+}
+
 #dex-submit .dx-submit-stage-card {
   display: grid;
   gap: clamp(10px, 1.2vw, 16px);
@@ -246,6 +262,11 @@
   border: 1px solid rgba(255, 255, 255, 0.54);
   border-radius: calc(var(--dx-submit-radius) - 2px);
   background: rgba(255, 255, 255, 0.62);
+}
+
+#dex-submit .dx-submit-gate-card {
+  min-height: clamp(220px, 42vh, 360px);
+  align-content: center;
 }
 
 #dex-submit .dx-submit-grid {
@@ -396,6 +417,14 @@
   justify-content: flex-start;
 }
 
+#dex-submit .dx-submit-gate-actions {
+  gap: 10px;
+}
+
+#dex-submit .dx-submit-gate-actions .dx-button-element {
+  min-width: clamp(180px, 23vw, 280px);
+}
+
 #dex-submit .dx-submit-command {
   position: sticky;
   top: calc(var(--dx-fixed-header-space, 114px) - var(--dx-fixed-header-top, 12px) + 8px);
@@ -404,6 +433,10 @@
   gap: 10px;
   align-content: start;
   padding: clamp(12px, 1.5vw, 18px);
+}
+
+#dex-submit .dx-submit-command--gate {
+  gap: 12px;
 }
 
 #dex-submit .dx-submit-command-card {
@@ -477,6 +510,10 @@
     height: auto;
   }
 
+  #dex-submit .dx-submit-shell.is-flow-gate {
+    grid-template-columns: 1fr;
+  }
+
   #dex-submit .dx-submit-main {
     min-height: 0;
   }
@@ -500,6 +537,17 @@
   #dex-submit .dx-submit-main,
   #dex-submit .dx-submit-command {
     padding: 12px;
+  }
+
+  #dex-submit .dx-submit-gate-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #dex-submit .dx-submit-gate-actions .dx-button-element {
+    width: 100%;
+    min-width: 0;
   }
 
   #dex-submit .dx-submit-toast-stack {

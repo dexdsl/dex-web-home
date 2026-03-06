@@ -475,13 +475,14 @@ import { animate } from 'framer-motion/dom';
       const flow = normalizeFlow(url.searchParams.get('flow'));
       return {
         flow,
+        explicitFlow: url.searchParams.has('flow'),
         lane: normalizeLane(url.searchParams.get('lane')),
         subcall: normalizeSubcall(url.searchParams.get('subcall')),
         cycle: text(url.searchParams.get('cycle')),
         via: text(url.searchParams.get('via')),
       };
     } catch {
-      return { flow: FLOW_SAMPLE, lane: '', subcall: '', cycle: '', via: '' };
+      return { flow: FLOW_SAMPLE, explicitFlow: false, lane: '', subcall: '', cycle: '', via: '' };
     }
   }
 
@@ -538,6 +539,7 @@ import { animate } from 'framer-motion/dom';
       profileDefaultsLoaded: false,
       profileDefaultsAutoApplied: false,
       flow: startingFlow,
+      pipelineChosen: !!routeFlow.explicitFlow,
       flowDrafts: {
         [FLOW_SAMPLE]: sampleDraft,
         [FLOW_CALL]: callDraft,
@@ -1659,6 +1661,55 @@ import { animate } from 'framer-motion/dom';
     return wrap;
   }
 
+  function choosePipeline(flowKey) {
+    if (!state) return;
+    state.pipelineChosen = true;
+    setActiveFlow(flowKey, {
+      force: true,
+      resetStep: true,
+      refreshQuota: true,
+    });
+  }
+
+  function buildFlowGateStep() {
+    const section = create('section', 'dx-submit-stage-card dx-submit-gate-card');
+    section.setAttribute('data-dx-submit-step', 'flow-gate');
+    section.appendChild(create('p', 'dx-submit-kicker', 'Screen 0'));
+    section.appendChild(create('h2', 'dx-submit-title', 'What are you submitting?'));
+    section.appendChild(
+      create(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'Choose one pipeline to continue.',
+      ),
+    );
+
+    const actions = create('div', 'dx-submit-stage-actions dx-submit-gate-actions');
+    const sample = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--md dx-button-element--secondary',
+      'Sample Submission',
+    );
+    sample.type = 'button';
+    sample.addEventListener('click', () => {
+      choosePipeline(FLOW_SAMPLE);
+    });
+
+    const call = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--md dx-button-element--primary',
+      'IN DEX Call Submission',
+    );
+    call.type = 'button';
+    call.addEventListener('click', () => {
+      choosePipeline(FLOW_CALL);
+    });
+
+    actions.append(sample, call);
+    section.appendChild(actions);
+    return section;
+  }
+
   function buildIntroStep() {
     const section = create('section', 'dx-submit-stage-card');
     section.setAttribute('data-dx-submit-step', 'intro');
@@ -1683,25 +1734,6 @@ import { animate } from 'framer-motion/dom';
         : 'Upload a public master-link and metadata. Dex reviews within 7 days, then routes to revision, acceptance, or release.',
     );
     section.appendChild(lead);
-
-    const chooser = create('div', 'dx-submit-badge-group');
-    chooser.append(
-      toBadge(
-        'Sample pipeline',
-        state.flow === FLOW_SAMPLE,
-        () => setActiveFlow(FLOW_SAMPLE),
-        false,
-        { focusKey: 'flow' },
-      ),
-      toBadge(
-        'IN DEX call pipeline',
-        state.flow === FLOW_CALL,
-        () => setActiveFlow(FLOW_CALL),
-        false,
-        { focusKey: 'flow' },
-      ),
-    );
-    section.appendChild(chooser);
 
     if (isCallFlow) {
       const routePills = create('div', 'dx-submit-pill-group');
@@ -1747,6 +1779,18 @@ import { animate } from 'framer-motion/dom';
     }
 
     const footer = create('div', 'dx-submit-stage-actions');
+    const switchFlow = create(
+      'button',
+      'cta-btn dx-button-element dx-button-size--sm dx-button-element--secondary',
+      'Change pipeline',
+    );
+    switchFlow.type = 'button';
+    switchFlow.addEventListener('click', () => {
+      state.pipelineChosen = false;
+      state.step = 0;
+      render();
+    });
+
     const quota = create(
       'p',
       'dx-submit-copy dx-submit-copy--compact',
@@ -1772,7 +1816,7 @@ import { animate } from 'framer-motion/dom';
       state.step = 1;
       render();
     });
-    footer.append(quota, begin);
+    footer.append(switchFlow, quota, begin);
     section.appendChild(footer);
 
     return section;
@@ -2536,6 +2580,7 @@ import { animate } from 'framer-motion/dom';
   }
 
   function buildStepContent() {
+    if (!state.pipelineChosen) return buildFlowGateStep();
     if (state.step === 0) return buildIntroStep();
     if (state.step === 1) return buildMetadataStep();
     if (state.step === 2) return buildLicenseStep();
@@ -2571,6 +2616,12 @@ import { animate } from 'framer-motion/dom';
   }
 
   function resolveFocusedGuidance() {
+    if (!state.pipelineChosen) {
+      return {
+        title: 'Choose a pipeline',
+        body: 'Pick Sample Submission for library entries, or IN DEX Call Submission for active call lanes.',
+      };
+    }
     const byField = FIELD_GUIDANCE[state.focusedField];
     if (byField) return byField;
     const stepKey = STEPS[state.step]?.key || 'intro';
@@ -2667,11 +2718,40 @@ import { animate } from 'framer-motion/dom';
     return aside;
   }
 
+  function buildFlowGateCommandPanel() {
+    const aside = create('aside', 'dx-submit-command dx-submit-surface dx-submit-command--gate');
+
+    const guide = create('section', 'dx-submit-command-card');
+    guide.append(
+      createSidebarText('p', 'dx-submit-kicker', 'Flow chooser'),
+      createSidebarText('h3', 'dx-submit-command-title', 'Two pipelines'),
+      createSidebarText(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'Sample Submission is for catalog/library entries. IN DEX Call Submission is for active call lanes.',
+      ),
+    );
+
+    const tracker = create('section', 'dx-submit-command-card');
+    tracker.append(
+      createSidebarText('p', 'dx-submit-kicker', 'Shared tracker'),
+      createSidebarText('h3', 'dx-submit-command-title', 'One messages timeline'),
+      createSidebarText(
+        'p',
+        'dx-submit-copy dx-submit-copy--compact',
+        'Both pipelines route status updates to Messages with sent, received, reviewing, and decision states.',
+      ),
+    );
+
+    aside.append(guide, tracker);
+    return aside;
+  }
+
   function refreshCommandPanel() {
     if (!(liveRoot instanceof HTMLElement) || !state) return;
     const current = liveRoot.querySelector('.dx-submit-command');
     if (!(current instanceof HTMLElement)) return;
-    const next = buildCommandPanel();
+    const next = state.pipelineChosen ? buildCommandPanel() : buildFlowGateCommandPanel();
     current.replaceWith(next);
   }
 
@@ -2741,9 +2821,13 @@ import { animate } from 'framer-motion/dom';
   }
 
   function buildLayout() {
+    const pipelineChosen = !!state.pipelineChosen;
+    const currentStep = pipelineChosen ? (STEPS[state.step]?.key || 'intro') : 'flow-gate';
     const shell = create('div', 'dx-submit-shell');
+    shell.classList.toggle('is-flow-gate', !pipelineChosen);
     shell.setAttribute('data-dx-submit-shell', 'true');
-    shell.setAttribute('data-dx-submit-current-step', STEPS[state.step]?.key || 'intro');
+    shell.setAttribute('data-dx-submit-current-step', currentStep);
+    shell.setAttribute('data-dx-submit-pipeline-choice', pipelineChosen ? 'selected' : 'pending');
     shell.setAttribute('data-dx-submit-flow', normalizeFlow(state.flow));
     shell.setAttribute('data-dx-submit-lane', normalizeLane(state.meta?.callLane || ''));
     if (normalizeSubcall(state.meta?.callSubcall || '')) {
@@ -2754,25 +2838,30 @@ import { animate } from 'framer-motion/dom';
     const heading = create('header', 'dx-submit-heading');
     const isCallFlow = state.flow === FLOW_CALL;
     heading.append(
-      create('p', 'dx-submit-kicker', isCallFlow ? 'Submit Calls' : 'Submit Samples'),
-      create('h1', 'dx-submit-heading-title', 'Intake + Tracker'),
+      create('p', 'dx-submit-kicker', pipelineChosen ? (isCallFlow ? 'Submit Calls' : 'Submit Samples') : 'Submit'),
+      create('h1', 'dx-submit-heading-title', pipelineChosen ? 'Intake + Tracker' : 'Choose Pipeline'),
       create(
         'p',
         'dx-submit-copy dx-submit-copy--compact',
-        isCallFlow
-          ? 'Submit lane-ready call proposals. Follow status from sent to in-library in Messages.'
-          : 'Upload once. Follow status from sent to in-library in Messages.',
+        pipelineChosen
+          ? (
+            isCallFlow
+              ? 'Submit lane-ready call proposals. Follow status from sent to in-library in Messages.'
+              : 'Upload once. Follow status from sent to in-library in Messages.'
+          )
+          : 'Pick the path that matches your submission. You can switch pipelines before sending.',
       ),
     );
 
-    const progress = buildProgressHeader();
     const stageWrap = create('div', 'dx-submit-stage');
-    stageWrap.setAttribute('data-dx-submit-stage', STEPS[state.step]?.key || 'intro');
+    stageWrap.setAttribute('data-dx-submit-stage', currentStep);
     stageWrap.appendChild(buildStepContent());
 
-    main.append(heading, progress, stageWrap);
+    main.appendChild(heading);
+    if (pipelineChosen) main.appendChild(buildProgressHeader());
+    main.appendChild(stageWrap);
 
-    shell.append(main, buildCommandPanel());
+    shell.append(main, pipelineChosen ? buildCommandPanel() : buildFlowGateCommandPanel());
     return shell;
   }
 
@@ -3027,6 +3116,7 @@ import { animate } from 'framer-motion/dom';
     const flow = normalizeFlow(state.flow);
     const lane = normalizeLane(state.meta?.callLane || '');
     const subcall = normalizeSubcall(state.meta?.callSubcall || '');
+    liveRoot.setAttribute('data-dx-submit-pipeline-choice', state.pipelineChosen ? 'selected' : 'pending');
     liveRoot.setAttribute('data-dx-submit-flow', flow);
     liveRoot.setAttribute('data-dx-submit-lane', lane);
     if (subcall) liveRoot.setAttribute('data-dx-submit-subcall', subcall);

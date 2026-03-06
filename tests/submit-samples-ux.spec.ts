@@ -66,7 +66,17 @@ async function waitReady(page: Page): Promise<void> {
   await expect.poll(async () => root.getAttribute('data-dx-fetch-state')).toBe('ready');
 }
 
+async function ensureSamplePipeline(page: Page): Promise<void> {
+  const gate = page.locator('[data-dx-submit-step="flow-gate"]');
+  if (await gate.count()) {
+    await expect(gate.first()).toBeVisible();
+    await page.getByRole('button', { name: 'Sample Submission' }).click();
+    await expect(page.locator('[data-dx-submit-step="intro"]')).toBeVisible();
+  }
+}
+
 async function waitBeginReady(page: Page) {
+  await ensureSamplePipeline(page);
   const begin = page.getByRole('button', { name: 'Begin' });
   await expect(begin).toBeVisible();
   await expect.poll(async () => begin.isDisabled()).toBe(false);
@@ -183,6 +193,7 @@ test('submit page uses desktop 60/40 shell with sticky command panel', async ({ 
 
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
+  await ensureSamplePipeline(page);
   await expect(page.locator('#dex-submit')).toContainText('Weekly uploads available');
   await expect(page.locator('#dex-submit')).not.toContainText('Daily uploads available');
 
@@ -319,6 +330,7 @@ test('submit shell reaches ready before delayed auth resolves, then hydrates quo
   const readyElapsed = Date.now() - start;
   expect(readyElapsed).toBeLessThan(2500);
 
+  await ensureSamplePipeline(page);
   const begin = page.getByRole('button', { name: 'Begin' });
   await expect(begin).toBeVisible();
   await expect(begin).toBeDisabled();
@@ -671,6 +683,7 @@ test('submit intro locks Begin when weekly quota is exhausted for the signed-in 
   await page.goto('/entry/submit/', { waitUntil: 'domcontentloaded' });
   await waitReady(page);
 
+  await ensureSamplePipeline(page);
   await expect(page.locator('#dex-submit')).toContainText('Weekly uploads available: 0 / 4');
   const begin = page.getByRole('button', { name: 'Begin' });
   await expect(begin).toBeDisabled();
