@@ -172,85 +172,22 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return fallback;
   }
 
-  function randomizeHeadingBase(text, options = {}) {
-    const canonical = toText(text, '', 220).toUpperCase();
+  const ZWNJ = '\u200C';
+
+  function injectCanonicalDuplicateSeparators(value) {
+    const canonical = toText(value, '', 320)
+      .toUpperCase()
+      .replace(/[\u200C\u200D]/g, '');
     if (!canonical) return '';
-
-    try {
-      const headingFx = window.__dxHeadingFx;
-      if (headingFx && typeof headingFx.renderHeadingText === 'function') {
-        const rendered = headingFx.renderHeadingText(canonical, { ...options, uppercase: true });
-        const normalized = toText(rendered, '', 220).toUpperCase();
-        if (normalized) return normalized;
-      }
-    } catch {
-      // Ignore heading effect runtime errors and fall through.
-    }
-
-    try {
-      if (typeof window.randomizeTitle === 'function') {
-        const rendered = window.randomizeTitle(canonical, options);
-        const normalized = toText(rendered, '', 220).toUpperCase();
-        if (normalized) return normalized;
-      }
-    } catch {
-      // Ignore randomizeTitle runtime errors and fall through.
-    }
-
-    return canonical;
+    return canonical.replace(/([A-Z])\1/g, `$1${ZWNJ}$1`);
   }
 
-  function injectDuplicateJoiners(renderedText, canonicalText) {
-    const rendered = toText(renderedText, '', 320);
-    const canonical = toText(canonicalText, '', 320)
-      .replace(/\u200C/g, '')
-      .replace(/\u200D/g, '');
-    if (!rendered) return '';
-
-    const ZWNJ = '\u200C';
-    const ZWJ = '\u200D';
-    let out = '';
-    let canonicalIndex = 0;
-
-    for (let index = 0; index < rendered.length; index += 1) {
-      const current = rendered[index];
-      const next = rendered[index + 1] || '';
-      out += current;
-
-      if (!next || current === ZWNJ || current === ZWJ || next === ZWNJ || next === ZWJ) continue;
-
-      const currentIsLetter = current.toLowerCase() !== current.toUpperCase();
-      const nextIsLetter = next.toLowerCase() !== next.toUpperCase();
-      if (!currentIsLetter || !nextIsLetter) {
-        const canonicalCurrent = canonical.charAt(canonicalIndex);
-        if (canonicalCurrent && canonicalCurrent.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
-        continue;
-      }
-
-      const canonicalCurrent = canonical.charAt(canonicalIndex);
-      if (canonicalCurrent && canonicalCurrent.toLowerCase() === current.toLowerCase()) canonicalIndex += 1;
-
-      if (current.toLowerCase() !== next.toLowerCase()) continue;
-
-      const canonicalNext = canonical.charAt(canonicalIndex);
-      const isCanonicalDuplicate = canonicalNext && canonicalNext.toLowerCase() === current.toLowerCase();
-      out += isCanonicalDuplicate ? ZWNJ : ZWJ;
-    }
-
-    return out;
-  }
-
-  function renderHeadingText(text, options = {}) {
-    const canonical = toText(text, '', 220).toUpperCase();
-    if (!canonical) return '';
-    const randomized = randomizeHeadingBase(canonical, options);
-    return injectDuplicateJoiners(randomized, canonical);
+  function renderHeadingText(text, _options = {}) {
+    return injectCanonicalDuplicateSeparators(text);
   }
 
   function renderCanonicalText(text) {
-    const canonical = toText(text, '', 220).toUpperCase();
-    if (!canonical) return '';
-    return injectDuplicateJoiners(canonical, canonical);
+    return injectCanonicalDuplicateSeparators(text);
   }
 
   function create(tag, className, textValue = null) {

@@ -1,6 +1,6 @@
 #page .dx-contact-shell {
-  width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px));
-  max-width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px));
+  width: var(--dx-header-frame-width, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px));
+  max-width: var(--dx-header-frame-width, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px));
   margin: clamp(1rem, 2.2vw, 1.8rem) auto clamp(1.3rem, 3vw, 2.4rem);
   display: grid;
   gap: var(--dx-profile-shell-gap, clamp(12px, 1.4vw, 18px));
