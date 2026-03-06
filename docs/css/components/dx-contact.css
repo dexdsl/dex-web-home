@@ -1,9 +1,29 @@
+main#page.container,
+main#page {
+  width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px)) !important;
+  max-width: var(--dx-header-frame-width-vw, min(calc(100vw - clamp(16px, 3vw, 40px)), 1380px)) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#page .dx-contact-page-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 #page .dx-contact-shell {
-  width: var(--dx-header-frame-width, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px));
-  max-width: var(--dx-header-frame-width, min(calc(100% - clamp(16px, 3vw, 40px)), 1380px));
+  width: 100%;
+  max-width: none;
   margin: clamp(1rem, 2.2vw, 1.8rem) auto clamp(1.3rem, 3vw, 2.4rem);
   display: grid;
   gap: var(--dx-profile-shell-gap, clamp(12px, 1.4vw, 18px));
+  box-sizing: border-box;
 }
 
 #page .dx-contact-card {
@@ -290,8 +310,6 @@
 
 @media (max-width: 760px) {
   #page .dx-contact-shell {
-    width: calc(100vw - var(--dx-mobile-site-gutter, 6vw) * 2);
-    max-width: calc(100vw - var(--dx-mobile-site-gutter, 6vw) * 2);
     margin-top: 0.95rem;
   }
 

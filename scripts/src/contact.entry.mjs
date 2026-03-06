@@ -197,6 +197,12 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     return node;
   }
 
+  function createLockedHeading(tag, className, textValue) {
+    const heading = create(tag, className, renderHeadingText(textValue));
+    heading.setAttribute('data-dx-heading-duplicate-exclude-letters', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+    return heading;
+  }
+
   function makeUuid() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -434,7 +440,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     hero.setAttribute('data-dx-glass-card', 'true');
     hero.setAttribute('data-dx-hover-variant', 'magnetic');
     hero.appendChild(create('p', 'dx-contact-kicker', 'CONTACT'));
-    hero.appendChild(create('h1', 'dx-contact-title', renderHeadingText('Reach the right Dex team in one message.')));
+    hero.appendChild(createLockedHeading('h1', 'dx-contact-title', 'Reach the right Dex team in one message.'));
     hero.appendChild(create('p', 'dx-contact-copy', 'Choose a lane, share context, and we route your message with full metadata for faster triage.'));
     root.appendChild(hero);
 
@@ -448,7 +454,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     chooserCard.setAttribute('data-dx-glass-card', 'true');
     chooserCard.setAttribute('data-dx-hover-variant', 'magnetic');
     chooserCard.appendChild(create('p', 'dx-contact-kicker', 'STEP 1'));
-    chooserCard.appendChild(create('h2', 'dx-contact-section-title', renderHeadingText('What do you need help with?')));
+    chooserCard.appendChild(createLockedHeading('h2', 'dx-contact-section-title', 'What do you need help with?'));
     const chooserLead = create('p', 'dx-contact-copy');
     chooserCard.appendChild(chooserLead);
     const topicRow = create('div', 'dx-contact-topic-row');
@@ -459,7 +465,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     formCard.setAttribute('data-dx-glass-card', 'true');
     formCard.setAttribute('data-dx-hover-variant', 'magnetic');
     formCard.appendChild(create('p', 'dx-contact-kicker', 'STEP 2'));
-    formCard.appendChild(create('h2', 'dx-contact-section-title', renderHeadingText('Send your message')));
+    formCard.appendChild(createLockedHeading('h2', 'dx-contact-section-title', 'Send your message'));
     const topicContext = create('p', 'dx-contact-copy');
     formCard.appendChild(topicContext);
 
@@ -547,7 +553,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     statusCard.setAttribute('data-dx-glass-card', 'true');
     statusCard.setAttribute('data-dx-hover-variant', 'magnetic');
     statusCard.appendChild(create('p', 'dx-contact-kicker', 'DELIVERY'));
-    statusCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Routing and response windows')));
+    statusCard.appendChild(createLockedHeading('h3', 'dx-contact-rail-title', 'Routing and response windows'));
     const responseList = create('ul', 'dx-contact-rail-list');
     responseList.append(
       create('li', 'dx-contact-rail-item', 'General, partnerships, and rights requests are triaged by topic.'),
@@ -563,7 +569,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     linksCard.setAttribute('data-dx-glass-card', 'true');
     linksCard.setAttribute('data-dx-hover-variant', 'magnetic');
     linksCard.appendChild(create('p', 'dx-contact-kicker', 'SHORTCUTS'));
-    linksCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Common routes')));
+    linksCard.appendChild(createLockedHeading('h3', 'dx-contact-rail-title', 'Common routes'));
     const links = create('div', 'dx-contact-link-grid');
     const quickLinks = [
       { href: '/call/', label: renderCanonicalText('ACTIVE CALLS') },
@@ -584,7 +590,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     newsletterCard.setAttribute('data-dx-glass-card', 'true');
     newsletterCard.setAttribute('data-dx-hover-variant', 'magnetic');
     newsletterCard.appendChild(create('p', 'dx-contact-kicker', 'NEWSLETTER'));
-    newsletterCard.appendChild(create('h3', 'dx-contact-rail-title', renderHeadingText('Get updates without sending a ticket')));
+    newsletterCard.appendChild(createLockedHeading('h3', 'dx-contact-rail-title', 'Get updates without sending a ticket'));
     newsletterCard.appendChild(create('p', 'dx-contact-copy', 'Subscribe for release notes, open calls, and route-level updates.'));
     const newsletterMount = create('div', 'dx-contact-newsletter-mount');
     newsletterMount.setAttribute('data-dx-marketing-newsletter-mount', config.newsletterSource);
