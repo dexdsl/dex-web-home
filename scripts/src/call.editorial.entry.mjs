@@ -1,5 +1,5 @@
 import { animate } from 'framer-motion/dom';
-import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry.mjs';
 
 (() => {
@@ -501,6 +501,7 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     const laneGrid = create('div', 'dx-call-lane-grid');
     (model?.lanes || []).forEach((lane) => {
       const laneCard = create('article', 'dx-call-lane-card');
+      laneCard.setAttribute('data-dx-hover-variant', 'magnetic');
       laneCard.appendChild(create('h3', 'dx-call-lane-title', text(lane.code_raw || '')));
       appendOptionalText(laneCard, lane.body_raw, 'dx-call-copy');
       laneGrid.appendChild(laneCard);
@@ -802,6 +803,9 @@ import { mountMarketingNewsletter } from './shared/dx-marketing-newsletter.entry
     });
     bindDexButtonMotion(root, {
       selector: '.dx-button-element, .dx-call-cta, .dx-call-newsletter-submit, .dx-call-lane-card, .dx-call-subcall-card, .dx-call-timeline-item, .dx-call-active-rail-card, .dx-call-utility, .dx-call-progress-link',
+    });
+    bindMagneticButtonMotion(root, {
+      selector: '.dx-button-element, .dx-call-cta, .dx-call-newsletter-submit, .dx-call-lane-card, [data-dx-hover-variant="magnetic"]',
     });
     bindSidebarMotion(root);
     startBlobMotion();
