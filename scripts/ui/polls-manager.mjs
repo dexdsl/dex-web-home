@@ -1,5 +1,5 @@
 import process from 'node:process';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { computeWindow } from './rolodex.mjs';
 import { isBackspaceKey, shouldAppendWizardChar } from '../lib/input-guard.mjs';
@@ -17,19 +17,36 @@ import {
   getAdminPollOverview,
   getAdminPollSnapshots,
   getAdminPollTrend,
+  getPublicPollResults,
+  getPublicPollTrend,
   promoteAdminPollSnapshot,
   publishAdminPollSnapshot,
 } from '../lib/polls-admin-api.mjs';
 import {
+  renderBarBreakdown,
   renderLineTrend,
+  renderPieBreakdown,
   renderStackedOptionTrend,
   renderVelocityTrend,
 } from '../lib/polls-kuva.mjs';
+import {
+  buildPollsDeskQueueRows,
+  PollsDeskDetail,
+  PollsDeskPublishNoteComposer,
+} from './polls-desk.mjs';
 
 const STATUS_VALUES = Array.isArray(pollsStatusValues) ? pollsStatusValues : ['open', 'closed', 'draft'];
 const VISIBILITY_VALUES = Array.isArray(pollsVisibilityValues) ? pollsVisibilityValues : ['public', 'members'];
-const OPS_MODES = ['catalog', 'live', 'trends', 'publish', 'history'];
+const OPS_MODES = ['desk', 'catalog', 'live', 'trends', 'publish', 'history'];
 const TREND_CHARTS = ['line', 'stack', 'velocity'];
+const TREND_WINDOWS = ['24h', '7d', '30d', '90d'];
+const AUTO_REFRESH_MS = 5000;
+const METRICS_SWEEP_BATCH = 8;
+const METRICS_SWEEP_MAX = 48;
+const LIVE_SCOPE_CHART_WIDTH = 54;
+const LIVE_SCOPE_CHART_HEIGHT = 10;
+const PANEL_NAMES = ['book', 'live', 'trends', 'queue', 'alerts', 'tape', 'actions'];
+const QUEUE_STAGE_FILTERS = ['all', 'awaiting_snapshot', 'draft_ready', 'intake_open', 'draft_poll', 'published'];
 
 function nowIso() {
   return new Date().toISOString();
@@ -44,6 +61,12 @@ function formatShortDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'n/a';
   return date.toISOString().slice(0, 10);
+}
+
+function formatClock(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '--:--:--';
+  return date.toISOString().slice(11, 19);
 }
 
 function clamp(value, min, max) {
@@ -101,6 +124,33 @@ function parseResponseText(text) {
   }
 }
 
+function isAdminAuthMissingError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('missing polls admin token')
+    || message.includes('poll admin token is not configured')
+    || message.includes('polls_admin_unauthorized')
+    || message.includes('unauthorized')
+    || message.includes('failed (404)');
+}
+
+function normalizeCountsObject(rawCounts) {
+  if (Array.isArray(rawCounts)) {
+    const out = {};
+    rawCounts.forEach((value, index) => {
+      out[String(index)] = Number(value) || 0;
+    });
+    return out;
+  }
+  if (rawCounts && typeof rawCounts === 'object') {
+    const out = {};
+    for (const [key, value] of Object.entries(rawCounts)) {
+      out[String(key)] = Number(value) || 0;
+    }
+    return out;
+  }
+  return {};
+}
+
 function normalizeApiBase(value) {
   const parsed = new URL(String(value || '').trim());
   return parsed.toString().replace(/\/$/, '');
@@ -154,6 +204,82 @@ function deriveStats(polls = [], metricsById = {}) {
   };
 }
 
+function trendBucketForWindow(windowValue) {
+  return windowValue === '24h' ? 'hour' : 'day';
+}
+
+function selectMetricsSweepIds({
+  polls = [],
+  selectedPollId = '',
+  reason = 'auto',
+  sweepCursorRef,
+}) {
+  const ids = Array.isArray(polls)
+    ? polls.map((poll) => String(poll?.id || '').trim()).filter(Boolean)
+    : [];
+  if (!ids.length) return [];
+
+  if (reason === 'manual' || reason === 'boot' || reason === 'mode') {
+    return ids.slice(0, METRICS_SWEEP_MAX);
+  }
+
+  if (ids.length <= METRICS_SWEEP_BATCH) {
+    return ids;
+  }
+
+  const cursor = Number(sweepCursorRef?.current || 0) % ids.length;
+  const picked = [];
+  for (let offset = 0; offset < METRICS_SWEEP_BATCH; offset += 1) {
+    picked.push(ids[(cursor + offset) % ids.length]);
+  }
+  if (sweepCursorRef) {
+    sweepCursorRef.current = (cursor + METRICS_SWEEP_BATCH) % ids.length;
+  }
+  if (selectedPollId && !picked.includes(selectedPollId)) {
+    picked.unshift(selectedPollId);
+  }
+  return picked;
+}
+
+function summarizeAlertRows({
+  selectedPoll,
+  selectedLive,
+  selectedSnapshots,
+  selectedTrend,
+}) {
+  const isMissingToken = (value) => String(value || '').toLowerCase().includes('missing polls admin token');
+  const alerts = [];
+  if (!selectedPoll) return alerts;
+  const liveTotal = Number(selectedLive?.payload?.total || 0) || 0;
+  const snapshots = Array.isArray(selectedSnapshots?.snapshots) ? selectedSnapshots.snapshots : [];
+  const latestSnapshot = snapshots.length
+    ? [...snapshots].sort((a, b) => Number(b?.version || 0) - Number(a?.version || 0))[0]
+    : null;
+  const latestSnapshotState = String(latestSnapshot?.state || '').toLowerCase();
+
+  if (selectedPoll.status === 'open' && liveTotal === 0) {
+    alerts.push({ level: 'warn', text: 'Open poll has zero turnout in current window.' });
+  }
+  if (selectedPoll.status === 'closed' && latestSnapshotState !== 'published') {
+    alerts.push({ level: 'warn', text: 'Closed poll has no published official snapshot.' });
+  }
+  const liveError = String(selectedLive?.error || '').trim();
+  const trendError = String(selectedTrend?.error || '').trim();
+  const missingToken = isMissingToken(liveError) || isMissingToken(trendError);
+  if (missingToken) {
+    alerts.push({ level: 'warn', text: 'Admin analytics auth missing. Set a polls admin token to enable live/trend telemetry.' });
+  } else if (selectedLive?.error) {
+    alerts.push({ level: 'crit', text: `Live feed unavailable: ${selectedLive.error}` });
+  }
+  if (!missingToken && selectedTrend?.error) {
+    alerts.push({ level: 'crit', text: `Trend feed unavailable: ${selectedTrend.error}` });
+  }
+  if (!alerts.length) {
+    alerts.push({ level: 'ok', text: 'No active poll ops alerts.' });
+  }
+  return alerts;
+}
+
 function makeEditorFromPoll(mode, poll, fallbackData) {
   const source = poll || createPollDraft(fallbackData || {
     version: 1,
@@ -190,23 +316,69 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
   const [editorBuffer, setEditorBuffer] = useState('');
   const [opsModeIndex, setOpsModeIndex] = useState(0);
   const [trendChartIndex, setTrendChartIndex] = useState(0);
+  const [trendWindowIndex, setTrendWindowIndex] = useState(2);
+  const [focusedPanelIndex, setFocusedPanelIndex] = useState(0);
   const [adminOverview, setAdminOverview] = useState(null);
   const [adminLiveById, setAdminLiveById] = useState({});
   const [adminTrendById, setAdminTrendById] = useState({});
   const [adminSnapshotsById, setAdminSnapshotsById] = useState({});
   const [adminBusy, setAdminBusy] = useState(false);
+  const [refreshPaused, setRefreshPaused] = useState(Boolean(process.env.DEX_POLLS_DESK_PAUSED === '1'));
+  const [lastRefreshAt, setLastRefreshAt] = useState(0);
+  const [eventTape, setEventTape] = useState([]);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [queueDrilldownOpen, setQueueDrilldownOpen] = useState(false);
+  const [queueCursor, setQueueCursor] = useState(0);
+  const [queueFilterIndex, setQueueFilterIndex] = useState(0);
+  const [queueSort, setQueueSort] = useState('age');
+  const [publishNoteOpen, setPublishNoteOpen] = useState(false);
+  const [publishNoteFieldIndex, setPublishNoteFieldIndex] = useState(0);
+  const [publishNoteTyping, setPublishNoteTyping] = useState(false);
+  const [publishNoteBuffer, setPublishNoteBuffer] = useState('');
+  const [publishNoteDraft, setPublishNoteDraft] = useState({
+    headline: '',
+    body: '',
+    publish: true,
+  });
   const adminEnv = useMemo(() => (process.env.DEX_POLLS_OPS_ENV || 'test'), []);
+  const deskLayout = useMemo(() => {
+    const raw = String(process.env.DEX_POLLS_DESK_LAYOUT || 'dense').toLowerCase();
+    return raw === 'wide' ? 'wide' : 'dense';
+  }, []);
   const apiBase = useMemo(() => resolveMetricsApiBase(), []);
   const metricsToken = useMemo(
     () => process.env.DEX_POLLS_METRICS_BEARER || process.env.AUTH0_ACCESS_TOKEN || '',
     [],
   );
+  const refreshInFlightRef = useRef(false);
+  const metricsSweepCursorRef = useRef(0);
 
   const polls = useMemo(() => (Array.isArray(pollsData?.polls) ? pollsData.polls : []), [pollsData]);
   const selectedPoll = polls[selectedIndex] || null;
   const stats = useMemo(() => deriveStats(polls, metricsById), [polls, metricsById]);
   const opsMode = OPS_MODES[opsModeIndex] || OPS_MODES[0];
   const trendChart = TREND_CHARTS[trendChartIndex] || TREND_CHARTS[0];
+  const trendWindow = TREND_WINDOWS[trendWindowIndex] || TREND_WINDOWS[0];
+  const queueFilterStage = QUEUE_STAGE_FILTERS[queueFilterIndex] || QUEUE_STAGE_FILTERS[0];
+  const deskQueueAllRows = useMemo(() => buildPollsDeskQueueRows({
+    polls,
+    adminLiveById,
+    adminSnapshotsById,
+    metricsById,
+    nowMs: lastRefreshAt || Date.now(),
+  }), [adminLiveById, adminSnapshotsById, lastRefreshAt, metricsById, polls]);
+  const deskQueueRows = useMemo(() => {
+    const filtered = queueFilterStage === 'all'
+      ? deskQueueAllRows
+      : deskQueueAllRows.filter((row) => row.stage === queueFilterStage);
+    const sorted = [...filtered].sort((a, b) => {
+      if (queueSort === 'newest') {
+        return String(b.closeAt || '').localeCompare(String(a.closeAt || ''));
+      }
+      return Number(b.ageHours || 0) - Number(a.ageHours || 0);
+    });
+    return sorted;
+  }, [deskQueueAllRows, queueFilterStage, queueSort]);
 
   const reloadPolls = useCallback(async ({ keepId } = {}) => {
     setBusy(true);
@@ -232,6 +404,17 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     }
   }, []);
 
+  const appendTape = useCallback((entry) => {
+    const next = String(entry || '').trim();
+    if (!next) return;
+    const line = `${formatClock(Date.now())}  ${next}`;
+    setEventTape((previous) => {
+      const existing = Array.isArray(previous) ? previous : [];
+      const merged = [line, ...existing.filter((item) => item !== line)];
+      return merged.slice(0, 12);
+    });
+  }, []);
+
   const fetchMetricsForPoll = useCallback(async (pollId, { silent = false } = {}) => {
     if (!pollId) return null;
     const targetId = String(pollId);
@@ -252,8 +435,9 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       if (!response.ok) {
         throw new Error(payload?.error || `HTTP ${response.status}`);
       }
-      const total = Number(payload?.total || 0);
-      const counts = payload?.counts && typeof payload.counts === 'object' ? payload.counts : {};
+      const results = payload?.results && typeof payload.results === 'object' ? payload.results : payload;
+      const total = Number(results?.total || 0);
+      const counts = normalizeCountsObject(results?.counts);
       setMetricsById((previous) => ({
         ...previous,
         [targetId]: {
@@ -282,20 +466,40 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     }
   }, [apiBase, metricsToken]);
 
-  const fetchAdminOverview = useCallback(async ({ silent = false } = {}) => {
+  const fetchAdminOverview = useCallback(async ({ silent = false, window = trendWindow } = {}) => {
     try {
-      const result = await getAdminPollOverview({ env: adminEnv, window: '30d' });
+      const result = await getAdminPollOverview({ env: adminEnv, window });
       const overview = result?.payload?.overview && typeof result.payload.overview === 'object'
         ? result.payload.overview
         : result?.payload;
       setAdminOverview(overview || null);
       if (!silent) setStatusLine(`Overview refreshed (${adminEnv}).`);
+      if (!silent) appendTape(`overview refreshed (${adminEnv}/${window})`);
       return overview;
     } catch (error) {
       if (!silent) setStatusLine(`Overview failed: ${safeMessage(error)}`);
+      if (!silent) appendTape(`overview failed (${adminEnv}): ${safeMessage(error)}`);
       return null;
     }
-  }, [adminEnv]);
+  }, [adminEnv, appendTape, trendWindow]);
+
+  const buildLiveScopeCharts = useCallback(async (pollId, poll, counts) => {
+    const options = Array.isArray(poll?.options) ? poll.options : [];
+    const safeCounts = normalizeCountsObject(counts);
+    const [pieChartText, barChartText] = await Promise.all([
+      renderPieBreakdown(options, safeCounts, {
+        title: `Share ${pollId}`,
+        termWidth: LIVE_SCOPE_CHART_WIDTH,
+        termHeight: LIVE_SCOPE_CHART_HEIGHT,
+      }),
+      renderBarBreakdown(options, safeCounts, {
+        title: `Bars ${pollId}`,
+        termWidth: LIVE_SCOPE_CHART_WIDTH,
+        termHeight: LIVE_SCOPE_CHART_HEIGHT,
+      }),
+    ]);
+    return { pieChartText, barChartText };
+  }, []);
 
   const fetchAdminLiveForPoll = useCallback(async (pollId, { silent = false } = {}) => {
     if (!pollId) return null;
@@ -313,18 +517,67 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       const livePayload = result?.payload?.live && typeof result.payload.live === 'object'
         ? result.payload.live
         : result?.payload;
+      const livePoll = livePayload?.poll && typeof livePayload.poll === 'object'
+        ? livePayload.poll
+        : (polls.find((item) => item.id === targetId) || { id: targetId, question: targetId, options: [] });
+      const liveCounts = normalizeCountsObject(livePayload?.counts);
+      const { pieChartText, barChartText } = await buildLiveScopeCharts(targetId, livePoll, liveCounts);
       setAdminLiveById((previous) => ({
         ...previous,
         [targetId]: {
           loading: false,
           error: '',
-          payload: livePayload || {},
+          payload: {
+            ...(livePayload || {}),
+            poll: livePoll,
+            counts: liveCounts,
+          },
+          pieChartText,
+          barChartText,
           updatedAt: Date.now(),
         },
       }));
       if (!silent) setStatusLine(`Live analytics refreshed for ${targetId}.`);
+      if (!silent) appendTape(`live refreshed ${targetId}`);
       return livePayload;
     } catch (error) {
+      if (isAdminAuthMissingError(error)) {
+        try {
+          const fallback = await fetchMetricsForPoll(targetId, { silent: true });
+          const poll = polls.find((item) => item.id === targetId) || null;
+          const fallbackPayload = {
+            poll: poll
+              ? { id: poll.id, question: poll.question, options: poll.options || [], status: poll.status, visibility: poll.visibility }
+              : { id: targetId, question: targetId, options: [] },
+            total: Number(fallback?.total || 0),
+            counts: normalizeCountsObject(fallback?.counts),
+            source: 'public-results-fallback',
+          };
+          const { pieChartText, barChartText } = await buildLiveScopeCharts(
+            targetId,
+            fallbackPayload.poll,
+            fallbackPayload.counts,
+          );
+          setAdminLiveById((previous) => ({
+            ...previous,
+            [targetId]: {
+              loading: false,
+              error: '',
+              payload: fallbackPayload,
+              pieChartText,
+              barChartText,
+              updatedAt: Date.now(),
+            },
+          }));
+          if (!silent) {
+            setStatusLine(`Live fallback active for ${targetId} (public results).`);
+            appendTape(`live fallback ${targetId} (public results)`);
+          }
+          return fallbackPayload;
+        } catch (fallbackError) {
+          if (!silent) appendTape(`live fallback failed ${targetId}: ${safeMessage(fallbackError)}`);
+        }
+      }
       setAdminLiveById((previous) => ({
         ...previous,
         [targetId]: {
@@ -335,9 +588,10 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         },
       }));
       if (!silent) setStatusLine(`Live analytics failed: ${safeMessage(error)}`);
+      if (!silent) appendTape(`live failed ${targetId}: ${safeMessage(error)}`);
       return null;
     }
-  }, [adminEnv]);
+  }, [adminEnv, appendTape, buildLiveScopeCharts, fetchMetricsForPoll, polls]);
 
   const fetchAdminSnapshotsForPoll = useCallback(async (pollId, { silent = false } = {}) => {
     if (!pollId) return [];
@@ -365,6 +619,7 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         },
       }));
       if (!silent) setStatusLine(`Snapshots refreshed for ${targetId}.`);
+      if (!silent) appendTape(`snapshots refreshed ${targetId}`);
       return snapshots;
     } catch (error) {
       setAdminSnapshotsById((previous) => ({
@@ -377,11 +632,16 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         },
       }));
       if (!silent) setStatusLine(`Snapshots failed: ${safeMessage(error)}`);
+      if (!silent) appendTape(`snapshots failed ${targetId}: ${safeMessage(error)}`);
       return [];
     }
-  }, [adminEnv]);
+  }, [adminEnv, appendTape]);
 
-  const fetchAdminTrendForPoll = useCallback(async (pollId, chartKind, { silent = false } = {}) => {
+  const fetchAdminTrendForPoll = useCallback(async (pollId, chartKind, {
+    silent = false,
+    window = trendWindow,
+    bucket = trendBucketForWindow(window),
+  } = {}) => {
     if (!pollId) return null;
     const targetId = String(pollId);
     const chart = String(chartKind || 'line').toLowerCase();
@@ -397,8 +657,8 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       const result = await getAdminPollTrend({
         pollId: targetId,
         env: adminEnv,
-        bucket: chart === 'velocity' ? 'day' : 'day',
-        window: '90d',
+        bucket,
+        window,
       });
       const trend = result?.payload?.trend && typeof result.payload.trend === 'object'
         ? result.payload.trend
@@ -422,11 +682,23 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
 
       let chartText = '';
       if (chart === 'stack') {
-        chartText = await renderStackedOptionTrend(seriesByOption, { title: `Trend ${targetId}` });
+        chartText = await renderStackedOptionTrend(seriesByOption, {
+          title: `Trend ${targetId}`,
+          termWidth: 58,
+          termHeight: 14,
+        });
       } else if (chart === 'velocity') {
-        chartText = await renderVelocityTrend(series, { title: `Velocity ${targetId}` });
+        chartText = await renderVelocityTrend(series, {
+          title: `Velocity ${targetId}`,
+          termWidth: 58,
+          termHeight: 14,
+        });
       } else {
-        chartText = await renderLineTrend(series, { title: `Trend ${targetId}` });
+        chartText = await renderLineTrend(series, {
+          title: `Trend ${targetId}`,
+          termWidth: 58,
+          termHeight: 14,
+        });
       }
 
       setAdminTrendById((previous) => ({
@@ -438,13 +710,68 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
           series,
           seriesByOption,
           chart,
+          window,
+          bucket,
           chartText,
           updatedAt: Date.now(),
         },
       }));
       if (!silent) setStatusLine(`Trend refreshed for ${targetId}.`);
+      if (!silent) appendTape(`trend refreshed ${targetId} (${window}/${bucket})`);
       return trend;
     } catch (error) {
+      if (isAdminAuthMissingError(error)) {
+        try {
+          const fallbackResponse = await getPublicPollTrend({
+            pollId: targetId,
+            env: adminEnv,
+            window,
+            bucket: bucket === 'hour' ? 'day' : bucket,
+          });
+          const fallbackPayload = fallbackResponse?.payload || {};
+          const points = Array.isArray(fallbackPayload?.trend) ? fallbackPayload.trend : [];
+          const fallbackSeries = points.map((row) => ({
+            t: String(row?.t || row?.bucket || row?.timestamp || row?.date || row?.label || '').trim(),
+            value: Number(row?.value ?? row?.count ?? row?.total ?? 0) || 0,
+          })).filter((row) => row.t);
+          const fallbackChart = chart === 'velocity' ? 'velocity' : 'line';
+          const chartText = fallbackChart === 'velocity'
+            ? await renderVelocityTrend(fallbackSeries, {
+              title: `Trend ${targetId} (public)`,
+              termWidth: 58,
+              termHeight: 14,
+            })
+            : await renderLineTrend(fallbackSeries, {
+              title: `Trend ${targetId} (public)`,
+              termWidth: 58,
+              termHeight: 14,
+            });
+
+          setAdminTrendById((previous) => ({
+            ...previous,
+            [targetId]: {
+              loading: false,
+              error: '',
+              trend: fallbackPayload,
+              series: fallbackSeries,
+              seriesByOption: {},
+              chart,
+              window,
+              bucket,
+              chartText,
+              updatedAt: Date.now(),
+              source: 'public-trend-fallback',
+            },
+          }));
+          if (!silent) {
+            setStatusLine(`Trend fallback active for ${targetId} (public trend).`);
+            appendTape(`trend fallback ${targetId} (public trend)`);
+          }
+          return fallbackPayload;
+        } catch (fallbackError) {
+          if (!silent) appendTape(`trend fallback failed ${targetId}: ${safeMessage(fallbackError)}`);
+        }
+      }
       setAdminTrendById((previous) => ({
         ...previous,
         [targetId]: {
@@ -454,14 +781,68 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
           series: [],
           seriesByOption: {},
           chart,
+          window,
+          bucket,
           chartText: '',
           updatedAt: Date.now(),
         },
       }));
       if (!silent) setStatusLine(`Trend failed: ${safeMessage(error)}`);
+      if (!silent) appendTape(`trend failed ${targetId}: ${safeMessage(error)}`);
       return null;
     }
-  }, [adminEnv]);
+  }, [adminEnv, appendTape, trendWindow]);
+
+  const refreshDeskData = useCallback(async ({ silent = false, reason = 'manual' } = {}) => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    try {
+      const metricPollIds = selectMetricsSweepIds({
+        polls,
+        selectedPollId: selectedPoll?.id || '',
+        reason,
+        sweepCursorRef: metricsSweepCursorRef,
+      });
+      if (metricPollIds.length) {
+        await Promise.all(metricPollIds.map((id) => fetchMetricsForPoll(id, { silent: true })));
+      }
+      await fetchAdminOverview({ silent: true, window: trendWindow });
+      if (selectedPoll?.id) {
+        await Promise.all([
+          fetchAdminLiveForPoll(selectedPoll.id, { silent: true }),
+          fetchAdminTrendForPoll(selectedPoll.id, trendChart, {
+            silent: true,
+            window: trendWindow,
+            bucket: trendBucketForWindow(trendWindow),
+          }),
+          fetchAdminSnapshotsForPoll(selectedPoll.id, { silent: true }),
+        ]);
+      }
+      setLastRefreshAt(Date.now());
+      if (!silent) {
+        setStatusLine(`Desk refreshed (${reason}) metrics:${metricPollIds.length}`);
+        appendTape(`desk refresh (${reason})`);
+      }
+    } catch (error) {
+      if (!silent) {
+        setStatusLine(`Desk refresh failed: ${safeMessage(error)}`);
+        appendTape(`desk refresh failed: ${safeMessage(error)}`);
+      }
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }, [
+    appendTape,
+    fetchAdminLiveForPoll,
+    fetchAdminOverview,
+    fetchAdminSnapshotsForPoll,
+    fetchAdminTrendForPoll,
+    fetchMetricsForPoll,
+    polls,
+    selectedPoll,
+    trendChart,
+    trendWindow,
+  ]);
 
   const publishSnapshotForSelected = useCallback(async ({ draft = false } = {}) => {
     if (!selectedPoll?.id || busy || adminBusy) return;
@@ -496,13 +877,15 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       });
       const version = result?.payload?.version ?? '?';
       setStatusLine(`Snapshot ${draft ? 'drafted' : 'published'} for ${pollId} (v${version}).`);
+      appendTape(`snapshot ${draft ? 'drafted' : 'published'} ${pollId} v${version}`);
       await fetchAdminSnapshotsForPoll(pollId, { silent: true });
     } catch (error) {
       setStatusLine(`Snapshot publish failed: ${safeMessage(error)}`);
+      appendTape(`snapshot publish failed ${pollId}: ${safeMessage(error)}`);
     } finally {
       setAdminBusy(false);
     }
-  }, [adminBusy, adminEnv, busy, fetchAdminLiveForPoll, fetchAdminSnapshotsForPoll, selectedPoll]);
+  }, [adminBusy, adminEnv, appendTape, busy, fetchAdminLiveForPoll, fetchAdminSnapshotsForPoll, selectedPoll]);
 
   const promoteLatestSnapshotForSelected = useCallback(async () => {
     if (!selectedPoll?.id || busy || adminBusy) return;
@@ -524,13 +907,62 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     try {
       await promoteAdminPollSnapshot({ pollId, version, env: adminEnv });
       setStatusLine(`Promoted snapshot v${version} for ${pollId}.`);
+      appendTape(`snapshot promoted ${pollId} v${version}`);
       await fetchAdminSnapshotsForPoll(pollId, { silent: true });
     } catch (error) {
       setStatusLine(`Promote failed: ${safeMessage(error)}`);
+      appendTape(`snapshot promote failed ${pollId}: ${safeMessage(error)}`);
     } finally {
       setAdminBusy(false);
     }
-  }, [adminBusy, adminEnv, adminSnapshotsById, busy, fetchAdminSnapshotsForPoll, selectedPoll]);
+  }, [adminBusy, adminEnv, adminSnapshotsById, appendTape, busy, fetchAdminSnapshotsForPoll, selectedPoll]);
+
+  const submitPublishNoteForSelected = useCallback(async () => {
+    if (!selectedPoll?.id || busy || adminBusy) return;
+    const pollId = selectedPoll.id;
+    const summaryMarkdown = String(publishNoteDraft.body || '').trim();
+    const headline = String(publishNoteDraft.headline || '').trim();
+    const shouldPublish = publishNoteDraft.publish !== false;
+    if (!summaryMarkdown) {
+      setStatusLine('Publish note requires SUMMARY NOTE text.');
+      return;
+    }
+    setAdminBusy(true);
+    setStatusLine(`${shouldPublish ? 'Publishing' : 'Drafting'} note snapshot for ${pollId}...`);
+    try {
+      const result = await publishAdminPollSnapshot({
+        pollId,
+        env: adminEnv,
+        summaryMarkdown,
+        headline,
+        publish: shouldPublish,
+        trendWindow,
+      });
+      const version = result?.payload?.version ?? '?';
+      setStatusLine(`Publish note ${shouldPublish ? 'published' : 'drafted'} for ${pollId} (v${version}).`);
+      appendTape(`publish note ${shouldPublish ? 'published' : 'drafted'} ${pollId} v${version}`);
+      setPublishNoteOpen(false);
+      setPublishNoteTyping(false);
+      setPublishNoteBuffer('');
+      await fetchAdminSnapshotsForPoll(pollId, { silent: true });
+    } catch (error) {
+      setStatusLine(`Publish note failed: ${safeMessage(error)}`);
+      appendTape(`publish note failed ${pollId}: ${safeMessage(error)}`);
+    } finally {
+      setAdminBusy(false);
+    }
+  }, [
+    adminBusy,
+    adminEnv,
+    appendTape,
+    busy,
+    fetchAdminSnapshotsForPoll,
+    publishNoteDraft.body,
+    publishNoteDraft.headline,
+    publishNoteDraft.publish,
+    selectedPoll,
+    trendWindow,
+  ]);
 
   const refreshAllMetrics = useCallback(async () => {
     if (!polls.length || metricsBusy) return;
@@ -543,10 +975,12 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         await fetchMetricsForPoll(poll.id, { silent: true });
       }
       setStatusLine(`Metrics refreshed (${polls.length} polls).`);
+      setLastRefreshAt(Date.now());
+      appendTape(`metrics sweep (${polls.length} polls)`);
     } finally {
       setMetricsBusy(false);
     }
-  }, [fetchMetricsForPoll, metricsBusy, polls]);
+  }, [appendTape, fetchMetricsForPoll, metricsBusy, polls]);
 
   const persistPolls = useCallback(async (nextData, message, { selectId } = {}) => {
     setBusy(true);
@@ -580,12 +1014,14 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         ? ` Events sent:${events.sent || 0} failed:${events.failed || 0} skipped:${events.skipped || 0}.`
         : '';
       setStatusLine(`Published ${synced || result.count} polls to ${result.env} (${result.apiBase}).${eventSuffix}`);
+      appendTape(`definitions published ${result.env} (synced:${synced || result.count})`);
     } catch (error) {
       setStatusLine(`Publish ${env} failed: ${safeMessage(error)}`);
+      appendTape(`definitions publish failed ${env}: ${safeMessage(error)}`);
     } finally {
       setBusy(false);
     }
-  }, [busy]);
+  }, [appendTape, busy]);
 
   const openEditor = useCallback((mode) => {
     const target = mode === 'edit' ? selectedPoll : null;
@@ -695,8 +1131,8 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
   }, [reloadPolls]);
 
   useEffect(() => {
-    void fetchAdminOverview({ silent: true });
-  }, [fetchAdminOverview]);
+    void refreshDeskData({ silent: true, reason: 'boot' });
+  }, [refreshDeskData]);
 
   useEffect(() => {
     if (!polls.length) return;
@@ -712,36 +1148,53 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
 
   useEffect(() => {
     if (!selectedPoll?.id) return;
-    if (opsMode === 'live') {
-      const current = adminLiveById[selectedPoll.id];
-      if (!current?.updatedAt && !current?.loading) {
-        void fetchAdminLiveForPoll(selectedPoll.id, { silent: true });
-      }
-      return;
-    }
-    if (opsMode === 'trends') {
-      const current = adminTrendById[selectedPoll.id];
-      if (!current?.updatedAt || current?.chart !== trendChart) {
-        void fetchAdminTrendForPoll(selectedPoll.id, trendChart, { silent: true });
-      }
-      return;
-    }
-    if (opsMode === 'history' || opsMode === 'publish') {
-      const current = adminSnapshotsById[selectedPoll.id];
-      if (!current?.updatedAt && !current?.loading) {
-        void fetchAdminSnapshotsForPoll(selectedPoll.id, { silent: true });
-      }
+    if (opsMode === 'desk' || opsMode === 'live' || opsMode === 'trends' || opsMode === 'history' || opsMode === 'publish') {
+      void refreshDeskData({ silent: true, reason: 'mode' });
     }
   }, [
-    adminLiveById,
-    adminSnapshotsById,
+    opsMode,
+    refreshDeskData,
+    selectedPoll?.id,
+  ]);
+
+  useEffect(() => {
+    setFocusedPanelIndex(0);
+    setQueueDrilldownOpen(false);
+    setPublishNoteOpen(false);
+    setPublishNoteTyping(false);
+    setPublishNoteBuffer('');
+  }, [opsMode]);
+
+  useEffect(() => {
+    setQueueCursor((previous) => clamp(previous, 0, Math.max(0, deskQueueRows.length - 1)));
+  }, [deskQueueRows.length]);
+
+  useEffect(() => {
+    if (editor) return undefined;
+    if (refreshPaused) return undefined;
+    const timer = setInterval(() => {
+      void refreshDeskData({ silent: true, reason: 'auto' });
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [editor, refreshDeskData, refreshPaused]);
+
+  useEffect(() => {
+    if (!selectedPoll?.id) return;
+    if (opsMode !== 'trends' && opsMode !== 'desk') return;
+    const trendState = adminTrendById[selectedPoll.id];
+    if (trendState?.chart === trendChart && trendState?.window === trendWindow) return;
+    void fetchAdminTrendForPoll(selectedPoll.id, trendChart, {
+      silent: true,
+      window: trendWindow,
+      bucket: trendBucketForWindow(trendWindow),
+    });
+  }, [
     adminTrendById,
-    fetchAdminLiveForPoll,
-    fetchAdminSnapshotsForPoll,
     fetchAdminTrendForPoll,
     opsMode,
-    selectedPoll,
+    selectedPoll?.id,
     trendChart,
+    trendWindow,
   ]);
 
   const editorFields = useMemo(() => (editor?.mode === 'create'
@@ -764,9 +1217,103 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       { key: 'closeAt', label: 'CLOSE DATE', type: 'text', hint: 'YYYY-MM-DD or ISO date-time' },
       { key: 'manualClose', label: 'MANUAL CLOSE', type: 'bool' },
     ]), [editor?.mode]);
+  const publishNoteFields = useMemo(() => ([
+    { key: 'headline', label: 'HEADLINE', type: 'text' },
+    { key: 'body', label: 'SUMMARY NOTE', type: 'text' },
+    { key: 'publish', label: 'PUBLISH NOW', type: 'bool' },
+  ]), []);
 
   useInput((input, key) => {
     if (key.ctrl && (input === 'q' || input === 'Q')) return;
+
+    if (pendingAction) {
+      const lower = String(input || '').toLowerCase();
+      if (key.escape || lower === 'n') {
+        setPendingAction(null);
+        setStatusLine('Action cancelled.');
+        return;
+      }
+      if (lower === 'y' || key.return) {
+        const action = pendingAction;
+        setPendingAction(null);
+        if (action.type === 'publish') {
+          void publishSnapshotForSelected({ draft: Boolean(action.draft) });
+          return;
+        }
+        if (action.type === 'promote') {
+          void promoteLatestSnapshotForSelected();
+          return;
+        }
+        if (action.type === 'publish-defs-test') {
+          void runPublish('test');
+          return;
+        }
+        if (action.type === 'publish-defs-prod') {
+          void runPublish('prod');
+          return;
+        }
+      }
+      return;
+    }
+
+    if (publishNoteOpen) {
+      const field = publishNoteFields[publishNoteFieldIndex];
+      const lower = String(input || '').toLowerCase();
+      if (!field) return;
+
+      if (publishNoteTyping) {
+        if (key.return) {
+          setPublishNoteDraft((previous) => ({ ...previous, [field.key]: publishNoteBuffer }));
+          setPublishNoteTyping(false);
+          setPublishNoteBuffer('');
+          return;
+        }
+        if (key.escape) {
+          setPublishNoteTyping(false);
+          setPublishNoteBuffer('');
+          return;
+        }
+        if (isBackspaceKey(input, key) || key.delete) {
+          setPublishNoteBuffer((previous) => previous.slice(0, -1));
+          return;
+        }
+        if (shouldAppendWizardChar(input, key)) {
+          setPublishNoteBuffer((previous) => previous + input);
+        }
+        return;
+      }
+
+      if (key.escape) {
+        setPublishNoteOpen(false);
+        setPublishNoteFieldIndex(0);
+        setPublishNoteTyping(false);
+        setPublishNoteBuffer('');
+        setStatusLine('Publish note composer closed.');
+        return;
+      }
+      if (key.upArrow) {
+        setPublishNoteFieldIndex((previous) => clamp(previous - 1, 0, publishNoteFields.length - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setPublishNoteFieldIndex((previous) => clamp(previous + 1, 0, publishNoteFields.length - 1));
+        return;
+      }
+      if ((lower === 's') || (key.ctrl && lower === 's')) {
+        void submitPublishNoteForSelected();
+        return;
+      }
+      if (field.type === 'bool') {
+        if (key.leftArrow || key.rightArrow || key.return || input === ' ') {
+          setPublishNoteDraft((previous) => ({ ...previous, [field.key]: !previous[field.key] }));
+          return;
+        }
+      } else if (field.type === 'text' && key.return) {
+        setPublishNoteTyping(true);
+        setPublishNoteBuffer(String(publishNoteDraft[field.key] || ''));
+      }
+      return;
+    }
 
     if (editor) {
       const field = editorFields[editorFieldIndex];
@@ -842,6 +1389,49 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       return;
     }
 
+    if (queueDrilldownOpen) {
+      const lower = String(input || '').toLowerCase();
+      if (key.escape || lower === 'q') {
+        setQueueDrilldownOpen(false);
+        setStatusLine('Queue drilldown closed.');
+        return;
+      }
+      if (key.upArrow) {
+        setQueueCursor((previous) => clamp(previous - 1, 0, Math.max(0, deskQueueRows.length - 1)));
+        return;
+      }
+      if (key.downArrow) {
+        setQueueCursor((previous) => clamp(previous + 1, 0, Math.max(0, deskQueueRows.length - 1)));
+        return;
+      }
+      if (lower === 'f') {
+        setQueueFilterIndex((previous) => (previous + 1) % QUEUE_STAGE_FILTERS.length);
+        setQueueCursor(0);
+        return;
+      }
+      if (lower === 'z') {
+        setQueueSort((previous) => (previous === 'age' ? 'newest' : 'age'));
+        setQueueCursor(0);
+        return;
+      }
+      if (key.return) {
+        const target = deskQueueRows[queueCursor];
+        if (!target?.pollId) return;
+        const targetIndex = polls.findIndex((poll) => poll.id === target.pollId);
+        if (targetIndex >= 0) {
+          setSelectedIndex(targetIndex);
+          setQueueDrilldownOpen(false);
+          setStatusLine(`Queue drilldown selected ${target.pollId}.`);
+          appendTape(`queue jump ${target.pollId}`);
+        }
+        return;
+      }
+      if (lower === 'r') {
+        void refreshDeskData({ reason: 'queue' });
+      }
+      return;
+    }
+
     if (key.escape) {
       if (typeof onExit === 'function') onExit();
       return;
@@ -857,6 +1447,21 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     }
     if (key.tab) {
       const direction = key.shift ? -1 : 1;
+      if (opsMode === 'desk') {
+        setFocusedPanelIndex((previous) => {
+          const total = PANEL_NAMES.length;
+          return (previous + direction + total) % total;
+        });
+      } else {
+        setOpsModeIndex((previous) => {
+          const total = OPS_MODES.length;
+          return (previous + direction + total) % total;
+        });
+      }
+      return;
+    }
+    if (input === '[' || input === ']') {
+      const direction = input === '[' ? -1 : 1;
       setOpsModeIndex((previous) => {
         const total = OPS_MODES.length;
         return (previous + direction + total) % total;
@@ -865,16 +1470,31 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     }
     if (busy) return;
 
-    if (input === 'P' && opsMode === 'publish') {
-      void publishSnapshotForSelected({ draft: false });
+    if (opsMode === 'desk' && /^[1-6]$/.test(String(input || ''))) {
+      setFocusedPanelIndex(Number(input));
       return;
     }
-    if (input === 'D' && opsMode === 'publish') {
-      void publishSnapshotForSelected({ draft: true });
+
+    if (input === ' ') {
+      setRefreshPaused((previous) => {
+        const next = !previous;
+        setStatusLine(next ? 'Auto refresh paused.' : 'Auto refresh resumed.');
+        appendTape(next ? 'auto refresh paused' : 'auto refresh resumed');
+        return next;
+      });
       return;
     }
-    if (input === 'O' && (opsMode === 'history' || opsMode === 'publish')) {
-      void promoteLatestSnapshotForSelected();
+
+    if (input === 'P' && (opsMode === 'publish' || opsMode === 'desk')) {
+      setPendingAction({ type: 'publish', draft: false, label: 'Publish official snapshot' });
+      return;
+    }
+    if (input === 'D' && (opsMode === 'publish' || opsMode === 'desk')) {
+      setPendingAction({ type: 'publish', draft: true, label: 'Save snapshot draft' });
+      return;
+    }
+    if (input === 'O' && (opsMode === 'history' || opsMode === 'publish' || opsMode === 'desk')) {
+      setPendingAction({ type: 'promote', label: 'Promote latest snapshot to official' });
       return;
     }
 
@@ -885,6 +1505,27 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     }
     if (lower === 'e') {
       openEditor('edit');
+      return;
+    }
+    if (lower === 'b' && (opsMode === 'publish' || opsMode === 'desk')) {
+      const defaultHeadline = selectedPoll?.id ? `Official snapshot: ${selectedPoll.id}` : '';
+      setPublishNoteDraft((previous) => ({
+        headline: previous.headline || defaultHeadline,
+        body: previous.body || '',
+        publish: previous.publish !== false,
+      }));
+      setPublishNoteOpen(true);
+      setPublishNoteFieldIndex(0);
+      setPublishNoteTyping(false);
+      setPublishNoteBuffer('');
+      setStatusLine(`Compose publish note for ${selectedPoll?.id || 'selected poll'}.`);
+      return;
+    }
+    if (lower === 'q' && opsMode === 'desk') {
+      setQueueDrilldownOpen(true);
+      setFocusedPanelIndex(2);
+      setQueueCursor(0);
+      setStatusLine('Queue drilldown opened.');
       return;
     }
     if (lower === 'o') {
@@ -900,6 +1541,10 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         void reloadPolls({ keepId: selectedPoll?.id });
         return;
       }
+      if (opsMode === 'desk' || opsMode === 'live' || opsMode === 'trends' || opsMode === 'history' || opsMode === 'publish') {
+        void refreshDeskData({ reason: 'manual' });
+        return;
+      }
       if (selectedPoll?.id) {
         void fetchMetricsForPoll(selectedPoll.id);
       }
@@ -913,11 +1558,19 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       setTrendChartIndex((previous) => (previous + 1) % TREND_CHARTS.length);
       return;
     }
-    if (lower === 'l' && selectedPoll?.id && opsMode === 'live') {
+    if (lower === 'g' && opsMode === 'desk') {
+      setTrendChartIndex((previous) => (previous + 1) % TREND_CHARTS.length);
+      return;
+    }
+    if (lower === 'w' && (opsMode === 'trends' || opsMode === 'desk')) {
+      setTrendWindowIndex((previous) => (previous + 1) % TREND_WINDOWS.length);
+      return;
+    }
+    if (lower === 'l' && selectedPoll?.id && (opsMode === 'live' || opsMode === 'desk')) {
       void fetchAdminLiveForPoll(selectedPoll.id);
       return;
     }
-    if (lower === 'h' && selectedPoll?.id && (opsMode === 'history' || opsMode === 'publish')) {
+    if (lower === 'h' && selectedPoll?.id && (opsMode === 'history' || opsMode === 'publish' || opsMode === 'desk')) {
       void fetchAdminSnapshotsForPoll(selectedPoll.id);
       return;
     }
@@ -926,13 +1579,27 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       return;
     }
     if (lower === 't') {
-      void runPublish('test');
+      setPendingAction({ type: 'publish-defs-test', label: 'Publish polls definitions to test env' });
       return;
     }
     if (lower === 'p') {
-      void runPublish('prod');
+      setPendingAction({ type: 'publish-defs-prod', label: 'Publish polls definitions to prod env' });
     }
   });
+
+  if (publishNoteOpen) {
+    return React.createElement(Box, { flexDirection: 'column' },
+      React.createElement(PollsDeskPublishNoteComposer, {
+        selectedPoll,
+        draft: publishNoteDraft,
+        fieldIndex: publishNoteFieldIndex,
+        typing: publishNoteTyping,
+        buffer: publishNoteBuffer,
+      }),
+      React.createElement(Text, { color: '#8f98a8' }, `Target env: ${adminEnv}  publish:${publishNoteDraft.publish ? 'true' : 'false'}`),
+      React.createElement(Text, adminBusy ? { color: '#ffcc66' } : { color: '#a6e3a1' }, statusLine),
+    );
+  }
 
   if (editor) {
     const activeField = editorFields[editorFieldIndex];
@@ -968,7 +1635,8 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
     );
   }
 
-  const listWidth = width >= 130 ? Math.max(56, Math.floor(width * 0.58)) : width;
+  const listShare = deskLayout === 'wide' ? 0.5 : 0.58;
+  const listWidth = width >= 130 ? Math.max(56, Math.floor(width * listShare)) : width;
   const detailWidth = Math.max(32, width - listWidth - (width >= 130 ? 2 : 0));
   const listRows = Math.max(6, height - 11);
   const windowed = computeWindow({
@@ -981,22 +1649,30 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
   const selectedTrend = selectedPoll ? adminTrendById[selectedPoll.id] : null;
   const selectedSnapshots = selectedPoll ? adminSnapshotsById[selectedPoll.id] : null;
   const modeHint = {
+    desk: `Desk (${trendChart}/${trendWindow})`,
     catalog: 'Catalog',
     live: 'Live',
-    trends: `Trends (${trendChart})`,
+    trends: `Trends (${trendChart}/${trendWindow})`,
     publish: 'Publish',
     history: 'History',
   }[opsMode] || 'Catalog';
   const overviewTotals = adminOverview?.totals && typeof adminOverview.totals === 'object'
     ? adminOverview.totals
     : null;
+  const refreshStamp = lastRefreshAt ? formatClock(lastRefreshAt) : '--:--:--';
+  const selectedAlerts = summarizeAlertRows({
+    selectedPoll,
+    selectedLive,
+    selectedSnapshots,
+    selectedTrend,
+  });
 
   const listPanel = React.createElement(Box, { flexDirection: 'column', width: listWidth },
-    React.createElement(Text, { color: '#8f98a8' }, `Mode: ${modeHint}  (Tab/Shift+Tab switch)`),
+    React.createElement(Text, { color: '#8f98a8' }, `Desk: ${modeHint}  env:${adminEnv}  layout:${deskLayout}  refresh:${refreshPaused ? 'paused' : '5s'}  last:${refreshStamp}`),
     React.createElement(Text, { color: '#8f98a8' }, `Polls (${stats.total})  open:${stats.open} closed:${stats.closed} draft:${stats.draft}  public:${stats.public} members:${stats.members}`),
     React.createElement(Text, { color: '#8f98a8' }, `Votes loaded: ${stats.votesKnown}/${stats.total} polls  total votes: ${stats.votesTotal}`),
     overviewTotals
-      ? React.createElement(Text, { color: '#8f98a8' }, `Overview(30d): open:${overviewTotals.open ?? 0} closed:${overviewTotals.closed ?? 0} draft:${overviewTotals.draft ?? 0} votes:${overviewTotals.votes ?? 0}`)
+      ? React.createElement(Text, { color: '#8f98a8' }, `Overview(${trendWindow}): open:${overviewTotals.open ?? 0} closed:${overviewTotals.closed ?? 0} draft:${overviewTotals.draft ?? 0} votes:${overviewTotals.votes ?? 0}`)
       : null,
     polls.length === 0
       ? React.createElement(Text, { color: '#d0d5df' }, 'No polls found. Press N to create a poll.')
@@ -1017,11 +1693,15 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
         : { key: poll.id, color: '#d0d5df' }, row);
     }),
     windowed.end < polls.length ? React.createElement(Text, { color: '#8f98a8' }, '…') : null,
-    React.createElement(Text, { color: '#8f98a8' }, 'Keys: N create  E edit  O open  C close  R refresh selected metrics  M refresh all metrics'),
-    React.createElement(Text, { color: '#8f98a8' }, '      V refresh overview  L live refresh  G trend chart cycle  H snapshots refresh'),
-    React.createElement(Text, { color: '#8f98a8' }, '      T publish test defs  p publish prod defs  P publish snapshot  D draft snapshot  O promote latest  Esc back'),
+    React.createElement(Text, { color: '#8f98a8' }, 'Keys: N create  E edit  O open  C close  R refresh desk+metrics  Shift+R reload file  M hard refresh all metrics'),
+    React.createElement(Text, { color: '#8f98a8' }, '      Space pause/resume auto refresh  W trend window  G chart cycle  Tab panel focus  [ ] mode switch  1-6 panels'),
+    React.createElement(Text, { color: '#8f98a8' }, '      V refresh overview  L live refresh  H snapshots  Q queue drilldown  B publish note  T/p publish defs'),
+    React.createElement(Text, { color: '#8f98a8' }, '      P/D/O snapshot actions  Esc back'),
     React.createElement(Text, { color: '#8f98a8' }, `API: ${apiBase}`),
     React.createElement(Text, metricsBusy || busy || adminBusy ? { color: '#ffcc66' } : { color: '#a6e3a1' }, statusLine),
+    pendingAction
+      ? React.createElement(Text, { color: '#ffcc66' }, `Confirm: ${pendingAction.label} (Y to confirm, N/Esc to cancel)`)
+      : null,
   );
 
   const renderCatalogDetail = () => React.createElement(React.Fragment, null,
@@ -1082,7 +1762,7 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       React.createElement(Text, { color: '#8f98a8' }, `Trend chart: ${trendChart}`),
       ...(!chartText
         ? [React.createElement(Text, { key: 'trend-empty', color: '#8f98a8' }, 'No trend data available yet.')]
-        : chartText.split('\n').map((line, index) => React.createElement(Text, { key: `trend-${index}`, color: '#d0d5df' }, line))),
+        : chartText.split('\n').map((line, index) => React.createElement(Text, { key: `trend-${index}` }, line))),
     );
   };
 
@@ -1116,6 +1796,26 @@ export function PollsManager({ onExit, width = 100, height = 24 }) {
       ? React.createElement(Text, { color: '#8f98a8' }, 'Select a poll to inspect details and results.')
       : React.createElement(React.Fragment, null,
         React.createElement(Text, { color: '#8f98a8' }, `Selected: ${selectedPoll.id}  mode:${modeHint}`),
+        opsMode === 'desk'
+          ? React.createElement(PollsDeskDetail, {
+            selectedPoll,
+            selectedLive,
+            selectedTrend,
+            selectedSnapshots,
+            selectedAlerts,
+            trendChart,
+            trendWindow,
+            focusedPanelIndex,
+            eventTape,
+            detailWidth,
+            height,
+            queueRows: deskQueueRows,
+            queueDrilldownOpen,
+            queueFilterStage,
+            queueSort,
+            queueCursor,
+          })
+          : null,
         opsMode === 'catalog' ? renderCatalogDetail() : null,
         opsMode === 'live' ? renderLiveDetail() : null,
         opsMode === 'trends' ? renderTrendsDetail() : null,

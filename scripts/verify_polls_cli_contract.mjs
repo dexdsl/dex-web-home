@@ -23,7 +23,8 @@ function assertIncludes(relPath, marker) {
 
 function main() {
   const dexCliFile = 'scripts/dex.mjs';
-  assertIncludes(dexCliFile, 'overview|live|trend|snapshots|publish-results|promote-results');
+  assertIncludes(dexCliFile, 'desk|validate|create|edit|close|open|publish|overview|live|trend|snapshots|publish-results|promote-results');
+  assertIncludes(dexCliFile, "if (subcommand === 'desk')");
   assertIncludes(dexCliFile, "if (subcommand === 'overview')");
   assertIncludes(dexCliFile, "if (subcommand === 'live')");
   assertIncludes(dexCliFile, "if (subcommand === 'trend')");
@@ -36,6 +37,7 @@ function main() {
   assertIncludes('scripts/lib/polls-admin-api.mjs', 'getAdminPollOverview');
   assertIncludes('scripts/lib/polls-admin-api.mjs', 'publishAdminPollSnapshot');
   assertIncludes('scripts/lib/polls-kuva.mjs', 'renderLineTrend');
+  assertIncludes('scripts/ui/polls-manager.mjs', "const OPS_MODES = ['desk'");
 
   if (FAILURES.length > 0) {
     console.error(`verify:polls-cli failed with ${FAILURES.length} issue(s):`);

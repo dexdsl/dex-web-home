@@ -33,13 +33,16 @@ function resolveApiBase(envName) {
 function resolveAdminToken(envName) {
   const env = normalizeEnv(envName);
   const direct = env === 'prod'
-    ? process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_PROD || process.env.POLL_SYNC_ADMIN_TOKEN_PROD
-    : process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_TEST || process.env.POLL_SYNC_ADMIN_TOKEN_TEST;
-  const shared = process.env.DEX_POLLS_SYNC_ADMIN_TOKEN || process.env.POLL_SYNC_ADMIN_TOKEN;
+    ? process.env.DEX_POLLS_ADMIN_TOKEN_PROD || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_PROD || process.env.POLL_SYNC_ADMIN_TOKEN_PROD
+    : process.env.DEX_POLLS_ADMIN_TOKEN_TEST || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_TEST || process.env.POLL_SYNC_ADMIN_TOKEN_TEST;
+  const shared = process.env.DEX_POLLS_ADMIN_TOKEN
+    || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN
+    || process.env.POLL_SYNC_ADMIN_TOKEN
+    || process.env.DEX_MAINTENANCE_TOKEN;
   const token = direct || shared;
   if (!token) {
     throw new Error(
-      `Missing polls admin token for ${env}. Set DEX_POLLS_SYNC_ADMIN_TOKEN_${env.toUpperCase()} or DEX_POLLS_SYNC_ADMIN_TOKEN.`,
+      `Missing polls admin token for ${env}. Set DEX_POLLS_ADMIN_TOKEN_${env.toUpperCase()} (or DEX_POLLS_SYNC_ADMIN_TOKEN_${env.toUpperCase()}, or shared DEX_POLLS_ADMIN_TOKEN / DEX_POLLS_SYNC_ADMIN_TOKEN / DEX_MAINTENANCE_TOKEN).`,
     );
   }
   return String(token).trim();

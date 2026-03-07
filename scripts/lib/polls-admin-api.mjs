@@ -35,13 +35,16 @@ export function resolvePollsApiBase(envName = 'test') {
 export function resolvePollsAdminToken(envName = 'test') {
   const env = normalizePollsEnv(envName);
   const direct = env === 'prod'
-    ? process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_PROD || process.env.POLL_SYNC_ADMIN_TOKEN_PROD
-    : process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_TEST || process.env.POLL_SYNC_ADMIN_TOKEN_TEST;
-  const shared = process.env.DEX_POLLS_SYNC_ADMIN_TOKEN || process.env.POLL_SYNC_ADMIN_TOKEN;
+    ? process.env.DEX_POLLS_ADMIN_TOKEN_PROD || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_PROD || process.env.POLL_SYNC_ADMIN_TOKEN_PROD
+    : process.env.DEX_POLLS_ADMIN_TOKEN_TEST || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN_TEST || process.env.POLL_SYNC_ADMIN_TOKEN_TEST;
+  const shared = process.env.DEX_POLLS_ADMIN_TOKEN
+    || process.env.DEX_POLLS_SYNC_ADMIN_TOKEN
+    || process.env.POLL_SYNC_ADMIN_TOKEN
+    || process.env.DEX_MAINTENANCE_TOKEN;
   const token = toText(direct || shared);
   if (!token) {
     throw new Error(
-      `Missing polls admin token for ${env}. Set DEX_POLLS_SYNC_ADMIN_TOKEN_${env.toUpperCase()} or DEX_POLLS_SYNC_ADMIN_TOKEN.`,
+      `Missing polls admin token for ${env}. Set DEX_POLLS_ADMIN_TOKEN_${env.toUpperCase()} (or DEX_POLLS_SYNC_ADMIN_TOKEN_${env.toUpperCase()}, or shared DEX_POLLS_ADMIN_TOKEN / DEX_POLLS_SYNC_ADMIN_TOKEN / DEX_MAINTENANCE_TOKEN).`,
     );
   }
   return token;
@@ -220,5 +223,13 @@ export async function getPublicPollTrend({ pollId, env = 'prod', window = '90d',
       window: normalizeWindow(window, '90d'),
       bucket: normalizePublicBucket(bucket, 'day'),
     },
+  });
+}
+
+export async function getPublicPollResults({ pollId, env = 'prod' } = {}) {
+  const id = toText(pollId);
+  if (!id) throw new Error('pollId is required');
+  return requestPollsApi(`/polls/${encodeURIComponent(id)}/results`, {
+    env,
   });
 }

@@ -536,8 +536,26 @@ async function runPollsCommand(rest = []) {
         return;
       }
     }
-    console.log('Usage: dex polls <validate|create|edit|close|open|publish|overview|live|trend|snapshots|publish-results|promote-results> [args]');
+    console.log('Usage: dex polls <desk|validate|create|edit|close|open|publish|overview|live|trend|snapshots|publish-results|promote-results> [args]');
     return;
+  }
+
+  if (subcommand === 'desk') {
+    const env = flags.get('--env') || process.env.DEX_POLLS_OPS_ENV || 'test';
+    if (env) process.env.DEX_POLLS_OPS_ENV = String(env);
+    const layout = flags.get('--layout');
+    if (layout) process.env.DEX_POLLS_DESK_LAYOUT = String(layout);
+    if (flags.has('--paused')) process.env.DEX_POLLS_DESK_PAUSED = '1';
+    if (process.stdout.isTTY && process.stdin.isTTY) {
+      const { runDashboard } = await import('./ui/dashboard.mjs');
+      const packageJson = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
+      await runDashboard(dashboardContext({
+        initialMode: 'polls',
+        version: packageJson.version || 'dev',
+      }));
+      return;
+    }
+    throw new Error('polls:desk requires an interactive TTY');
   }
 
   if (subcommand === 'validate') {
@@ -685,14 +703,20 @@ async function runPollsCommand(rest = []) {
     if (chart === 'stack' || chart === 'stacked') {
       chartText = await renderStackedOptionTrend(seriesByOption, {
         title: `polls:trend ${pollId} (${windowValue}/${bucket})`,
+        termWidth: Math.max(42, Math.min(120, (process.stdout?.columns || 96) - 6)),
+        termHeight: 18,
       });
     } else if (chart === 'velocity') {
       chartText = await renderVelocityTrend(series, {
         title: `polls:trend velocity ${pollId} (${windowValue}/${bucket})`,
+        termWidth: Math.max(42, Math.min(120, (process.stdout?.columns || 96) - 6)),
+        termHeight: 18,
       });
     } else {
       chartText = await renderLineTrend(series, {
         title: `polls:trend ${pollId} (${windowValue}/${bucket})`,
+        termWidth: Math.max(42, Math.min(120, (process.stdout?.columns || 96) - 6)),
+        termHeight: 18,
       });
     }
     console.log(`polls:trend (${env}) ${pollId} via ${apiBase}`);
