@@ -14,7 +14,7 @@
   --dx-dexdrones-accent: var(--dx-dexdrones-vfr-base);
   --dx-dexdrones-accent-soft: rgba(31, 78, 151, 0.16);
   --dx-dexdrones-grid-line: rgba(255, 255, 255, 0.4);
-  --dx-dexdrones-contour-line: rgba(22, 58, 120, 0.26);
+  --dx-dexdrones-contour-line: rgba(255, 255, 255, 0.44);
   --dx-dexdrones-canvas-grid:
     repeating-linear-gradient(
       90deg,
@@ -31,14 +31,13 @@
       var(--dx-dexdrones-grid-line) calc(clamp(54px, 6.8vw, 80px) + 1px)
     );
   --dx-dexdrones-canvas-wash:
-    radial-gradient(140% 120% at 14% 8%, rgba(255, 255, 255, 0.14), transparent 62%),
-    radial-gradient(132% 112% at 90% 22%, rgba(255, 255, 255, 0.1), transparent 70%),
-    linear-gradient(136deg, #1f4e97 0%, #1b4689 48%, #163a78 100%);
+    radial-gradient(140% 120% at 14% 8%, rgba(255, 255, 255, 0.26), transparent 62%),
+    radial-gradient(132% 112% at 90% 22%, rgba(255, 255, 255, 0.18), transparent 70%),
+    linear-gradient(136deg, #3f73ba 0%, #2e5faa 48%, #1f4e97 100%);
 }
 
 html[data-dx-route='dexdrones'],
 body[data-dx-route='dexdrones'] {
-  --dx-fixed-header-top: 0px;
   background:
     var(--dx-dexdrones-canvas-grid),
     var(--dx-dexdrones-canvas-wash);
@@ -58,10 +57,6 @@ body[data-dx-route='dexdrones'] .dex-scroll-dot {
     0 0 0 1px rgba(7, 16, 32, 0.25) inset,
     0 4px 12px rgba(8, 18, 36, 0.34),
     0 0 12px rgba(46, 95, 170, 0.32);
-}
-
-body[data-dx-route='dexdrones'] .header-announcement-bar-wrapper {
-  top: 0 !important;
 }
 
 body[data-dx-route='dexdrones'] #scroll-gradient-bg,
@@ -124,7 +119,7 @@ body[data-dx-route='dexdrones'] .dx-dexdrones-page-shell::before {
   inset: 0.5rem 0.3rem 0.8rem;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.36;
+  opacity: 0.56;
   border-radius: calc(var(--dx-dexdrones-radius) + 2px);
   background:
     radial-gradient(130% 36% at 8% 20%, transparent 62%, var(--dx-dexdrones-contour-line) 63%, transparent 66%),
