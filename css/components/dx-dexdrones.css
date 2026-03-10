@@ -31,21 +31,37 @@
       var(--dx-dexdrones-grid-line) calc(clamp(54px, 6.8vw, 80px) + 1px)
     );
   --dx-dexdrones-canvas-wash:
-    radial-gradient(140% 120% at 14% 8%, rgba(234, 241, 255, 0.54), transparent 62%),
-    radial-gradient(132% 112% at 90% 22%, rgba(163, 193, 237, 0.36), transparent 70%),
-    linear-gradient(136deg, rgba(228, 239, 255, 0.9), rgba(190, 214, 245, 0.72));
+    radial-gradient(140% 120% at 14% 8%, rgba(255, 255, 255, 0.14), transparent 62%),
+    radial-gradient(132% 112% at 90% 22%, rgba(255, 255, 255, 0.1), transparent 70%),
+    linear-gradient(136deg, #1f4e97 0%, #1b4689 48%, #163a78 100%);
 }
 
 html[data-dx-route='dexdrones'],
 body[data-dx-route='dexdrones'] {
+  --dx-fixed-header-top: 0px;
+  background:
+    var(--dx-dexdrones-canvas-grid),
+    var(--dx-dexdrones-canvas-wash);
   background-color: var(--dx-dexdrones-vfr-base);
 }
 
-body[data-dx-route='dexdrones']:not(.dx-slot-enabled),
 body[data-dx-route='dexdrones'].dx-slot-enabled #dx-slot-scroll-root {
   background:
     var(--dx-dexdrones-canvas-grid),
     var(--dx-dexdrones-canvas-wash);
+}
+
+body[data-dx-route='dexdrones'] .dex-scroll-dot {
+  background: linear-gradient(180deg, #2e5faa 0%, #1f4e97 52%, #163a78 100%) !important;
+  border-color: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 0 0 1px rgba(7, 16, 32, 0.25) inset,
+    0 4px 12px rgba(8, 18, 36, 0.34),
+    0 0 12px rgba(46, 95, 170, 0.32);
+}
+
+body[data-dx-route='dexdrones'] .header-announcement-bar-wrapper {
+  top: 0 !important;
 }
 
 body[data-dx-route='dexdrones'] #scroll-gradient-bg,
