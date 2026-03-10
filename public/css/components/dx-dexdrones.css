@@ -13,7 +13,7 @@
   --dx-dexdrones-muted: #3d434b;
   --dx-dexdrones-accent: var(--dx-dexdrones-vfr-base);
   --dx-dexdrones-accent-soft: rgba(31, 78, 151, 0.16);
-  --dx-dexdrones-grid-line: rgba(31, 78, 151, 0.18);
+  --dx-dexdrones-grid-line: rgba(255, 255, 255, 0.4);
   --dx-dexdrones-contour-line: rgba(22, 58, 120, 0.26);
   --dx-dexdrones-canvas-grid:
     repeating-linear-gradient(
