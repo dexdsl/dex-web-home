@@ -30,12 +30,19 @@
   },
   "hero": {
     "kicker": "DEXDRONES / INSTITUTIONAL LAUNCH",
+    "launchTag": "DEXDRONES / INSTITUTIONAL LAUNCH",
     "identifier": "dexDRONES is Dex's aerial wing for film-quality CC-BY 4.0 image-making.",
     "title": "Film-quality CC-BY 4.0 aerial assets for the public.",
     "subhead": "A semi-permanent wing of Dex Digital Sample Library, launching with Mojave Desert fieldwork and Alaska applications under review, with founding support from Kolari Vision.",
+    "dateStamp": "03.09.2026",
     "launchDate": "March 9, 2026",
     "markSrc": "/assets/img/dexdrones.png",
     "markAlt": "dexDRONES mark",
+    "proofChips": [
+      { "value": "30+ hours", "label": "Catalog" },
+      { "value": "~12,000", "label": "Downloads" },
+      { "value": "~500", "label": "Monthly active users" }
+    ],
     "sponsor": {
       "label": "Founding Sponsor",
       "name": "Kolari Vision",

@@ -136,13 +136,43 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
     }
 
     const wrapper = document.getElementById('gooey-mesh-wrapper');
-    if (!wrapper || prefersReducedMotion()) return;
+    if (!wrapper) return;
 
-    const blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+    const stage = wrapper.querySelector('.gooey-stage') || wrapper;
+    let blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+    if (blobs.length === 0 && stage instanceof HTMLElement) {
+      const defaults = [
+        { size: '44vw', g1a: 'rgba(255, 42, 27, 0.56)', g1b: 'rgba(255, 164, 16, 0.42)', g2a: 'rgba(24, 36, 56, 0.26)', g2b: 'rgba(24, 36, 56, 0)' },
+        { size: '40vw', g1a: 'rgba(255, 16, 74, 0.42)', g1b: 'rgba(255, 120, 18, 0.36)', g2a: 'rgba(34, 44, 68, 0.24)', g2b: 'rgba(34, 44, 68, 0)' },
+        { size: '38vw', g1a: 'rgba(255, 71, 45, 0.46)', g1b: 'rgba(255, 184, 46, 0.34)', g2a: 'rgba(21, 29, 48, 0.2)', g2b: 'rgba(21, 29, 48, 0)' },
+      ];
+      defaults.forEach((preset) => {
+        const blob = document.createElement('div');
+        blob.className = 'gooey-blob';
+        blob.style.setProperty('--d', preset.size);
+        blob.style.setProperty('--g1a', preset.g1a);
+        blob.style.setProperty('--g1b', preset.g1b);
+        blob.style.setProperty('--g2a', preset.g2a);
+        blob.style.setProperty('--g2b', preset.g2b);
+        stage.appendChild(blob);
+      });
+      blobs = Array.from(wrapper.querySelectorAll('.gooey-blob'));
+    }
     if (blobs.length === 0) return;
 
     const width = () => window.innerWidth;
     const height = () => window.innerHeight;
+    const placeStatic = () => {
+      const columns = Math.ceil(Math.sqrt(blobs.length));
+      const rows = Math.ceil(blobs.length / columns);
+      blobs.forEach((blob, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = ((col + 1) / (columns + 1)) * width();
+        const y = ((row + 1) / (rows + 1)) * height();
+        blob.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      });
+    };
 
     blobs.forEach((blob) => {
       blob._rad = blob.offsetWidth / 2;
@@ -158,6 +188,27 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
       blob._y = Math.min(Math.max(blob._rad, blob._y), height() - blob._rad);
     });
 
+    if (blobRaf) {
+      cancelAnimationFrame(blobRaf);
+      blobRaf = 0;
+    }
+    if (blobResizeHandler) {
+      window.removeEventListener('resize', blobResizeHandler);
+      blobResizeHandler = null;
+    }
+
+    if (prefersReducedMotion()) {
+      wrapper.classList.add('dx-gooey-static');
+      placeStatic();
+      blobResizeHandler = () => {
+        placeStatic();
+      };
+      window.addEventListener('resize', blobResizeHandler);
+      window[BLOB_RUNTIME_KEY] = { handle: blobRuntimeHandle, stop: stopBlobMotion };
+      return;
+    }
+
+    wrapper.classList.remove('dx-gooey-static');
     if (blobRaf) cancelAnimationFrame(blobRaf);
     let last = performance.now();
     const tick = (now) => {
@@ -181,7 +232,6 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
 
     blobRaf = requestAnimationFrame(tick);
 
-    if (blobResizeHandler) window.removeEventListener('resize', blobResizeHandler);
     blobResizeHandler = () => {
       blobs.forEach((blob) => {
         blob._x = Math.min(Math.max(blob._rad, blob._x), width() - blob._rad);
@@ -276,6 +326,12 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
       const iframe = template.content.querySelector('iframe');
       if (!iframe) return;
       iframe.loading = 'lazy';
+      iframe.classList.add('dx-dexnotes-legacy-iframe');
+      const source = text(iframe.getAttribute('src')).toLowerCase();
+      if (source.includes('youtube') || source.includes('vimeo')) {
+        iframe.removeAttribute('width');
+        iframe.removeAttribute('height');
+      }
       if (!iframe.hasAttribute('referrerpolicy')) iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
       mount.replaceChildren(iframe);
     });
@@ -331,6 +387,193 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
       });
       if (!removedAny) break;
     }
+
+    root.querySelectorAll('iframe').forEach((iframe) => {
+      iframe.classList.add('dx-dexnotes-legacy-iframe');
+      const source = text(iframe.getAttribute('src')).toLowerCase();
+      if (source.includes('youtube') || source.includes('vimeo')) {
+        iframe.removeAttribute('width');
+        iframe.removeAttribute('height');
+      }
+    });
+
+    const isLayoutWrapper = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      if (node === root) return false;
+      if (node.classList.contains('dx-layout') || node.classList.contains('dx-row') || node.classList.contains('row') || node.classList.contains('col')) {
+        return true;
+      }
+      return [...node.classList].some((name) => name.startsWith('dx-col-') || name.startsWith('span-') || name === 'columns-12' || name === 'dx-grid-12');
+    };
+
+    for (let pass = 0; pass < 3; pass += 1) {
+      let changed = false;
+      root.querySelectorAll('div, section, article').forEach((node) => {
+        if (!isLayoutWrapper(node)) return;
+        const parent = node.parentNode;
+        if (!(parent instanceof Node)) return;
+        while (node.firstChild) {
+          parent.insertBefore(node.firstChild, node);
+        }
+        node.remove();
+        changed = true;
+      });
+      if (!changed) break;
+    }
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      let removedAny = false;
+      root.querySelectorAll(emptySelectors.join(', ')).forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node === root) return;
+        if (hasVisualPayload(node)) return;
+        node.remove();
+        removedAny = true;
+      });
+      if (!removedAny) break;
+    }
+
+    const imageBlocks = Array.from(root.querySelectorAll('.dx-block.image-block')).filter((node) => node instanceof HTMLElement);
+    const parseDimensions = (block) => {
+      const img = block.querySelector('img');
+      if (!(img instanceof HTMLElement)) return { width: 0, height: 0 };
+      const raw = text(img.getAttribute('data-image-dimensions') || `${img.getAttribute('width') || ''}x${img.getAttribute('height') || ''}`);
+      const match = raw.match(/(\d+)\s*x\s*(\d+)/i);
+      if (!match) return { width: 0, height: 0 };
+      return { width: Number(match[1]) || 0, height: Number(match[2]) || 0 };
+    };
+    const heroIndex = (() => {
+      if (imageBlocks.length === 0) return -1;
+      let bestIndex = 0;
+      let bestScore = -Infinity;
+      imageBlocks.slice(0, 5).forEach((block, index) => {
+        const dims = parseDimensions(block);
+        const img = block.querySelector('img');
+        const sizes = text(img?.getAttribute('sizes')).toLowerCase();
+        let score = 0;
+        if (dims.width >= 1800) score += 5;
+        else if (dims.width >= 1400) score += 4;
+        else if (dims.width >= 1100) score += 3;
+        else if (dims.width >= 800) score += 2;
+        if (sizes.includes('100vw')) score += 2;
+        if (index === 0) score += 1;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIndex = index;
+        }
+      });
+      return bestIndex;
+    })();
+
+    let nonHeroCounter = 0;
+    imageBlocks.forEach((block, index) => {
+      if (index === heroIndex) {
+        block.setAttribute('data-dx-legacy-media-align', 'hero');
+        return;
+      }
+      const align = nonHeroCounter % 2 === 0 ? 'left' : 'right';
+      block.setAttribute('data-dx-legacy-media-align', align);
+      nonHeroCounter += 1;
+    });
+
+    const isEmptyNode = (node) =>
+      !node.querySelector('img, video, iframe, figure, ul, ol, blockquote, pre, table') &&
+      text(node.textContent).replace(/[\s\u00A0]+/g, '').length === 0;
+
+    const isPairableTextBlock = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      if (!node.matches('.dx-block.html-block, .dx-block.dx-block-html, .dx-block.quote-block')) return false;
+      if (node.querySelector('img, video, iframe, figure, .dx-video-wrapper, .dx-block-image-figure')) return false;
+      const plain = text(node.textContent).replace(/[\s\u00A0]+/g, ' ').trim();
+      return plain.length >= 50;
+    };
+
+    const findNeighborTextBlock = (imageBlock, direction, claimed) => {
+      let cursor = direction > 0 ? imageBlock.nextElementSibling : imageBlock.previousElementSibling;
+      while (cursor) {
+        if (!(cursor instanceof HTMLElement)) break;
+        if (isEmptyNode(cursor)) {
+          cursor = direction > 0 ? cursor.nextElementSibling : cursor.previousElementSibling;
+          continue;
+        }
+        if (claimed.has(cursor)) return null;
+        if (isPairableTextBlock(cursor)) return cursor;
+        if (cursor.matches('.dx-block.image-block, .dx-block.video-block, .dx-block.embed-block')) return null;
+        if (cursor.matches('.dx-dexnotes-legacy-media-row')) return null;
+        cursor = direction > 0 ? cursor.nextElementSibling : cursor.previousElementSibling;
+      }
+      return null;
+    };
+
+    const claimedTextBlocks = new WeakSet();
+    root.querySelectorAll('.dx-block.image-block[data-dx-legacy-media-align="left"], .dx-block.image-block[data-dx-legacy-media-align="right"]').forEach((imageBlock) => {
+      if (!(imageBlock instanceof HTMLElement)) return;
+      if (imageBlock.closest('.dx-dexnotes-legacy-media-row')) return;
+      const parent = imageBlock.parentNode;
+      if (!(parent instanceof Node)) return;
+      const align = text(imageBlock.getAttribute('data-dx-legacy-media-align'));
+      const nextText = findNeighborTextBlock(imageBlock, 1, claimedTextBlocks);
+      const prevText = findNeighborTextBlock(imageBlock, -1, claimedTextBlocks);
+      const textBlock = nextText || prevText;
+      if (!textBlock || textBlock.parentNode !== parent) return;
+
+      const row = document.createElement('div');
+      row.className = `dx-dexnotes-legacy-media-row dx-dexnotes-legacy-media-row--${align}`;
+      imageBlock.classList.add('dx-dexnotes-legacy-media-card');
+      textBlock.classList.add('dx-dexnotes-legacy-media-text');
+      claimedTextBlocks.add(textBlock);
+
+      const textBeforeImage = !!(textBlock.compareDocumentPosition(imageBlock) & Node.DOCUMENT_POSITION_FOLLOWING);
+      const anchor = textBeforeImage ? textBlock : imageBlock;
+      parent.insertBefore(row, anchor);
+      if (align === 'right') {
+        row.appendChild(textBlock);
+        row.appendChild(imageBlock);
+      } else {
+        row.appendChild(imageBlock);
+        row.appendChild(textBlock);
+      }
+    });
+
+    root.querySelectorAll('.image-caption-wrapper, .image-card-wrapper, .image-caption, .image-card, .image-title-wrapper, .image-title').forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      node.classList.add('dx-dexnotes-legacy-caption');
+    });
+
+    root.querySelectorAll('.image-inset[data-description]').forEach((inset) => {
+      if (!(inset instanceof HTMLElement)) return;
+      const figure = inset.closest('figure');
+      if (!(figure instanceof HTMLElement)) return;
+      if (figure.querySelector('.image-caption-wrapper, .image-card-wrapper, figcaption')) return;
+      const source = text(inset.getAttribute('data-description'));
+      if (!source) return;
+      const template = document.createElement('template');
+      template.innerHTML = source;
+      const captionText = text(template.content.textContent).replace(/[ \t\r\n]+/g, ' ').trim();
+      if (!captionText) return;
+      const caption = document.createElement('figcaption');
+      caption.className = 'image-caption-wrapper dx-dexnotes-legacy-caption';
+      const copy = document.createElement('p');
+      copy.textContent = captionText;
+      caption.appendChild(copy);
+      figure.appendChild(caption);
+    });
+
+    root.querySelectorAll('.dx-block-button-container').forEach((container) => {
+      if (!(container instanceof HTMLElement)) return;
+      container.classList.add('dx-dexnotes-legacy-button-row');
+    });
+
+    root.querySelectorAll('a.dx-block-button-element, a.dx-button-element').forEach((button) => {
+      if (!(button instanceof HTMLElement)) return;
+      button.classList.add('dx-dexnotes-legacy-button', 'dx-button-element');
+      if (!button.classList.contains('dx-button-element--primary') && !button.classList.contains('dx-button-element--secondary')) {
+        button.classList.add('dx-button-element--secondary');
+      }
+      if (![...button.classList].some((name) => name.startsWith('dx-button-size--'))) {
+        button.classList.add('dx-button-size--sm');
+      }
+    });
   }
 
   function renderRelatedRail(entry) {

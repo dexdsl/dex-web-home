@@ -160,21 +160,41 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     return section;
   }
 
+  function buildSponsorCard(data = {}, className = '') {
+    const card = create('div', `dx-dexdrones-sponsor ${className}`.trim());
+    card.setAttribute('data-dx-hover-variant', 'magnetic');
+    card.appendChild(create('p', 'dx-dexdrones-sponsor-label', toText(data.label, 'Founding Sponsor', 120)));
+    card.appendChild(create('p', 'dx-dexdrones-sponsor-name', toText(data.name, '', 120)));
+    const sponsorLogoSrc = toText(data.logoSrc, '', 900);
+    if (sponsorLogoSrc) {
+      const logo = create('img', 'dx-dexdrones-sponsor-logo');
+      logo.src = sponsorLogoSrc;
+      logo.alt = toText(data.logoAlt || data.name, 'Sponsor logo', 180);
+      logo.loading = 'lazy';
+      logo.decoding = 'async';
+      card.appendChild(logo);
+    }
+    return card;
+  }
+
   function buildHero(data = {}) {
     const section = create('section', 'dx-dexdrones-surface dx-dexdrones-section dx-dexdrones-reveal dx-dexdrones-hero dx-dexdrones-home-hero');
     section.id = 'dexdrones-hero';
 
     const mast = create('div', 'dx-dexdrones-hero-mast');
-    const kicker = toText(data.kicker, '', 140);
-    if (kicker) mast.appendChild(create('p', 'dx-dexdrones-kicker', kicker));
+    const launchTag = toText(data.launchTag, toText(data.kicker, '', 140), 140);
+    if (launchTag) mast.appendChild(create('p', 'dx-dexdrones-kicker dx-dexdrones-launch-tag', launchTag));
+
+    const dateStamp = toText(data.dateStamp, '', 20);
     const launchDate = toText(data.launchDate, '', 100);
-    if (launchDate) {
-      mast.appendChild(create('p', 'dx-dexdrones-meta', `Launch announcement: ${launchDate}`));
-    }
+    const stampText = dateStamp || (launchDate ? launchDate : '');
+    if (stampText) mast.appendChild(create('p', 'dx-dexdrones-date-stamp', stampText));
+
     if (mast.childElementCount) section.appendChild(mast);
 
-    const layout = create('div', 'dx-dexdrones-hero-layout');
+    const layout = create('div', 'dx-dexdrones-hero-layout dx-dexdrones-launch-plate');
     const heroBody = create('div', 'dx-dexdrones-hero-body');
+    const sponsor = data.sponsor && typeof data.sponsor === 'object' ? data.sponsor : {};
 
     const lead = toText(data.identifier, '', 240);
     if (lead) heroBody.appendChild(create('p', 'dx-dexdrones-identifier', lead));
@@ -185,25 +205,15 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     const subhead = toText(data.subhead, '', 460);
     if (subhead) heroBody.appendChild(create('p', 'dx-dexdrones-copy dx-dexdrones-hero-subhead', subhead));
 
-    const sponsor = data.sponsor && typeof data.sponsor === 'object' ? data.sponsor : {};
-    const sponsorCard = create('div', 'dx-dexdrones-sponsor');
-    sponsorCard.setAttribute('data-dx-hover-variant', 'magnetic');
-    sponsorCard.appendChild(create('p', 'dx-dexdrones-sponsor-label', toText(sponsor.label, 'Founding Sponsor', 120)));
-    sponsorCard.appendChild(create('p', 'dx-dexdrones-sponsor-name', toText(sponsor.name, '', 120)));
-    const sponsorLogoSrc = toText(sponsor.logoSrc, '', 900);
-    if (sponsorLogoSrc) {
-      const logo = create('img', 'dx-dexdrones-sponsor-logo');
-      logo.src = sponsorLogoSrc;
-      logo.alt = toText(sponsor.logoAlt || sponsor.name, 'Sponsor logo', 180);
-      logo.loading = 'lazy';
-      logo.decoding = 'async';
-      sponsorCard.appendChild(logo);
+    const sponsorLabel = toText(sponsor.label, 'Founding Sponsor', 120);
+    const sponsorName = toText(sponsor.name, '', 120);
+    if (sponsorName) {
+      heroBody.appendChild(create('p', 'dx-dexdrones-copy dx-dexdrones-sponsor-inline', `${sponsorLabel}: ${sponsorName}`));
     }
-    heroBody.appendChild(sponsorCard);
 
     renderCtas(heroBody, data.ctas || []);
 
-    const markWrap = create('div', 'dx-dexdrones-mark-wrap');
+    const markWrap = create('div', 'dx-dexdrones-mark-wrap dx-dexdrones-brand-plate');
     const markSrc = toText(data.markSrc, '', 900);
     if (markSrc) {
       const mark = create('img', 'dx-dexdrones-mark');
@@ -214,8 +224,27 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
       markWrap.appendChild(mark);
     }
 
+    if (sponsorName) markWrap.appendChild(buildSponsorCard(sponsor, 'dx-dexdrones-sponsor--plate'));
+
     layout.append(heroBody, markWrap);
     section.appendChild(layout);
+
+    const proofChips = Array.isArray(data.proofChips) ? data.proofChips : [];
+    if (proofChips.length) {
+      const chipRow = create('div', 'dx-dexdrones-hero-proof');
+      proofChips.forEach((item) => {
+        const value = toText(item?.value, '', 120);
+        const label = toText(item?.label, '', 160);
+        if (!value || !label) return;
+        const chip = create('article', 'dx-dexdrones-hero-chip');
+        chip.setAttribute('data-dx-hover-variant', 'magnetic');
+        chip.appendChild(create('p', 'dx-dexdrones-hero-chip-value', value));
+        chip.appendChild(create('p', 'dx-dexdrones-hero-chip-label', label));
+        chipRow.appendChild(chip);
+      });
+      if (chipRow.childElementCount) section.appendChild(chipRow);
+    }
+
     return section;
   }
 

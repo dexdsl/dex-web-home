@@ -1,15 +1,20 @@
 :root {
   --dx-dexdrones-gutter: clamp(1rem, 2.4vw, 2rem);
   --dx-dexdrones-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
-  --dx-dexdrones-rim: rgba(255, 255, 255, 0.46);
-  --dx-dexdrones-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(236, 238, 243, 0.62));
-  --dx-dexdrones-shadow: 0 20px 60px rgba(10, 12, 15, 0.16), 0 1px 0 rgba(255, 255, 255, 0.56) inset;
-  --dx-dexdrones-ink: #14161a;
-  --dx-dexdrones-muted: #3d434b;
-  --dx-dexdrones-accent: #1d232b;
-  --dx-dexdrones-accent-soft: rgba(29, 35, 43, 0.16);
-  --dx-dexdrones-grid-line: rgba(14, 18, 22, 0.12);
-  --dx-dexdrones-contour-line: rgba(17, 23, 28, 0.2);
+  --dx-dexdrones-vfr-base: #1f4e97;
+  --dx-dexdrones-vfr-dark: #163a78;
+  --dx-dexdrones-vfr-mid: #2e5faa;
+  --dx-dexdrones-vfr-pale: #eaf1ff;
+  --dx-dexdrones-vfr-ink: #0e2244;
+  --dx-dexdrones-rim: rgba(31, 78, 151, 0.3);
+  --dx-dexdrones-surface: linear-gradient(135deg, rgba(241, 247, 255, 0.88), rgba(219, 232, 251, 0.74));
+  --dx-dexdrones-shadow: 0 20px 60px rgba(14, 32, 67, 0.2), 0 1px 0 rgba(255, 255, 255, 0.56) inset;
+  --dx-dexdrones-ink: var(--dx-dexdrones-vfr-ink);
+  --dx-dexdrones-muted: #24497a;
+  --dx-dexdrones-accent: var(--dx-dexdrones-vfr-base);
+  --dx-dexdrones-accent-soft: rgba(31, 78, 151, 0.16);
+  --dx-dexdrones-grid-line: rgba(31, 78, 151, 0.18);
+  --dx-dexdrones-contour-line: rgba(22, 58, 120, 0.26);
 }
 
 .dx-dexdrones-page {
@@ -48,8 +53,8 @@
       var(--dx-dexdrones-grid-line) clamp(54px, 6.8vw, 80px),
       var(--dx-dexdrones-grid-line) calc(clamp(54px, 6.8vw, 80px) + 1px)
     ),
-    radial-gradient(140% 120% at 14% 8%, rgba(255, 255, 255, 0.44), transparent 62%),
-    radial-gradient(132% 112% at 90% 22%, rgba(209, 214, 220, 0.42), transparent 70%);
+    radial-gradient(140% 120% at 14% 8%, rgba(234, 241, 255, 0.5), transparent 62%),
+    radial-gradient(132% 112% at 90% 22%, rgba(163, 193, 237, 0.32), transparent 70%);
   opacity: 0.82;
   pointer-events: none;
 }
@@ -108,6 +113,9 @@
 
 .dx-dexdrones-home-hero {
   padding: clamp(1.1rem, 2.4vw, 1.8rem);
+  border-color: rgba(31, 78, 151, 0.4);
+  background: linear-gradient(135deg, rgba(237, 245, 255, 0.92), rgba(212, 229, 252, 0.86));
+  box-shadow: 0 24px 68px rgba(15, 35, 72, 0.24), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
 .dx-dexdrones-kicker {
@@ -117,6 +125,10 @@
   font-size: clamp(11px, 1.1vw, 12px);
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+
+.dx-dexdrones-launch-tag {
+  letter-spacing: 0.1em;
 }
 
 .dx-dexdrones-title {
@@ -164,41 +176,60 @@
   text-transform: uppercase;
 }
 
-.dx-dexdrones-hero-mast {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.72rem;
+.dx-dexdrones-date-stamp {
+  margin: 0;
+  padding: 0.3rem 0.52rem;
+  border: 1px solid rgba(31, 78, 151, 0.36);
+  border-radius: 999px;
+  background: linear-gradient(130deg, rgba(46, 95, 170, 0.14), rgba(22, 58, 120, 0.18));
+  color: #173a77;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.dx-dexdrones-hero-mast .dx-dexdrones-meta {
-  margin-top: 0;
-  text-align: right;
+.dx-dexdrones-hero-mast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
 }
 
 .dx-dexdrones-hero-layout {
   margin-top: 0.78rem;
   display: grid;
-  gap: 0.92rem;
+  gap: 1rem;
 }
 
 .dx-dexdrones-hero-body {
   display: grid;
   gap: 0.24rem;
+  min-width: 0;
 }
 
 .dx-dexdrones-hero-subhead {
   max-width: 66ch;
 }
 
+.dx-dexdrones-sponsor-inline {
+  margin-top: 0.56rem;
+  color: #1b427f;
+}
+
 .dx-dexdrones-mark-wrap {
   border-radius: var(--dx-dexdrones-radius);
-  border: 1px solid rgba(255, 255, 255, 0.64);
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 14px 36px rgba(10, 11, 14, 0.16);
-  padding: clamp(0.5rem, 1vw, 0.74rem);
+  border: 1px solid rgba(31, 78, 151, 0.34);
+  background: linear-gradient(140deg, rgba(226, 238, 255, 0.88), rgba(199, 220, 249, 0.84));
+  box-shadow: 0 16px 40px rgba(17, 41, 82, 0.24);
+  padding: clamp(0.58rem, 1vw, 0.82rem);
   display: grid;
-  place-items: center;
+  gap: 0.64rem;
+  align-content: start;
+}
+
+.dx-dexdrones-brand-plate {
+  min-height: clamp(240px, 32vw, 420px);
 }
 
 .dx-dexdrones-mark {
@@ -211,11 +242,16 @@
 
 .dx-dexdrones-sponsor {
   margin-top: 0.74rem;
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(31, 78, 151, 0.28);
   border-radius: var(--dx-dexdrones-radius);
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(238, 245, 255, 0.72);
   padding: 0.8rem;
   max-width: 420px;
+}
+
+.dx-dexdrones-sponsor--plate {
+  margin-top: 0;
+  max-width: 100%;
 }
 
 .dx-dexdrones-sponsor-label,
@@ -255,6 +291,37 @@
   height: auto;
 }
 
+.dx-dexdrones-hero-proof {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.56rem;
+}
+
+.dx-dexdrones-hero-chip {
+  border: 1px solid rgba(31, 78, 151, 0.32);
+  border-radius: var(--dx-dexdrones-radius);
+  background: linear-gradient(126deg, rgba(237, 245, 255, 0.86), rgba(212, 229, 252, 0.72));
+  padding: 0.64rem 0.7rem;
+}
+
+.dx-dexdrones-hero-chip-value {
+  margin: 0;
+  color: #12315f;
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  font-size: clamp(1rem, 1.58vw, 1.28rem);
+  line-height: 1.02;
+}
+
+.dx-dexdrones-hero-chip-label {
+  margin: 0.24rem 0 0;
+  color: #29538f;
+  font-family: var(--font-mono, "Courier Prime", monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
 .dx-dexdrones-cta-row {
   margin-top: 0.82rem;
   display: flex;
@@ -290,9 +357,9 @@
 .dx-dexdrones-quote,
 .dx-dexdrones-press-item,
 .dx-dexdrones-contact {
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(31, 78, 151, 0.28);
   border-radius: var(--dx-dexdrones-radius);
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(236, 245, 255, 0.68);
   padding: 0.82rem;
 }
 
@@ -315,7 +382,7 @@
 }
 
 .dx-dexdrones-underway .dx-dexdrones-card {
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.65), rgba(232, 236, 242, 0.52));
+  background: linear-gradient(140deg, rgba(233, 244, 255, 0.8), rgba(204, 224, 250, 0.66));
 }
 
 .dx-dexdrones-list {
@@ -333,25 +400,25 @@
 }
 
 .dx-dexdrones-quotes {
-  background: linear-gradient(142deg, rgba(17, 20, 25, 0.9), rgba(36, 42, 52, 0.84));
-  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(142deg, rgba(17, 42, 88, 0.94), rgba(22, 58, 120, 0.9));
+  border-color: rgba(169, 198, 239, 0.34);
 }
 
 .dx-dexdrones-quotes .dx-dexdrones-kicker,
 .dx-dexdrones-quotes .dx-dexdrones-copy,
 .dx-dexdrones-quotes .dx-dexdrones-quote-role {
-  color: rgba(231, 237, 245, 0.78);
+  color: rgba(224, 236, 255, 0.82);
 }
 
 .dx-dexdrones-quotes .dx-dexdrones-title,
 .dx-dexdrones-quotes .dx-dexdrones-quote-text,
 .dx-dexdrones-quotes .dx-dexdrones-quote-author {
-  color: rgba(245, 248, 252, 0.96);
+  color: rgba(246, 250, 255, 0.98);
 }
 
 .dx-dexdrones-quote {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(229, 240, 255, 0.1);
+  border-color: rgba(184, 210, 246, 0.34);
 }
 
 .dx-dexdrones-quote-text {
@@ -455,12 +522,12 @@
 }
 
 .dx-dexdrones-progress-link.is-active {
-  border-color: rgba(29, 35, 43, 0.36);
-  background: linear-gradient(124deg, rgba(29, 35, 43, 0.15), rgba(29, 35, 43, 0.08));
+  border-color: rgba(31, 78, 151, 0.44);
+  background: linear-gradient(124deg, rgba(31, 78, 151, 0.2), rgba(46, 95, 170, 0.12));
 }
 
 .dx-dexdrones-progress-link:hover {
-  border-color: rgba(29, 35, 43, 0.26);
+  border-color: rgba(31, 78, 151, 0.3);
 }
 
 @media (min-width: 1040px) {
@@ -483,6 +550,10 @@
   .dx-dexdrones-hero-layout {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 40%);
     align-items: start;
+  }
+
+  .dx-dexdrones-hero-proof {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .dx-dexdrones-metric-grid,
@@ -523,8 +594,8 @@
     gap: 0.32rem;
   }
 
-  .dx-dexdrones-hero-mast .dx-dexdrones-meta {
-    text-align: left;
+  .dx-dexdrones-date-stamp {
+    align-self: flex-start;
   }
 }
 
@@ -544,6 +615,10 @@
 
   .dx-dexdrones-mark-wrap {
     padding: 0.42rem;
+  }
+
+  .dx-dexdrones-hero-proof {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -100,6 +100,10 @@ function verifyRuntimeContract(source, bundle, failures) {
     'data-dx-dexdrones-app',
     'dexdrones-hero',
     'dexdrones-press',
+    'proofChips',
+    'dateStamp',
+    'launchTag',
+    'dx-dexdrones-hero-proof',
   ];
 
   for (const marker of sourceMarkers) {
@@ -113,6 +117,24 @@ function verifyRuntimeContract(source, bundle, failures) {
 
   for (const marker of bundleMarkers) {
     pushIf(failures, bundle.includes(marker), `dexdrones runtime bundle missing marker: ${marker}`);
+  }
+}
+
+function verifyCssContract(css, failures) {
+  const cssMarkers = [
+    '--dx-dexdrones-vfr-base',
+    '.dx-dexdrones-date-stamp',
+    '.dx-dexdrones-hero-proof',
+    '.dx-dexdrones-hero-chip',
+    '.dx-dexdrones-page-shell::before',
+    '.dx-dexdrones-page-shell::after',
+    'repeating-linear-gradient(',
+    'clamp(66px, 8vw, 92px)',
+    'clamp(54px, 6.8vw, 80px)',
+    'radial-gradient(130% 36% at 8% 20%',
+  ];
+  for (const marker of cssMarkers) {
+    pushIf(failures, css.includes(marker), `dexdrones stylesheet missing marker: ${marker}`);
   }
 }
 
@@ -136,6 +158,19 @@ function verifyDataContract(data, failures) {
     String(data?.hero?.markSrc || '') === '/assets/img/dexdrones.png',
     'dexdrones hero mark must use /assets/img/dexdrones.png',
   );
+
+  pushIf(
+    failures,
+    String(data?.hero?.dateStamp || '') === '03.09.2026',
+    'dexdrones hero dateStamp must be 03.09.2026',
+  );
+
+  const proofChips = Array.isArray(data?.hero?.proofChips) ? data.hero.proofChips : [];
+  pushIf(failures, proofChips.length >= 3, 'dexdrones hero must include at least 3 proofChips');
+  const proofValues = proofChips.map((chip) => String(chip?.value || ''));
+  for (const value of ['30+ hours', '~12,000', '~500']) {
+    pushIf(failures, proofValues.includes(value), `dexdrones hero proofChips missing value: ${value}`);
+  }
 
   pushIf(
     failures,
@@ -187,10 +222,12 @@ function main() {
 
   const pageHtml = readText(PAGE_PATH);
   const data = readJson(DATA_PATH);
+  const css = readText(CSS_PATH);
   const runtimeSource = readText(RUNTIME_SOURCE_PATH);
   const runtimeBundle = readText(RUNTIME_BUNDLE_PATH);
 
   verifyPageContract(pageHtml, failures);
+  verifyCssContract(css, failures);
   verifyRuntimeContract(runtimeSource, runtimeBundle, failures);
   verifyDataContract(data, failures);
   verifyPublishedAssetMirrors(failures);

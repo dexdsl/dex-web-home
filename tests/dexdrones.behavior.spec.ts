@@ -22,9 +22,14 @@ test('dexdrones renders canonical long-scroll shell and launch sections', async 
 
   await expect(page.locator('[data-dx-dexdrones-app] .dx-dexdrones-editorial')).toBeVisible();
   await expect(page.locator('#dexdrones-hero')).toBeVisible();
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-launch-tag')).toHaveText(/DEXDRONES \/ INSTITUTIONAL LAUNCH/i);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-date-stamp')).toHaveText('03.09.2026');
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-home-title')).toBeVisible();
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-brand-plate .dx-dexdrones-mark')).toBeVisible();
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/donate/"]')).toHaveText(/SUPPORT dexDRONES/i);
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE ANNOUNCEMENT/i);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip')).toHaveCount(3);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip-value')).toHaveText(['30+ hours', '~12,000', '~500']);
   await expect.poll(async () => page.evaluate(() => {
     const hero = document.getElementById('dexdrones-hero');
     return hero instanceof HTMLElement && !hero.closest('.dx-dexdrones-shell');
@@ -51,6 +56,25 @@ test('dexdrones desktop section rail is sticky and active state changes while sc
   await page.waitForLoadState('load');
 
   await expect(page.locator('.dx-dexdrones-progress-wrap')).toBeVisible();
+
+  const desktopSplit = await page.evaluate(() => {
+    const layout = document.querySelector('#dexdrones-hero .dx-dexdrones-hero-layout');
+    if (!(layout instanceof HTMLElement)) return null;
+    const children = Array.from(layout.children).filter((node) => node instanceof HTMLElement);
+    if (children.length < 2) return null;
+    const first = children[0].getBoundingClientRect();
+    const second = children[1].getBoundingClientRect();
+    return {
+      sameRow: Math.abs(first.top - second.top) < 18,
+      rightPane: second.left > first.left + 20,
+      firstW: first.width,
+      secondW: second.width,
+    };
+  });
+  expect(desktopSplit).toBeTruthy();
+  expect(desktopSplit?.sameRow).toBeTruthy();
+  expect(desktopSplit?.rightPane).toBeTruthy();
+  expect((desktopSplit?.firstW || 0) > (desktopSplit?.secondW || 0)).toBeTruthy();
 
   const activeHref = async () => page.evaluate(() =>
     document.querySelector('.dx-dexdrones-progress-link.is-active')?.getAttribute('href') || null);
@@ -137,7 +161,7 @@ test('dexdrones deep links and legacy hash aliases resolve to canonical sections
 });
 
 test('dexdrones section rail degrades on tablet/mobile widths', async ({ page }) => {
-  await page.setViewportSize({ width: 900, height: 1000 });
+  await page.setViewportSize({ width: 760, height: 1000 });
   await page.goto('/dexdrones', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('load');
   await expect(page.locator('[data-dx-dexdrones-app] .dx-dexdrones-shell')).toBeVisible();
@@ -149,4 +173,29 @@ test('dexdrones section rail degrades on tablet/mobile widths', async ({ page })
   });
 
   expect(railDisplay).toBe('none');
+
+  const mobileStacked = await page.evaluate(() => {
+    const layout = document.querySelector('#dexdrones-hero .dx-dexdrones-hero-layout');
+    if (!(layout instanceof HTMLElement)) return null;
+    const children = Array.from(layout.children).filter((node) => node instanceof HTMLElement);
+    if (children.length < 2) return null;
+    const first = children[0].getBoundingClientRect();
+    const second = children[1].getBoundingClientRect();
+    const chips = Array.from(document.querySelectorAll('#dexdrones-hero .dx-dexdrones-hero-chip'));
+    const chipsStacked = chips.length < 2
+      ? false
+      : chips.slice(1).every((chip, index) => {
+          const current = chip.getBoundingClientRect();
+          const prev = chips[index].getBoundingClientRect();
+          return current.top > prev.bottom - 1;
+        });
+    return {
+      layoutStacked: second.top > first.bottom - 1,
+      chipsStacked,
+    };
+  });
+
+  expect(mobileStacked).toBeTruthy();
+  expect(mobileStacked?.layoutStacked).toBeTruthy();
+  expect(mobileStacked?.chipsStacked).toBeTruthy();
 });
