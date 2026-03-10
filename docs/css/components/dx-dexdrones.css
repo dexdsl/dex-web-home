@@ -6,11 +6,11 @@
   --dx-dexdrones-vfr-mid: #2e5faa;
   --dx-dexdrones-vfr-pale: #eaf1ff;
   --dx-dexdrones-vfr-ink: #0e2244;
-  --dx-dexdrones-rim: rgba(31, 78, 151, 0.3);
-  --dx-dexdrones-surface: linear-gradient(135deg, rgba(241, 247, 255, 0.88), rgba(219, 232, 251, 0.74));
-  --dx-dexdrones-shadow: 0 20px 60px rgba(14, 32, 67, 0.2), 0 1px 0 rgba(255, 255, 255, 0.56) inset;
-  --dx-dexdrones-ink: var(--dx-dexdrones-vfr-ink);
-  --dx-dexdrones-muted: #24497a;
+  --dx-dexdrones-rim: rgba(255, 255, 255, 0.46);
+  --dx-dexdrones-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(236, 238, 243, 0.62));
+  --dx-dexdrones-shadow: 0 20px 60px rgba(10, 12, 15, 0.16), 0 1px 0 rgba(255, 255, 255, 0.56) inset;
+  --dx-dexdrones-ink: #14161a;
+  --dx-dexdrones-muted: #3d434b;
   --dx-dexdrones-accent: var(--dx-dexdrones-vfr-base);
   --dx-dexdrones-accent-soft: rgba(31, 78, 151, 0.16);
   --dx-dexdrones-grid-line: rgba(31, 78, 151, 0.18);
@@ -53,9 +53,10 @@
       var(--dx-dexdrones-grid-line) clamp(54px, 6.8vw, 80px),
       var(--dx-dexdrones-grid-line) calc(clamp(54px, 6.8vw, 80px) + 1px)
     ),
-    radial-gradient(140% 120% at 14% 8%, rgba(234, 241, 255, 0.5), transparent 62%),
-    radial-gradient(132% 112% at 90% 22%, rgba(163, 193, 237, 0.32), transparent 70%);
-  opacity: 0.82;
+    radial-gradient(140% 120% at 14% 8%, rgba(234, 241, 255, 0.54), transparent 62%),
+    radial-gradient(132% 112% at 90% 22%, rgba(163, 193, 237, 0.36), transparent 70%),
+    linear-gradient(136deg, rgba(228, 239, 255, 0.9), rgba(190, 214, 245, 0.72));
+  opacity: 0.9;
   pointer-events: none;
 }
 
@@ -113,9 +114,6 @@
 
 .dx-dexdrones-home-hero {
   padding: clamp(1.1rem, 2.4vw, 1.8rem);
-  border-color: rgba(31, 78, 151, 0.4);
-  background: linear-gradient(135deg, rgba(237, 245, 255, 0.92), rgba(212, 229, 252, 0.86));
-  box-shadow: 0 24px 68px rgba(15, 35, 72, 0.24), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
 .dx-dexdrones-kicker {
@@ -179,10 +177,10 @@
 .dx-dexdrones-date-stamp {
   margin: 0;
   padding: 0.3rem 0.52rem;
-  border: 1px solid rgba(31, 78, 151, 0.36);
+  border: 1px solid rgba(29, 35, 43, 0.24);
   border-radius: 999px;
-  background: linear-gradient(130deg, rgba(46, 95, 170, 0.14), rgba(22, 58, 120, 0.18));
-  color: #173a77;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--dx-dexdrones-muted);
   font-family: var(--font-mono, "Courier Prime", monospace);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -214,14 +212,14 @@
 
 .dx-dexdrones-sponsor-inline {
   margin-top: 0.56rem;
-  color: #1b427f;
+  color: var(--dx-dexdrones-muted);
 }
 
 .dx-dexdrones-mark-wrap {
   border-radius: var(--dx-dexdrones-radius);
-  border: 1px solid rgba(31, 78, 151, 0.34);
-  background: linear-gradient(140deg, rgba(226, 238, 255, 0.88), rgba(199, 220, 249, 0.84));
-  box-shadow: 0 16px 40px rgba(17, 41, 82, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 14px 36px rgba(10, 11, 14, 0.16);
   padding: clamp(0.58rem, 1vw, 0.82rem);
   display: grid;
   gap: 0.64rem;
@@ -242,9 +240,9 @@
 
 .dx-dexdrones-sponsor {
   margin-top: 0.74rem;
-  border: 1px solid rgba(31, 78, 151, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--dx-dexdrones-radius);
-  background: rgba(238, 245, 255, 0.72);
+  background: rgba(255, 255, 255, 0.56);
   padding: 0.8rem;
   max-width: 420px;
 }
@@ -298,15 +296,15 @@
 }
 
 .dx-dexdrones-hero-chip {
-  border: 1px solid rgba(31, 78, 151, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   border-radius: var(--dx-dexdrones-radius);
-  background: linear-gradient(126deg, rgba(237, 245, 255, 0.86), rgba(212, 229, 252, 0.72));
+  background: linear-gradient(126deg, rgba(255, 255, 255, 0.7), rgba(234, 238, 245, 0.58));
   padding: 0.64rem 0.7rem;
 }
 
 .dx-dexdrones-hero-chip-value {
   margin: 0;
-  color: #12315f;
+  color: var(--dx-dexdrones-ink);
   font-family: var(--font-heading, "Stretch Pro", sans-serif);
   font-size: clamp(1rem, 1.58vw, 1.28rem);
   line-height: 1.02;
@@ -314,7 +312,7 @@
 
 .dx-dexdrones-hero-chip-label {
   margin: 0.24rem 0 0;
-  color: #29538f;
+  color: var(--dx-dexdrones-muted);
   font-family: var(--font-mono, "Courier Prime", monospace);
   font-size: 10.5px;
   letter-spacing: 0.08em;
@@ -357,9 +355,9 @@
 .dx-dexdrones-quote,
 .dx-dexdrones-press-item,
 .dx-dexdrones-contact {
-  border: 1px solid rgba(31, 78, 151, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--dx-dexdrones-radius);
-  background: rgba(236, 245, 255, 0.68);
+  background: rgba(255, 255, 255, 0.58);
   padding: 0.82rem;
 }
 
@@ -382,7 +380,7 @@
 }
 
 .dx-dexdrones-underway .dx-dexdrones-card {
-  background: linear-gradient(140deg, rgba(233, 244, 255, 0.8), rgba(204, 224, 250, 0.66));
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.65), rgba(232, 236, 242, 0.52));
 }
 
 .dx-dexdrones-list {
@@ -400,25 +398,25 @@
 }
 
 .dx-dexdrones-quotes {
-  background: linear-gradient(142deg, rgba(17, 42, 88, 0.94), rgba(22, 58, 120, 0.9));
-  border-color: rgba(169, 198, 239, 0.34);
+  background: linear-gradient(142deg, rgba(17, 20, 25, 0.9), rgba(36, 42, 52, 0.84));
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .dx-dexdrones-quotes .dx-dexdrones-kicker,
 .dx-dexdrones-quotes .dx-dexdrones-copy,
 .dx-dexdrones-quotes .dx-dexdrones-quote-role {
-  color: rgba(224, 236, 255, 0.82);
+  color: rgba(231, 237, 245, 0.78);
 }
 
 .dx-dexdrones-quotes .dx-dexdrones-title,
 .dx-dexdrones-quotes .dx-dexdrones-quote-text,
 .dx-dexdrones-quotes .dx-dexdrones-quote-author {
-  color: rgba(246, 250, 255, 0.98);
+  color: rgba(245, 248, 252, 0.96);
 }
 
 .dx-dexdrones-quote {
-  background: rgba(229, 240, 255, 0.1);
-  border-color: rgba(184, 210, 246, 0.34);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .dx-dexdrones-quote-text {
@@ -522,12 +520,12 @@
 }
 
 .dx-dexdrones-progress-link.is-active {
-  border-color: rgba(31, 78, 151, 0.44);
-  background: linear-gradient(124deg, rgba(31, 78, 151, 0.2), rgba(46, 95, 170, 0.12));
+  border-color: rgba(29, 35, 43, 0.36);
+  background: linear-gradient(124deg, rgba(29, 35, 43, 0.15), rgba(29, 35, 43, 0.08));
 }
 
 .dx-dexdrones-progress-link:hover {
-  border-color: rgba(31, 78, 151, 0.3);
+  border-color: rgba(29, 35, 43, 0.26);
 }
 
 @media (min-width: 1040px) {
