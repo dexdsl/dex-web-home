@@ -288,6 +288,15 @@
     #dex-board-promo .promo-surface { transition: none !important; }
   }
 
+  body.homepage .page-section:has(#dex-board-promo),
+  body.homepage .page-section:has(#dex-board-promo) .section-background,
+  body.homepage .page-section:has(#dex-board-promo) .content-wrapper,
+  body.homepage #block-ee939fa7ed636a261fd7 > .dx-block-content,
+  body.homepage #block-ee939fa7ed636a261fd7 > .dx-block-content > .dx-code-container {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
   #dex-board-promo { height: 100% !important; }
   #dex-board-promo > .promo-surface { min-height: 100%; display: flex; align-items: center; }
   #dex-board-promo .promo-grid { width: 100%; }
