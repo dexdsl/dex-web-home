@@ -1191,7 +1191,7 @@
     const normalizedNodeValues = normalizeRenderedDuplicateSeparators(randomizedNodeValues);
     const preserveCanonicalSeparators = shouldPreserveHeadingCanonicalSeparators(heading);
     const renderedNodeValues = preserveCanonicalSeparators
-      ? normalizedNodeValues.map((value) => String(value == null ? '' : value).replace(/\u200D/g, STRETCH_PRO_CANONICAL_SEPARATOR))
+      ? normalizedNodeValues
       : normalizeVisibleHeadingNodeValues(normalizedNodeValues);
 
     textNodes.forEach((node, index) => {
