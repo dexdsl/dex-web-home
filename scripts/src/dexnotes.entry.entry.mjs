@@ -263,6 +263,23 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
     while (first.firstChild) root.appendChild(first.firstChild);
     first.remove();
 
+    root.querySelectorAll('script, style').forEach((node) => {
+      node.remove();
+    });
+
+    root.querySelectorAll('.dx-video-wrapper[data-html]').forEach((mount) => {
+      if (mount.querySelector('iframe, video')) return;
+      const htmlSource = text(mount.getAttribute('data-html'));
+      if (!/<iframe/i.test(htmlSource)) return;
+      const template = document.createElement('template');
+      template.innerHTML = htmlSource;
+      const iframe = template.content.querySelector('iframe');
+      if (!iframe) return;
+      iframe.loading = 'lazy';
+      if (!iframe.hasAttribute('referrerpolicy')) iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+      mount.replaceChildren(iframe);
+    });
+
     root.querySelectorAll('.spacer-block, .dx-block-website-component[data-definition-name="website.components.spacer"]').forEach((node) => {
       node.remove();
     });
@@ -276,6 +293,44 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
         block.remove();
       }
     });
+
+    const emptySelectors = [
+      '.dx-block-content',
+      '.dx-html-content',
+      '.sqsrte-scaled-text-container',
+      '.sqsrte-scaled-text',
+      'p',
+      'div',
+      'span',
+    ];
+
+    const hasVisualPayload = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      if (node.matches('img, video, iframe, figure, audio, canvas, svg, table, ul, ol, blockquote, pre, hr, input, textarea, button, select')) {
+        return true;
+      }
+      if (
+        node.querySelector(
+          'img, video, iframe, figure, audio, canvas, svg, table, ul, ol, blockquote, pre, hr, input, textarea, button, select, .dx-block-button-container',
+        )
+      ) {
+        return true;
+      }
+      const plain = text(node.textContent).replace(/[\s\u00A0]+/g, '');
+      return plain.length > 0;
+    };
+
+    for (let pass = 0; pass < 4; pass += 1) {
+      let removedAny = false;
+      root.querySelectorAll(emptySelectors.join(', ')).forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node === root) return;
+        if (hasVisualPayload(node)) return;
+        node.remove();
+        removedAny = true;
+      });
+      if (!removedAny) break;
+    }
   }
 
   function renderRelatedRail(entry) {
@@ -390,6 +445,8 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
 
   function renderNotFound(app, slug) {
     clearNode(app);
+    app.removeAttribute('data-dx-entry-mode');
+    app.removeAttribute('data-dexnotes-slug');
     const panel = create('section', 'dx-dexnotes-surface dx-dexnotes-error');
     panel.appendChild(create('h1', 'dx-dexnotes-title', 'STORY NOT FOUND.'));
     panel.appendChild(create('p', 'dx-dexnotes-copy', `No Dex Notes entry found for slug "${slug}".`));
@@ -403,6 +460,8 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
     clearNode(app);
 
     const isLegacyBody = text(entry.body_mode) === 'raw_html';
+    app.setAttribute('data-dx-entry-mode', isLegacyBody ? 'raw_html' : 'markdown');
+    app.setAttribute('data-dexnotes-slug', text(entry.slug));
     const mast = create('header', 'dx-dexnotes-surface dx-dexnotes-entry-mast dx-dexnotes-entry-reveal');
     mast.appendChild(create('p', 'dx-dexnotes-kicker', 'DEX NOTES'));
     mast.appendChild(create('h1', 'dx-dexnotes-title', text(entry.title_raw)));
@@ -498,6 +557,8 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
 
   function renderError(app, error) {
     clearNode(app);
+    app.removeAttribute('data-dx-entry-mode');
+    app.removeAttribute('data-dexnotes-slug');
     const panel = create('section', 'dx-dexnotes-surface dx-dexnotes-error');
     panel.appendChild(create('h1', 'dx-dexnotes-title', 'DEX NOTES FAILED TO LOAD.'));
     panel.appendChild(create('p', 'dx-dexnotes-copy', text(error?.message || 'Unknown Dex Notes error.')));

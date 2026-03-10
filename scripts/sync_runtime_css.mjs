@@ -290,6 +290,13 @@ const SYNC_MAP = [
     targets: ['assets/img/dexdrones.png', 'docs/assets/img/dexdrones.png'],
   },
   {
+    source: 'public/assets/img/dexdrones_background_black-lines_white.png',
+    targets: [
+      'assets/img/dexdrones_background_black-lines_white.png',
+      'docs/assets/img/dexdrones_background_black-lines_white.png',
+    ],
+  },
+  {
     source: 'public/assets/press/dex-factsheet-2025-08.pdf',
     targets: ['assets/press/dex-factsheet-2025-08.pdf', 'docs/assets/press/dex-factsheet-2025-08.pdf'],
   },

@@ -29,7 +29,7 @@
       "label_raw": "Creative Commons"
     }
   ],
-  "cover_image_src": "/assets/img/dexdrones.png",
+  "cover_image_src": "/assets/img/dexdrones_background_black-lines_white.png",
   "cover_image_alt_raw": "dexDRONES launch mark",
   "lead_story_pinned": false,
   "body_mode": "markdown",

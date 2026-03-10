@@ -25,6 +25,10 @@ test('dexdrones renders canonical long-scroll shell and launch sections', async 
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-home-title')).toBeVisible();
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/donate/"]')).toHaveText(/SUPPORT dexDRONES/i);
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE ANNOUNCEMENT/i);
+  await expect.poll(async () => page.evaluate(() => {
+    const hero = document.getElementById('dexdrones-hero');
+    return hero instanceof HTMLElement && !hero.closest('.dx-dexdrones-shell');
+  })).toBeTruthy();
   await expect(page.locator('#dexdrones-press .dx-dexdrones-press-link')).toHaveCount(3);
   await expect(page.locator('#footer-sections')).toBeVisible();
 
@@ -136,6 +140,7 @@ test('dexdrones section rail degrades on tablet/mobile widths', async ({ page })
   await page.setViewportSize({ width: 900, height: 1000 });
   await page.goto('/dexdrones', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('load');
+  await expect(page.locator('[data-dx-dexdrones-app] .dx-dexdrones-shell')).toBeVisible();
 
   const railDisplay = await page.evaluate(() => {
     const rail = document.querySelector('.dx-dexdrones-progress-wrap');

@@ -1,5 +1,5 @@
 import { animate } from 'framer-motion/dom';
-import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -493,12 +493,12 @@ import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefe
     const aliases = mergeAliases(config.hashAliases, data.hashAliases);
 
     const editorial = create('section', 'dx-dexdrones-editorial');
+    const hero = buildHero(data.hero || {});
     const shell = create('div', 'dx-dexdrones-shell');
     const column = create('div', 'dx-dexdrones-column');
 
     shell.appendChild(buildProgress(steps, config.sectionNavTitle));
 
-    column.appendChild(buildHero(data.hero || {}));
     column.appendChild(buildProof(data.proof || {}));
     column.appendChild(buildCardsSection('dexdrones-why', data.whyExists || {}));
     column.appendChild(buildCardsSection('dexdrones-publishes', data.publishes || {}));
@@ -512,6 +512,7 @@ import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefe
     column.appendChild(buildCardsSection('dexdrones-about', data.aboutDex || {}));
 
     shell.appendChild(column);
+    editorial.appendChild(hero);
     editorial.appendChild(shell);
     root.appendChild(editorial);
 
@@ -530,10 +531,7 @@ import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefe
     }
 
     bindDexButtonMotion(root, {
-      selector: '.dx-button-element, .dx-dexdrones-cta, .dx-dexdrones-progress-link, [data-dx-hover-variant="magnetic"]',
-    });
-    bindMagneticButtonMotion(root, {
-      selector: '.dx-button-element, .dx-dexdrones-cta, [data-dx-hover-variant="magnetic"]',
+      selector: '.dx-button-element, .dx-dexdrones-cta, .dx-dexdrones-progress-link',
     });
     bindSidebarMotion(root);
   }

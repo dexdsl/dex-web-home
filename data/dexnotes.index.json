@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-10T01:06:33.052Z",
+  "generated_at": "2026-03-10T01:20:50.263Z",
   "source_dir_raw": "content/dexnotes/posts",
   "lead_story_slug": "help-us-seat-dexs-founding-expansion-board",
   "lead_story": {
@@ -85,7 +85,7 @@
           "label_raw": "Creative Commons"
         }
       ],
-      "cover_image_src": "/assets/img/dexdrones.png",
+      "cover_image_src": "/assets/img/dexdrones_background_black-lines_white.png",
       "cover_image_alt_raw": "dexDRONES launch mark",
       "route_path": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
       "legacy_route_raw": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
@@ -839,6 +839,6 @@
     "tags_count": 47,
     "authors_count": 2,
     "protected_char_count": 2,
-    "protected_char_hash": "a671a4bdef05a5c4f574750249f9b35150171d8048c02ec60dad627508977414"
+    "protected_char_hash": "7a300ff2c8cdac85f1059bc6b7e5634222f21431bc6ec245e1c31b05f720cee3"
   }
 }

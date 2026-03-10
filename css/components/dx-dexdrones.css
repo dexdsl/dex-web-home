@@ -79,6 +79,8 @@
 .dx-dexdrones-editorial {
   position: relative;
   z-index: 1;
+  display: grid;
+  gap: clamp(0.84rem, 1.7vw, 1.3rem);
 }
 
 .dx-dexdrones-shell {
@@ -292,18 +294,6 @@
   border-radius: var(--dx-dexdrones-radius);
   background: rgba(255, 255, 255, 0.58);
   padding: 0.82rem;
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-  transform-origin: center center;
-  will-change: transform;
-}
-
-.dx-dexdrones-metric:hover,
-.dx-dexdrones-card:hover,
-.dx-dexdrones-quote:hover,
-.dx-dexdrones-press-item:hover,
-.dx-dexdrones-contact:hover {
-  border-color: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 14px 34px rgba(10, 12, 15, 0.14);
 }
 
 .dx-dexdrones-metric-value {
@@ -565,14 +555,5 @@
   .dx-dexdrones-cta:hover {
     transform: none;
     filter: none;
-  }
-
-  .dx-dexdrones-metric,
-  .dx-dexdrones-card,
-  .dx-dexdrones-quote,
-  .dx-dexdrones-press-item,
-  .dx-dexdrones-contact {
-    transition: none;
-    will-change: auto;
   }
 }
