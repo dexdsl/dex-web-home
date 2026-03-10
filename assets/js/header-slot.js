@@ -2781,6 +2781,25 @@
     document.documentElement.className = nextHtml.className || '';
   }
 
+  function syncRouteIdentityAttributes(sourceDocument) {
+    const nextHtml = sourceDocument && sourceDocument.documentElement;
+    const nextBody = sourceDocument && sourceDocument.body;
+    const htmlRoute = nextHtml ? String(nextHtml.getAttribute('data-dx-route') || '').trim() : '';
+    const bodyRoute = nextBody ? String(nextBody.getAttribute('data-dx-route') || '').trim() : '';
+
+    if (htmlRoute) {
+      document.documentElement.setAttribute('data-dx-route', htmlRoute);
+    } else {
+      document.documentElement.removeAttribute('data-dx-route');
+    }
+
+    if (bodyRoute) {
+      document.body.setAttribute('data-dx-route', bodyRoute);
+    } else {
+      document.body.removeAttribute('data-dx-route');
+    }
+  }
+
   function markHeaderActiveForPath(pathname) {
     const normalizedTarget = normalizePathname(pathname);
     const items = Array.from(document.querySelectorAll('.header-nav-item'));
@@ -3248,6 +3267,7 @@
 
     syncHtmlAttributes(sourceDocument);
     syncBodyAttributes(sourceDocument.body);
+    syncRouteIdentityAttributes(sourceDocument);
     syncProfileProtectedRouteState(targetUrl.pathname);
     markHeaderActiveForPath(targetUrl.pathname);
     syncProfileRouteGlassFromHeader(document);

@@ -11,6 +11,7 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
   const ENTRIES_URL = '/data/dexnotes.entries.json';
   const COMMENTS_URL = '/data/dexnotes.comments.json';
   const PROGRESS_ID = 'dx-dexnotes-reading-progress';
+  const ROUTE_TRANSITION_OUT_START = 'dx:route-transition-out:start';
   const BLOB_RUNTIME_KEY = '__dxDexnotesBlobRuntime';
   const blobRuntimeHandle = {};
 
@@ -20,6 +21,7 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
   let progressBound = false;
   let progressScrollTarget = null;
   let progressSlotListenerBound = false;
+  let lifecycleCleanupInstalled = false;
 
   function text(value) {
     return String(value ?? '');
@@ -123,6 +125,11 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
       progressRaf = 0;
     }
     progressScrollTarget = null;
+  }
+
+  function removeProgressBar() {
+    const node = document.getElementById(PROGRESS_ID);
+    if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
   function startBlobMotion() {
@@ -259,6 +266,31 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
         window[BLOB_RUNTIME_KEY] = undefined;
       }
     }
+  }
+
+  function handleBeforeUnloadCleanup() {
+    stopBlobMotion();
+    unbindProgress();
+    removeProgressBar();
+  }
+
+  function removeLifecycleCleanup() {
+    if (!lifecycleCleanupInstalled) return;
+    lifecycleCleanupInstalled = false;
+    window.removeEventListener('beforeunload', handleBeforeUnloadCleanup);
+    window.removeEventListener(ROUTE_TRANSITION_OUT_START, handleRouteTransitionOutStart);
+  }
+
+  function handleRouteTransitionOutStart() {
+    handleBeforeUnloadCleanup();
+    removeLifecycleCleanup();
+  }
+
+  function installLifecycleCleanup() {
+    if (lifecycleCleanupInstalled) return;
+    lifecycleCleanupInstalled = true;
+    window.addEventListener('beforeunload', handleBeforeUnloadCleanup);
+    window.addEventListener(ROUTE_TRANSITION_OUT_START, handleRouteTransitionOutStart);
   }
 
   function normalizeSlug(rawSlug) {
@@ -812,6 +844,7 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
     const app = document.querySelector(APP_SELECTOR);
     if (!app) return;
 
+    installLifecycleCleanup();
     const slug = normalizeSlug(app.getAttribute('data-dexnotes-slug') || slugFromPathname());
     startBlobMotion();
 
@@ -827,11 +860,6 @@ import { mountPollEmbeds } from './shared/dx-polls-embed.entry.mjs';
     } catch (error) {
       renderError(app, error);
     }
-
-    window.addEventListener('beforeunload', () => {
-      stopBlobMotion();
-      unbindProgress();
-    });
   }
 
   bootstrap();
