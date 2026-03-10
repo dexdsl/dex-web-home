@@ -188,6 +188,7 @@ body[data-dx-route='dexdrones'] .dx-dexdrones-page-shell::before {
   font-family: var(--font-heading, "Stretch Pro", sans-serif);
   line-height: 1.08;
   font-size: clamp(1.16rem, 2vw, 1.72rem);
+  text-transform: uppercase;
 }
 
 .dx-dexdrones-home-title {
@@ -197,6 +198,7 @@ body[data-dx-route='dexdrones'] .dx-dexdrones-page-shell::before {
   line-height: 1.02;
   font-size: clamp(1.72rem, 3.3vw, 3.04rem);
   letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 .dx-dexdrones-identifier,
@@ -340,6 +342,10 @@ body[data-dx-route='dexdrones'] .dx-dexdrones-page-shell::before {
   display: block;
   width: min(150px, 100%);
   height: auto;
+}
+
+.dx-dexdrones-card-title {
+  text-transform: uppercase;
 }
 
 .dx-dexdrones-hero-proof {
