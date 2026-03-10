@@ -3344,7 +3344,7 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
   
     <!-- dexDRONES homepage promo -->
 <section id="dex-board-promo" class="dex-board-promo" data-context="home" role="region" aria-labelledby="dex-board-promo-title">
-  <div class="promo-surface">
+  <div class="promo-surface" data-dx-hover-variant="magnetic">
     <div class="promo-grid">
 
       <header class="promo-head">
@@ -3396,51 +3396,80 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
 
 <style>
   #dex-board-promo {
-    --bg: rgba(255, 255, 255, 0.64);
-    --ink: #11131a;
-    --muted: #4b5163;
+    --ink: rgba(16, 20, 28, 0.96);
+    --muted: rgba(18, 24, 34, 0.7);
+    --surface-bg: var(--dx-header-glass-bg, linear-gradient(120deg, rgba(221, 230, 240, 0.36) 0%, rgba(191, 208, 224, 0.26) 55%, rgba(232, 210, 203, 0.24) 100%));
+    --surface-rim: var(--dx-header-glass-rim, rgba(255, 255, 255, 0.42));
+    --surface-shadow: var(--dx-header-glass-shadow, 0 16px 36px rgba(18, 22, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32));
+    --surface-backdrop: var(--dx-header-glass-backdrop, saturate(180%) blur(18px));
+    --surface-radius: var(--dx-header-glass-radius, var(--dx-radius-md, 10px));
+    --chip-bg: color-mix(in srgb, var(--surface-bg) 54%, rgba(255, 255, 255, 0.34));
+    --chip-rim: color-mix(in srgb, var(--surface-rim) 78%, rgba(255, 255, 255, 0.2));
+    --chip-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
   }
 
   #dex-board-promo * { box-sizing: border-box; }
 
   #dex-board-promo .promo-surface {
+    position: relative;
+    isolation: isolate;
     display: block;
     width: 100%;
     color: var(--ink);
     text-decoration: none;
-    border: 1px solid rgba(17, 17, 17, 0.12);
-    border-radius: 4px;
-    background: color-mix(in oklab, var(--bg) 76%, transparent 24%);
-    -webkit-backdrop-filter: blur(12px) saturate(135%);
-    backdrop-filter: blur(12px) saturate(135%);
-    box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.06),
-      0 12px 26px rgba(0, 0, 0, 0.08),
-      0 4px 14px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--surface-rim);
+    border-radius: var(--surface-radius);
+    background: var(--surface-bg);
+    -webkit-backdrop-filter: var(--surface-backdrop);
+    backdrop-filter: var(--surface-backdrop);
+    box-shadow: var(--surface-shadow);
     overflow: hidden;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    will-change: transform;
+  }
+
+  #dex-board-promo .promo-surface::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    z-index: 0;
+    background: linear-gradient(120deg, transparent 30%, var(--dx-glass-highlight, rgba(255, 255, 255, 0.56)) 50%, transparent 70%);
+    transform: translateX(-130%);
+    pointer-events: none;
+    opacity: 0;
   }
 
   @media (hover: hover) and (pointer: fine) {
     #dex-board-promo .promo-surface {
-      transition: transform 0.16s cubic-bezier(.2,.7,.2,1), box-shadow 0.18s ease;
+      transition:
+        transform var(--dx-motion-dur-sm, 180ms) var(--dx-motion-ease-standard, cubic-bezier(.22, .8, .24, 1)),
+        box-shadow var(--dx-motion-dur-sm, 180ms) var(--dx-motion-ease-standard, cubic-bezier(.22, .8, .24, 1));
     }
 
     #dex-board-promo .promo-surface:hover {
-      transform: translateY(-1px);
+      transform: translateY(-1px) scale(var(--dx-motion-scale-hover, 1.015));
       box-shadow:
-        0 1px 0 rgba(0, 0, 0, 0.06),
-        0 16px 34px rgba(0, 0, 0, 0.1),
-        0 7px 18px rgba(0, 0, 0, 0.06);
+        0 18px 40px rgba(18, 22, 30, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    #dex-board-promo .promo-surface:hover::after {
+      opacity: 1;
+      animation: dx-board-promo-sheen 1.1s cubic-bezier(.2, .7, .2, 1) both;
     }
 
     #dex-board-promo .promo-surface:active { transform: translateY(0); }
   }
 
+  @keyframes dx-board-promo-sheen {
+    to { transform: translateX(130%); }
+  }
+
   #dex-board-promo .promo-grid {
+    position: relative;
+    z-index: 1;
     display: grid;
-    gap: clamp(12px, 1.6vw, 18px);
-    padding: clamp(16px, 2vw, 24px);
+    gap: clamp(12px, 1.4vw, 18px);
+    padding: clamp(18px, 2vw, 24px);
     grid-template-columns: 1.1fr 0.9fr;
     align-items: start;
   }
@@ -3462,22 +3491,24 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
 
   #dex-board-promo .eyebrow {
     margin: 0;
-    font: 700 11px/1.1 var(--font-heading, system-ui);
-    letter-spacing: 0.13em;
+    font: 700 11px/1.1 var(--font-body, "Courier Prime", monospace);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
   }
 
   #dex-board-promo .headline {
-    margin: 4px 0 6px 0;
-    font: 800 clamp(21px, 2.4vw, 28px)/1.12 var(--font-heading, system-ui);
+    margin: 6px 0 8px 0;
+    font: 800 clamp(22px, 2.5vw, 30px)/1.08 var(--font-heading, "Stretch Pro", sans-serif);
+    letter-spacing: 0;
+    text-wrap: balance;
   }
 
   #dex-board-promo .kicker {
     margin: 0;
     max-width: 60ch;
-    font: 400 clamp(13px, 1.15vw, 15px)/1.34 var(--font-body, system-ui);
-    color: #2f3442;
+    font: 400 clamp(13px, 1.12vw, 15px)/1.34 var(--font-body, "Courier Prime", monospace);
+    color: rgba(20, 27, 38, 0.86);
   }
 
   #dex-board-promo .value-list {
@@ -3493,20 +3524,25 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
     grid-template-columns: 20px 1fr;
     gap: 10px;
     align-items: start;
-    font: 400 clamp(13px, 1.1vw, 14px)/1.25 var(--font-body, system-ui);
-    color: #242936;
+    padding: 10px 12px;
+    border-radius: calc(var(--surface-radius) - 3px);
+    border: 1px solid var(--chip-rim);
+    background: var(--chip-bg);
+    box-shadow: var(--chip-shadow);
+    font: 400 clamp(13px, 1.08vw, 14px)/1.24 var(--font-body, "Courier Prime", monospace);
+    color: rgba(24, 31, 44, 0.94);
   }
 
   #dex-board-promo .value svg {
     width: 20px;
     height: 20px;
-    color: #11131a;
+    color: rgba(17, 23, 35, 0.88);
     opacity: 0.9;
   }
 
   #dex-board-promo .value b {
     font-weight: 700;
-    color: #0f1117;
+    color: rgba(14, 19, 29, 0.98);
   }
 
   #dex-board-promo .proof {
@@ -3514,6 +3550,11 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
+    padding: 10px 12px;
+    border-radius: calc(var(--surface-radius) - 3px);
+    border: 1px solid var(--chip-rim);
+    background: var(--chip-bg);
+    box-shadow: var(--chip-shadow);
   }
 
   #dex-board-promo .stat {
@@ -3523,13 +3564,13 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
   }
 
   #dex-board-promo .stat b {
-    font: 700 13px/1.1 var(--font-heading, system-ui);
-    color: #11131a;
+    font: 700 13px/1.1 var(--font-heading, "Stretch Pro", sans-serif);
+    color: rgba(15, 21, 32, 0.97);
   }
 
   #dex-board-promo .stat small {
-    font: 400 11px/1.2 var(--font-body, system-ui);
-    color: #59607a;
+    font: 400 11px/1.2 var(--font-body, "Courier Prime", monospace);
+    color: rgba(53, 63, 84, 0.86);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -3548,15 +3589,16 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
     gap: 10px;
     min-height: 40px;
     padding: 8px 10px;
-    border-radius: 4px;
-    border: 1px solid rgba(17, 17, 17, 0.11);
-    background: rgba(255, 255, 255, 0.44);
+    border-radius: calc(var(--surface-radius) - 3px);
+    border: 1px solid var(--chip-rim);
+    background: var(--chip-bg);
+    box-shadow: var(--chip-shadow);
   }
 
   #dex-board-promo .sponsor-label {
-    font: 700 10px/1.1 var(--font-heading, system-ui);
+    font: 700 10px/1.1 var(--font-body, "Courier Prime", monospace);
     letter-spacing: 0.12em;
-    color: #4d5364;
+    color: rgba(58, 67, 88, 0.85);
     text-transform: uppercase;
   }
 
@@ -3569,8 +3611,8 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
   }
 
   #dex-board-promo .sponsor-name {
-    font: 700 13px/1.1 var(--font-heading, system-ui);
-    color: #141824;
+    font: 700 13px/1.1 var(--font-heading, "Stretch Pro", sans-serif);
+    color: rgba(16, 22, 34, 0.96);
   }
 
   #dex-board-promo .cta-row {
@@ -3583,7 +3625,7 @@ footer.dex-footer { position:relative; z-index:1; isolation:isolate; }
 
   #dex-board-promo .cta-row .dx-button-element {
     text-decoration: none;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
   }
 
   @media (prefers-reduced-motion: reduce) {
