@@ -38,11 +38,7 @@
     "launchDate": "March 9, 2026",
     "markSrc": "/assets/img/dexdrones.png",
     "markAlt": "dexDRONES mark",
-    "proofChips": [
-      { "value": "30+ hours", "label": "Catalog" },
-      { "value": "~12,000", "label": "Downloads" },
-      { "value": "~500", "label": "Monthly active users" }
-    ],
+    "proofChips": [],
     "sponsor": {
       "label": "Founding Sponsor",
       "name": "Kolari Vision",

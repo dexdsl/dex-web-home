@@ -166,11 +166,7 @@ function verifyDataContract(data, failures) {
   );
 
   const proofChips = Array.isArray(data?.hero?.proofChips) ? data.hero.proofChips : [];
-  pushIf(failures, proofChips.length >= 3, 'dexdrones hero must include at least 3 proofChips');
-  const proofValues = proofChips.map((chip) => String(chip?.value || ''));
-  for (const value of ['30+ hours', '~12,000', '~500']) {
-    pushIf(failures, proofValues.includes(value), `dexdrones hero proofChips missing value: ${value}`);
-  }
+  pushIf(failures, proofChips.length === 0, 'dexdrones hero proofChips must be empty');
 
   pushIf(
     failures,

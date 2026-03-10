@@ -28,8 +28,7 @@ test('dexdrones renders canonical long-scroll shell and launch sections', async 
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-brand-plate .dx-dexdrones-mark')).toBeVisible();
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/donate/"]')).toHaveText(/SUP(?:\u200C)?PORT dexDRONES/i);
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE AN(?:\u200C)?NOUNCEMENT/i);
-  await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip')).toHaveCount(3);
-  await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip-value')).toHaveText(['30+ hours', '~12,000', '~500']);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip')).toHaveCount(0);
   await expect.poll(async () => page.evaluate(() => {
     const hero = document.getElementById('dexdrones-hero');
     return hero instanceof HTMLElement && !hero.closest('.dx-dexdrones-shell');
@@ -183,7 +182,7 @@ test('dexdrones section rail degrades on tablet/mobile widths', async ({ page })
     const second = children[1].getBoundingClientRect();
     const chips = Array.from(document.querySelectorAll('#dexdrones-hero .dx-dexdrones-hero-chip'));
     const chipsStacked = chips.length < 2
-      ? false
+      ? true
       : chips.slice(1).every((chip, index) => {
           const current = chip.getBoundingClientRect();
           const prev = chips[index].getBoundingClientRect();
