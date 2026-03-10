@@ -43,10 +43,10 @@
       "logoAlt": "Kolari Vision logo"
     },
     "ctas": [
-      { "label": "Support dexDRONES", "href": "/donate/", "variant": "primary", "size": "md" },
+      { "label": "SUPPORT dexDRONES", "href": "/donate/", "variant": "primary", "size": "md" },
       {
-        "label": "Read the launch announcement",
-        "href": "/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf",
+        "label": "READ THE ANNOUNCEMENT",
+        "href": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
         "variant": "secondary",
         "size": "md"
       }

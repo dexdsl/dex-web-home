@@ -22,6 +22,9 @@ test('dexdrones renders canonical long-scroll shell and launch sections', async 
 
   await expect(page.locator('[data-dx-dexdrones-app] .dx-dexdrones-editorial')).toBeVisible();
   await expect(page.locator('#dexdrones-hero')).toBeVisible();
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-home-title')).toBeVisible();
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/donate/"]')).toHaveText(/SUPPORT dexDRONES/i);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE ANNOUNCEMENT/i);
   await expect(page.locator('#dexdrones-press .dx-dexdrones-press-link')).toHaveCount(3);
   await expect(page.locator('#footer-sections')).toBeVisible();
 

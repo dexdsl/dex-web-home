@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-06T12:43:49.870Z",
+  "generated_at": "2026-03-10T01:06:33.052Z",
   "source_dir_raw": "content/dexnotes/posts",
   "lead_story_slug": "help-us-seat-dexs-founding-expansion-board",
   "lead_story": {
@@ -55,6 +55,42 @@
     "lead_story_pinned": true
   },
   "posts": [
+    {
+      "id": "dexnotes-dexdrones-launch-announcement-2026-03-09",
+      "slug": "dexdrones-launch-announcement-2026-03-09",
+      "title_raw": "DEX LAUNCHES dexDRONES WITH FOUNDING SPONSOR KOLARI VISION",
+      "excerpt_raw": "March 9, 2026: Dex launches dexDRONES, a semi-permanent aerial wing expanding access to film-quality CC-BY 4.0 video, stills, and ambient sound.",
+      "published_at_iso": "2026-03-09",
+      "published_display_raw": "3/9/26",
+      "updated_at_iso": "",
+      "category_slug_raw": "announcements",
+      "category_label_raw": "Announcements",
+      "author_id": "5f5a38b445de701d4778d80c",
+      "author_name_raw": "Sebastian Suarez-Solis",
+      "tags_raw": [
+        {
+          "slug_raw": "dexdrones",
+          "label_raw": "dexDRONES"
+        },
+        {
+          "slug_raw": "press-release",
+          "label_raw": "press release"
+        },
+        {
+          "slug_raw": "kolari-vision",
+          "label_raw": "Kolari Vision"
+        },
+        {
+          "slug_raw": "creative-commons",
+          "label_raw": "Creative Commons"
+        }
+      ],
+      "cover_image_src": "/assets/img/dexdrones.png",
+      "cover_image_alt_raw": "dexDRONES launch mark",
+      "route_path": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
+      "legacy_route_raw": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
+      "lead_story_pinned": false
+    },
     {
       "id": "dexnotes-help-us-seat-dexs-founding-expansion-board",
       "slug": "help-us-seat-dexs-founding-expansion-board",
@@ -489,6 +525,11 @@
   ],
   "categories": [
     {
+      "slug_raw": "announcements",
+      "label_raw": "Announcements",
+      "count": 1
+    },
+    {
       "slug_raw": "Edition+1",
       "label_raw": "Edition 1",
       "count": 1
@@ -616,8 +657,18 @@
       "count": 1
     },
     {
+      "slug_raw": "creative-commons",
+      "label_raw": "Creative Commons",
+      "count": 1
+    },
+    {
       "slug_raw": "Creative+Commons",
       "label_raw": "Creative Commons",
+      "count": 1
+    },
+    {
+      "slug_raw": "dexdrones",
+      "label_raw": "dexDRONES",
       "count": 1
     },
     {
@@ -658,6 +709,11 @@
     {
       "slug_raw": "griswold",
       "label_raw": "griswold",
+      "count": 1
+    },
+    {
+      "slug_raw": "kolari-vision",
+      "label_raw": "Kolari Vision",
       "count": 1
     },
     {
@@ -721,6 +777,11 @@
       "count": 1
     },
     {
+      "slug_raw": "press-release",
+      "label_raw": "press release",
+      "count": 1
+    },
+    {
       "slug_raw": "Programs",
       "label_raw": "Programs",
       "count": 1
@@ -760,7 +821,7 @@
     {
       "id": "5f5a38b445de701d4778d80c",
       "name_raw": "Sebastian Suarez-Solis",
-      "count": 9
+      "count": 10
     },
     {
       "id": "68acf7dce29f8247986d0e3f",
@@ -773,11 +834,11 @@
     "rss": "/dexnotes/rss.xml"
   },
   "stats": {
-    "posts_count": 10,
-    "categories_count": 10,
-    "tags_count": 43,
+    "posts_count": 11,
+    "categories_count": 11,
+    "tags_count": 47,
     "authors_count": 2,
     "protected_char_count": 2,
-    "protected_char_hash": "40125d5dd9f00299e90a70b25844bc6cf6e3b3dd4768ad456cd295b35012eea7"
+    "protected_char_hash": "a671a4bdef05a5c4f574750249f9b35150171d8048c02ec60dad627508977414"
   }
 }

@@ -1,5 +1,5 @@
 import { animate } from 'framer-motion/dom';
-import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
+import { bindDexButtonMotion, bindMagneticButtonMotion, bindSidebarMotion, prefersReducedMotion, revealStagger } from './shared/dx-motion.entry.mjs';
 
 (() => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -161,25 +161,33 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
   }
 
   function buildHero(data = {}) {
-    const section = buildSectionShell('dexdrones-hero', data.kicker, data.title);
-    section.classList.add('dx-dexdrones-hero');
+    const section = create('section', 'dx-dexdrones-surface dx-dexdrones-section dx-dexdrones-reveal dx-dexdrones-hero dx-dexdrones-home-hero');
+    section.id = 'dexdrones-hero';
 
-    const lead = toText(data.identifier, '', 240);
-    if (lead) section.appendChild(create('p', 'dx-dexdrones-identifier', lead));
+    const mast = create('div', 'dx-dexdrones-hero-mast');
+    const kicker = toText(data.kicker, '', 140);
+    if (kicker) mast.appendChild(create('p', 'dx-dexdrones-kicker', kicker));
+    const launchDate = toText(data.launchDate, '', 100);
+    if (launchDate) {
+      mast.appendChild(create('p', 'dx-dexdrones-meta', `Launch announcement: ${launchDate}`));
+    }
+    if (mast.childElementCount) section.appendChild(mast);
 
     const layout = create('div', 'dx-dexdrones-hero-layout');
     const heroBody = create('div', 'dx-dexdrones-hero-body');
 
-    const subhead = toText(data.subhead, '', 460);
-    if (subhead) heroBody.appendChild(create('p', 'dx-dexdrones-copy', subhead));
+    const lead = toText(data.identifier, '', 240);
+    if (lead) heroBody.appendChild(create('p', 'dx-dexdrones-identifier', lead));
 
-    const launchDate = toText(data.launchDate, '', 100);
-    if (launchDate) {
-      heroBody.appendChild(create('p', 'dx-dexdrones-meta', `Launch announcement: ${launchDate}`));
-    }
+    const title = toText(data.title, '', 300);
+    if (title) heroBody.appendChild(create('h1', 'dx-dexdrones-home-title', title));
+
+    const subhead = toText(data.subhead, '', 460);
+    if (subhead) heroBody.appendChild(create('p', 'dx-dexdrones-copy dx-dexdrones-hero-subhead', subhead));
 
     const sponsor = data.sponsor && typeof data.sponsor === 'object' ? data.sponsor : {};
     const sponsorCard = create('div', 'dx-dexdrones-sponsor');
+    sponsorCard.setAttribute('data-dx-hover-variant', 'magnetic');
     sponsorCard.appendChild(create('p', 'dx-dexdrones-sponsor-label', toText(sponsor.label, 'Founding Sponsor', 120)));
     sponsorCard.appendChild(create('p', 'dx-dexdrones-sponsor-name', toText(sponsor.name, '', 120)));
     const sponsorLogoSrc = toText(sponsor.logoSrc, '', 900);
@@ -223,6 +231,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
       const label = toText(metric?.label, '', 180);
       if (!value || !label) return;
       const card = create('article', 'dx-dexdrones-metric');
+      card.setAttribute('data-dx-hover-variant', 'magnetic');
       card.appendChild(create('p', 'dx-dexdrones-metric-value', value));
       card.appendChild(create('p', 'dx-dexdrones-metric-label', label));
       grid.appendChild(card);
@@ -243,6 +252,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
       const grid = create('div', 'dx-dexdrones-card-grid');
       cards.forEach((item) => {
         const card = create('article', 'dx-dexdrones-card');
+        card.setAttribute('data-dx-hover-variant', 'magnetic');
         const badge = toText(item?.status, '', 120);
         if (badge) card.appendChild(create('p', 'dx-dexdrones-card-badge', badge));
         card.appendChild(create('h3', 'dx-dexdrones-card-title', toText(item?.title, '', 220)));
@@ -279,6 +289,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
       const author = toText(item?.author, '', 180);
       if (!quote || !author) return;
       const card = create('article', 'dx-dexdrones-quote');
+      card.setAttribute('data-dx-hover-variant', 'magnetic');
       card.appendChild(create('p', 'dx-dexdrones-quote-text', `“${quote}”`));
       const byline = create('p', 'dx-dexdrones-quote-author', author);
       const role = toText(item?.role, '', 200);
@@ -307,6 +318,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
         const label = toText(item?.label, '', 220);
         if (!href || !label) return;
         const li = create('li', 'dx-dexdrones-press-item');
+        li.setAttribute('data-dx-hover-variant', 'magnetic');
         const link = create('a', 'dx-dexdrones-press-link', label);
         link.href = href;
         if (isExternalHref(href) && !href.startsWith('mailto:')) {
@@ -326,6 +338,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
       const grid = create('div', 'dx-dexdrones-contact-grid');
       contacts.forEach((contact) => {
         const card = create('article', 'dx-dexdrones-contact');
+        card.setAttribute('data-dx-hover-variant', 'magnetic');
         card.appendChild(create('p', 'dx-dexdrones-contact-label', toText(contact?.label, '', 120)));
         const href = toText(contact?.href, '', 900);
         const value = toText(contact?.value, '', 220);
@@ -517,7 +530,10 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     }
 
     bindDexButtonMotion(root, {
-      selector: '.dx-button-element, .dx-dexdrones-cta, .dx-dexdrones-progress-link',
+      selector: '.dx-button-element, .dx-dexdrones-cta, .dx-dexdrones-progress-link, [data-dx-hover-variant="magnetic"]',
+    });
+    bindMagneticButtonMotion(root, {
+      selector: '.dx-button-element, .dx-dexdrones-cta, [data-dx-hover-variant="magnetic"]',
     });
     bindSidebarMotion(root);
   }

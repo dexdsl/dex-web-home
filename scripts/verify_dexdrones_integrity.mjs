@@ -145,6 +145,12 @@ function verifyDataContract(data, failures) {
 
   pushIf(
     failures,
+    String(data?.hero?.ctas?.[1]?.href || '') === '/dexnotes/dexdrones-launch-announcement-2026-03-09/',
+    'dexdrones hero announcement CTA must target /dexnotes/dexdrones-launch-announcement-2026-03-09/',
+  );
+
+  pushIf(
+    failures,
     String(data?.support?.ctas?.[1]?.href || '') === 'mailto:info@dexdsl.org',
     'dexdrones support inquiry CTA must target mailto:info@dexdsl.org',
   );

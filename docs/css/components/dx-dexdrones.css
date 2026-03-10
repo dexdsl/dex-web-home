@@ -104,6 +104,10 @@
   padding: clamp(1rem, 2vw, 1.5rem);
 }
 
+.dx-dexdrones-home-hero {
+  padding: clamp(1.1rem, 2.4vw, 1.8rem);
+}
+
 .dx-dexdrones-kicker {
   margin: 0;
   color: var(--dx-dexdrones-muted);
@@ -121,8 +125,13 @@
   font-size: clamp(1.16rem, 2vw, 1.72rem);
 }
 
-.dx-dexdrones-hero .dx-dexdrones-title {
-  font-size: clamp(1.58rem, 2.84vw, 2.46rem);
+.dx-dexdrones-home-title {
+  margin: 0.28rem 0 0;
+  color: var(--dx-dexdrones-ink);
+  font-family: var(--font-heading, "Stretch Pro", sans-serif);
+  line-height: 1.02;
+  font-size: clamp(1.72rem, 3.3vw, 3.04rem);
+  letter-spacing: 0.01em;
 }
 
 .dx-dexdrones-identifier,
@@ -153,15 +162,31 @@
   text-transform: uppercase;
 }
 
+.dx-dexdrones-hero-mast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.72rem;
+}
+
+.dx-dexdrones-hero-mast .dx-dexdrones-meta {
+  margin-top: 0;
+  text-align: right;
+}
+
 .dx-dexdrones-hero-layout {
-  margin-top: 0.84rem;
+  margin-top: 0.78rem;
   display: grid;
-  gap: 0.82rem;
+  gap: 0.92rem;
 }
 
 .dx-dexdrones-hero-body {
   display: grid;
-  gap: 0.14rem;
+  gap: 0.24rem;
+}
+
+.dx-dexdrones-hero-subhead {
+  max-width: 66ch;
 }
 
 .dx-dexdrones-mark-wrap {
@@ -183,7 +208,7 @@
 }
 
 .dx-dexdrones-sponsor {
-  margin-top: 0.84rem;
+  margin-top: 0.74rem;
   border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--dx-dexdrones-radius);
   background: rgba(255, 255, 255, 0.56);
@@ -267,6 +292,18 @@
   border-radius: var(--dx-dexdrones-radius);
   background: rgba(255, 255, 255, 0.58);
   padding: 0.82rem;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.dx-dexdrones-metric:hover,
+.dx-dexdrones-card:hover,
+.dx-dexdrones-quote:hover,
+.dx-dexdrones-press-item:hover,
+.dx-dexdrones-contact:hover {
+  border-color: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 14px 34px rgba(10, 12, 15, 0.14);
 }
 
 .dx-dexdrones-metric-value {
@@ -490,6 +527,15 @@
   .dx-dexdrones-contact-grid {
     grid-template-columns: 1fr;
   }
+
+  .dx-dexdrones-hero-mast {
+    flex-direction: column;
+    gap: 0.32rem;
+  }
+
+  .dx-dexdrones-hero-mast .dx-dexdrones-meta {
+    text-align: left;
+  }
 }
 
 @media (max-width: 760px) {
@@ -519,5 +565,14 @@
   .dx-dexdrones-cta:hover {
     transform: none;
     filter: none;
+  }
+
+  .dx-dexdrones-metric,
+  .dx-dexdrones-card,
+  .dx-dexdrones-quote,
+  .dx-dexdrones-press-item,
+  .dx-dexdrones-contact {
+    transition: none;
+    will-change: auto;
   }
 }
