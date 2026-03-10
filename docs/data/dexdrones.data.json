@@ -31,9 +31,9 @@
   "hero": {
     "kicker": "DEXDRONES / INSTITUTIONAL LAUNCH",
     "launchTag": "DEXDRONES / INSTITUTIONAL LAUNCH",
-    "identifier": "dexDRONES is Dex's aerial wing for film-quality CC-BY 4.0 image-making.",
+    "identifier": "dexDRONES is Dex's aerial wing for film-quality, full-spectrum dronework and CC-BY 4.0 image-making.",
     "title": "Film-quality CC-BY 4.0 aerial assets for the public.",
-    "subhead": "A semi-permanent wing of Dex Digital Sample Library, launching with Mojave Desert fieldwork and Alaska applications under review, with founding support from Kolari Vision.",
+    "subhead": "A semi-permanent wing of Dex Digital Sample Library, launching with Mojave Desert fieldwork and Alaska applications under review, with founding support from Kolari Vision and a full-spectrum dronework pipeline.",
     "dateStamp": "03.09.2026",
     "launchDate": "March 9, 2026",
     "markSrc": "/assets/img/dexdrones.png",
@@ -71,7 +71,7 @@
     "title": "Open media infrastructure has a major aerial gap.",
     "copy": [
       "Film-quality aerial footage is among the hardest material to access openly, and that scarcity limits what the public sphere of moving-image making can become.",
-      "dexDRONES exists to build a durable public pathway into that space by publishing reusable field materials under CC-BY 4.0 instead of one-off private production outputs.",
+      "dexDRONES exists to build a durable public pathway into that space by publishing reusable full-spectrum dronework field materials under CC-BY 4.0 instead of one-off private production outputs.",
       "The long-term objective is practical: help make CC-only motion-picture workflows increasingly possible at professional quality, for artists, educators, institutions, and developers."
     ]
   },
@@ -81,7 +81,7 @@
     "cards": [
       {
         "title": "Aerial video",
-        "body": "Film-quality flight captures published under CC-BY 4.0 for direct editorial and production reuse."
+        "body": "Film-quality and full-spectrum flight captures published under CC-BY 4.0 for direct editorial and production reuse."
       },
       {
         "title": "Field stills",
@@ -123,7 +123,7 @@
     "title": "Built with founding support from Kolari Vision",
     "copy": [
       "Kolari Vision donated work on a full-spectrum conversion for one camera body, provided filter support, and helped establish the launch imaging workflow.",
-      "This support expands dexDRONES field flexibility and strengthens a professional capture foundation for publishing film-quality CC-BY 4.0 aerial assets beyond visible-light cinematography.",
+      "This support expands dexDRONES field flexibility and strengthens a professional full-spectrum dronework foundation for publishing film-quality CC-BY 4.0 aerial assets beyond visible-light cinematography.",
       "The sponsor role is operational, not decorative: it directly shapes the imaging capabilities and public value of the wing."
     ]
   },
