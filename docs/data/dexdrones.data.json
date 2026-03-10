@@ -1,0 +1,250 @@
+{
+  "source": "dexdrones-launch-page",
+  "steps": [
+    { "id": "dexdrones-hero", "label": "LAUNCH" },
+    { "id": "dexdrones-proof", "label": "PROOF" },
+    { "id": "dexdrones-why", "label": "WHY THIS WING EXISTS" },
+    { "id": "dexdrones-publishes", "label": "WHAT IT PUBLISHES" },
+    { "id": "dexdrones-underway", "label": "UNDERWAY NOW" },
+    { "id": "dexdrones-kolari", "label": "BUILT WITH KOLARI" },
+    { "id": "dexdrones-partners", "label": "WHY PARTNERS JOIN" },
+    { "id": "dexdrones-participate", "label": "WAYS TO PARTICIPATE" },
+    { "id": "dexdrones-quotes", "label": "QUOTE BAND" },
+    { "id": "dexdrones-support", "label": "SUPPORT DEXDRONES" },
+    { "id": "dexdrones-press", "label": "PRESS MATERIALS" },
+    { "id": "dexdrones-about", "label": "ABOUT DEX" }
+  ],
+  "hashAliases": {
+    "launch": "dexdrones-hero",
+    "proof": "dexdrones-proof",
+    "mission": "dexdrones-why",
+    "publishes": "dexdrones-publishes",
+    "underway": "dexdrones-underway",
+    "sponsor": "dexdrones-kolari",
+    "partners": "dexdrones-partners",
+    "participate": "dexdrones-participate",
+    "quotes": "dexdrones-quotes",
+    "support": "dexdrones-support",
+    "press": "dexdrones-press",
+    "about": "dexdrones-about"
+  },
+  "hero": {
+    "kicker": "DEXDRONES / INSTITUTIONAL LAUNCH",
+    "identifier": "dexDRONES is Dex's aerial wing for film-quality CC-BY 4.0 image-making.",
+    "title": "Film-quality CC-BY 4.0 aerial assets for the public.",
+    "subhead": "A semi-permanent wing of Dex Digital Sample Library, launching with Mojave Desert fieldwork and Alaska applications under review, with founding support from Kolari Vision.",
+    "launchDate": "March 9, 2026",
+    "markSrc": "/assets/img/dexdrones.png",
+    "markAlt": "dexDRONES mark",
+    "sponsor": {
+      "label": "Founding Sponsor",
+      "name": "Kolari Vision",
+      "logoSrc": "/assets/img/1fd737f2e3d8eb049fcc.png",
+      "logoAlt": "Kolari Vision logo"
+    },
+    "ctas": [
+      { "label": "Support dexDRONES", "href": "/donate/", "variant": "primary", "size": "md" },
+      {
+        "label": "Read the launch announcement",
+        "href": "/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf",
+        "variant": "secondary",
+        "size": "md"
+      }
+    ]
+  },
+  "proof": {
+    "kicker": "AT A GLANCE",
+    "title": "Proof of existing public use and institutional momentum.",
+    "metrics": [
+      { "value": "30+ hours", "label": "Catalogued video/audio assets" },
+      { "value": "~12,000", "label": "Download events to date" },
+      { "value": "~500", "label": "Monthly active users" },
+      { "value": "~3.5 TB", "label": "Available for open reuse" },
+      { "value": "Kolari Vision", "label": "Founding Sponsor" }
+    ]
+  },
+  "whyExists": {
+    "kicker": "WHY THIS WING EXISTS",
+    "title": "Open media infrastructure has a major aerial gap.",
+    "copy": [
+      "Film-quality aerial footage is among the hardest material to access openly, and that scarcity limits what the public sphere of moving-image making can become.",
+      "dexDRONES exists to build a durable public pathway into that space by publishing reusable field materials under CC-BY 4.0 instead of one-off private production outputs.",
+      "The long-term objective is practical: help make CC-only motion-picture workflows increasingly possible at professional quality, for artists, educators, institutions, and developers."
+    ]
+  },
+  "publishes": {
+    "kicker": "OUTPUT MODEL",
+    "title": "What dexDRONES publishes",
+    "cards": [
+      {
+        "title": "Aerial video",
+        "body": "Film-quality flight captures published under CC-BY 4.0 for direct editorial and production reuse."
+      },
+      {
+        "title": "Field stills",
+        "body": "Companion still imagery from production sessions for educational, civic, and visual-reference use."
+      },
+      {
+        "title": "Ambient sound",
+        "body": "Location audio and atmospheric field materials to support audiovisual and narrative workflows."
+      },
+      {
+        "title": "Imaging studies",
+        "body": "Methods and field notes documenting how capture conditions, permits, and imaging choices affect reusable outputs."
+      }
+    ]
+  },
+  "underway": {
+    "kicker": "STATUS",
+    "title": "What is now underway",
+    "cards": [
+      {
+        "status": "Confirmed",
+        "title": "Mojave Desert fieldwork",
+        "body": "Production date confirmed for April 2, 2026."
+      },
+      {
+        "status": "Under review",
+        "title": "Alaska applications",
+        "body": "Applications in review for Juneau, Valdez, Anchorage, and Worthington Alaska State Park."
+      },
+      {
+        "status": "In development",
+        "title": "East Coast scouting",
+        "body": "Additional mountain and forest location scouting through DMOs, state parks, and private land conversations."
+      }
+    ]
+  },
+  "kolari": {
+    "kicker": "FOUNDING SUPPORT",
+    "title": "Built with founding support from Kolari Vision",
+    "copy": [
+      "Kolari Vision donated work on a full-spectrum conversion for one camera body, provided filter support, and helped establish the launch imaging workflow.",
+      "This support expands dexDRONES field flexibility and strengthens a professional capture foundation for publishing film-quality CC-BY 4.0 aerial assets beyond visible-light cinematography.",
+      "The sponsor role is operational, not decorative: it directly shapes the imaging capabilities and public value of the wing."
+    ]
+  },
+  "whyPartners": {
+    "kicker": "PARTNER RELEVANCE",
+    "title": "Why partners join early",
+    "cards": [
+      {
+        "title": "Public cultural infrastructure",
+        "body": "Support a reusable public resource rather than a closed campaign deliverable."
+      },
+      {
+        "title": "Visible early-stage precedent",
+        "body": "Help shape the institutional model for open aerial image-making while the wing is being formalized."
+      },
+      {
+        "title": "Credible institutional base",
+        "body": "Dex already demonstrates catalog scale, active users, and sustained public download activity."
+      },
+      {
+        "title": "Meaningful placement",
+        "body": "Sponsors and access partners are integrated into the production logic and public narrative of the program."
+      }
+    ]
+  },
+  "participate": {
+    "kicker": "PARTICIPATION LANES",
+    "title": "Ways to participate",
+    "cards": [
+      {
+        "title": "Imaging partners",
+        "body": "Support camera conversion, optics, and technical workflows that expand capture capability and visual range."
+      },
+      {
+        "title": "Travel / fieldwork underwriting",
+        "body": "Fund mobility and production windows so more locations can be covered responsibly each season."
+      },
+      {
+        "title": "Permitting / access partners",
+        "body": "Help secure lawful access and permit pathways for parks, municipalities, and managed lands."
+      },
+      {
+        "title": "Institutional / regional collaborators",
+        "body": "Connect dexDRONES with local priorities, educational partners, and long-term public-benefit use cases."
+      }
+    ]
+  },
+  "quotes": {
+    "kicker": "QUOTE BAND",
+    "title": "Program and founding-sponsor perspective",
+    "items": [
+      {
+        "quote": "Film-quality aerial footage is among the hardest material to access openly, and that gap limits what the public sphere of moving-image making can become. dexDRONES is our effort to build a durable public pathway into that space.",
+        "author": "Sebastian Suarez-Solis",
+        "role": "Artistic Director, Dex"
+      },
+      {
+        "quote": "We believe in innovating in all areas of photography and videography from infrared to beyond. We are proud to support dexDRONES in publishing film-quality aerial assets under CC-BY 4.0 to the general public.",
+        "author": "Kolari Vision",
+        "role": "Founding Sponsor"
+      }
+    ]
+  },
+  "support": {
+    "kicker": "SUPPORT DEXDRONES",
+    "title": "Expand travel, permitting, imaging capacity, and field depth.",
+    "copy": [
+      "Support helps expand the number of locations, the depth of each field session, and the long-term public value of the wing.",
+      "As dexDRONES grows across regular seasons, underwriting in travel, permitting, and imaging increases what can be responsibly published for free public reuse."
+    ],
+    "ctas": [
+      { "label": "Donate", "href": "/donate/", "variant": "primary", "size": "md" },
+      { "label": "Inquire about partnership", "href": "mailto:info@dexdsl.org", "variant": "secondary", "size": "md" }
+    ]
+  },
+  "press": {
+    "kicker": "PRESS / PARTNER MATERIALS",
+    "title": "Download launch materials and contact the team.",
+    "materials": [
+      {
+        "label": "Launch press release (March 9, 2026)",
+        "href": "/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf",
+        "meta": "Official launch announcement"
+      },
+      {
+        "label": "dexDRONES factsheet",
+        "href": "/assets/press/dex-factsheet-dexDRONES.pdf",
+        "meta": "Program overview"
+      },
+      {
+        "label": "Dex fact sheet (2025-08)",
+        "href": "/assets/press/dex-factsheet-2025-08.pdf",
+        "meta": "Parent organization context"
+      }
+    ],
+    "contacts": [
+      {
+        "label": "Media contact",
+        "value": "cameron@dexdsl.org",
+        "href": "mailto:cameron@dexdsl.org"
+      },
+      {
+        "label": "Artistic director",
+        "value": "seb@dexdsl.org",
+        "href": "mailto:seb@dexdsl.org"
+      },
+      {
+        "label": "Partnerships",
+        "value": "info@dexdsl.org",
+        "href": "mailto:info@dexdsl.org"
+      }
+    ]
+  },
+  "aboutDex": {
+    "kicker": "RELATIONSHIP TO DEX",
+    "title": "dexDRONES is an equal pillar of Dex's public mission.",
+    "copy": [
+      "Dex Digital Sample Library is a 501(c)(3) building an always-free, CC-BY 4.0 library of artist-made video and audio for reuse and remix with attribution.",
+      "dexDRONES extends that mission into film-quality aerial capture so open moving-image workflows can operate with fewer structural barriers and higher production value.",
+      "The model remains unchanged: public access first, rights clarity, and practical reuse at institutional quality."
+    ],
+    "ctas": [
+      { "label": "About Dex", "href": "/about/", "variant": "secondary" },
+      { "label": "Open catalog", "href": "/catalog/", "variant": "secondary" }
+    ]
+  }
+}

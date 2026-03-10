@@ -82,6 +82,10 @@ const SYNC_MAP = [
     targets: ['data/about.data.json', 'docs/data/about.data.json'],
   },
   {
+    source: 'public/data/dexdrones.data.json',
+    targets: ['data/dexdrones.data.json', 'docs/data/dexdrones.data.json'],
+  },
+  {
     source: 'data/achievements.registry.json',
     targets: ['public/data/achievements.registry.json', 'docs/data/achievements.registry.json'],
   },
@@ -156,6 +160,10 @@ const SYNC_MAP = [
   {
     source: 'public/css/components/dx-about.css',
     targets: ['css/components/dx-about.css', 'docs/css/components/dx-about.css'],
+  },
+  {
+    source: 'public/css/components/dx-dexdrones.css',
+    targets: ['css/components/dx-dexdrones.css', 'docs/css/components/dx-dexdrones.css'],
   },
   {
     source: 'public/css/components/dx-donate.css',
@@ -242,6 +250,10 @@ const SYNC_MAP = [
     targets: ['assets/js/dx-about.js', 'docs/assets/js/dx-about.js'],
   },
   {
+    source: 'public/assets/js/dx-dexdrones.js',
+    targets: ['assets/js/dx-dexdrones.js', 'docs/assets/js/dx-dexdrones.js'],
+  },
+  {
     source: 'public/assets/js/donate.js',
     targets: ['assets/js/donate.js', 'docs/assets/js/donate.js'],
   },
@@ -272,6 +284,25 @@ const SYNC_MAP = [
   {
     source: 'public/assets/series/dexfest.png',
     targets: ['assets/series/dexfest.png', 'docs/assets/series/dexfest.png'],
+  },
+  {
+    source: 'public/assets/img/dexdrones.png',
+    targets: ['assets/img/dexdrones.png', 'docs/assets/img/dexdrones.png'],
+  },
+  {
+    source: 'public/assets/press/dex-factsheet-2025-08.pdf',
+    targets: ['assets/press/dex-factsheet-2025-08.pdf', 'docs/assets/press/dex-factsheet-2025-08.pdf'],
+  },
+  {
+    source: 'public/assets/press/dex-factsheet-dexDRONES.pdf',
+    targets: ['assets/press/dex-factsheet-dexDRONES.pdf', 'docs/assets/press/dex-factsheet-dexDRONES.pdf'],
+  },
+  {
+    source: 'public/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf',
+    targets: [
+      'assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf',
+      'docs/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf',
+    ],
   },
   {
     source: 'public/assets/dex-auth.js',
