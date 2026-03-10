@@ -595,20 +595,20 @@
   }
 }
 
-.dx-dexnotes-entry-body a {
+.dx-dexnotes-entry-body a:not(.dx-button-element):not(.dx-block-button-element):not(.sqs-button-element) {
   color: var(--dex-accent, #ff1910);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 0.14rem;
   transition: color 180ms ease, text-decoration-color 180ms ease;
 }
 
-.dx-dexnotes-entry-body a.dx-dexnotes-link:hover,
-.dx-dexnotes-entry-body a.dx-dexnotes-link:focus-visible {
+.dx-dexnotes-entry-body a.dx-dexnotes-link:not(.dx-button-element):not(.dx-block-button-element):not(.sqs-button-element):hover,
+.dx-dexnotes-entry-body a.dx-dexnotes-link:not(.dx-button-element):not(.dx-block-button-element):not(.sqs-button-element):focus-visible {
   color: #d3120d;
   text-decoration-color: #ff9810;
 }
 
-.dx-dexnotes-entry-body a.dx-external-link::after {
+.dx-dexnotes-entry-body a.dx-external-link:not(.dx-button-element):not(.dx-block-button-element):not(.sqs-button-element)::after {
   content: " ↗";
 }
 
@@ -644,6 +644,14 @@
 
 .dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row .dx-button-element {
   text-decoration: none;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row .dx-button-element--primary {
+  color: #fff;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row .dx-button-element--secondary {
+  color: #000;
 }
 
 @media (max-width: 720px) {
