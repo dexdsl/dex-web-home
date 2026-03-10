@@ -1,65 +1,49 @@
 {
-  "generated_at": "2026-03-10T03:23:51.602Z",
+  "generated_at": "2026-03-10T06:57:34.948Z",
   "source_dir_raw": "content/dexnotes/posts",
-  "lead_story_slug": "help-us-seat-dexs-founding-expansion-board",
+  "lead_story_slug": "dexdrones-launch-announcement-2026-03-09",
   "lead_story": {
-    "id": "dexnotes-help-us-seat-dexs-founding-expansion-board",
-    "slug": "help-us-seat-dexs-founding-expansion-board",
-    "title_raw": "Help us seat Dex’s Founding Expansion Board",
-    "excerpt_raw": "Dex opens nominations for a Founding Expansion Board to steward an always-free, CC-BY library of artist-made video and audio. Directors, Advisors, and Observers; ~6 hrs/mo; remote welcome. Details at dexdsl.com/board.",
-    "published_at_iso": "2025-08-27",
-    "published_display_raw": "8/27/25",
+    "id": "dexnotes-dexdrones-launch-announcement-2026-03-09",
+    "slug": "dexdrones-launch-announcement-2026-03-09",
+    "title_raw": "Introducing dexDRONES: Open, film-quality aerial assets for creators and partners",
+    "excerpt_raw": "Dex launches dexDRONES, a new aerial wing delivering film-quality CC-BY 4.0 video, stills, and ambient sound for public reuse, with founding support from Kolari Vision.",
+    "published_at_iso": "2026-03-09",
+    "published_display_raw": "3/9/26",
     "updated_at_iso": "",
-    "category_slug_raw": "Update",
-    "category_label_raw": "Update",
-    "author_id": "68acf7dce29f8247986d0e3f",
-    "author_name_raw": "dex Team",
+    "category_slug_raw": "announcements",
+    "category_label_raw": "Announcements",
+    "author_id": "5f5a38b445de701d4778d80c",
+    "author_name_raw": "Sebastian Suarez-Solis",
     "tags_raw": [
       {
-        "slug_raw": "Governance",
-        "label_raw": "Governance"
+        "slug_raw": "dexdrones",
+        "label_raw": "dexDRONES"
       },
       {
-        "slug_raw": "Open+Access",
-        "label_raw": "Open Access"
+        "slug_raw": "press-release",
+        "label_raw": "press release"
       },
       {
-        "slug_raw": "Creative+Commons",
+        "slug_raw": "kolari-vision",
+        "label_raw": "Kolari Vision"
+      },
+      {
+        "slug_raw": "creative-commons",
         "label_raw": "Creative Commons"
-      },
-      {
-        "slug_raw": "Board+Search",
-        "label_raw": "Board Search"
-      },
-      {
-        "slug_raw": "Programs",
-        "label_raw": "Programs"
-      },
-      {
-        "slug_raw": "Arts-Tech",
-        "label_raw": "Arts-Tech"
-      },
-      {
-        "slug_raw": "Directors",
-        "label_raw": "Directors"
-      },
-      {
-        "slug_raw": "Advisors",
-        "label_raw": "Advisors"
       }
     ],
-    "cover_image_src": "/assets/img/279d890912008daa36fc.jpg",
-    "cover_image_alt_raw": "Help us seat Dex’s Founding Expansion Board",
-    "route_path": "/dexnotes/help-us-seat-dexs-founding-expansion-board/",
-    "legacy_route_raw": "/dexnotes/help-us-seat-dexs-founding-expansion-board/",
+    "cover_image_src": "/assets/img/dexdrones_background_black-lines_white.png",
+    "cover_image_alt_raw": "dexDRONES launch mark",
+    "route_path": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
+    "legacy_route_raw": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
     "lead_story_pinned": true
   },
   "posts": [
     {
       "id": "dexnotes-dexdrones-launch-announcement-2026-03-09",
       "slug": "dexdrones-launch-announcement-2026-03-09",
-      "title_raw": "DEX LAUNCHES dexDRONES WITH FOUNDING SPONSOR KOLARI VISION",
-      "excerpt_raw": "March 9, 2026: Dex launches dexDRONES, a semi-permanent aerial wing expanding access to film-quality CC-BY 4.0 video, stills, and ambient sound.",
+      "title_raw": "Introducing dexDRONES: Open, film-quality aerial assets for creators and partners",
+      "excerpt_raw": "Dex launches dexDRONES, a new aerial wing delivering film-quality CC-BY 4.0 video, stills, and ambient sound for public reuse, with founding support from Kolari Vision.",
       "published_at_iso": "2026-03-09",
       "published_display_raw": "3/9/26",
       "updated_at_iso": "",
@@ -89,7 +73,7 @@
       "cover_image_alt_raw": "dexDRONES launch mark",
       "route_path": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
       "legacy_route_raw": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
-      "lead_story_pinned": false
+      "lead_story_pinned": true
     },
     {
       "id": "dexnotes-help-us-seat-dexs-founding-expansion-board",
@@ -839,6 +823,6 @@
     "tags_count": 47,
     "authors_count": 2,
     "protected_char_count": 2,
-    "protected_char_hash": "7a300ff2c8cdac85f1059bc6b7e5634222f21431bc6ec245e1c31b05f720cee3"
+    "protected_char_hash": "50b5b2aed8061ee7871b2eeef3ea5272b7230d901c9d25c011b8629312fb26fc"
   }
 }

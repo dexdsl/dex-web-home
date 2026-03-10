@@ -612,6 +612,47 @@
   content: " ↗";
 }
 
+.dx-dexnotes-entry-body .dx-dexnotes-launch-intro {
+  margin-top: 0.76rem;
+  padding: 0.78rem 0.84rem;
+  border: 1px solid rgba(24, 30, 42, 0.16);
+  border-radius: var(--dx-dexnotes-entry-radius);
+  background: linear-gradient(126deg, rgba(255, 255, 255, 0.64), rgba(245, 249, 255, 0.4));
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-intro p {
+  margin-top: 0.62rem;
+  margin-bottom: 0;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-intro p:first-child {
+  margin-top: 0;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-intro-lead {
+  color: var(--dx-dexnotes-entry-ink);
+  font-weight: 600;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row {
+  margin-top: 0.92rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.52rem;
+  align-items: center;
+}
+
+.dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row .dx-button-element {
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .dx-dexnotes-entry-body .dx-dexnotes-launch-cta-row .dx-button-element {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .dx-dexnotes-entry-rail {
   border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--dx-dexnotes-entry-radius);

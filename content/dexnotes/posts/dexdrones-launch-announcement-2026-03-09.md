@@ -2,8 +2,8 @@
 {
   "id": "dexnotes-dexdrones-launch-announcement-2026-03-09",
   "slug": "dexdrones-launch-announcement-2026-03-09",
-  "title_raw": "DEX LAUNCHES dexDRONES WITH FOUNDING SPONSOR KOLARI VISION",
-  "excerpt_raw": "March 9, 2026: Dex launches dexDRONES, a semi-permanent aerial wing expanding access to film-quality CC-BY 4.0 video, stills, and ambient sound.",
+  "title_raw": "Introducing dexDRONES: Open, film-quality aerial assets for creators and partners",
+  "excerpt_raw": "Dex launches dexDRONES, a new aerial wing delivering film-quality CC-BY 4.0 video, stills, and ambient sound for public reuse, with founding support from Kolari Vision.",
   "published_at_iso": "2026-03-09",
   "published_display_raw": "3/9/26",
   "updated_at_iso": "",
@@ -31,7 +31,7 @@
   ],
   "cover_image_src": "/assets/img/dexdrones_background_black-lines_white.png",
   "cover_image_alt_raw": "dexDRONES launch mark",
-  "lead_story_pinned": false,
+  "lead_story_pinned": true,
   "body_mode": "markdown",
   "legacy_route_raw": "/dexnotes/dexdrones-launch-announcement-2026-03-09/",
   "legacy_prev_slug_raw": "",
@@ -39,11 +39,49 @@
   "source_file_raw": "docs/dexnotes/dexdrones-launch-announcement-2026-03-09/index.html"
 }
 ---
-FOR IMMEDIATE RELEASE
+## dexDRONES is now live as Dex's aerial wing
 
-DEX LAUNCHES dexDRONES WITH FOUNDING SPONSOR KOLARI VISION, EXPANDING ACCESS TO FILM-QUALITY CC-BY 4.0 AERIAL ASSETS
+<div class="dx-dexnotes-launch-intro">
+  <p class="dx-dexnotes-launch-intro-lead">dexDRONES is a new semi-permanent wing of Dex Digital Sample Library focused on publishing film-quality CC-BY 4.0 aerial video, stills, and ambient sound for public reuse.</p>
+  <p>This launch expands what creators, educators, and filmmakers can access in the commons, while giving sponsors and institutional partners a clear way to underwrite durable public cultural infrastructure with measurable use.</p>
+</div>
 
-New semi-permanent wing begins with upcoming Mojave Desert production as Alaska applications move under review and dex builds an equal pillar of its public library for film-quality aerial video, stills, and ambient sound.
+### At a glance
+
+- **30+ hours** already available in Dex's catalog
+- **~12,000** download events to date
+- **~500** monthly active users
+- **~3.5 TB** published for open reuse
+- **Kolari Vision** as founding sponsor of dexDRONES
+
+### Who this launch serves
+
+#### For creators and users
+
+- More film-quality aerial media under CC-BY 4.0, ready for real-world editing and reuse.
+- Clear attribution terms without paywalls or closed licensing barriers.
+- A growing seasonal program that expands available locations and field material depth.
+
+#### For sponsors and partners
+
+- A direct path to support open public media infrastructure with visible long-term impact.
+- Operational partnership lanes in imaging, access, permitting, and fieldwork underwriting.
+- Credible institutional momentum from an already active and publicly used catalog.
+
+<div class="dx-dexnotes-launch-cta-row">
+  <a href="/assets/press/dex-press-release-dexDRONES-kolari-sponsor-2026-03-09.pdf" class="dx-button-element dx-button-size--sm dx-button-element--secondary">DOWNLOAD PRESS RELEASE (PDF)</a>
+  <a href="/dexdrones/" class="dx-button-element dx-button-size--sm dx-button-element--primary">EXPLORE dexDRONES</a>
+  <a href="/donate/" class="dx-button-element dx-button-size--sm dx-button-element--primary">SUPPORT / DONATE</a>
+  <a href="/assets/press/dex-factsheet-dexDRONES.pdf" class="dx-button-element dx-button-size--sm dx-button-element--secondary">DOWNLOAD FACTSHEET (PDF)</a>
+</div>
+
+## Official Press Release (March 9, 2026) - Verbatim
+
+### FOR IMMEDIATE RELEASE
+
+#### DEX LAUNCHES dexDRONES WITH FOUNDING SPONSOR KOLARI VISION, EXPANDING ACCESS TO FILM-QUALITY CC-BY 4.0 AERIAL ASSETS
+
+*New semi-permanent wing begins with upcoming Mojave Desert production as Alaska applications move under review and dex builds an equal pillar of its public library for film-quality aerial video, stills, and ambient sound.*
 
 Los Angeles, CA - March 9, 2026
 
@@ -61,16 +99,16 @@ Kolari Vision's support made dexDRONES possible at its point of origin. As found
 
 dex intends for dexDRONES to become an equal pillar alongside its regular collection of artist-led open-access files, extending the library's long-term capacity to publish open, reusable field materials at a level more often associated with closed licensing pipelines. As the wing grows, additional underwriting in travel, permitting, and imaging will expand the number of locations dex can responsibly access and deepen the amount of material it can publish from each field production. Over time, dex sees dexDRONES as part of a larger effort to make "mainstream motion-picture in a box" increasingly possible within the commons.
 
-Organizations interested in supporting future dexDRONES fieldwork or in exploring site access, institutional partnership, or underwriting in travel, permitting, and imaging are invited to contact dex. Donations in support of the library's public mission may also be made at dexdsl.org/donate.
+Organizations interested in supporting future dexDRONES fieldwork or in exploring site access, institutional partnership, or underwriting in travel, permitting, and imaging are invited to contact dex. Donations in support of the library's public mission may also be made at [dexdsl.org/donate](/donate/).
 
-MEDIA CONTACT
+### MEDIA CONTACT
 
-Cameron Church, Director of Communications - cameron@dexdsl.org
+Cameron Church, Director of Communications - [cameron@dexdsl.org](mailto:cameron@dexdsl.org)
 
-Sebastian Suarez-Solis, Artistic Director - seb@dexdsl.org
+Sebastian Suarez-Solis, Artistic Director - [seb@dexdsl.org](mailto:seb@dexdsl.org)
 
 ###
 
-ABOUT DEX
+### ABOUT DEX
 
-Dex Digital Sample Library ("dex") is a 501(c)(3) nonprofit building an always-free, CC-BY 4.0 library of artist-made video and audio for reuse and remix with attribution. dex treats its initiatives as capture events for public cultural infrastructure, publishing cinematic sessions, reusable media, and field materials so artists, filmmakers, educators, and developers can build without paywalls or permission barriers. Current dex activity includes its core collection, the new dexDRONES wing for film-quality aerial assets, residencies and festival captures, and broader efforts to expand what open moving-image and sound libraries can make possible. dex is based in Florida, with hubs in Los Angeles and DC/Baltimore, and operates free, forever by design. Learn more at dexdsl.org.
+Dex Digital Sample Library ("dex") is a 501(c)(3) nonprofit building an always-free, CC-BY 4.0 library of artist-made video and audio for reuse and remix with attribution. dex treats its initiatives as capture events for public cultural infrastructure, publishing cinematic sessions, reusable media, and field materials so artists, filmmakers, educators, and developers can build without paywalls or permission barriers. Current dex activity includes its core collection, the new dexDRONES wing for film-quality aerial assets, residencies and festival captures, and broader efforts to expand what open moving-image and sound libraries can make possible. dex is based in Florida, with hubs in Los Angeles and DC/Baltimore, and operates free, forever by design. Learn more at [dexdsl.org](/).

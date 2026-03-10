@@ -32,7 +32,7 @@
 
       <div class="sponsor" aria-label="Founding support">
         <span class="sponsor-label">FOUNDING SUPPORT</span>
-        <img src="/assets/img/1fd737f2e3d8eb049fcc.png" alt="Kolari Vision logo" loading="lazy" decoding="async">
+        <img src="https://dexdsl.github.io/assets/img/1fd737f2e3d8eb049fcc.png" alt="Kolari Vision logo" loading="lazy" decoding="async" referrerpolicy="no-referrer">
         <span class="sponsor-name">Kolari Vision</span>
       </div>
 
