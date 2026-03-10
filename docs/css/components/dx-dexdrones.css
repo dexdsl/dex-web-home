@@ -233,7 +233,7 @@ body[data-dx-route='dexdrones'] .dx-dexdrones-page-shell::before {
   margin: 0;
   padding: 0.3rem 0.52rem;
   border: 1px solid rgba(29, 35, 43, 0.24);
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.6);
   color: var(--dx-dexdrones-muted);
   font-family: var(--font-mono, "Courier Prime", monospace);

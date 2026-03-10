@@ -75,6 +75,12 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     return toText(value, fallback, max).toUpperCase();
   }
 
+  function toSectionHeadingText(sectionId, value, fallback = '', max = 300) {
+    const heading = toHeadingText(value, fallback, max);
+    if (sectionId !== 'dexdrones-publishes') return heading;
+    return heading.replace(/\bDEXDRONES\b/g, 'dexDRONES');
+  }
+
   function markHeadingForRandomize(heading) {
     if (!(heading instanceof HTMLElement)) return heading;
     heading.setAttribute(HEADING_RANDOMIZE_ATTR, 'true');
@@ -170,7 +176,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     section.id = id;
     if (kicker) section.appendChild(create('p', 'dx-dexdrones-kicker', toText(kicker, '', 140)));
     if (title) {
-      const heading = create('h2', 'dx-dexdrones-title', toHeadingText(title, '', 300));
+      const heading = create('h2', 'dx-dexdrones-title', toSectionHeadingText(id, title, '', 300));
       markHeadingForRandomize(heading);
       section.appendChild(heading);
     }

@@ -27,7 +27,7 @@ test('dexdrones renders canonical long-scroll shell and launch sections', async 
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-home-title')).toBeVisible();
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-brand-plate .dx-dexdrones-mark')).toBeVisible();
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/donate/"]')).toHaveText(/SUP(?:\u200C)?PORT dexDRONES/i);
-  await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE ANNOUNCEMENT/i);
+  await expect(page.locator('#dexdrones-hero .dx-dexdrones-cta[href="/dexnotes/dexdrones-launch-announcement-2026-03-09/"]')).toHaveText(/READ THE AN(?:\u200C)?NOUNCEMENT/i);
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip')).toHaveCount(3);
   await expect(page.locator('#dexdrones-hero .dx-dexdrones-hero-chip-value')).toHaveText(['30+ hours', '~12,000', '~500']);
   await expect.poll(async () => page.evaluate(() => {
