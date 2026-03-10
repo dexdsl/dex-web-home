@@ -38,7 +38,8 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     { id: 'dexdrones-press', label: 'PRESS MATERIALS' },
     { id: 'dexdrones-about', label: 'ABOUT DEX' },
   ];
-  const HEADING_DUPLICATE_EXCLUDED_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const HEADING_RANDOMIZE_ATTR = 'data-dx-heading-randomize';
+  const HEADING_PRESERVE_CANONICAL_ATTR = 'data-dx-heading-preserve-canonical';
 
   function toText(value, fallback = '', max = 600) {
     const text = String(value ?? '').trim();
@@ -74,9 +75,10 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     return toText(value, fallback, max).toUpperCase();
   }
 
-  function applyHeadingDuplicateExclusions(heading) {
+  function markHeadingForRandomize(heading) {
     if (!(heading instanceof HTMLElement)) return heading;
-    heading.setAttribute('data-dx-heading-duplicate-exclude-letters', HEADING_DUPLICATE_EXCLUDED_LETTERS);
+    heading.setAttribute(HEADING_RANDOMIZE_ATTR, 'true');
+    heading.setAttribute(HEADING_PRESERVE_CANONICAL_ATTR, 'true');
     return heading;
   }
 
@@ -169,7 +171,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     if (kicker) section.appendChild(create('p', 'dx-dexdrones-kicker', toText(kicker, '', 140)));
     if (title) {
       const heading = create('h2', 'dx-dexdrones-title', toHeadingText(title, '', 300));
-      applyHeadingDuplicateExclusions(heading);
+      markHeadingForRandomize(heading);
       section.appendChild(heading);
     }
     return section;
@@ -217,7 +219,7 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
     const title = toHeadingText(data.title, '', 300);
     if (title) {
       const heading = create('h1', 'dx-dexdrones-home-title', title);
-      applyHeadingDuplicateExclusions(heading);
+      markHeadingForRandomize(heading);
       heroBody.appendChild(heading);
     }
 
@@ -303,7 +305,9 @@ import { bindDexButtonMotion, bindSidebarMotion, prefersReducedMotion, revealSta
         card.setAttribute('data-dx-hover-variant', 'magnetic');
         const badge = toText(item?.status, '', 120);
         if (badge) card.appendChild(create('p', 'dx-dexdrones-card-badge', badge));
-        card.appendChild(create('h3', 'dx-dexdrones-card-title', toHeadingText(item?.title, '', 220)));
+        const heading = create('h3', 'dx-dexdrones-card-title', toHeadingText(item?.title, '', 220));
+        markHeadingForRandomize(heading);
+        card.appendChild(heading);
         card.appendChild(create('p', 'dx-dexdrones-card-copy', toText(item?.body, '', 520)));
         grid.appendChild(card);
       });

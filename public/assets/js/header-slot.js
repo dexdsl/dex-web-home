@@ -91,10 +91,11 @@
   ]);
   const STRETCH_PRO_CANONICAL_SEPARATOR = '\u200C';
   const STRETCH_PRO_DUPLICATED_SEPARATOR = '\u200D';
-  const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2';
+  const HEADING_TYPOGRAPHY_SELECTOR = 'h1, h2, [data-dx-heading-randomize="true"]';
   const HEADING_TEXT_IGNORE_SELECTOR = 'script, style, noscript, textarea, code, pre, svg, title, desc';
   const HEADING_DUPLICATE_EXCLUDE_WORDS_ATTR = 'data-dx-heading-duplicate-exclude-words';
   const HEADING_DUPLICATE_EXCLUDE_LETTERS_ATTR = 'data-dx-heading-duplicate-exclude-letters';
+  const HEADING_PRESERVE_CANONICAL_ATTR = 'data-dx-heading-preserve-canonical';
   // Based on Stretch Pro shaping: these duplicate-letter pairs map to ligature glyphs (AA.liga, NN.liga, etc).
   const HEADING_DUPLICATE_LIGATURE_SUPPORTED = new Set('ABCDEFGHJKLMNOPQRSTUWZ'.split(''));
   const HEADING_DUPLICATE_EXCLUDED = new Set('–L:TIAWMKX&VYH?!@#$%-1234567890'.split(''));
@@ -1149,6 +1150,14 @@
     return new Set(letters);
   }
 
+  function shouldPreserveHeadingCanonicalSeparators(heading) {
+    if (!(heading instanceof HTMLElement)) return false;
+    const raw = String(heading.getAttribute(HEADING_PRESERVE_CANONICAL_ATTR) || '').trim().toLowerCase();
+    if (!raw) return false;
+    if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
+    return true;
+  }
+
   function decorateHeadingElement(heading, options = {}) {
     if (!(heading instanceof HTMLElement)) return false;
     const textNodes = extractHeadingTextNodes(heading);
@@ -1179,9 +1188,11 @@
       excludedWords,
       excludedLetters,
     });
-    const renderedNodeValues = normalizeVisibleHeadingNodeValues(
-      normalizeRenderedDuplicateSeparators(randomizedNodeValues),
-    );
+    const normalizedNodeValues = normalizeRenderedDuplicateSeparators(randomizedNodeValues);
+    const preserveCanonicalSeparators = shouldPreserveHeadingCanonicalSeparators(heading);
+    const renderedNodeValues = preserveCanonicalSeparators
+      ? normalizedNodeValues.map((value) => String(value == null ? '' : value).replace(/\u200D/g, STRETCH_PRO_CANONICAL_SEPARATOR))
+      : normalizeVisibleHeadingNodeValues(normalizedNodeValues);
 
     textNodes.forEach((node, index) => {
       const nextValue = renderedNodeValues[index] || '';
