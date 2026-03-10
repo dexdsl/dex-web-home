@@ -26,9 +26,7 @@
 
       <div class="proof" aria-label="Program proof points">
         <div class="stat"><b>30+ hours</b><small>catalog</small></div>
-        <div class="dot" aria-hidden="true"></div>
         <div class="stat"><b>~12,000</b><small>downloads</small></div>
-        <div class="dot" aria-hidden="true"></div>
         <div class="stat"><b>~500</b><small>monthly active users</small></div>
       </div>
 
@@ -124,25 +122,38 @@
     position: relative;
     z-index: 1;
     display: grid;
-    gap: clamp(12px, 1.4vw, 18px);
-    padding: clamp(18px, 2vw, 24px);
-    grid-template-columns: 1.1fr 0.9fr;
+    gap: clamp(10px, 1.2vw, 14px);
+    padding: clamp(16px, 1.7vw, 22px);
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas:
+      "head values"
+      "proof proof"
+      "sponsor cta";
     align-items: start;
   }
 
-  #dex-board-promo .promo-head { grid-column: 1; }
-  #dex-board-promo .value-list { grid-column: 2; }
-  #dex-board-promo .proof,
-  #dex-board-promo .sponsor,
-  #dex-board-promo .cta-row { grid-column: 1 / -1; }
+  #dex-board-promo .promo-head { grid-area: head; }
+  #dex-board-promo .value-list { grid-area: values; align-content: start; }
+  #dex-board-promo .proof { grid-area: proof; }
+  #dex-board-promo .sponsor { grid-area: sponsor; justify-self: start; }
+  #dex-board-promo .cta-row { grid-area: cta; justify-self: end; }
 
   @media (max-width: 900px) {
-    #dex-board-promo .promo-grid { grid-template-columns: 1fr; }
+    #dex-board-promo .promo-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "head"
+        "proof"
+        "values"
+        "sponsor"
+        "cta";
+    }
     #dex-board-promo .promo-head,
     #dex-board-promo .value-list,
     #dex-board-promo .proof,
     #dex-board-promo .sponsor,
     #dex-board-promo .cta-row { grid-column: auto; }
+    #dex-board-promo .cta-row { justify-self: start; justify-content: flex-start; }
   }
 
   #dex-board-promo .eyebrow {
@@ -172,7 +183,7 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 8px;
+    gap: 7px;
   }
 
   #dex-board-promo .value {
@@ -180,7 +191,7 @@
     grid-template-columns: 20px 1fr;
     gap: 10px;
     align-items: start;
-    padding: 10px 12px;
+    padding: 9px 11px;
     border-radius: calc(var(--surface-radius) - 3px);
     border: 1px solid var(--chip-rim);
     background: var(--chip-bg);
@@ -202,21 +213,24 @@
   }
 
   #dex-board-promo .proof {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: calc(var(--surface-radius) - 3px);
-    border: 1px solid var(--chip-rim);
-    background: var(--chip-bg);
-    box-shadow: var(--chip-shadow);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
   }
 
   #dex-board-promo .stat {
     display: flex;
     flex-direction: column;
-    min-width: max(120px, 17ch);
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: calc(var(--surface-radius) - 3px);
+    border: 1px solid var(--chip-rim);
+    background: var(--chip-bg);
+    box-shadow: var(--chip-shadow);
   }
 
   #dex-board-promo .stat b {
@@ -232,10 +246,7 @@
   }
 
   #dex-board-promo .dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(17, 19, 26, 0.3);
+    display: none;
   }
 
   #dex-board-promo .sponsor {
@@ -276,7 +287,14 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    padding-top: 2px;
+    padding-top: 0;
+    align-self: center;
+  }
+
+  @media (max-width: 760px) {
+    #dex-board-promo .proof {
+      grid-template-columns: 1fr;
+    }
   }
 
   #dex-board-promo .cta-row .dx-button-element {
@@ -297,34 +315,7 @@
     box-shadow: none !important;
   }
 
-  #dex-board-promo { height: 100% !important; }
-  #dex-board-promo > .promo-surface { min-height: 100%; display: flex; align-items: center; }
+  #dex-board-promo { height: auto !important; }
+  #dex-board-promo > .promo-surface { min-height: 0 !important; display: block; }
   #dex-board-promo .promo-grid { width: 100%; }
 </style>
-
-<script>
-(function() {
-  const root = document.getElementById('dex-board-promo');
-  if (!root || !('ResizeObserver' in window)) return;
-  const wrapper = root.closest('.dx-block-content') || root.parentElement;
-  const promo = root.querySelector('.promo-surface');
-  if (!wrapper || !promo) return;
-
-  const apply = () => {
-    const hW = wrapper.clientHeight;
-    const hP = promo.offsetHeight;
-    if (hW - hP > 2) {
-      wrapper.style.display = 'grid';
-      wrapper.style.alignContent = 'center';
-    } else {
-      wrapper.style.display = '';
-      wrapper.style.alignContent = '';
-    }
-  };
-
-  const ro = new ResizeObserver(apply);
-  ro.observe(wrapper);
-  ro.observe(promo);
-  requestAnimationFrame(apply);
-})();
-</script>
